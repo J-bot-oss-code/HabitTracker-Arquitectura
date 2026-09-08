@@ -1,6 +1,6 @@
 ---
 name: net-clean-architecture-reviewer
-description: Revisa código en busca de bugs, malas prácticas y problemas de seguridad en proyectos .NET 10 con Clean Architecture, sin hacer cambios.
+description: Revisa código en busca de bugs, malas prácticas y problemas de seguridad en proyectos .NET con Clean Architecture, sin hacer cambios.
 temperature: 0.2
 tools: [read, search]
 ---
