@@ -1,6 +1,41 @@
 <Solution>
-  <Project Path="Core.Api/Core.Api.csproj" />
-  <Project Path="Core.Application/Core.Application.csproj" />
-  <Project Path="core.Domain/core.Domain.csproj" />
-  <Project Path="Core.Infraestructure/Core.Infraestructure.csproj" />
+  <Folder Name="/Host/">
+    <Project Path="Host/WebApi/WebApi.csproj" />
+  </Folder>
+  <Folder Name="/Modules/" />
+  <Folder Name="/Modules/AccessControl/">
+    <Project Path="Modules/AccessControl/AccessControl.Application/AccessControl.Application.csproj" />
+    <Project Path="Modules/AccessControl/AccessControl.Domain/AccessControl.Domain.csproj" />
+    <Project Path="Modules/AccessControl/AccessControl.Infrastructure/AccessControl.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Auditing/">
+    <Project Path="Modules/Auditing/Auditing.Application/Auditing.Application.csproj" />
+    <Project Path="Modules/Auditing/Auditing.Domain/Auditing.Domain.csproj" />
+    <Project Path="Modules/Auditing/Auditing.Infrastructure/Auditing.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/DocumentManager/">
+    <Project Path="Modules/DocumentManager/DocumentManager.Application/DocumentManager.Application.csproj" />
+    <Project Path="Modules/DocumentManager/DocumentManager.Domain/DocumentManager.Domain.csproj" />
+    <Project Path="Modules/DocumentManager/DocumentManager.Infrastructure/DocumentManager.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/HabitTracker/">
+    <Project Path="Modules/HabitTracker/HabitTracker.Application/HabitTracker.Application.csproj" />
+    <Project Path="Modules/HabitTracker/HabitTracker.Domain/HabitTracker.Domain.csproj" />
+    <Project Path="Modules/HabitTracker/HabitTracker.Infrastructure/HabitTracker.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Notifications/">
+    <Project Path="Modules/Notifications/Notifications.Application/Notifications.Application.csproj" />
+    <Project Path="Modules/Notifications/Notifications.Domain/Notifications.Domain.csproj" />
+    <Project Path="Modules/Notifications/Notifications.Infrastructure/Notifications.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Permissions/">
+    <Project Path="Modules/Permissions/Permissions.Application/Permissions.Application.csproj" />
+    <Project Path="Modules/Permissions/Permissions.Domain/Permissions.Domain.csproj" />
+    <Project Path="Modules/Permissions/Permissions.Infrastructure/Permissions.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/Modules/Reports/">
+    <Project Path="Modules/Reports/Reports.Application/Reports.Application.csproj" />
+    <Project Path="Modules/Reports/Reports.Domain/Reports.Domain.csproj" />
+    <Project Path="Modules/Reports/Reports.Infrastructure/Reports.Infrastructure.csproj" />
+  </Folder>
 </Solution>
