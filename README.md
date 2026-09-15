@@ -22,9 +22,14 @@ graph TD
     HabitTracker -->|"notificar(...)"| Notifications
     HabitTracker -->|"registrar evento"| Auditing
     HabitTracker -->|"adjunta documentos"| DocManager
+    HabitTracker -->|"envía datos para agregación"| Reports
+    
     Permissions -->|"pregunta usuario actual y rol"| AccessControl
     Permissions -->|"avisa al solicitante"| Notifications
     Permissions -.->|"registra resolución"| Auditing
+    
+    Reports -->|"valida permisos y rol"| AccessControl
+    
     AccessControl -.->|"audita cambios de rol"| Auditing
     DocManager -.->|"audita subidas"| Auditing
 ```
