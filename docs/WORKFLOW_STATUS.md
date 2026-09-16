@@ -4,7 +4,7 @@ Este archivo sirve como un tablero Kanban en texto para trackear el progreso del
 
 ## 🏃‍♂️ En Progreso (Sprint Actual)
 * **Pieza 1: Control de Acceso (Semanas 2 a 4)**
-  * [ ] Definir entidad `Usuario` y `Rol` (Dominio).
+  * [x] Definir entidad `Usuario` y `Rol` (Dominio).
   * [ ] Implementar hasheo de contraseñas (Aplicación / Seguridad).
   * [ ] Lógica de registro de usuario con correo único (RF-CA-01, RF-CA-02).
   * [ ] Lógica de Login y generación de Token JWT (RF-CA-03).
