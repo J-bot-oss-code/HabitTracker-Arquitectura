@@ -427,3 +427,18 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# JetBrains Rider
+.idea/
+*.sln.iml
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Local/User configurations (e.g. environment or local appsettings overrides)
+appsettings.local.json
+appsettings.*.user
+*.env.local
+*.env.development.local
+*.env.*.local
