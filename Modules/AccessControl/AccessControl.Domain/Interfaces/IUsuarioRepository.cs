@@ -11,5 +11,6 @@ public interface IUsuarioRepository
     Task<bool> CorreoExistsAsync(Email correo);
     Task UpdateAsync(Usuario usuario);
     Task<Usuario?> GetByNameAsync(string nombreCompleto);
+    Task<Usuario?> GetByTokenRecuperacionAsync(string token);
 
 }

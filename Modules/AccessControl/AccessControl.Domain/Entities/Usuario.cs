@@ -10,6 +10,7 @@ namespace AccessControl.Domain.Entities
         public string PasswordHash { get; private set; } = null!;
         public bool Activo { get; private set; }
         public DateTime FechaCreacion { get; private set; }
+        public TokenActivacion? TokenAcceso { get; private set; }
 
         public Rol Rol { get; private set; }
 
@@ -53,6 +54,32 @@ namespace AccessControl.Domain.Entities
                 throw new InvalidOperationException("El usuario ya tiene este rol.");
             }
             Rol = nuevoRol;
+        }
+
+        public void EstablecerTokenActivacion(TokenActivacion token)
+        {
+            TokenAcceso = token ?? throw new ArgumentNullException(nameof(token));
+        }
+
+        public void EstablecerTokenActivacion(string valor, DateTime vencimiento)
+        {
+            TokenAcceso = new TokenActivacion(valor, vencimiento);
+        }
+
+        public void CompletarActivacion(string token)
+        {
+            if (TokenAcceso == null || !TokenAcceso.EsValido(token))
+            {
+                throw new InvalidOperationException("El enlace de activacion es incorrecto o ha expirado");
+            }
+
+            Activo = true;
+            TokenAcceso = null;
+        }
+
+        public void ComopletarActivacion(string token)
+        {
+            CompletarActivacion(token);
         }
 
         public void Desactivar()
