@@ -9,6 +9,7 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options){}
 
     public DbSet<Usuario> usuarios {get; set;}
+    public DbSet<CorreoEnCola> CorreosEnCola { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
