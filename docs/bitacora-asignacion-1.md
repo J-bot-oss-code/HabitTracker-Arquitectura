@@ -1,48 +1,59 @@
-# Bitácora - Asignación 1
+# Bitácora — Asignación 1: Control de versiones
 
-## Datos de la entrega
+## Tarea delegada al agente
 
-- Proyecto: HabitTracker Nexus
-- Asignatura: Programación III
-- Entrega: Asignación 1, punto 1.4
-- Fecha: 22 de septiembre de 2026
+**Qué le pedí:** Le pedí al agente que me ayudara a generar la descripción 
+del pull request #4 (.github/PULL_REQUEST_TEMPLATE.md) para el repositorio 
+de mi compañero, basándome en el diff de los cambios, siguiendo el formato 
+de cuatro secciones (Qué cambia, Por qué, Cómo probarlo, Qué NO incluye) 
+acordado en clase.
 
-## Propósito
+**Qué me devolvió:** El agente generó una descripción completa y correcta 
+con las cuatro secciones, especificando que el archivo `PULL_REQUEST_TEMPLATE.md` 
+debía contener exactamente esos cuatro encabezados vacíos, y explicando 
+cómo verificarlo (revisar el orden de los encabezados y confirmar que no 
+se modificara ningún otro archivo).
 
-Registrar las decisiones y el avance inicial del proyecto, dejando evidencia de la estructura acordada antes de implementar las funcionalidades del Core.
+## Caso en que se equivocó
 
-## Actividades realizadas
+**El error:** Después de que el PR #4 (plantilla de pull request) ya había 
+sido fusionado a `main` por mi compañero, reutilicé la misma rama local 
+(`chore/pr-template`) para un ajuste menor y volví a hacer push. Esto 
+generó automáticamente un segundo pull request (#5) en GitHub, cuya 
+descripción —generada por el agente reutilizando el contexto anterior— 
+no coincidía con el contenido real de los cambios: el título decía 
+"actualizar plantilla de pull request", pero la descripción hablaba del 
+README y el .gitignore, que ya habían sido cubiertos en otros PRs 
+independientes (#2 y #3).
 
-### 1. Definición de la arquitectura
+**Cómo lo detecté:** Al revisar el PR #5 en GitHub noté que estaba en 
+estado "Open" (no fusionado), a diferencia de mis otros tres aportes, y 
+que la descripción no correspondía al título ni a la rama de origen. Esto 
+violaba la regla de "un pull request por aporte" de la asignación, ya que 
+duplicaba contenido que ya estaba fusionado en PRs anteriores.
 
-Se organizó la solución como un monolito modular basado en Clean Architecture y .NET 10. La separación busca que la lógica del dominio permanezca independiente de los detalles de infraestructura y de la interfaz web.
+**Cómo lo corregí:** Cerré el pull request #5 sin fusionarlo 
+(`Close pull request`), dejando únicamente los tres PRs originales 
+(#2, #3 y #4) como los tres aportes cerrados y fusionados que pedía la 
+asignación. Además, confirmé que el PR #4 ya reflejaba correctamente que 
+fue mi compañero (Joshua-Abreu) quien lo revisó y fusionó, por lo que no 
+era necesario un PR adicional para demostrarlo.
 
-La solución incluye un host web (`Host/WebApi`) y módulos para Control de Acceso, Gestión de Hábitos, Permisos, Documentos, Notificaciones, Reportes y Auditoría. Cada módulo dispone de proyectos para Domain, Application e Infrastructure según corresponda.
+## Nota sobre el flujo de revisión y fusión
 
-### 2. Modelado inicial del dominio de negocio
+Mi compañero y yo nos otorgamos mutuamente permisos de escritura en 
+nuestros respectivos repositorios para agilizar el trabajo durante la 
+sesión conjunta. Esto tuvo como consecuencia que, en algunos de los pull 
+requests fusionados en mi repositorio, fue mi compañero quien ejecutó el 
+merge directamente, en lugar de ser yo quien lo hiciera como dueño del 
+repositorio.
 
-Se creó la base del módulo HabitTracker con las entidades `Categoria`, `Etiqueta`, `Habito`, `Meta`, `Recompensa` y `RegistroDiario`. Estas entidades representan el vocabulario principal que utilizará el rastreador de hábitos.
-
-### 3. Documentación del diseño
-
-Se documentó la estructura y el progreso del proyecto en los archivos principales del repositorio. La documentación describe la arquitectura modular, el flujo de dependencias y el estado de los requisitos funcionales y transversales.
-
-## Decisiones técnicas
-
-| Decisión | Justificación |
-| --- | --- |
-| Usar .NET 10 | Mantener el proyecto sobre la versión de plataforma definida para la asignatura. |
-| Aplicar Clean Architecture | Separar reglas de negocio, casos de uso, infraestructura y presentación. |
-| Usar un monolito modular | Mantener un despliegue simple sin perder límites claros entre responsabilidades. |
-| Mantener dependencias hacia el interior | Evitar que el dominio dependa de EF Core, ASP.NET u otros detalles externos. |
-
-## Estado actual
-
-La estructura base y el modelo inicial del dominio están disponibles. La implementación de los requisitos del Core continúa por módulos, empezando por Control de Acceso, y debe validarse contra los requisitos de diseño transversales antes de cada entrega.
-
-## Próximos pasos
-
-1. Completar los casos de uso de Control de Acceso.
-2. Incorporar persistencia e infraestructura mediante contratos definidos en Application.
-3. Añadir pruebas para cada pieza implementada.
-4. Mantener actualizada esta bitácora con decisiones, avances y dificultades relevantes.
+Reconozco que el flujo esperado es que cada quien revise y fusione los 
+pull requests que le llegan a su propio repositorio. Aunque el botón de 
+"Merge" lo presionó mi compañero en algunos casos, sí realicé la revisión 
+de código correspondiente: dejé comentarios sobre líneas concretas en la 
+pestaña "Files changed" y un veredicto explícito (Approve) en cada uno de 
+los tres pull requests antes de que quedaran fusionados. Para futuras 
+entregas, ajustaré este flujo de manera que sea yo quien también ejecute 
+la fusión final en mi propio repositorio, cumpliendo el proceso completo 
+tal como se espera.
