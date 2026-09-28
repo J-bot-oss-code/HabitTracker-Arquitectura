@@ -23,19 +23,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegistroRequestDto request)
     {
-        try
-        {
-            var resultado = await _usuarioService.RegistrarUsuarioAsync(request);
-            return StatusCode(StatusCodes.Status201Created, resultado);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { mensaje = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { mensaje = ex.Message });
-        }
+        var resultado = await _usuarioService.RegistrarUsuarioAsync(request);
+        return StatusCode(StatusCodes.Status201Created, resultado);
     }
 
     /// <summary>Activa una cuenta con el token de activación.</summary>
@@ -45,19 +34,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Activate([FromBody] ActivateRequest request)
     {
-        try
-        {
-            await _usuarioService.ActivarCuentaAsync(request.Token);
-            return Ok(new { mensaje = "Cuenta activada correctamente." });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { mensaje = ex.Message });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { mensaje = ex.Message });
-        }
+        await _usuarioService.ActivarCuentaAsync(request.Token);
+        return Ok(new { mensaje = "Cuenta activada correctamente." });
     }
 
     /// <summary>
@@ -70,15 +48,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResendActivation([FromBody] ResendActivationRequest request)
     {
-        try
-        {
-            await _usuarioService.ReenviarEnlaceActivacionAsync(request.Correo);
-            return Ok(new { mensaje = "Si el correo está registrado, recibirás un enlace de activación." });
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(new { mensaje = ex.Message });
-        }
+        await _usuarioService.ReenviarEnlaceActivacionAsync(request.Correo);
+        return Ok(new { mensaje = "Si el correo está registrado, recibirás un enlace de activación." });
     }
 }
 
