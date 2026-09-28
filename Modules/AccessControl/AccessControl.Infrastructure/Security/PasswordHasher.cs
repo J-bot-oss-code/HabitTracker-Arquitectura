@@ -1,6 +1,6 @@
 using AccessControl.Application.Interfaces;
 
-namespace HabitTracker.Infrastructure.Security
+namespace AccessControl.Infrastructure.Security
 {
 
     public class PasswordHasher : IPasswordHasher
