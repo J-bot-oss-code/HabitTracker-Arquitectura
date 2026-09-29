@@ -1,10 +1,12 @@
-# 🎯 HabitTracker Nexus - Sistema Académico Distribuido
+# 🎯 HabitTracker Nexus - Sistema de Gestión de Hábitos
 
 Plataforma de alta fidelidad para el registro de hábitos diarios, organización de metas y trazabilidad del progreso a lo largo del tiempo. Proyecto desarrollado en .NET 10 siguiendo estrictamente los principios de **Clean Architecture** y el patrón de **Monolito Modular**.
 
 ## 🏗️ Arquitectura de Componentes (C4 - Nivel 3)
 
 El sistema opera bajo un único contenedor (Web API) dividido en 7 módulos completamente independientes. No existen bases de datos compartidas internamente ni dependencias cíclicas.
+
+> **Nota:** El módulo `DocManager` reflejado en el diagrama corresponde al directorio físico `Modules/DocumentManager`.
 
 ```mermaid
 graph TD
@@ -32,6 +34,21 @@ graph TD
     
     AccessControl -.->|"audita cambios de rol"| Auditing
     DocManager -.->|"audita subidas"| Auditing
+```
+
+## 🚀 Compilación y Ejecución
+
+Para trabajar con este proyecto, asegúrate de tener instalado el SDK de .NET 10 o superior.
+
+```bash
+# Compilar la solución entera
+dotnet build HabitTrackerSystem.slnx
+
+# Ejecutar la Web API localmente
+dotnet run --project Host/WebApi/WebApi.csproj
+
+# Ejecutar toda la suite de pruebas unitarias
+dotnet test
 ```
 
 ## 🗂️ Modelo de Datos del Negocio (Rastreador de Hábitos)
