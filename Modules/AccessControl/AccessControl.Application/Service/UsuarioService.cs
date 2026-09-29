@@ -13,18 +13,21 @@ public class UsuarioService : IUsuarioService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailQueue _emailQueue;
     private readonly IAuditoriaService _auditoria;
+    private readonly IJwtProvider _jwtProvider;
     private readonly ILogger<UsuarioService> _logger;
     public UsuarioService(
         IUsuarioRepository repository, 
         IPasswordHasher passwordHasher, 
         IEmailQueue emailQueue,
         IAuditoriaService auditoria,
+        IJwtProvider jwtProvider,
         ILogger<UsuarioService> logger)
     {
         _repository = repository;
         _passwordHasher = passwordHasher;
         _emailQueue = emailQueue;
         _auditoria = auditoria;
+        _jwtProvider = jwtProvider;
         _logger = logger;
     }
 
@@ -33,28 +36,52 @@ public class UsuarioService : IUsuarioService
     public async Task<UsuarioResponseDto> AutenticarUsuarioAsync(LoginRequestDto request)
     {
         _logger.LogInformation("Intento de login para: {Email}", request.Email);
-        
+
         var Email = new Email(request.Email);
 
         var usuario = await _repository.GetByCorreoAsync(Email);
 
-        // RF-CA-03: Rechaso explisito sin revelar que fallo
-        if(usuario == null || !_passwordHasher.verificar(usuario.PasswordHash, request.password))
+        // 1. RF-CA-03: sin revelar qué dato falló.
+        if (usuario == null)
         {
             throw new UnauthorizedAccessException("Credenciales incorrectas");
-
         }
+
+        // 2. RF-CA-19: cuenta bloqueada por intentos fallidos.
+        if (usuario.EstaBloqueado())
+        {
+            throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+        }
+
+        // 3. RF-CA-15: la cuenta debe estar activada.
+        if (!usuario.Activo)
+        {
+            throw new InvalidOperationException("Debe activar su cuenta antes de iniciar sesión.");
+        }
+
+        // 4. Contraseña incorrecta: se registra el intento y se persiste.
+        if (!_passwordHasher.verificar(usuario.PasswordHash, request.password))
+        {
+            usuario.RegistrarIntentoFallido();
+            await _repository.UpdateAsync(usuario);
+
+            throw new UnauthorizedAccessException("Credenciales incorrectas");
+        }
+
+        // 5. Éxito: se restablecen intentos, se persiste y se emite el JWT.
+        usuario.RestablecerIntentos();
+        await _repository.UpdateAsync(usuario);
+
+        var token = _jwtProvider.Generar(usuario);
 
         return new UsuarioResponseDto(
             usuario.Id,
-            usuario.NombreCompleto, 
+            usuario.NombreCompleto,
             usuario.Correo.Valor,
             usuario.Rol.ToString(),
-            usuario.Activo
+            usuario.Activo,
+            token
         );
-
-
-
     }
 
     public async Task cambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId)

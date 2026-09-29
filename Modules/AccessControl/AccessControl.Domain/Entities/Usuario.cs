@@ -11,6 +11,7 @@ namespace AccessControl.Domain.Entities
         public bool Activo { get; private set; }
         public DateTime FechaCreacion { get; private set; }
         public TokenActivacion? TokenAcceso { get; private set; }
+        public BloqueoCuenta Bloqueo { get; private set; } = new BloqueoCuenta();
 
         public Rol Rol { get; private set; }
 
@@ -82,8 +83,13 @@ namespace AccessControl.Domain.Entities
             CompletarActivacion(token);
         }
 
-        public void Desactivar()
-        {
+        public void RegistrarIntentoFallido() => Bloqueo.RegistrarFallo();
+
+        public void RestablecerIntentos() => Bloqueo.Restablecer();
+
+        public bool EstaBloqueado() => Bloqueo.EstaBloqueado();
+
+        public void Desactivar()        {
             if (!Activo)
             {
                 throw new InvalidOperationException("El usuario ya está desactivado.");
