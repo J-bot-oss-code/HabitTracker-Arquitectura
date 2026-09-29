@@ -141,7 +141,7 @@ public class UsuarioService : IUsuarioService
             throw new InvalidOperationException("El enlace de activacion es incorrecto o ha expirado");
         }
 
-       usuario.ComopletarActivacion(token);
+       usuario.CompletarActivacion(token);
 
        await _repository.UpdateAsync(usuario);
     }
@@ -173,7 +173,7 @@ public class UsuarioService : IUsuarioService
         var nuevoUsuario = new Usuario(request.nombre, Email, passwordhash );
 
         string tokenActivacion = Guid.NewGuid().ToString("N");
-        nuevoUsuario.EstablecerTokenActivacion(tokenActivacion, DateTime.UtcNow);
+        nuevoUsuario.EstablecerTokenActivacion(tokenActivacion, DateTime.UtcNow.AddHours(24));
 
 
         // 5. guardar

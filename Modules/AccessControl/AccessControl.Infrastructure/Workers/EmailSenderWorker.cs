@@ -124,7 +124,10 @@ public class EmailSenderWorker : BackgroundService
             EnableSsl = true
         };
 
-        using var message = new MailMessage(user, correo.Destinatario, correo.Asunto, correo.Cuerpo);
+        using var message = new MailMessage(user, correo.Destinatario, correo.Asunto, correo.Cuerpo)
+        {
+            IsBodyHtml = true
+        };
 
         await client.SendMailAsync(message, stoppingToken);
     }
