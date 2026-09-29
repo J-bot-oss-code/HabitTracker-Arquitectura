@@ -427,6 +427,9 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+<<<<<<< HEAD
+docs/progress.md
+=======
 
 # JetBrains Rider
 .idea/
@@ -442,3 +445,4 @@ appsettings.*.user
 *.env.local
 *.env.development.local
 *.env.*.local
+>>>>>>> 00566007127ea7cfcc002359a034d68bd4ec93bf
