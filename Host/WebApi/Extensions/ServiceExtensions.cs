@@ -1,3 +1,4 @@
+using System.Text;
 using AccessControl.Application.Interfaces;
 using AccessControl.Application.Service;
 using AccessControl.Domain.Interfaces;
@@ -6,9 +7,11 @@ using AccessControl.Infrastructure.Repositories;
 using AccessControl.Infrastructure.Security;
 using AccessControl.Infrastructure.Services;
 using AccessControl.Infrastructure.Workers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 
 namespace WebApi.Extensions;
 
@@ -31,6 +34,37 @@ public static class ServiceExtensions
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IEmailQueue, DatabaseEmailQueue>();
         services.AddScoped<IAuditoriaService, AuditoriaService>();
+        services.AddScoped<IJwtProvider, JwtProvider>();
+        services.AddSingleton<ITokenBlacklist, MemoryTokenBlacklist>();
+
+        services.AddMemoryCache();
+
+        var clave = configuration["JwtSettings:Clave"];
+        var emisor = configuration["JwtSettings:Emisor"];
+        var audiencia = configuration["JwtSettings:Audiencia"];
+
+        if (string.IsNullOrWhiteSpace(clave) || string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(audiencia))
+        {
+            throw new InvalidOperationException("Falta configuración JWT (JwtSettings:Clave, JwtSettings:Emisor, JwtSettings:Audiencia).");
+        }
+
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = emisor,
+                    ValidAudience = audiencia,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(clave)),
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
+
+        services.AddAuthorization();
 
         services.AddHostedService<EmailSenderWorker>();
 

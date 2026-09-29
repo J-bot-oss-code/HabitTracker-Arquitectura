@@ -30,6 +30,10 @@ public class GlobalExceptionMiddleware
         {
             await WriteProblemAsync(context, HttpStatusCode.BadRequest, "Solicitud inválida.", ex.Message);
         }
+        catch (UnauthorizedAccessException ex)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "No autorizado.", ex.Message);
+        }
         catch (InvalidOperationException ex)
         {
             await WriteProblemAsync(context, HttpStatusCode.BadRequest, "La operación no pudo completarse.", ex.Message);
