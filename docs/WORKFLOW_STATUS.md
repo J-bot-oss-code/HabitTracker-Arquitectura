@@ -9,7 +9,8 @@ Este archivo sirve como un tablero Kanban en texto para trackear el progreso del
   * [x] Lógica de registro de usuario con correo único (RF-CA-01, RF-CA-02).
   * [x] Lógica de Login y generación de Token JWT (RF-CA-03).
   * [x] Restricciones de sesión (Activación, Bloqueo de 15 min, Blacklist de tokens) (RF-CA-07, RF-CA-15, RF-CA-18, RF-CA-19).
-  * [ ] Restricciones por roles (Administrador/Estándar) (RF-CA-04, RF-CA-05).
+  * [x] Restricciones por roles (Administrador/Estándar) (RF-CA-04, RF-CA-05).
+  * [x] Administración de usuarios: listar, cambiar rol/estado y revocación de sesiones (RF-CA-06, RF-CA-08, RF-CA-20, RF-CA-21).
 
 ## ⏳ Pendiente (Backlog)
 * Pieza 2: Gestión de Permisos.
