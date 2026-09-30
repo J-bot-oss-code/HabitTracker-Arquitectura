@@ -51,7 +51,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CorreosEnCola");
+                    b.ToTable("CorreosEnCola", (string)null);
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>
@@ -81,163 +81,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("usuarios");
-                });
-
-            modelBuilder.Entity("EtiquetaHabito", b =>
-                {
-                    b.Property<Guid>("EtiquetasId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("HabitosId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("EtiquetasId", "HabitosId");
-
-                    b.HasIndex("HabitosId");
-
-                    b.ToTable("EtiquetaHabito");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Categoria", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Descripcion")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Categorias");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Etiqueta", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ColorHex")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Etiquetas");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Habito", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Estado")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Frecuencia")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("MetaId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MetaId");
-
-                    b.ToTable("Habitos");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Meta", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("CategoriaId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("EstadoActual")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("FechaLimite")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Titulo")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoriaId");
-
-                    b.ToTable("Metas");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Recompensa", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid>("MetaId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Puntos")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MetaId");
-
-                    b.ToTable("Recompensas");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.RegistroDiario", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("Completado")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("HabitoId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Notas")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("HabitoId");
-
-                    b.ToTable("RegistrosDiarios");
+                    b.ToTable("usuarios", (string)null);
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>
@@ -255,7 +99,26 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios");
+                            b1.ToTable("usuarios", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("UsuarioId");
+                        });
+
+                    b.OwnsOne("AccessControl.Domain.Entities.ValueObjects.Email", "Correo", b1 =>
+                        {
+                            b1.Property<Guid>("UsuarioId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Valor")
+                                .IsRequired()
+                                .HasMaxLength(150)
+                                .HasColumnType("nvarchar(150)")
+                                .HasColumnName("Correo");
+
+                            b1.HasKey("UsuarioId");
+
+                            b1.ToTable("usuarios", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");
@@ -281,26 +144,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios");
-
-                            b1.WithOwner()
-                                .HasForeignKey("UsuarioId");
-                        });
-
-                    b.OwnsOne("AccessControl.Domain.Entities.ValueObjects.Email", "Correo", b1 =>
-                        {
-                            b1.Property<Guid>("UsuarioId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("Valor")
-                                .IsRequired()
-                                .HasMaxLength(150)
-                                .HasColumnType("nvarchar(150)")
-                                .HasColumnName("Correo");
-
-                            b1.HasKey("UsuarioId");
-
-                            b1.ToTable("usuarios");
+                            b1.ToTable("usuarios", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");
@@ -323,7 +167,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios");
+                            b1.ToTable("usuarios", (string)null);
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");
@@ -338,82 +182,6 @@ namespace AccessControl.Infrastructure.Migrations
                     b.Navigation("Recuperacion");
 
                     b.Navigation("TokenAcceso");
-                });
-
-            modelBuilder.Entity("EtiquetaHabito", b =>
-                {
-                    b.HasOne("HabitTracker.Domain.Entities.Etiqueta", null)
-                        .WithMany()
-                        .HasForeignKey("EtiquetasId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HabitTracker.Domain.Entities.Habito", null)
-                        .WithMany()
-                        .HasForeignKey("HabitosId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Habito", b =>
-                {
-                    b.HasOne("HabitTracker.Domain.Entities.Meta", "Meta")
-                        .WithMany("Habitos")
-                        .HasForeignKey("MetaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Meta");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Meta", b =>
-                {
-                    b.HasOne("HabitTracker.Domain.Entities.Categoria", "Categoria")
-                        .WithMany("Metas")
-                        .HasForeignKey("CategoriaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Categoria");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Recompensa", b =>
-                {
-                    b.HasOne("HabitTracker.Domain.Entities.Meta", "Meta")
-                        .WithMany("Recompensas")
-                        .HasForeignKey("MetaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Meta");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.RegistroDiario", b =>
-                {
-                    b.HasOne("HabitTracker.Domain.Entities.Habito", "Habito")
-                        .WithMany("RegistrosDiarios")
-                        .HasForeignKey("HabitoId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Habito");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Categoria", b =>
-                {
-                    b.Navigation("Metas");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Habito", b =>
-                {
-                    b.Navigation("RegistrosDiarios");
-                });
-
-            modelBuilder.Entity("HabitTracker.Domain.Entities.Meta", b =>
-                {
-                    b.Navigation("Habitos");
-
-                    b.Navigation("Recompensas");
                 });
 #pragma warning restore 612, 618
         }

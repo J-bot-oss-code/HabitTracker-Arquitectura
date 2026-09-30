@@ -1,6 +1,5 @@
 using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
-using HabitTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AccessControl.Infrastructure.Persistence;
@@ -11,12 +10,6 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Usuario> usuarios {get; set;}
     public DbSet<CorreoEnCola> CorreosEnCola { get; set; }
-    public DbSet<Habito> Habitos { get; set; } = null!;
-    public DbSet<Meta> Metas { get; set; } = null!;
-    public DbSet<Categoria> Categorias { get; set; } = null!;
-    public DbSet<Recompensa> Recompensas { get; set; } = null!;
-    public DbSet<RegistroDiario> RegistrosDiarios { get; set; } = null!;
-    public DbSet<Etiqueta> Etiquetas { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -60,14 +53,6 @@ public class ApplicationDbContext : DbContext
             .IsRequired();  
  
         });
-
-        modelBuilder.Entity<Habito>()
-            .Property(h => h.Estado)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Habito>()
-            .HasMany(h => h.Etiquetas)
-            .WithMany(e => e.Habitos);
 
         
 
