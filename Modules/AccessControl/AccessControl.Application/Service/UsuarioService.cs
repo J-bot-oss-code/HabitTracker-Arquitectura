@@ -14,6 +14,7 @@ public class UsuarioService : IUsuarioService
     private readonly IEmailQueue _emailQueue;
     private readonly IAuditoriaService _auditoria;
     private readonly IJwtProvider _jwtProvider;
+    private readonly ITokenBlacklist _blacklist;
     private readonly ILogger<UsuarioService> _logger;
     public UsuarioService(
         IUsuarioRepository repository, 
@@ -21,6 +22,7 @@ public class UsuarioService : IUsuarioService
         IEmailQueue emailQueue,
         IAuditoriaService auditoria,
         IJwtProvider jwtProvider,
+        ITokenBlacklist blacklist,
         ILogger<UsuarioService> logger)
     {
         _repository = repository;
@@ -28,6 +30,7 @@ public class UsuarioService : IUsuarioService
         _emailQueue = emailQueue;
         _auditoria = auditoria;
         _jwtProvider = jwtProvider;
+        _blacklist = blacklist;
         _logger = logger;
     }
 
@@ -156,6 +159,9 @@ public class UsuarioService : IUsuarioService
         else
         {
             usuario.Desactivar();
+
+            // RF-CA-20: las sesiones abiertas del usuario desactivado dejan de ser válidas.
+            _blacklist.RevocarUsuario(usuarioId);
         }
 
         await _repository.UpdateAsync(usuario);
