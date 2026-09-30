@@ -39,6 +39,8 @@ public class ApplicationDbContext : DbContext
 
             entity.OwnsOne(u => u.Bloqueo);
 
+            entity.OwnsOne(u => u.Recuperacion);
+
         entity.Property(e => e.NombreCompleto)
             .IsRequired()
             .HasMaxLength(200);
