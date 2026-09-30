@@ -2,17 +2,6 @@ namespace HabitTracker.Domain.Entities
 {
     public class Habito
     {
-        // RD-04: transiciones permitidas declaradas en un único lugar.
-        private static readonly IReadOnlyDictionary<EstadoHabito, IReadOnlySet<EstadoHabito>> TransicionesPermitidas =
-            new Dictionary<EstadoHabito, IReadOnlySet<EstadoHabito>>
-            {
-                [EstadoHabito.Pendiente] = new HashSet<EstadoHabito> { EstadoHabito.Activo, EstadoHabito.Abandonado },
-                [EstadoHabito.Activo] = new HashSet<EstadoHabito> { EstadoHabito.Pausado, EstadoHabito.Completado, EstadoHabito.Abandonado },
-                [EstadoHabito.Pausado] = new HashSet<EstadoHabito> { EstadoHabito.Activo, EstadoHabito.Abandonado },
-                [EstadoHabito.Completado] = new HashSet<EstadoHabito>(),
-                [EstadoHabito.Abandonado] = new HashSet<EstadoHabito>()
-            };
-
         public Guid Id { get; private set; }
         public string Nombre { get; private set; } = string.Empty;
         public string Frecuencia { get; private set; } = string.Empty;
@@ -55,7 +44,9 @@ namespace HabitTracker.Domain.Entities
 
         private void TransicionarA(EstadoHabito nuevoEstado)
         {
-            if (!TransicionesPermitidas[Estado].Contains(nuevoEstado))
+            // RD-04: la regla vive en TransicionesHabito; los estados terminales
+            // lanzan su propio mensaje y el resto inválido se rechaza aquí.
+            if (!TransicionesHabito.EsTransicionValida(Estado, nuevoEstado))
             {
                 throw new InvalidOperationException($"La transición de {Estado} a {nuevoEstado} está prohibida.");
             }

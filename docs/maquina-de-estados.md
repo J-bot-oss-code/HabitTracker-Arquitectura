@@ -2,7 +2,7 @@
 
 Entidad central: `Habito` (`Modules/HabitTracker/HabitTracker.Domain/Entities/Habito.cs`), con atributo de estado `Estado` (`EstadoHabito`).
 
-Los 5 estados están declarados en un solo lugar (`EstadoHabito.cs`) — RF-NEG-03. Las transiciones permitidas están declaradas en un solo lugar (`Habito.TransicionesPermitidas`) — RD-04.
+Los 5 estados están declarados en un solo lugar (`EstadoHabito.cs`) — RF-NEG-03. Las transiciones permitidas están declaradas en un solo lugar (`TransicionesHabito.EsTransicionValida`) — RD-04.
 
 ## Tabla de transiciones
 
