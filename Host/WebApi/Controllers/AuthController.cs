@@ -99,8 +99,58 @@ public class AuthController : ControllerBase
 
         return Ok(new { mensaje = "Sesión cerrada correctamente." });
     }
+
+    /// <summary>
+    /// Inicia la recuperación de contraseña. Retorna siempre 200 OK genérico
+    /// para no revelar qué correos están registrados (RF-CA-09).
+    /// </summary>
+    [HttpPost("recuperar-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RecuperarPassword([FromBody] RecuperarPasswordRequest request)
+    {
+        await _usuarioService.IniciarRecuperacionAsync(request.Correo);
+        return Ok(new { mensaje = "Si el correo está registrado, recibirás un código de recuperación." });
+    }
+
+    /// <summary>Restablece la contraseña con un código válido (RF-CA-11).</summary>
+    [HttpPost("restablecer-password")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RestablecerPassword([FromBody] RestablecerPasswordRequest request)
+    {
+        await _usuarioService.RestablecerPasswordAsync(request.Correo, request.Codigo, request.NuevaPassword);
+        return Ok(new { mensaje = "Contraseña restablecida correctamente." });
+    }
+
+    /// <summary>Cambia la contraseña del usuario autenticado (RF-CA-22).</summary>
+    [HttpPost("cambiar-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CambiarPassword([FromBody] CambiarPasswordRequest request)
+    {
+        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        if (!Guid.TryParse(sub, out var usuarioId))
+        {
+            throw new UnauthorizedAccessException("Sesión inválida.");
+        }
+
+        await _usuarioService.CambiarPasswordAsync(usuarioId, request.Actual, request.Nueva);
+        return Ok(new { mensaje = "Contraseña actualizada correctamente." });
+    }
 }
 
 public record ActivateRequest(string Token);
 
 public record ResendActivationRequest(string Correo);
+
+public record RecuperarPasswordRequest(string Correo);
+
+public record RestablecerPasswordRequest(string Correo, string Codigo, string NuevaPassword);
+
+public record CambiarPasswordRequest(string Actual, string Nueva);
