@@ -41,6 +41,20 @@ public class MemoryTokenBlacklist : ITokenBlacklist
         return _cache.TryGetValue(token, out _);
     }
 
+    public void RevocarUsuario(Guid usuarioId)
+    {
+        _cache.Set(LlaveUsuario(usuarioId), true, TimeSpan.FromMinutes(LeerMinutosExpiracion()));
+
+        _logger.LogInformation("Usuario {UsuarioId} revocado: sus sesiones activas dejan de ser válidas.", usuarioId);
+    }
+
+    public bool UsuarioRevocado(Guid usuarioId)
+    {
+        return _cache.TryGetValue(LlaveUsuario(usuarioId), out _);
+    }
+
+    private static string LlaveUsuario(Guid usuarioId) => $"usuario-revocado:{usuarioId}";
+
     private int LeerMinutosExpiracion()
     {
         var minutos = _configuration.GetValue<int>($"{JwtSettings.Seccion}:MinutosExpiracion");

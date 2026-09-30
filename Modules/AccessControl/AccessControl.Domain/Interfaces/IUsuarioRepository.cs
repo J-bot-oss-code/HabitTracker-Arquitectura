@@ -12,5 +12,6 @@ public interface IUsuarioRepository
     Task UpdateAsync(Usuario usuario);
     Task<Usuario?> GetByNameAsync(string nombreCompleto);
     Task<Usuario?> GetByTokenRecuperacionAsync(string token);
+    Task<IEnumerable<Usuario>> ObtenerTodosAsync();
 
 }

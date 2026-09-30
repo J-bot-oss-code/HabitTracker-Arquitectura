@@ -11,6 +11,8 @@ namespace AccessControl.Application.Interfaces
 
         Task ActivarCuentaAsync(string token);
         Task ReenviarEnlaceActivacionAsync(string correo);
+        Task<IEnumerable<UsuarioResponseDto>> ObtenerTodosAsync();
+        Task CambiarEstadoAsync(Guid usuarioId, bool nuevoEstado, Guid adminId);
         
     }
 }
