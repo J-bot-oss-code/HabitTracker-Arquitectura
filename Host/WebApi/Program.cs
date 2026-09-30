@@ -6,6 +6,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Módulo de Control de Acceso (Clean Architecture).
 builder.Services.AddAccessControlModule(builder.Configuration);
 
+// Módulo de Negocio: Rastreador de Hábitos (contexto propio).
+builder.Services.AddHabitTrackerModule(builder.Configuration);
+
 // Controladores y OpenAPI.
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
