@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AccessControl.Application\AccessControl.Application.csproj" />
+    <ProjectReference Include="..\..\HabitTracker\HabitTracker.Domain\HabitTracker.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>
