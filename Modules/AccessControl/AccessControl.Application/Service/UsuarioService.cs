@@ -117,6 +117,61 @@ public class UsuarioService : IUsuarioService
         );
     }
 
+    public async Task<IEnumerable<UsuarioResponseDto>> ObtenerTodosAsync()
+    {
+        _logger.LogInformation("Consultando lista de usuarios.");
+
+        var usuarios = await _repository.ObtenerTodosAsync();
+
+        return usuarios.Select(u => new UsuarioResponseDto(
+            u.Id,
+            u.NombreCompleto,
+            u.Correo.Valor,
+            u.Rol.ToString(),
+            u.Activo
+        ));
+    }
+
+    public async Task CambiarEstadoAsync(Guid usuarioId, bool nuevoEstado, Guid adminId)
+    {
+        _logger.LogInformation("Cambio de estado para el usuario {usuarioId} a {nuevoEstado} por el admin {adminId}", usuarioId, nuevoEstado, adminId);
+
+        if (usuarioId == adminId)
+        {
+            throw new InvalidOperationException("Un administrador no puede desactivarse a sí mismo.");
+        }
+
+        var usuario = await _repository.GetByIdAsync(usuarioId);
+        if (usuario == null)
+        {
+            throw new InvalidOperationException("El usuario no existe");
+        }
+
+        var estadoAnterior = usuario.Activo;
+
+        if (nuevoEstado)
+        {
+            usuario.Activar();
+        }
+        else
+        {
+            usuario.Desactivar();
+        }
+
+        await _repository.UpdateAsync(usuario);
+
+        // RF-CA-08: Auditoría estricta
+        await _auditoria.RegistroAuditoriaAsync(
+            adminId,
+            "Administrador",
+            "Cambio de estado",
+            "Usuario",
+            usuario.Id.ToString(),
+            estadoAnterior.ToString(),
+            nuevoEstado.ToString()
+        );
+    }
+
     public async Task IniciarRecuperacionAsync(string correo)
     {
         _logger.LogInformation("Iniciando recuperación de contraseña para el correo {correo}", correo);
