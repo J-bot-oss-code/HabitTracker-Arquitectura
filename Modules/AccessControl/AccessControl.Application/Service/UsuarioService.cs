@@ -186,19 +186,114 @@ public class UsuarioService : IUsuarioService
 
         var usuario = await _repository.GetByCorreoAsync(Email);
 
-        if(usuario == null)
+        // RF-CA-09: respuesta idéntica exista o no el correo, sin revelar registros.
+        if (usuario == null)
+        {
+            await Task.Delay(100);
+            return;
+        }
+
+        var codigoGenerado = GenerarCodigoRecuperacion();
+
+        usuario.GenerarCodigoRecuperacion(codigoGenerado, 1);
+
+        await _repository.UpdateAsync(usuario);
+
+        await _emailQueue.EncolarCorreoRecuperacionAsync(correo, codigoGenerado);
+    }
+
+    public async Task RestablecerPasswordAsync(string correo, string codigo, string nuevaPassword)
+    {
+        _logger.LogInformation("Restablecimiento de contraseña solicitado.");
+
+        ValidarFormatoClave(nuevaPassword);
+
+        var usuario = await _repository.GetByCorreoAsync(new Email(correo));
+
+        // Mensaje uniforme para no revelar qué correos están registrados.
+        if (usuario == null)
+        {
+            throw new InvalidOperationException("El código de recuperación es incorrecto, ya fue usado o ha expirado.");
+        }
+
+        var nuevoHash = _passwordHasher.Hash(nuevaPassword);
+
+        // RF-CA-11: valida el código (un solo uso + vencimiento) y lo marca como usado.
+        usuario.RestablecerPassword(nuevoHash, codigo);
+
+        // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
+        _blacklist.RevocarUsuario(usuario.Id);
+
+        await _repository.UpdateAsync(usuario);
+    }
+
+    public async Task CambiarPasswordAsync(Guid usuarioId, string actual, string nueva)
+    {
+        _logger.LogInformation("Cambio de contraseña para el usuario {usuarioId}.", usuarioId);
+
+        var usuario = await _repository.GetByIdAsync(usuarioId);
+        if (usuario == null)
         {
             throw new InvalidOperationException("El usuario no existe");
         }
 
-        // Generamos un código temporal (podría ser un Guid o código numérico)
-        var codigoGenerado = Guid.NewGuid().ToString("N")[..8].ToUpper(); // esto genera un código de 8 caracteres alfanuméricos
-        
+        if (!_passwordHasher.verificar(usuario.PasswordHash, actual))
+        {
+            throw new UnauthorizedAccessException("La contraseña actual es incorrecta.");
+        }
 
-        // RF-CA-09 al 13: Simulamos encolar el correo sin importar si el usuario existe o no
-        // para no revelar qué correos están registrados.
-        await _emailQueue.EncolarCorreoRecuperacionAsync(correo, codigoGenerado);
+        // RF-CA-14: formato de la nueva clave.
+        ValidarFormatoClave(nueva);
 
+        usuario.CambiarPassword(_passwordHasher.Hash(nueva));
+
+        // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
+        _blacklist.RevocarUsuario(usuario.Id);
+
+        await _repository.UpdateAsync(usuario);
+    }
+
+    public async Task ForzarRestablecimientoAsync(Guid usuarioId, Guid adminId)
+    {
+        _logger.LogInformation("Restablecimiento forzado para el usuario {usuarioId} por el admin {adminId}.", usuarioId, adminId);
+
+        var usuario = await _repository.GetByIdAsync(usuarioId);
+        if (usuario == null)
+        {
+            throw new InvalidOperationException("El usuario no existe");
+        }
+
+        // RF-CA-13: la contraseña anterior deja de servir de inmediato.
+        usuario.InvalidarPassword();
+
+        var codigoGenerado = GenerarCodigoRecuperacion();
+        usuario.GenerarCodigoRecuperacion(codigoGenerado, 24);
+
+        await _repository.UpdateAsync(usuario);
+
+        await _emailQueue.EncolarCorreoRecuperacionAsync(usuario.Correo.Valor, codigoGenerado);
+
+        // RF-AUD-05: la acción queda auditada.
+        await _auditoria.RegistroAuditoriaAsync(
+            adminId,
+            "Administrador",
+            "Restablecimiento forzado de contraseña",
+            "Usuario",
+            usuario.Id.ToString(),
+            "Contraseña anterior activa",
+            "Contraseña invalidada (restablecimiento forzado por administrador)"
+        );
+    }
+
+    private static string GenerarCodigoRecuperacion() =>
+        Guid.NewGuid().ToString("N")[..6].ToUpper();
+
+    private static void ValidarFormatoClave(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8 || !password.Any(char.IsLetter) || !password.Any(char.IsDigit))
+        {
+            throw new ArgumentException("La contraseña debe tener al menos 8 caracteres, e incluir letras y números.");
+        }
     }
 
     public async Task ReenviarEnlaceActivacionAsync(string correo)
