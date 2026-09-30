@@ -92,7 +92,7 @@ namespace AccessControl.Domain.Entities
 
         public void GenerarCodigoRecuperacion(string codigo, int horasValidez)
         {
-            Recuperacion = new CodigoRecuperacion(codigo, DateTime.UtcNow.AddHours(horasValidez));
+            Recuperacion = new CodigoRecuperacion(codigo, horasValidez);
         }
 
         public void RestablecerPassword(string nuevoHash, string codigo)
@@ -113,17 +113,14 @@ namespace AccessControl.Domain.Entities
 
         public void CambiarPassword(string nuevoHash)
         {
-            if (string.IsNullOrWhiteSpace(nuevoHash))
-            {
-                throw new ArgumentException("La nueva contraseña no puede estar vacía.", nameof(nuevoHash));
-            }
-
+            if (string.IsNullOrWhiteSpace(nuevoHash)) throw new ArgumentException("El hash no puede estar vacío.");
             PasswordHash = nuevoHash;
         }
 
         public void InvalidarPassword()
         {
-            PasswordHash = "INVALIDO-" + Guid.NewGuid().ToString("N");
+            // RF-CA-13: Asignamos un valor imposible de hashear/hacer match para invalidar la clave actual inmediatamente
+            PasswordHash = $"INVALIDADO_{Guid.NewGuid()}";
         }
 
         public void Desactivar()        {
