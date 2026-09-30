@@ -48,6 +48,16 @@ public class AdminUsuariosController : ControllerBase
         return Ok(new { mensaje = "Estado actualizado correctamente." });
     }
 
+    /// <summary>Fuerza el restablecimiento de la contraseña de un usuario (RF-CA-13).</summary>
+    [HttpPost("{id:guid}/forzar-restablecimiento")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ForzarRestablecimiento(Guid id)
+    {
+        await _usuarioService.ForzarRestablecimientoAsync(id, ObtenerAdminId());
+        return Ok(new { mensaje = "Se invalidó la contraseña y se envió un código de recuperación al usuario." });
+    }
+
     private Guid ObtenerAdminId()
     {
         var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
