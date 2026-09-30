@@ -11,6 +11,7 @@ namespace AccessControl.Domain.Entities
         public bool Activo { get; private set; }
         public DateTime FechaCreacion { get; private set; }
         public TokenActivacion? TokenAcceso { get; private set; }
+        public CodigoRecuperacion? Recuperacion { get; private set; }
         public BloqueoCuenta Bloqueo { get; private set; } = new BloqueoCuenta();
 
         public Rol Rol { get; private set; }
@@ -88,6 +89,42 @@ namespace AccessControl.Domain.Entities
         public void RestablecerIntentos() => Bloqueo.Restablecer();
 
         public bool EstaBloqueado() => Bloqueo.EstaBloqueado();
+
+        public void GenerarCodigoRecuperacion(string codigo, int horasValidez)
+        {
+            Recuperacion = new CodigoRecuperacion(codigo, DateTime.UtcNow.AddHours(horasValidez));
+        }
+
+        public void RestablecerPassword(string nuevoHash, string codigo)
+        {
+            if (Recuperacion == null || !Recuperacion.EsValido(codigo))
+            {
+                throw new InvalidOperationException("El código de recuperación es incorrecto, ya fue usado o ha expirado.");
+            }
+
+            if (string.IsNullOrWhiteSpace(nuevoHash))
+            {
+                throw new ArgumentException("La nueva contraseña no puede estar vacía.", nameof(nuevoHash));
+            }
+
+            PasswordHash = nuevoHash;
+            Recuperacion.MarcarComoUsado();
+        }
+
+        public void CambiarPassword(string nuevoHash)
+        {
+            if (string.IsNullOrWhiteSpace(nuevoHash))
+            {
+                throw new ArgumentException("La nueva contraseña no puede estar vacía.", nameof(nuevoHash));
+            }
+
+            PasswordHash = nuevoHash;
+        }
+
+        public void InvalidarPassword()
+        {
+            PasswordHash = "INVALIDO-" + Guid.NewGuid().ToString("N");
+        }
 
         public void Desactivar()        {
             if (!Activo)
