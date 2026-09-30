@@ -1,26 +1,16 @@
-# 🔄 Máquina de Estados del Negocio — Hábito
+# Máquina de Estados: Hábito (Módulo de Negocio)
 
-Entidad central: `Habito` (`Modules/HabitTracker/HabitTracker.Domain/Entities/Habito.cs`), con atributo de estado `Estado` (`EstadoHabito`).
+La entidad central del negocio es el `Habito`. Sus estados y transiciones se gestionan de manera centralizada en el dominio mediante la clase `TransicionesHabito`.
 
-Los 5 estados están declarados en un solo lugar (`EstadoHabito.cs`) — RF-NEG-03. Las transiciones permitidas están declaradas en un solo lugar (`TransicionesHabito.EsTransicionValida`) — RD-04.
-
-## Tabla de transiciones
+## Tabla de Transiciones
 
 | Desde | Hacia | Quién la ejecuta | Condición |
-|---|---|---|---|
-| Pendiente | Activo | Usuario | El hábito está en Pendiente. |
-| Pendiente | Abandonado | Usuario | El hábito está en Pendiente. |
-| Activo | Pausado | Usuario | El hábito está en Activo. |
-| Activo | Completado | Usuario | El hábito está en Activo. |
-| Activo | Abandonado | Usuario | El hábito está en Activo. |
-| Pausado | Activo | Usuario | El hábito está en Pausado. |
-| Pausado | Abandonado | Usuario | El hábito está en Pausado. |
-| Cualquier otra combinación | — | — | Prohibida (RF-NEG-04). El sistema la rechaza con `InvalidOperationException` y el estado no cambia. |
-
-## Estados terminales (RF-NEG-05)
-
-`Completado` y `Abandonado`: ninguna transición parte de ellos.
-
-## Transición prohibida explícita (RF-NEG-04)
-
-`Pausado → Completado`: para completar hay que reanudar (`Pausado → Activo`) primero. Intentarla se rechaza y el estado no cambia.
+| :--- | :--- | :--- | :--- |
+| Pendiente | Activo | Usuario | El usuario decide iniciar el seguimiento del hábito. |
+| Activo | Pausado | Usuario | El usuario suspende temporalmente el hábito. |
+| Pausado | Activo | Usuario | El usuario retoma el hábito. |
+| Activo | Completado | Usuario | Se alcanza la meta y se finaliza con éxito (Estado Terminal). |
+| Activo | Abandonado | Usuario | El usuario desiste de continuar (Estado Terminal). |
+| Pausado | Abandonado | Usuario | El usuario decide no retomarlo y desiste (Estado Terminal). |
+| **Completado** | *Cualquiera* | *Nadie* | **PROHIBIDA:** Un hábito completado es un estado terminal inmutable. |
+| **Abandonado** | *Cualquiera* | *Nadie* | **PROHIBIDA:** Un hábito abandonado es un estado terminal inmutable. |
