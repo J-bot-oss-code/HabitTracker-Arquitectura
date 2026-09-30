@@ -51,9 +51,7 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(e => e.Activo)
             .IsRequired();  
-
-            
-
+ 
         });
 
         

@@ -1,20 +1,57 @@
 namespace HabitTracker.Domain.Entities
 {
-
     public class Habito
     {
-        public Guid Id { get; set; }
-        public string Nombre { get; set; } = string.Empty;
-        public string Frecuencia { get; set; } = string.Empty;  
+        public Guid Id { get; private set; }
+        public string Nombre { get; private set; } = string.Empty;
+        public string Frecuencia { get; private set; } = string.Empty;
+        public EstadoHabito Estado { get; private set; }
 
-        public Guid MetaId { get; set; }
-        public Meta Meta { get; set; } = null!;
+        public Guid MetaId { get; private set; }
+        public Meta Meta { get; private set; } = null!;
 
-        public ICollection<RegistroDiario> RegistrosDiarios { get; set; } = new List<RegistroDiario>();
-        public ICollection<Etiqueta> Etiquetas { get; set; } = new List<Etiqueta>();
+        public ICollection<RegistroDiario> RegistrosDiarios { get; private set; } = new List<RegistroDiario>();
+        public ICollection<Etiqueta> Etiquetas { get; private set; } = new List<Etiqueta>();
 
+        private Habito() {} // Constructor privado para EF Core
 
+        public Habito(string nombre, string frecuencia, Guid metaId)
+        {
+            if (string.IsNullOrWhiteSpace(nombre))
+            {
+                throw new ArgumentException("El nombre no puede estar vacío.", nameof(nombre));
+            }
 
+            if (string.IsNullOrWhiteSpace(frecuencia))
+            {
+                throw new ArgumentException("La frecuencia no puede estar vacía.", nameof(frecuencia));
+            }
+
+            Id = Guid.NewGuid();
+            Nombre = nombre;
+            Frecuencia = frecuencia;
+            MetaId = metaId;
+            Estado = EstadoHabito.Pendiente;
+        }
+
+        public void Activar() => TransicionarA(EstadoHabito.Activo);
+
+        public void Pausar() => TransicionarA(EstadoHabito.Pausado);
+
+        public void Completar() => TransicionarA(EstadoHabito.Completado);
+
+        public void Abandonar() => TransicionarA(EstadoHabito.Abandonado);
+
+        private void TransicionarA(EstadoHabito nuevoEstado)
+        {
+            // RD-04: la regla vive en TransicionesHabito; los estados terminales
+            // lanzan su propio mensaje y el resto inválido se rechaza aquí.
+            if (!TransicionesHabito.EsTransicionValida(Estado, nuevoEstado))
+            {
+                throw new InvalidOperationException($"La transición de {Estado} a {nuevoEstado} está prohibida.");
+            }
+
+            Estado = nuevoEstado;
+        }
     }
-
 }
