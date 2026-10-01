@@ -77,8 +77,8 @@ public class AuthController : ControllerBase
     {
         return Ok(new
         {
-            id = User.FindFirstValue(JwtRegisteredClaimNames.Sub),
-            correo = User.FindFirstValue(JwtRegisteredClaimNames.Email),
+            id = User.FindFirstValue(ClaimTypes.NameIdentifier),
+            correo = User.FindFirstValue(ClaimTypes.Email),
             rol = User.FindFirstValue(ClaimTypes.Role)
         });
     }
