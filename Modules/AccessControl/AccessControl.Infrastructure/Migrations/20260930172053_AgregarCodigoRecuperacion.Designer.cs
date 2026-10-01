@@ -4,6 +4,7 @@ using AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace AccessControl.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930172053_AgregarCodigoRecuperacion")]
+    partial class AgregarCodigoRecuperacion
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -51,7 +54,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("CorreosEnCola", (string)null);
+                    b.ToTable("CorreosEnCola");
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>
@@ -81,7 +84,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("usuarios", (string)null);
+                    b.ToTable("usuarios");
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>
@@ -99,26 +102,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("UsuarioId");
-                        });
-
-                    b.OwnsOne("AccessControl.Domain.Entities.ValueObjects.Email", "Correo", b1 =>
-                        {
-                            b1.Property<Guid>("UsuarioId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<string>("Valor")
-                                .IsRequired()
-                                .HasMaxLength(150)
-                                .HasColumnType("nvarchar(150)")
-                                .HasColumnName("Correo");
-
-                            b1.HasKey("UsuarioId");
-
-                            b1.ToTable("usuarios", (string)null);
+                            b1.ToTable("usuarios");
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");
@@ -144,7 +128,26 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios", (string)null);
+                            b1.ToTable("usuarios");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UsuarioId");
+                        });
+
+                    b.OwnsOne("AccessControl.Domain.Entities.ValueObjects.Email", "Correo", b1 =>
+                        {
+                            b1.Property<Guid>("UsuarioId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Valor")
+                                .IsRequired()
+                                .HasMaxLength(150)
+                                .HasColumnType("nvarchar(150)")
+                                .HasColumnName("Correo");
+
+                            b1.HasKey("UsuarioId");
+
+                            b1.ToTable("usuarios");
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");
@@ -167,7 +170,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios", (string)null);
+                            b1.ToTable("usuarios");
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");

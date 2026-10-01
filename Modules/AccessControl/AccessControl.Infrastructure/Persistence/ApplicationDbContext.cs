@@ -27,7 +27,7 @@ public class ApplicationDbContext : DbContext
                .HasMaxLength(150);
            }); 
 
-           entity.OwnsOne(e => e.TokenAcceso, TokenActivacion =>
+            entity.OwnsOne(e => e.TokenAcceso, TokenActivacion =>
         {
             TokenActivacion.Property(t => t.Valor)
             .HasColumnName("TokenAcceso")
@@ -35,7 +35,11 @@ public class ApplicationDbContext : DbContext
 
             TokenActivacion.Property(t => t.Vencimiento)
             .HasColumnName("Vencimiento");
-        }); 
+        });
+
+            entity.OwnsOne(u => u.Bloqueo);
+
+            entity.OwnsOne(u => u.Recuperacion);
 
         entity.Property(e => e.NombreCompleto)
             .IsRequired()
@@ -47,9 +51,7 @@ public class ApplicationDbContext : DbContext
 
             entity.Property(e => e.Activo)
             .IsRequired();  
-
-            
-
+ 
         });
 
         

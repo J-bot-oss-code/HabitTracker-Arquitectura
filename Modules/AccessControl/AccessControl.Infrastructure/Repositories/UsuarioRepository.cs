@@ -57,4 +57,9 @@ public class UsuarioRepository : IUsuarioRepository
         _dbContext.usuarios.Update(usuario);
         await _dbContext.SaveChangesAsync();
     }
+
+    public async Task<IEnumerable<Usuario>> ObtenerTodosAsync()
+    {
+        return await _dbContext.usuarios.ToListAsync();
+    }
 }

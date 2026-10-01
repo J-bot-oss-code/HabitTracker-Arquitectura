@@ -12,7 +12,8 @@ namespace AccessControl.Infrastructure.Security
 
         public bool verificar(string hash, string passwordPlana)
         {
-            return BCrypt.Net.BCrypt.Verify(hash, passwordPlana);
+            // BCrypt.Verify(textoPlano, hash): el orden importa; invertido lanza excepción al parsear.
+            return BCrypt.Net.BCrypt.Verify(passwordPlana, hash);
         }
     }
 }

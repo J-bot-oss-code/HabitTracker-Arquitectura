@@ -13,18 +13,24 @@ public class UsuarioService : IUsuarioService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailQueue _emailQueue;
     private readonly IAuditoriaService _auditoria;
+    private readonly IJwtProvider _jwtProvider;
+    private readonly ITokenBlacklist _blacklist;
     private readonly ILogger<UsuarioService> _logger;
     public UsuarioService(
         IUsuarioRepository repository, 
         IPasswordHasher passwordHasher, 
         IEmailQueue emailQueue,
         IAuditoriaService auditoria,
+        IJwtProvider jwtProvider,
+        ITokenBlacklist blacklist,
         ILogger<UsuarioService> logger)
     {
         _repository = repository;
         _passwordHasher = passwordHasher;
         _emailQueue = emailQueue;
         _auditoria = auditoria;
+        _jwtProvider = jwtProvider;
+        _blacklist = blacklist;
         _logger = logger;
     }
 
@@ -33,28 +39,52 @@ public class UsuarioService : IUsuarioService
     public async Task<UsuarioResponseDto> AutenticarUsuarioAsync(LoginRequestDto request)
     {
         _logger.LogInformation("Intento de login para: {Email}", request.Email);
-        
+
         var Email = new Email(request.Email);
 
         var usuario = await _repository.GetByCorreoAsync(Email);
 
-        // RF-CA-03: Rechaso explisito sin revelar que fallo
-        if(usuario == null || !_passwordHasher.verificar(usuario.PasswordHash, request.password))
+        // 1. RF-CA-03: sin revelar qué dato falló.
+        if (usuario == null)
         {
             throw new UnauthorizedAccessException("Credenciales incorrectas");
-
         }
+
+        // 2. RF-CA-19: cuenta bloqueada por intentos fallidos.
+        if (usuario.EstaBloqueado())
+        {
+            throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+        }
+
+        // 3. RF-CA-15: la cuenta debe estar activada.
+        if (!usuario.Activo)
+        {
+            throw new InvalidOperationException("Debe activar su cuenta antes de iniciar sesión.");
+        }
+
+        // 4. Contraseña incorrecta: se registra el intento y se persiste.
+        if (!_passwordHasher.verificar(usuario.PasswordHash, request.password))
+        {
+            usuario.RegistrarIntentoFallido();
+            await _repository.UpdateAsync(usuario);
+
+            throw new UnauthorizedAccessException("Credenciales incorrectas");
+        }
+
+        // 5. Éxito: se restablecen intentos, se persiste y se emite el JWT.
+        usuario.RestablecerIntentos();
+        await _repository.UpdateAsync(usuario);
+
+        var token = _jwtProvider.Generar(usuario);
 
         return new UsuarioResponseDto(
             usuario.Id,
-            usuario.NombreCompleto, 
+            usuario.NombreCompleto,
             usuario.Correo.Valor,
             usuario.Rol.ToString(),
-            usuario.Activo
+            usuario.Activo,
+            token
         );
-
-
-
     }
 
     public async Task cambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId)
@@ -65,6 +95,14 @@ public class UsuarioService : IUsuarioService
         if(usuario == null)
         {
             throw new InvalidOperationException("El usuario no existe");
+        }
+
+        // RF-CA-05 / RF-CA-06: solo un Administrador puede cambiar roles,
+        // verificado en el servidor contra el ejecutor (adminId), no el destino.
+        var ejecutor = await _repository.GetByIdAsync(adminId);
+        if (ejecutor == null || ejecutor.Rol != Rol.Administrador)
+        {
+            throw new InvalidOperationException("No tiene permiso para cambiar roles.");
         }
 
         if(!Enum.TryParse<Rol>(nuevoRol, out var rol))
@@ -90,6 +128,64 @@ public class UsuarioService : IUsuarioService
         );
     }
 
+    public async Task<IEnumerable<UsuarioResponseDto>> ObtenerTodosAsync()
+    {
+        _logger.LogInformation("Consultando lista de usuarios.");
+
+        var usuarios = await _repository.ObtenerTodosAsync();
+
+        return usuarios.Select(u => new UsuarioResponseDto(
+            u.Id,
+            u.NombreCompleto,
+            u.Correo.Valor,
+            u.Rol.ToString(),
+            u.Activo
+        ));
+    }
+
+    public async Task CambiarEstadoAsync(Guid usuarioId, bool nuevoEstado, Guid adminId)
+    {
+        _logger.LogInformation("Cambio de estado para el usuario {usuarioId} a {nuevoEstado} por el admin {adminId}", usuarioId, nuevoEstado, adminId);
+
+        if (usuarioId == adminId)
+        {
+            throw new InvalidOperationException("Un administrador no puede desactivarse a sí mismo.");
+        }
+
+        var usuario = await _repository.GetByIdAsync(usuarioId);
+        if (usuario == null)
+        {
+            throw new InvalidOperationException("El usuario no existe");
+        }
+
+        var estadoAnterior = usuario.Activo;
+
+        if (nuevoEstado)
+        {
+            usuario.Activar();
+        }
+        else
+        {
+            usuario.Desactivar();
+
+            // RF-CA-20: las sesiones abiertas del usuario desactivado dejan de ser válidas.
+            _blacklist.RevocarUsuario(usuarioId);
+        }
+
+        await _repository.UpdateAsync(usuario);
+
+        // RF-CA-08: Auditoría estricta
+        await _auditoria.RegistroAuditoriaAsync(
+            adminId,
+            "Administrador",
+            "Cambio de estado",
+            "Usuario",
+            usuario.Id.ToString(),
+            estadoAnterior.ToString(),
+            nuevoEstado.ToString()
+        );
+    }
+
     public async Task IniciarRecuperacionAsync(string correo)
     {
         _logger.LogInformation("Iniciando recuperación de contraseña para el correo {correo}", correo);
@@ -98,19 +194,114 @@ public class UsuarioService : IUsuarioService
 
         var usuario = await _repository.GetByCorreoAsync(Email);
 
-        if(usuario == null)
+        // RF-CA-09: respuesta idéntica exista o no el correo, sin revelar registros.
+        if (usuario == null)
+        {
+            await Task.Delay(100);
+            return;
+        }
+
+        var codigoGenerado = GenerarCodigoRecuperacion();
+
+        usuario.GenerarCodigoRecuperacion(codigoGenerado, 1);
+
+        await _repository.UpdateAsync(usuario);
+
+        await _emailQueue.EncolarCorreoRecuperacionAsync(correo, codigoGenerado);
+    }
+
+    public async Task RestablecerPasswordAsync(string correo, string codigo, string nuevaPassword)
+    {
+        _logger.LogInformation("Restablecimiento de contraseña solicitado.");
+
+        ValidarFormatoClave(nuevaPassword);
+
+        var usuario = await _repository.GetByCorreoAsync(new Email(correo));
+
+        // Mensaje uniforme para no revelar qué correos están registrados.
+        if (usuario == null)
+        {
+            throw new InvalidOperationException("El código de recuperación es incorrecto, ya fue usado o ha expirado.");
+        }
+
+        var nuevoHash = _passwordHasher.Hash(nuevaPassword);
+
+        // RF-CA-11: valida el código (un solo uso + vencimiento) y lo marca como usado.
+        usuario.RestablecerPassword(nuevoHash, codigo);
+
+        // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
+        _blacklist.RevocarUsuario(usuario.Id);
+
+        await _repository.UpdateAsync(usuario);
+    }
+
+    public async Task CambiarPasswordAsync(Guid usuarioId, string actual, string nueva)
+    {
+        _logger.LogInformation("Cambio de contraseña para el usuario {usuarioId}.", usuarioId);
+
+        var usuario = await _repository.GetByIdAsync(usuarioId);
+        if (usuario == null)
         {
             throw new InvalidOperationException("El usuario no existe");
         }
 
-        // Generamos un código temporal (podría ser un Guid o código numérico)
-        var codigoGenerado = Guid.NewGuid().ToString("N")[..8].ToUpper(); // esto genera un código de 8 caracteres alfanuméricos
-        
+        if (!_passwordHasher.verificar(usuario.PasswordHash, actual))
+        {
+            throw new UnauthorizedAccessException("La contraseña actual es incorrecta.");
+        }
 
-        // RF-CA-09 al 13: Simulamos encolar el correo sin importar si el usuario existe o no
-        // para no revelar qué correos están registrados.
-        await _emailQueue.EncolarCorreoRecuperacionAsync(correo, codigoGenerado);
+        // RF-CA-14: formato de la nueva clave.
+        ValidarFormatoClave(nueva);
 
+        usuario.CambiarPassword(_passwordHasher.Hash(nueva));
+
+        // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
+        _blacklist.RevocarUsuario(usuario.Id);
+
+        await _repository.UpdateAsync(usuario);
+    }
+
+    public async Task ForzarRestablecimientoAsync(Guid usuarioId, Guid adminId)
+    {
+        _logger.LogInformation("Restablecimiento forzado para el usuario {usuarioId} por el admin {adminId}.", usuarioId, adminId);
+
+        var usuario = await _repository.GetByIdAsync(usuarioId);
+        if (usuario == null)
+        {
+            throw new InvalidOperationException("El usuario no existe");
+        }
+
+        // RF-CA-13: la contraseña anterior deja de servir de inmediato.
+        usuario.InvalidarPassword();
+
+        var codigoGenerado = GenerarCodigoRecuperacion();
+        usuario.GenerarCodigoRecuperacion(codigoGenerado, 24);
+
+        await _repository.UpdateAsync(usuario);
+
+        await _emailQueue.EncolarCorreoRecuperacionAsync(usuario.Correo.Valor, codigoGenerado);
+
+        // RF-AUD-05: la acción queda auditada.
+        await _auditoria.RegistroAuditoriaAsync(
+            adminId,
+            "Administrador",
+            "Restablecimiento forzado de contraseña",
+            "Usuario",
+            usuario.Id.ToString(),
+            "Contraseña anterior activa",
+            "Contraseña invalidada (restablecimiento forzado por administrador)"
+        );
+    }
+
+    private static string GenerarCodigoRecuperacion() =>
+        Guid.NewGuid().ToString("N")[..6].ToUpper();
+
+    private static void ValidarFormatoClave(string password)
+    {
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8 || !password.Any(char.IsLetter) || !password.Any(char.IsDigit))
+        {
+            throw new ArgumentException("La contraseña debe tener al menos 8 caracteres, e incluir letras y números.");
+        }
     }
 
     public async Task ReenviarEnlaceActivacionAsync(string correo)

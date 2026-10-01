@@ -11,6 +11,8 @@ namespace AccessControl.Domain.Entities
         public bool Activo { get; private set; }
         public DateTime FechaCreacion { get; private set; }
         public TokenActivacion? TokenAcceso { get; private set; }
+        public CodigoRecuperacion? Recuperacion { get; private set; }
+        public BloqueoCuenta Bloqueo { get; private set; } = new BloqueoCuenta();
 
         public Rol Rol { get; private set; }
 
@@ -37,18 +39,14 @@ namespace AccessControl.Domain.Entities
             NombreCompleto = nombreCompleto;
             Correo = correo;
             PasswordHash = passwordHash;
-            Activo = true;
+            // El usuario nace inactivo: debe activar su cuenta con el token (RF-CA-15).
+            Activo = false;
             FechaCreacion = DateTime.UtcNow;
             Rol = rol;
         }
 
         public void CambiarRol(Rol nuevoRol)
         {
-            if (Rol == Rol.Estandar)
-            {
-                throw new InvalidOperationException("Un usuario Estándar no puede cambiar de rol.");
-            }
-
             if (Rol == nuevoRol)
             {
                 throw new InvalidOperationException("El usuario ya tiene este rol.");
@@ -82,8 +80,46 @@ namespace AccessControl.Domain.Entities
             CompletarActivacion(token);
         }
 
-        public void Desactivar()
+        public void RegistrarIntentoFallido() => Bloqueo.RegistrarFallo();
+
+        public void RestablecerIntentos() => Bloqueo.Restablecer();
+
+        public bool EstaBloqueado() => Bloqueo.EstaBloqueado();
+
+        public void GenerarCodigoRecuperacion(string codigo, int horasValidez)
         {
+            Recuperacion = new CodigoRecuperacion(codigo, horasValidez);
+        }
+
+        public void RestablecerPassword(string nuevoHash, string codigo)
+        {
+            if (Recuperacion == null || !Recuperacion.EsValido(codigo))
+            {
+                throw new InvalidOperationException("El código de recuperación es incorrecto, ya fue usado o ha expirado.");
+            }
+
+            if (string.IsNullOrWhiteSpace(nuevoHash))
+            {
+                throw new ArgumentException("La nueva contraseña no puede estar vacía.", nameof(nuevoHash));
+            }
+
+            PasswordHash = nuevoHash;
+            Recuperacion.MarcarComoUsado();
+        }
+
+        public void CambiarPassword(string nuevoHash)
+        {
+            if (string.IsNullOrWhiteSpace(nuevoHash)) throw new ArgumentException("El hash no puede estar vacío.");
+            PasswordHash = nuevoHash;
+        }
+
+        public void InvalidarPassword()
+        {
+            // RF-CA-13: Asignamos un valor imposible de hashear/hacer match para invalidar la clave actual inmediatamente
+            PasswordHash = $"INVALIDADO_{Guid.NewGuid()}";
+        }
+
+        public void Desactivar()        {
             if (!Activo)
             {
                 throw new InvalidOperationException("El usuario ya está desactivado.");
