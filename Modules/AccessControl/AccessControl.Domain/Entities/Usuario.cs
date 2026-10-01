@@ -39,7 +39,8 @@ namespace AccessControl.Domain.Entities
             NombreCompleto = nombreCompleto;
             Correo = correo;
             PasswordHash = passwordHash;
-            Activo = true;
+            // El usuario nace inactivo: debe activar su cuenta con el token (RF-CA-15).
+            Activo = false;
             FechaCreacion = DateTime.UtcNow;
             Rol = rol;
         }
