@@ -35,7 +35,7 @@ public class TokenBlacklistMiddleware
                 return;
             }
 
-            var sub = context.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            var sub = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (Guid.TryParse(sub, out var usuarioId) && blacklist.UsuarioRevocado(usuarioId))
             {

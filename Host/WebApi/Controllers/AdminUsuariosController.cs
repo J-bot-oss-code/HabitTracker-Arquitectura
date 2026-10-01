@@ -60,7 +60,7 @@ public class AdminUsuariosController : ControllerBase
 
     private Guid ObtenerAdminId()
     {
-        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (!Guid.TryParse(sub, out var adminId))
         {

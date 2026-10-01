@@ -133,7 +133,7 @@ public class AuthController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> CambiarPassword([FromBody] CambiarPasswordRequest request)
     {
-        var sub = User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         if (!Guid.TryParse(sub, out var usuarioId))
         {
