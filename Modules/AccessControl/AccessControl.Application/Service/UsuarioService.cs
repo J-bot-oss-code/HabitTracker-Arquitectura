@@ -97,6 +97,14 @@ public class UsuarioService : IUsuarioService
             throw new InvalidOperationException("El usuario no existe");
         }
 
+        // RF-CA-05 / RF-CA-06: solo un Administrador puede cambiar roles,
+        // verificado en el servidor contra el ejecutor (adminId), no el destino.
+        var ejecutor = await _repository.GetByIdAsync(adminId);
+        if (ejecutor == null || ejecutor.Rol != Rol.Administrador)
+        {
+            throw new InvalidOperationException("No tiene permiso para cambiar roles.");
+        }
+
         if(!Enum.TryParse<Rol>(nuevoRol, out var rol))
         {
             throw new InvalidOperationException("El rol especificado no es válido");

@@ -47,11 +47,6 @@ namespace AccessControl.Domain.Entities
 
         public void CambiarRol(Rol nuevoRol)
         {
-            if (Rol == Rol.Estandar)
-            {
-                throw new InvalidOperationException("Un usuario Estándar no puede cambiar de rol.");
-            }
-
             if (Rol == nuevoRol)
             {
                 throw new InvalidOperationException("El usuario ya tiene este rol.");
