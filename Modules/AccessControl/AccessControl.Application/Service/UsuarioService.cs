@@ -50,25 +50,26 @@ public class UsuarioService : IUsuarioService
             throw new UnauthorizedAccessException("Credenciales incorrectas");
         }
 
-        // 2. RF-CA-19: cuenta bloqueada por intentos fallidos.
-        if (usuario.EstaBloqueado())
-        {
-            throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
-        }
-
-        // 3. RF-CA-15: la cuenta debe estar activada.
-        if (!usuario.Activo)
-        {
-            throw new InvalidOperationException("Debe activar su cuenta antes de iniciar sesión.");
-        }
-
-        // 4. Contraseña incorrecta: se registra el intento y se persiste.
+        // 2. Se verifica la clave ANTES de revelar el estado de la cuenta:
+        // una clave incorrecta nunca revela si está bloqueada o inactiva.
         if (!_passwordHasher.verificar(usuario.PasswordHash, request.password))
         {
             usuario.RegistrarIntentoFallido();
             await _repository.UpdateAsync(usuario);
 
             throw new UnauthorizedAccessException("Credenciales incorrectas");
+        }
+
+        // 3. RF-CA-19: cuenta bloqueada por intentos fallidos (solo con clave correcta).
+        if (usuario.EstaBloqueado())
+        {
+            throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+        }
+
+        // 4. RF-CA-15: la cuenta debe estar activada (solo con clave correcta).
+        if (!usuario.Activo)
+        {
+            throw new InvalidOperationException("Debe activar su cuenta antes de iniciar sesión.");
         }
 
         // 5. Éxito: se restablecen intentos, se persiste y se emite el JWT.
