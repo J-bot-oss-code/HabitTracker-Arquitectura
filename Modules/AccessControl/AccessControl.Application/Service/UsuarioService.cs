@@ -50,12 +50,18 @@ public class UsuarioService : IUsuarioService
             throw new UnauthorizedAccessException("Credenciales incorrectas");
         }
 
-        // 2. Se verifica la clave ANTES de revelar el estado de la cuenta:
-        // una clave incorrecta nunca revela si está bloqueada o inactiva.
+        // 2. Se verifica la clave ANTES de revelar si la cuenta está inactiva:
+        // una clave incorrecta en cuenta activa o inactiva responde 401 genérico.
+        // Solo si ya está bloqueada (el atacante provocó el bloqueo) se informa el bloqueo.
         if (!_passwordHasher.verificar(usuario.PasswordHash, request.password))
         {
             usuario.RegistrarIntentoFallido();
             await _repository.UpdateAsync(usuario);
+
+            if (usuario.EstaBloqueado())
+            {
+                throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+            }
 
             throw new UnauthorizedAccessException("Credenciales incorrectas");
         }

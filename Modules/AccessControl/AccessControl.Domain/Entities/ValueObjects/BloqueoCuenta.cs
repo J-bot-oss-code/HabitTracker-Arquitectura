@@ -28,7 +28,10 @@ public sealed class BloqueoCuenta
             }
 
             IntentosFallidos++;
-            if (IntentosFallidos >= MaxIntentos)
+
+            // El bloqueo se activa al superar los 5 fallos: los 5 primeros
+            // responden 401 y el 6to ya encuentra la cuenta bloqueada.
+            if (IntentosFallidos > MaxIntentos)
             {
                 BloqueadoHasta = DateTime.UtcNow.Add(DuracionBloqueo);
             }
