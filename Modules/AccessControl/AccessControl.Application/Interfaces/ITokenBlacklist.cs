@@ -4,7 +4,7 @@ namespace AccessControl.Application.Interfaces
     {
         void InvalidarToken(string token);
         bool EstaInvalidado(string token);
-        void RevocarUsuario(Guid usuarioId);
-        bool UsuarioRevocado(Guid usuarioId);
+        void RevocarSesionesAnteriores(Guid usuarioId);
+        bool SesionVigente(Guid usuarioId, DateTimeOffset emitidoEn);
     }
 }

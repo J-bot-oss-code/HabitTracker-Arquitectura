@@ -10,6 +10,8 @@ public class ApplicationDbContext : DbContext
 
     public DbSet<Usuario> usuarios {get; set;}
     public DbSet<CorreoEnCola> CorreosEnCola { get; set; }
+    public DbSet<TokenRevocado> TokensRevocados { get; set; } = null!;
+    public DbSet<RevocacionSesion> RevocacionesSesion { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

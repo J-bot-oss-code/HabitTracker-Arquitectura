@@ -49,9 +49,56 @@ namespace AccessControl.Infrastructure.Migrations
                     b.Property<DateTime?>("FechaEnvio")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("FechaUltimoIntento")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Intentos")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UltimoError")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
-                    b.ToTable("CorreosEnCola", (string)null);
+                    b.ToTable("CorreosEnCola");
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.RevocacionSesion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("FechaCorte")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaExpiracion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RevocacionesSesion");
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.TokenRevocado", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("FechaExpiracion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TokensRevocados");
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>
@@ -81,7 +128,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("usuarios", (string)null);
+                    b.ToTable("usuarios");
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>
@@ -99,7 +146,36 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios", (string)null);
+                            b1.ToTable("usuarios");
+
+                            b1.WithOwner()
+                                .HasForeignKey("UsuarioId");
+                        });
+
+                    b.OwnsOne("AccessControl.Domain.Entities.ValueObjects.CodigoRecuperacion", "Recuperacion", b1 =>
+                        {
+                            b1.Property<Guid>("UsuarioId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime>("FechaEmision")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<DateTime>("FechaVencimiento")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<int>("IntentosFallidos")
+                                .HasColumnType("int");
+
+                            b1.Property<bool>("Usado")
+                                .HasColumnType("bit");
+
+                            b1.Property<string>("Valor")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.HasKey("UsuarioId");
+
+                            b1.ToTable("usuarios");
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");
@@ -118,33 +194,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios", (string)null);
-
-                            b1.WithOwner()
-                                .HasForeignKey("UsuarioId");
-                        });
-
-                    b.OwnsOne("AccessControl.Domain.Entities.ValueObjects.CodigoRecuperacion", "Recuperacion", b1 =>
-                        {
-                            b1.Property<Guid>("UsuarioId")
-                                .HasColumnType("uniqueidentifier");
-
-                            b1.Property<DateTime>("FechaEmision")
-                                .HasColumnType("datetime2");
-
-                            b1.Property<DateTime>("FechaVencimiento")
-                                .HasColumnType("datetime2");
-
-                            b1.Property<bool>("Usado")
-                                .HasColumnType("bit");
-
-                            b1.Property<string>("Valor")
-                                .IsRequired()
-                                .HasColumnType("nvarchar(max)");
-
-                            b1.HasKey("UsuarioId");
-
-                            b1.ToTable("usuarios", (string)null);
+                            b1.ToTable("usuarios");
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");
@@ -167,7 +217,7 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
-                            b1.ToTable("usuarios", (string)null);
+                            b1.ToTable("usuarios");
 
                             b1.WithOwner()
                                 .HasForeignKey("UsuarioId");

@@ -112,16 +112,22 @@ Para garantizar el cumplimiento de los Requisitos de Diseño (RD) del contrato, 
 ### Requisitos Previos y Variables de Entorno
 Para ejecutar este proyecto, necesitas configurar User Secrets o variables de entorno locales. **Nunca incluyas valores reales en el código fuente.**
 
-*   `JwtSettings:Clave`: (String) Clave secreta larga para firmar los tokens JWT.
-*   `JwtSettings:Issuer`: (String) Emisor del token (ej. `HabitTrackerApi`).
-*   `JwtSettings:Audience`: (String) Audiencia del token (ej. `HabitTrackerUsers`).
+*   `ConnectionStrings:AccessControl`: (String) Cadena a SQL Server con autenticación de Windows, sin contraseña en el repo. Ejemplo: `Server=.\SQLEXPRESS;Database=HabitTracker;Trusted_Connection=True;TrustServerCertificate=True` (o `Server=(localdb)\MSSQLLocalDB;...`).
+*   `JwtSettings:Clave`: (String) Clave secreta de al menos 32 caracteres para firmar los tokens JWT. Solo vía User Secrets: `dotnet user-secrets set "JwtSettings:Clave" "tu-clave..." --project Host/WebApi/WebApi.csproj`.
+*   `JwtSettings:Emisor`: (String) Emisor del token (ej. `HabitTrackerNexus`).
+*   `JwtSettings:Audiencia`: (String) Audiencia del token (ej. `HabitTrackerNexusApi`).
+*   `JwtSettings:MinutosExpiracion`: (int) Vida del token en minutos (ej. `60`).
+*   `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (String) Credenciales del servidor de correo saliente, solo por variables de entorno o User Secrets.
+*   `App:BaseUrl`: (String) URL pública de la API para armar el enlace de activación del correo (ej. `http://localhost:5246`).
 
 ### Instrucciones de Ejecución
 1. Restaura las herramientas y paquetes: `dotnet restore`
 2. Aplica las migraciones a tu base de datos local (SQL Server):
-   `dotnet ef database update --project Infrastructure --startup-project WebApi`
+   `dotnet ef database update --project Modules/AccessControl/AccessControl.Infrastructure --startup-project Host/WebApi --context ApplicationDbContext`
+   `dotnet ef database update --project Modules/HabitTracker/HabitTracker.Infrastructure --startup-project Host/WebApi --context HabitTrackerDbContext`
 3. Levanta la API:
-   `dotnet run --project Host/WebApi`
+   `dotnet run --project Host/WebApi/WebApi.csproj`
+4. Abre Swagger en `http://localhost:5246/swagger` (usa el botón Authorize con `Bearer {token}`).
 
 ### Guía de Pruebas (Criterios de Aceptación)
 Sigue estas instrucciones desde Swagger o Postman para validar la rúbrica:
