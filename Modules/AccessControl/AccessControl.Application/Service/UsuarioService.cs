@@ -220,8 +220,15 @@ public class UsuarioService : IUsuarioService
         var usuario = await _repository.GetByCorreoAsync(new Email(correo));
 
         // Mensaje uniforme para no revelar qué correos están registrados.
-        if (usuario == null)
+        // Cada código incorrecto cuenta: a los 5 fallos el código se invalida.
+        if (usuario == null || usuario.Recuperacion == null || !usuario.Recuperacion.EsValido(codigo))
         {
+            if (usuario?.Recuperacion != null)
+            {
+                usuario.Recuperacion.RegistrarFallo();
+                await _repository.UpdateAsync(usuario);
+            }
+
             throw new InvalidOperationException("El código de recuperación es incorrecto, ya fue usado o ha expirado.");
         }
 
