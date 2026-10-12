@@ -42,6 +42,17 @@ public class AuthController : ControllerBase
         return Ok(new { mensaje = "Cuenta activada correctamente." });
     }
 
+    /// <summary>Activa una cuenta desde el enlace del correo (RF-CA-15).</summary>
+    [HttpGet("activate")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> ActivateGet([FromQuery] string token)
+    {
+        await _usuarioService.ActivarCuentaAsync(token);
+        return Content("<html><body style=\"font-family:Arial;text-align:center;padding:48px;\"><h2>Cuenta activada correctamente.</h2><p>Ya puedes iniciar sesión en HabitTracker Nexus.</p></body></html>", "text/html");
+    }
+
     /// <summary>
     /// Reenvía el enlace de activación. Retorna siempre 200 OK para no revelar
     /// si el correo existe (RF-CA-17).

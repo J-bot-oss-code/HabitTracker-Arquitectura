@@ -1,6 +1,7 @@
 using AccessControl.Application.Interfaces;
 using AccessControl.Domain.Entities;
 using AccessControl.Infrastructure.Persistence;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace AccessControl.Infrastructure.Services;
@@ -8,11 +9,13 @@ namespace AccessControl.Infrastructure.Services;
 public class DatabaseEmailQueue : IEmailQueue
 {
     private readonly ApplicationDbContext _dbContext;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<DatabaseEmailQueue> _logger;
 
-    public DatabaseEmailQueue(ApplicationDbContext dbContext, ILogger<DatabaseEmailQueue> logger)
+    public DatabaseEmailQueue(ApplicationDbContext dbContext, IConfiguration configuration, ILogger<DatabaseEmailQueue> logger)
     {
         _dbContext = dbContext;
+        _configuration = configuration;
         _logger = logger;
     }
 
@@ -37,21 +40,29 @@ public class DatabaseEmailQueue : IEmailQueue
     {
         _logger.LogInformation("Encolando correo de activación para: {Destino}", correo);
 
+        var baseUrl = (_configuration["App:BaseUrl"] ?? "http://localhost:5246").TrimEnd('/');
+        var enlace = $"{baseUrl}/api/auth/activate?token={Uri.EscapeDataString(token)}";
+
         var mensaje = new CorreoEnCola(
             correo,
             "Activa tu cuenta — HabitTracker Nexus",
             PlantillaHtml(
                 "Bienvenido a HabitTracker Nexus",
-                $"Hola,<br><br>Gracias por registrarte en <strong>HabitTracker Nexus</strong>. Para completar tu registro, usa el siguiente token de activación (vence en 24 horas):",
+                $"Hola,<br><br>Gracias por registrarte en <strong>HabitTracker Nexus</strong>. Para completar tu registro, pulsa el botón o usa el token (vence en 24 horas):",
                 token,
-                "Si no creaste esta cuenta, puedes ignorar este mensaje."));
+                "Si no creaste esta cuenta, puedes ignorar este mensaje.",
+                enlace));
 
         _dbContext.CorreosEnCola.Add(mensaje);
         await _dbContext.SaveChangesAsync();
     }
 
-    private static string PlantillaHtml(string titulo, string introduccion, string codigo, string despedida)
+    private static string PlantillaHtml(string titulo, string introduccion, string codigo, string despedida, string? enlaceBoton = null)
     {
+        var boton = string.IsNullOrWhiteSpace(enlaceBoton)
+            ? string.Empty
+            : $@"<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""><tr><td align=""center"" style=""padding:0 0 16px 0;""><a href=""{enlaceBoton}"" style=""display:inline-block;background-color:#0f766e;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 36px;border-radius:8px;"">Activar mi cuenta</a></td></tr></table>";
+
         return $@"<!DOCTYPE html>
 <html lang=""es"">
 <head><meta charset=""utf-8""><meta name=""viewport"" content=""width=device-width, initial-scale=1.0""></head>
@@ -63,6 +74,7 @@ public class DatabaseEmailQueue : IEmailQueue
 <tr><td style=""padding:32px;color:#1f2937;font-size:15px;line-height:1.6;"">
 <h2 style=""margin:0 0 16px 0;font-size:19px;color:#0f766e;"">{titulo}</h2>
 <p style=""margin:0 0 24px 0;"">{introduccion}</p>
+{boton}
 <table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""><tr><td align=""center"" style=""padding:8px 0 24px 0;"">
 <div style=""display:inline-block;background-color:#f0fdfa;border:2px dashed #0f766e;border-radius:8px;padding:16px 32px;font-size:22px;font-weight:bold;letter-spacing:3px;color:#0f766e;"">{codigo}</div>
 </td></tr></table>
