@@ -63,9 +63,13 @@ public class EmailSenderWorker : BackgroundService
         using var scope = _scopeFactory.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var pendientes = await dbContext.CorreosEnCola
-            .Where(c => c.Estado == EstadoCorreo.Pendiente)
+        var ahora = DateTime.UtcNow;
+
+        var candidatos = await dbContext.CorreosEnCola
+            .Where(c => c.Estado == EstadoCorreo.Pendiente || c.Estado == EstadoCorreo.Fallido)
             .ToListAsync(stoppingToken);
+
+        var pendientes = candidatos.Where(c => c.PuedeReintentarse(ahora)).ToList();
 
         if (pendientes.Count == 0)
         {
@@ -76,6 +80,11 @@ public class EmailSenderWorker : BackgroundService
 
         foreach (var correo in pendientes)
         {
+            if (correo.Estado == EstadoCorreo.Fallido)
+            {
+                correo.Reintentar();
+            }
+
             // RF-NOT-12: reclamar el correo ANTES de enviarlo para evitar duplicados si el worker se reinicia.
             correo.MarcarProcesando();
             await dbContext.SaveChangesAsync(stoppingToken);
@@ -91,10 +100,10 @@ public class EmailSenderWorker : BackgroundService
             }
             catch (Exception ex)
             {
-                correo.MarcarFallido();
+                correo.RegistrarFallo(ex.Message);
                 await dbContext.SaveChangesAsync(stoppingToken);
 
-                _logger.LogWarning(ex, "Fallo el envío del correo {Id} a {Destino}. Marcado como Fallido.", correo.Id, correo.Destinatario);
+                _logger.LogWarning(ex, "Fallo el envío del correo {Id} a {Destino} (intento {Intentos}).", correo.Id, correo.Destinatario, correo.Intentos);
             }
         }
     }
