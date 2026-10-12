@@ -274,6 +274,9 @@ public class UsuarioService : IUsuarioService
         // RF-CA-13: la contraseña anterior deja de servir de inmediato.
         usuario.InvalidarPassword();
 
+        // Las sesiones abiertas antes del forzado dejan de ser válidas.
+        _blacklist.RevocarUsuario(usuario.Id);
+
         var codigoGenerado = GenerarCodigoRecuperacion();
         usuario.GenerarCodigoRecuperacion(codigoGenerado, 24);
 

@@ -13,7 +13,15 @@ namespace AccessControl.Infrastructure.Security
         public bool verificar(string hash, string passwordPlana)
         {
             // BCrypt.Verify(textoPlano, hash): el orden importa; invertido lanza excepción al parsear.
-            return BCrypt.Net.BCrypt.Verify(passwordPlana, hash);
+            // Un hash corrupto o con formato inválido nunca hace match: se devuelve false en vez de propagar.
+            try
+            {
+                return BCrypt.Net.BCrypt.Verify(passwordPlana, hash);
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
