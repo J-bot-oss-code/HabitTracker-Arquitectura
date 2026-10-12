@@ -50,25 +50,32 @@ public class UsuarioService : IUsuarioService
             throw new UnauthorizedAccessException("Credenciales incorrectas");
         }
 
-        // 2. RF-CA-19: cuenta bloqueada por intentos fallidos.
-        if (usuario.EstaBloqueado())
-        {
-            throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
-        }
-
-        // 3. RF-CA-15: la cuenta debe estar activada.
-        if (!usuario.Activo)
-        {
-            throw new InvalidOperationException("Debe activar su cuenta antes de iniciar sesión.");
-        }
-
-        // 4. Contraseña incorrecta: se registra el intento y se persiste.
+        // 2. Se verifica la clave ANTES de revelar si la cuenta está inactiva:
+        // una clave incorrecta en cuenta activa o inactiva responde 401 genérico.
+        // Solo si ya está bloqueada (el atacante provocó el bloqueo) se informa el bloqueo.
         if (!_passwordHasher.verificar(usuario.PasswordHash, request.password))
         {
             usuario.RegistrarIntentoFallido();
             await _repository.UpdateAsync(usuario);
 
+            if (usuario.EstaBloqueado())
+            {
+                throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+            }
+
             throw new UnauthorizedAccessException("Credenciales incorrectas");
+        }
+
+        // 3. RF-CA-19: cuenta bloqueada por intentos fallidos (solo con clave correcta).
+        if (usuario.EstaBloqueado())
+        {
+            throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+        }
+
+        // 4. RF-CA-15: la cuenta debe estar activada (solo con clave correcta).
+        if (!usuario.Activo)
+        {
+            throw new InvalidOperationException("Debe activar su cuenta antes de iniciar sesión.");
         }
 
         // 5. Éxito: se restablecen intentos, se persiste y se emite el JWT.
@@ -169,7 +176,7 @@ public class UsuarioService : IUsuarioService
             usuario.Desactivar();
 
             // RF-CA-20: las sesiones abiertas del usuario desactivado dejan de ser válidas.
-            _blacklist.RevocarUsuario(usuarioId);
+            _blacklist.RevocarSesionesAnteriores(usuarioId);
         }
 
         await _repository.UpdateAsync(usuario);
@@ -219,8 +226,15 @@ public class UsuarioService : IUsuarioService
         var usuario = await _repository.GetByCorreoAsync(new Email(correo));
 
         // Mensaje uniforme para no revelar qué correos están registrados.
-        if (usuario == null)
+        // Cada código incorrecto cuenta: a los 5 fallos el código se invalida.
+        if (usuario == null || usuario.Recuperacion == null || !usuario.Recuperacion.EsValido(codigo))
         {
+            if (usuario?.Recuperacion != null)
+            {
+                usuario.Recuperacion.RegistrarFallo();
+                await _repository.UpdateAsync(usuario);
+            }
+
             throw new InvalidOperationException("El código de recuperación es incorrecto, ya fue usado o ha expirado.");
         }
 
@@ -230,7 +244,7 @@ public class UsuarioService : IUsuarioService
         usuario.RestablecerPassword(nuevoHash, codigo);
 
         // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
-        _blacklist.RevocarUsuario(usuario.Id);
+        _blacklist.RevocarSesionesAnteriores(usuario.Id);
 
         await _repository.UpdateAsync(usuario);
     }
@@ -256,7 +270,7 @@ public class UsuarioService : IUsuarioService
         usuario.CambiarPassword(_passwordHasher.Hash(nueva));
 
         // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
-        _blacklist.RevocarUsuario(usuario.Id);
+        _blacklist.RevocarSesionesAnteriores(usuario.Id);
 
         await _repository.UpdateAsync(usuario);
     }
@@ -273,6 +287,9 @@ public class UsuarioService : IUsuarioService
 
         // RF-CA-13: la contraseña anterior deja de servir de inmediato.
         usuario.InvalidarPassword();
+
+        // Las sesiones abiertas antes del forzado dejan de ser válidas.
+        _blacklist.RevocarSesionesAnteriores(usuario.Id);
 
         var codigoGenerado = GenerarCodigoRecuperacion();
         usuario.GenerarCodigoRecuperacion(codigoGenerado, 24);

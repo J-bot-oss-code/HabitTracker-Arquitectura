@@ -10,11 +10,16 @@ public enum EstadoCorreo
 
 public class CorreoEnCola
 {
+    private const int MaxIntentos = 3;
+
     public Guid Id { get; private set; }
     public string Destinatario { get; private set; } = string.Empty;
     public string Asunto { get; private set; } = string.Empty;
     public string Cuerpo { get; private set; } = string.Empty;
     public EstadoCorreo Estado { get; private set; }
+    public int Intentos { get; private set; }
+    public string? UltimoError { get; private set; }
+    public DateTime? FechaUltimoIntento { get; private set; }
     public DateTime FechaCreacion { get; private set; }
     public DateTime? FechaEnvio { get; private set; }
 
@@ -69,11 +74,50 @@ public class CorreoEnCola
 
     public void MarcarFallido()
     {
+        RegistrarFallo("Error de envío no especificado.");
+    }
+
+    public void RegistrarFallo(string error)
+    {
         if (Estado != EstadoCorreo.Procesando)
         {
             throw new InvalidOperationException("Solo se puede marcar como fallido un correo en estado Procesando.");
         }
 
+        Intentos++;
+        UltimoError = error;
+        FechaUltimoIntento = DateTime.UtcNow;
         Estado = EstadoCorreo.Fallido;
+    }
+
+    public void Reintentar()
+    {
+        if (Estado != EstadoCorreo.Fallido)
+        {
+            throw new InvalidOperationException("Solo se puede reintentar un correo en estado Fallido.");
+        }
+
+        if (Intentos >= MaxIntentos)
+        {
+            throw new InvalidOperationException("El correo agotó sus reintentos.");
+        }
+
+        Estado = EstadoCorreo.Pendiente;
+    }
+
+    public bool PuedeReintentarse(DateTime ahora)
+    {
+        if (Estado == EstadoCorreo.Pendiente)
+        {
+            return true;
+        }
+
+        // Backoff exponencial: tras cada fallo se espera 2^intentos minutos antes de reintentar.
+        if (Estado == EstadoCorreo.Fallido && Intentos < MaxIntentos && FechaUltimoIntento.HasValue)
+        {
+            return FechaUltimoIntento.Value.AddMinutes(Math.Pow(2, Intentos)) <= ahora;
+        }
+
+        return false;
     }
 }
