@@ -170,7 +170,7 @@ public class UsuarioService : IUsuarioService
             usuario.Desactivar();
 
             // RF-CA-20: las sesiones abiertas del usuario desactivado dejan de ser válidas.
-            _blacklist.RevocarUsuario(usuarioId);
+            _blacklist.RevocarSesionesAnteriores(usuarioId);
         }
 
         await _repository.UpdateAsync(usuario);
@@ -231,7 +231,7 @@ public class UsuarioService : IUsuarioService
         usuario.RestablecerPassword(nuevoHash, codigo);
 
         // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
-        _blacklist.RevocarUsuario(usuario.Id);
+        _blacklist.RevocarSesionesAnteriores(usuario.Id);
 
         await _repository.UpdateAsync(usuario);
     }
@@ -257,7 +257,7 @@ public class UsuarioService : IUsuarioService
         usuario.CambiarPassword(_passwordHasher.Hash(nueva));
 
         // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
-        _blacklist.RevocarUsuario(usuario.Id);
+        _blacklist.RevocarSesionesAnteriores(usuario.Id);
 
         await _repository.UpdateAsync(usuario);
     }
@@ -276,7 +276,7 @@ public class UsuarioService : IUsuarioService
         usuario.InvalidarPassword();
 
         // Las sesiones abiertas antes del forzado dejan de ser válidas.
-        _blacklist.RevocarUsuario(usuario.Id);
+        _blacklist.RevocarSesionesAnteriores(usuario.Id);
 
         var codigoGenerado = GenerarCodigoRecuperacion();
         usuario.GenerarCodigoRecuperacion(codigoGenerado, 24);

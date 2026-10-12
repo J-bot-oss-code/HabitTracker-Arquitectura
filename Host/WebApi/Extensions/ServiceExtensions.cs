@@ -35,7 +35,7 @@ public static class ServiceExtensions
         services.AddScoped<IEmailQueue, DatabaseEmailQueue>();
         services.AddScoped<IAuditoriaService, AuditoriaService>();
         services.AddScoped<IJwtProvider, JwtProvider>();
-        services.AddSingleton<ITokenBlacklist, MemoryTokenBlacklist>();
+        services.AddScoped<ITokenBlacklist, TokenBlacklistService>();
 
         services.AddMemoryCache();
 

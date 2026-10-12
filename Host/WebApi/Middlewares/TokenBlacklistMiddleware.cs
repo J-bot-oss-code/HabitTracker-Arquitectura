@@ -37,9 +37,9 @@ public class TokenBlacklistMiddleware
 
             var sub = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            if (Guid.TryParse(sub, out var usuarioId) && blacklist.UsuarioRevocado(usuarioId))
+            if (Guid.TryParse(sub, out var usuarioId) && !blacklist.SesionVigente(usuarioId, EmitidoEn(token)))
             {
-                _logger.LogWarning("Usuario revocado {UsuarioId} intentó acceder a {Path}.", usuarioId, context.Request.Path);
+                _logger.LogWarning("Sesión revocada del usuario {UsuarioId} usada en {Path}.", usuarioId, context.Request.Path);
                 await RechazarAsync(context);
                 return;
             }
@@ -63,8 +63,26 @@ public class TokenBlacklistMiddleware
         await context.Response.WriteAsync(JsonSerializer.Serialize(problem));
     }
 
-    private static string? ExtraerBearer(HttpContext context)
+    private static DateTimeOffset EmitidoEn(string? token)
     {
+        // Se lee el iat directo del JWT: no depende del mapeo de claims de ASP.NET Core.
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return DateTimeOffset.MinValue;
+        }
+
+        try
+        {
+            var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+            return new DateTimeOffset(jwt.IssuedAt, TimeSpan.Zero);
+        }
+        catch
+        {
+            return DateTimeOffset.MinValue;
+        }
+    }
+
+    private static string? ExtraerBearer(HttpContext context)    {
         var header = context.Request.Headers.Authorization.ToString();
 
         if (string.IsNullOrWhiteSpace(header) || !header.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
