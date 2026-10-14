@@ -1,6 +1,4 @@
-using System;
 namespace AccessControl.Domain.Entities.ValueObjects;
-
 
 public sealed class BloqueoCuenta
 {
@@ -10,32 +8,37 @@ public sealed class BloqueoCuenta
     public int IntentosFallidos { get; private set; }
     public DateTime? BloqueadoHasta { get; private set; }
 
-    public BloqueoCuenta() 
+    public BloqueoCuenta()
     {
         IntentosFallidos = 0;
         BloqueadoHasta = null;
     }
 
-    public bool EstaBloqueado() => BloqueadoHasta.HasValue && BloqueadoHasta.Value > DateTime.UtcNow;
+    public bool EstaBloqueado() =>
+        BloqueadoHasta.HasValue && BloqueadoHasta.Value > DateTime.UtcNow;
 
-        public void RegistrarFallo()
+    public void RegistrarFallo()
+    {
+        // Un bloqueo vigente no se prolonga por intentos adicionales.
+        if (EstaBloqueado())
         {
-            // Si el bloqueo anterior ya venció, el contador se reinicia:
-            // un nuevo ciclo de intentos empieza desde cero.
-            if (BloqueadoHasta.HasValue && BloqueadoHasta.Value <= DateTime.UtcNow)
-            {
-                Restablecer();
-            }
-
-            IntentosFallidos++;
-
-            // El bloqueo se activa al superar los 5 fallos: los 5 primeros
-            // responden 401 y el 6to ya encuentra la cuenta bloqueada.
-            if (IntentosFallidos > MaxIntentos)
-            {
-                BloqueadoHasta = DateTime.UtcNow.Add(DuracionBloqueo);
-            }
+            return;
         }
+
+        // Al vencer el bloqueo, un ciclo nuevo comienza desde cero.
+        if (BloqueadoHasta.HasValue)
+        {
+            Restablecer();
+        }
+
+        IntentosFallidos++;
+
+        // El quinto fallo activa el bloqueo; el siguiente inicio se rechaza aunque la clave sea correcta.
+        if (IntentosFallidos >= MaxIntentos)
+        {
+            BloqueadoHasta = DateTime.UtcNow.Add(DuracionBloqueo);
+        }
+    }
 
     public void Restablecer()
     {

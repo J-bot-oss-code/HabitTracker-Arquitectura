@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using AccessControl.Application.DTOs;
 using AccessControl.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -47,7 +48,7 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ActivateGet([FromQuery] string token)
+    public async Task<IActionResult> ActivateGet([FromQuery, Required, StringLength(256)] string token)
     {
         await _usuarioService.ActivarCuentaAsync(token);
         return Content("<html><body style=\"font-family:Arial;text-align:center;padding:48px;\"><h2>Cuenta activada correctamente.</h2><p>Ya puedes iniciar sesión en HabitTracker Nexus.</p></body></html>", "text/html");
@@ -156,12 +157,19 @@ public class AuthController : ControllerBase
     }
 }
 
-public record ActivateRequest(string Token);
+public record ActivateRequest([property: Required, StringLength(256)] string Token);
 
-public record ResendActivationRequest(string Correo);
+public record ResendActivationRequest(
+    [property: Required, EmailAddress, StringLength(150)] string Correo);
 
-public record RecuperarPasswordRequest(string Correo);
+public record RecuperarPasswordRequest(
+    [property: Required, EmailAddress, StringLength(150)] string Correo);
 
-public record RestablecerPasswordRequest(string Correo, string Codigo, string NuevaPassword);
+public record RestablecerPasswordRequest(
+    [property: Required, EmailAddress, StringLength(150)] string Correo,
+    [property: Required, StringLength(64)] string Codigo,
+    [property: Required, StringLength(1024, MinimumLength = 8)] string NuevaPassword);
 
-public record CambiarPasswordRequest(string Actual, string Nueva);
+public record CambiarPasswordRequest(
+    [property: Required, StringLength(1024)] string Actual,
+    [property: Required, StringLength(1024, MinimumLength = 8)] string Nueva);

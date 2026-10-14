@@ -1,7 +1,9 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Globalization;
 using System.Net;
 using System.Security.Claims;
 using System.Text.Json;
+using AccessControl.Infrastructure.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Middlewares;
@@ -74,6 +76,23 @@ public class TokenBlacklistMiddleware
         try
         {
             var jwt = new JwtSecurityTokenHandler().ReadJwtToken(token);
+            var issuedAtTicks = jwt.Claims.FirstOrDefault(c =>
+                c.Type == JwtProvider.SessionIssuedAtTicksClaim)?.Value;
+
+            if (long.TryParse(issuedAtTicks, NumberStyles.Integer, CultureInfo.InvariantCulture, out var utcTicks)
+                && utcTicks >= DateTime.MinValue.Ticks
+                && utcTicks <= DateTime.MaxValue.Ticks)
+            {
+                return new DateTimeOffset(utcTicks, TimeSpan.Zero);
+            }
+
+            // Compatibilidad con tokens emitidos antes de introducir ticks UTC.
+            var issuedAtMilliseconds = jwt.Claims.FirstOrDefault(c => c.Type == "session_issued_at_ms")?.Value;
+            if (long.TryParse(issuedAtMilliseconds, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unixMilliseconds))
+            {
+                return DateTimeOffset.FromUnixTimeMilliseconds(unixMilliseconds);
+            }
+
             return new DateTimeOffset(jwt.IssuedAt, TimeSpan.Zero);
         }
         catch
