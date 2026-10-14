@@ -62,9 +62,8 @@ public class TokenBlacklistService : ITokenBlacklist
 
     public void RevocarSesionesAnteriores(Guid usuarioId)
     {
-        // El iat del JWT tiene precisión de segundos: el corte se trunca igual
-        // para no matar tokens emitidos en el mismo segundo posterior al corte.
-        var ahora = TruncarASegundos(DateTime.UtcNow);
+        // El corte y la emisión JWT usan ticks UTC para comparar con la misma precisión.
+        var ahora = DateTime.UtcNow;
         LimpiarExpirados(ahora);
 
         var expiracion = ahora.AddMinutes(LeerMinutosExpiracion());
@@ -96,7 +95,7 @@ public class TokenBlacklistService : ITokenBlacklist
             return true;
         }
 
-        return emitidoEn.UtcDateTime >= corte.Value;
+        return emitidoEn.UtcDateTime > corte.Value;
     }
 
     private void LimpiarExpirados(DateTime ahora)
@@ -107,9 +106,6 @@ public class TokenBlacklistService : ITokenBlacklist
 
     private static string Hash(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
-
-    private static DateTime TruncarASegundos(DateTime fecha) =>
-        new(fecha.Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, DateTimeKind.Utc);
 
     private int LeerMinutosExpiracion()
     {

@@ -28,15 +28,18 @@ public class GlobalExceptionMiddleware
         }
         catch (ArgumentException ex)
         {
-            await WriteProblemAsync(context, HttpStatusCode.BadRequest, "Solicitud inválida.", ex.Message);
+            _logger.LogInformation(ex, "Solicitud rechazada por datos no válidos.");
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, "Solicitud inválida.", "La solicitud contiene datos no válidos.");
         }
         catch (UnauthorizedAccessException ex)
         {
-            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "No autorizado.", ex.Message);
+            _logger.LogInformation(ex, "Operación no autorizada.");
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "No autorizado.", "No se pudo autorizar la solicitud.");
         }
         catch (InvalidOperationException ex)
         {
-            await WriteProblemAsync(context, HttpStatusCode.BadRequest, "La operación no pudo completarse.", ex.Message);
+            _logger.LogInformation(ex, "Operación rechazada por el estado actual.");
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, "La operación no pudo completarse.", "La solicitud no pudo completarse.");
         }
         catch (Exception ex)
         {

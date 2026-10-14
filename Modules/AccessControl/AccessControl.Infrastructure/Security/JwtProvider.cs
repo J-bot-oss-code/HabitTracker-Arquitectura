@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 using AccessControl.Application.Interfaces;
@@ -11,6 +12,8 @@ namespace AccessControl.Infrastructure.Security;
 
 public class JwtProvider : IJwtProvider
 {
+    public const string SessionIssuedAtTicksClaim = "session_issued_at_ticks";
+
     private readonly IConfiguration _configuration;
     private readonly ILogger<JwtProvider> _logger;
 
@@ -24,18 +27,20 @@ public class JwtProvider : IJwtProvider
     {
         var settings = LeerSettings();
 
+        var emitidoEn = DateTimeOffset.UtcNow;
         var claims = new[]
         {
             new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, usuario.Correo.Valor),
             new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
+            new Claim(JwtRegisteredClaimNames.Iat, emitidoEn.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
+            new Claim(SessionIssuedAtTicksClaim, emitidoEn.UtcDateTime.Ticks.ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64)
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(settings.Clave));
         var credenciales = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-        var expira = DateTime.UtcNow.AddMinutes(settings.MinutosExpiracion);
+        var expira = emitidoEn.UtcDateTime.AddMinutes(settings.MinutosExpiracion);
 
         var token = new JwtSecurityToken(
             issuer: settings.Emisor,
