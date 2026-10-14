@@ -1,5 +1,6 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.ComponentModel.DataAnnotations;
 using AccessControl.Application.DTOs;
 using AccessControl.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -44,7 +45,7 @@ public class AdminUsuariosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CambiarEstado(Guid id, [FromBody] CambiarEstadoRequest request)
     {
-        await _usuarioService.CambiarEstadoAsync(id, request.NuevoEstado, ObtenerAdminId());
+        await _usuarioService.CambiarEstadoAsync(id, request.NuevoEstado!.Value, ObtenerAdminId());
         return Ok(new { mensaje = "Estado actualizado correctamente." });
     }
 
@@ -71,6 +72,7 @@ public class AdminUsuariosController : ControllerBase
     }
 }
 
-public record CambiarRolRequest(string NuevoRol);
+public record CambiarRolRequest(
+    [property: Required, StringLength(32, MinimumLength = 1)] string NuevoRol);
 
-public record CambiarEstadoRequest(bool NuevoEstado);
+public record CambiarEstadoRequest([property: Required] bool? NuevoEstado);

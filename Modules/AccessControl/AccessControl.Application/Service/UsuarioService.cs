@@ -4,6 +4,7 @@ using AccessControl.Domain.Interfaces;
 using AccessControl.Domain.Entities.ValueObjects;
 using Microsoft.Extensions.Logging;
 using AccessControl.Domain.Entities;
+using System.Diagnostics;
 
 namespace AccessControl.Application.Service;
 
@@ -38,11 +39,16 @@ public class UsuarioService : IUsuarioService
 
     public async Task<UsuarioResponseDto> AutenticarUsuarioAsync(LoginRequestDto request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        var email = new Email(request.Email);
+        if (string.IsNullOrWhiteSpace(request.password) || request.password.Length > 1024)
+        {
+            throw new ArgumentException("Las credenciales no son válidas.", nameof(request));
+        }
+
         _logger.LogInformation("Intento de login para: {Email}", request.Email);
 
-        var Email = new Email(request.Email);
-
-        var usuario = await _repository.GetByCorreoAsync(Email);
+        var usuario = await _repository.GetByCorreoAsync(email);
 
         // 1. RF-CA-03: sin revelar qué dato falló.
         if (usuario == null)
@@ -96,6 +102,11 @@ public class UsuarioService : IUsuarioService
 
     public async Task cambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId)
     {
+        if (usuarioId == Guid.Empty || adminId == Guid.Empty || string.IsNullOrWhiteSpace(nuevoRol))
+        {
+            throw new ArgumentException("Los datos para cambiar el rol no son válidos.");
+        }
+
        _logger.LogInformation("Cambio de rol para el usuario {usuarioId} a {nuevoRol} por el admin {adminId}", usuarioId, nuevoRol, adminId);
 
         var usuario = await _repository.GetByIdAsync(usuarioId);
@@ -112,7 +123,7 @@ public class UsuarioService : IUsuarioService
             throw new InvalidOperationException("No tiene permiso para cambiar roles.");
         }
 
-        if(!Enum.TryParse<Rol>(nuevoRol, out var rol))
+        if (!Enum.TryParse<Rol>(nuevoRol, ignoreCase: true, out var rol) || !Enum.IsDefined(rol))
         {
             throw new InvalidOperationException("El rol especificado no es válido");
         }
@@ -152,6 +163,11 @@ public class UsuarioService : IUsuarioService
 
     public async Task CambiarEstadoAsync(Guid usuarioId, bool nuevoEstado, Guid adminId)
     {
+        if (usuarioId == Guid.Empty || adminId == Guid.Empty)
+        {
+            throw new ArgumentException("Los identificadores de usuario no son válidos.");
+        }
+
         _logger.LogInformation("Cambio de estado para el usuario {usuarioId} a {nuevoEstado} por el admin {adminId}", usuarioId, nuevoEstado, adminId);
 
         if (usuarioId == adminId)
@@ -195,6 +211,7 @@ public class UsuarioService : IUsuarioService
 
     public async Task IniciarRecuperacionAsync(string correo)
     {
+        var inicio = Stopwatch.GetTimestamp();
         _logger.LogInformation("Iniciando recuperación de contraseña para el correo {correo}", correo);
 
         var Email = new Email(correo);
@@ -204,7 +221,7 @@ public class UsuarioService : IUsuarioService
         // RF-CA-09: respuesta idéntica exista o no el correo, sin revelar registros.
         if (usuario == null)
         {
-            await Task.Delay(100);
+            await EsperarRespuestaMinimaAsync(inicio);
             return;
         }
 
@@ -215,10 +232,16 @@ public class UsuarioService : IUsuarioService
         await _repository.UpdateAsync(usuario);
 
         await _emailQueue.EncolarCorreoRecuperacionAsync(correo, codigoGenerado);
+        await EsperarRespuestaMinimaAsync(inicio);
     }
 
     public async Task RestablecerPasswordAsync(string correo, string codigo, string nuevaPassword)
     {
+        if (string.IsNullOrWhiteSpace(codigo) || codigo.Length > 64)
+        {
+            throw new ArgumentException("El código de recuperación no es válido.", nameof(codigo));
+        }
+
         _logger.LogInformation("Restablecimiento de contraseña solicitado.");
 
         ValidarFormatoClave(nuevaPassword);
@@ -251,6 +274,12 @@ public class UsuarioService : IUsuarioService
 
     public async Task CambiarPasswordAsync(Guid usuarioId, string actual, string nueva)
     {
+        if (usuarioId == Guid.Empty || string.IsNullOrWhiteSpace(actual) || actual.Length > 1024)
+        {
+            throw new ArgumentException("Los datos para cambiar la contraseña no son válidos.");
+        }
+        ValidarFormatoClave(nueva);
+
         _logger.LogInformation("Cambio de contraseña para el usuario {usuarioId}.", usuarioId);
 
         var usuario = await _repository.GetByIdAsync(usuarioId);
@@ -265,7 +294,6 @@ public class UsuarioService : IUsuarioService
         }
 
         // RF-CA-14: formato de la nueva clave.
-        ValidarFormatoClave(nueva);
 
         usuario.CambiarPassword(_passwordHasher.Hash(nueva));
 
@@ -277,6 +305,11 @@ public class UsuarioService : IUsuarioService
 
     public async Task ForzarRestablecimientoAsync(Guid usuarioId, Guid adminId)
     {
+        if (usuarioId == Guid.Empty || adminId == Guid.Empty)
+        {
+            throw new ArgumentException("Los identificadores de usuario no son válidos.");
+        }
+
         _logger.LogInformation("Restablecimiento forzado para el usuario {usuarioId} por el admin {adminId}.", usuarioId, adminId);
 
         var usuario = await _repository.GetByIdAsync(usuarioId);
@@ -315,9 +348,19 @@ public class UsuarioService : IUsuarioService
 
     private static void ValidarFormatoClave(string password)
     {
-        if (string.IsNullOrWhiteSpace(password) || password.Length < 8 || !password.Any(char.IsLetter) || !password.Any(char.IsDigit))
+        if (string.IsNullOrWhiteSpace(password) || password.Length < 8 || password.Length > 1024
+            || !password.Any(char.IsLetter) || !password.Any(char.IsDigit))
         {
             throw new ArgumentException("La contraseña debe tener al menos 8 caracteres, e incluir letras y números.");
+        }
+    }
+
+    private static async Task EsperarRespuestaMinimaAsync(long inicio)
+    {
+        var restante = TimeSpan.FromMilliseconds(100) - Stopwatch.GetElapsedTime(inicio);
+        if (restante > TimeSpan.Zero)
+        {
+            await Task.Delay(restante);
         }
     }
 
@@ -340,6 +383,11 @@ public class UsuarioService : IUsuarioService
 
      public async Task ActivarCuentaAsync(string token)
     {
+       if (string.IsNullOrWhiteSpace(token) || token.Length > 256)
+       {
+           throw new ArgumentException("El enlace de activación no es válido.", nameof(token));
+       }
+
        _logger.LogInformation("iniciando activacion de cuenta");
 
        var usuario = await _repository.GetByTokenRecuperacionAsync(token);
@@ -356,12 +404,15 @@ public class UsuarioService : IUsuarioService
 
     public async Task<UsuarioResponseDto> RegistrarUsuarioAsync(RegistroRequestDto request)
     {
+        ArgumentNullException.ThrowIfNull(request);
+        if (string.IsNullOrWhiteSpace(request.nombre) || request.nombre.Trim().Length > 200)
+        {
+            throw new ArgumentException("El nombre completo no es válido.", nameof(request));
+        }
+        ValidarFormatoClave(request.password);
+
         _logger.LogInformation("Iniciando registro para el correo {correo}", request.correo);
 
-        if (request.password.Length < 8 || !request.password.Any(char.IsLetter) || !request.password.Any(char.IsDigit))
-        {
-            throw new ArgumentException("la contraseña debe tener al menos 8 caracteres, e incluir letras y números.");
-        }
 
         // 1. Instancias el Value Object (esto además validará que el correo tenga un formato correcto)
         var Email = new Email(request.correo);

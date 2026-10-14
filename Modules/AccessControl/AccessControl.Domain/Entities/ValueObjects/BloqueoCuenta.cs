@@ -33,8 +33,8 @@ public sealed class BloqueoCuenta
 
         IntentosFallidos++;
 
-        // Los cinco primeros fallos reciben 401; el sexto activa el bloqueo.
-        if (IntentosFallidos > MaxIntentos)
+        // El quinto fallo activa el bloqueo; el siguiente inicio se rechaza aunque la clave sea correcta.
+        if (IntentosFallidos >= MaxIntentos)
         {
             BloqueadoHasta = DateTime.UtcNow.Add(DuracionBloqueo);
         }

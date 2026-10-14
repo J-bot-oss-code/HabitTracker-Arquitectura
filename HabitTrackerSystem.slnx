@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/Host/">
     <Project Path="Host/WebApi/WebApi.csproj" />
+    <Project Path="Host/WebApi.Tests/WebApi.Tests.csproj" />
   </Folder>
   <Folder Name="/Modules/" />
   <Folder Name="/Modules/AccessControl/">
     <Project Path="Modules/AccessControl/AccessControl.Application/AccessControl.Application.csproj" />
     <Project Path="Modules/AccessControl/AccessControl.Domain/AccessControl.Domain.csproj" />
     <Project Path="Modules/AccessControl/AccessControl.Infrastructure/AccessControl.Infrastructure.csproj" />
+    <Project Path="Modules/AccessControl/AccessControl.Tests/AccessControl.Tests.csproj" />
   </Folder>
   <Folder Name="/Modules/Auditing/">
     <Project Path="Modules/Auditing/Auditing.Application/Auditing.Application.csproj" />
