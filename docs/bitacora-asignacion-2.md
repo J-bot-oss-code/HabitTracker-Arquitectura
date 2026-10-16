@@ -37,8 +37,16 @@
 - **Error o imprecisión detectada en la IA**: Los DTOs record usaban `[property: Required]` en parámetros del constructor primario y un `using` apuntó al namespace de interfaces equivocado; además el smoke test inicial falló porque la API en ejecución era anterior al fix. El log del servidor mostró `ThrowIfRecordTypeHasValidationOnProperties` y se corrigieron los atributos a `[param:]`.
 - **Cómo se detectó y cómo se corrigió**: Se reprodujo el error contra la API en ejecución y se leyó la excepción real en el log (model binding de records). Se cambiaron los atributos a `[param:]` en `RegistroRequestDto`, `LoginRequestDto` y los records de los controladores, se reconstruyó y el smoke test pasó completo. Los datos de prueba se eliminaron de la BD.
 
-## 3. Resumen de Commits Realizados- `docs(bitacora): inicializar bitacora de asignacion 2 y rama de trabajo`
+### Tarea 6: Consolidación de la suite de pruebas unitarias (rúbrica)
+- **Lo que se le pidió**: Revisar `tests/Permissions.Domain.Tests` para garantizar cobertura AAA de transición válida, transición prohibida con estado intacto explícito, auto-resolución y rechazo sin motivo; ejecutar `dotnet test`.
+- **Lo que devolvió**: La suite ya cubría los 4 escenarios (aprobación hasta `Aplicada`, rechazo con motivo, re-aprobar/rechazar sobre `Aplicada`/`Rechazada` con `Assert.Equal` de estado intacto, auto-aprobación/auto-rechazo con `Pendiente` intacto y rechazo sin motivo con Theory nulo/vacío/espacios). No se requirió código nuevo. `dotnet test` pasó 17/17 (16 dominio + 1 infraestructura), rápido e independiente.
+- **Error o imprecisión detectada en la IA**: Ninguna; la cobertura ya estaba consolidada.
+- **Cómo se detectó y cómo se corrigió**: Se mapeó cada escenario de la rúbrica contra los métodos existentes y se ejecutó la suite completa en verde.
+
+## 3. Resumen de Commits Realizados
+- `docs(bitacora): inicializar bitacora de asignacion 2 y rama de trabajo`
 - `feat(permissions): crear entidad SolicitudPermiso y maquina de estados (RF-GP-01, RF-GP-04, RF-GP-05, RF-GP-06, RF-GP-07, RD-04)`
- - `feat(permissions): configurar mapeo de SolicitudPermiso en EF Core y aplicar migración (RD-09, RD-10)`
-+- `feat(permissions): implementar casos de uso de aplicacion para crear, consultar, aprobar y rechazar solicitudes (RF-GP-01, RF-GP-02, RF-GP-03, RF-GP-04, RF-GP-05, RF-GP-07)`
+- `feat(permissions): configurar mapeo de SolicitudPermiso en EF Core y aplicar migración (RD-09, RD-10)`
+- `feat(permissions): implementar casos de uso de aplicacion para crear, consultar, aprobar y rechazar solicitudes (RF-GP-01, RF-GP-02, RF-GP-03, RF-GP-04, RF-GP-05, RF-GP-07)`
 - `feat(permissions): agregar controlador WebAPI con autorizacion JWT y respuestas RFC 7807 (RF-GP-01, RF-GP-02, RF-GP-03, RF-GP-04, RF-GP-05, RF-GP-07, RD-06, RD-07, RD-08)`
+- `test(permissions): consolidar suite de pruebas unitarias para transiciones validas, prohibidas y auto-resolucion (RF-GP-01 a RF-GP-07)`
