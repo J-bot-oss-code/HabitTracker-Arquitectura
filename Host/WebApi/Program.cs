@@ -1,5 +1,6 @@
 using WebApi.Extensions;
 using WebApi.Middlewares;
+using Permissions.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +9,9 @@ builder.Services.AddAccessControlModule(builder.Configuration);
 
 // Módulo de Negocio: Rastreador de Hábitos (contexto propio).
 builder.Services.AddHabitTrackerModule(builder.Configuration);
+
+// Módulo de Gestión de Permisos (persistencia propia).
+builder.Services.AddPermissionsInfrastructure(builder.Configuration);
 
 // Controladores y OpenAPI.
 builder.Services.AddControllers();
