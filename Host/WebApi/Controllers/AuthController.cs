@@ -157,19 +157,19 @@ public class AuthController : ControllerBase
     }
 }
 
-public record ActivateRequest([property: Required, StringLength(256)] string Token);
+public record ActivateRequest([param: Required, StringLength(256)] string Token);
 
 public record ResendActivationRequest(
-    [property: Required, EmailAddress, StringLength(150)] string Correo);
+    [param: Required, EmailAddress, StringLength(150)] string Correo);
 
 public record RecuperarPasswordRequest(
-    [property: Required, EmailAddress, StringLength(150)] string Correo);
+    [param: Required, EmailAddress, StringLength(150)] string Correo);
 
 public record RestablecerPasswordRequest(
-    [property: Required, EmailAddress, StringLength(150)] string Correo,
-    [property: Required, StringLength(64)] string Codigo,
-    [property: Required, StringLength(1024, MinimumLength = 8)] string NuevaPassword);
+    [param: Required, EmailAddress, StringLength(150)] string Correo,
+    [param: Required, StringLength(64)] string Codigo,
+    [param: Required, StringLength(1024, MinimumLength = 8)] string NuevaPassword);
 
 public record CambiarPasswordRequest(
-    [property: Required, StringLength(1024)] string Actual,
-    [property: Required, StringLength(1024, MinimumLength = 8)] string Nueva);
+    [param: Required, StringLength(1024)] string Actual,
+    [param: Required, StringLength(1024, MinimumLength = 8)] string Nueva);
