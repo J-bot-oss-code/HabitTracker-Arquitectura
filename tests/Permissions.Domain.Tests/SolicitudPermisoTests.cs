@@ -25,6 +25,13 @@ public class SolicitudPermisoTests
     }
 
     [Fact]
+    public void Constructor_RechazaCamposQueSuperanLaLongitudPermitida()
+    {
+        Assert.Throws<ArgumentException>(() => new SolicitudPermiso(new string('a', 257), "Permiso"));
+        Assert.Throws<ArgumentException>(() => new SolicitudPermiso("persona@ejemplo.com", new string('p', 257)));
+    }
+
+    [Fact]
     public void Aprobar_AplicaSolicitudYRegistraResolucion()
     {
         var solicitud = CrearSolicitud();
@@ -47,6 +54,16 @@ public class SolicitudPermisoTests
         var resultado = solicitud.Aprobar("persona@ejemplo.com", FechaResolucionUtc);
 
         AssertRejectedWithoutMutation(solicitud, resultado, DomainError.AutoResolucionProhibida);
+    }
+
+    [Fact]
+    public void Aprobar_AprobadorDemasiadoLargoRechazaSinModificarSolicitud()
+    {
+        var solicitud = CrearSolicitud();
+
+        var resultado = solicitud.Aprobar(new string('a', 257), FechaResolucionUtc);
+
+        AssertRejectedWithoutMutation(solicitud, resultado, DomainError.AprobadorExcedeLongitudMaxima);
     }
 
     [Fact]
@@ -117,6 +134,16 @@ public class SolicitudPermisoTests
         var resultado = solicitud.Rechazar("persona@ejemplo.com", "Motivo", FechaResolucionUtc);
 
         AssertRejectedWithoutMutation(solicitud, resultado, DomainError.AutoResolucionProhibida);
+    }
+
+    [Fact]
+    public void Rechazar_MotivoDemasiadoLargoRechazaSinModificarSolicitud()
+    {
+        var solicitud = CrearSolicitud();
+
+        var resultado = solicitud.Rechazar("admin@ejemplo.com", new string('m', 501), FechaResolucionUtc);
+
+        AssertRejectedWithoutMutation(solicitud, resultado, DomainError.MotivoRechazoExcedeLongitudMaxima);
     }
 
     [Fact]

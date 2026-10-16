@@ -7,7 +7,9 @@ public enum DomainError
     AutoResolucionProhibida,
     EstadoTransicionInvalido,
     MotivoRechazoRequerido,
-    FechaResolucionDebeSerUtc
+    FechaResolucionDebeSerUtc,
+    AprobadorExcedeLongitudMaxima,
+    MotivoRechazoExcedeLongitudMaxima
 }
 
 public sealed record DomainResult
@@ -28,6 +30,8 @@ public sealed record DomainResult
         DomainError.EstadoTransicionInvalido => "La solicitud no permite esta transición de estado.",
         DomainError.MotivoRechazoRequerido => "El motivo del rechazo es obligatorio.",
         DomainError.FechaResolucionDebeSerUtc => "La fecha de resolución debe estar expresada en UTC.",
+        DomainError.AprobadorExcedeLongitudMaxima => "El aprobador supera la longitud máxima permitida.",
+        DomainError.MotivoRechazoExcedeLongitudMaxima => "El motivo del rechazo supera la longitud máxima permitida.",
         _ => null
     };
 

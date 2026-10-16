@@ -40,5 +40,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Permissions.Domain.Tests/Permissions.Domain.Tests.csproj" />
+    <Project Path="tests/Permissions.Infrastructure.Tests/Permissions.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

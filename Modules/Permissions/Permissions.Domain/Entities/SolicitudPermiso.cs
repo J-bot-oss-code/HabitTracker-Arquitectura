@@ -5,6 +5,10 @@ namespace Permissions.Domain.Entities;
 
 public class SolicitudPermiso
 {
+    private const int LongitudMaximaIdentidad = 256;
+    private const int LongitudMaximaPermiso = 256;
+    private const int LongitudMaximaMotivoRechazo = 500;
+
     public Guid Id { get; private set; }
     public string Solicitante { get; private set; } = string.Empty;
     public string PermisoSolicitado { get; private set; } = string.Empty;
@@ -22,6 +26,8 @@ public class SolicitudPermiso
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
         ArgumentException.ThrowIfNullOrWhiteSpace(permisoSolicitado);
+        ValidarLongitud(solicitante, LongitudMaximaIdentidad, nameof(solicitante));
+        ValidarLongitud(permisoSolicitado, LongitudMaximaPermiso, nameof(permisoSolicitado));
 
         Id = Guid.NewGuid();
         Solicitante = solicitante.Trim();
@@ -35,6 +41,11 @@ public class SolicitudPermiso
         if (string.IsNullOrWhiteSpace(aprobador))
         {
             return DomainResult.Failure(DomainError.AprobadorRequerido);
+        }
+
+        if (aprobador.Trim().Length > LongitudMaximaIdentidad)
+        {
+            return DomainResult.Failure(DomainError.AprobadorExcedeLongitudMaxima);
         }
 
         if (EsAutoResolucion(aprobador))
@@ -66,6 +77,11 @@ public class SolicitudPermiso
             return DomainResult.Failure(DomainError.AprobadorRequerido);
         }
 
+        if (aprobador.Trim().Length > LongitudMaximaIdentidad)
+        {
+            return DomainResult.Failure(DomainError.AprobadorExcedeLongitudMaxima);
+        }
+
         if (EsAutoResolucion(aprobador))
         {
             return DomainResult.Failure(DomainError.AutoResolucionProhibida);
@@ -74,6 +90,11 @@ public class SolicitudPermiso
         if (string.IsNullOrWhiteSpace(motivoRechazo))
         {
             return DomainResult.Failure(DomainError.MotivoRechazoRequerido);
+        }
+
+        if (motivoRechazo.Trim().Length > LongitudMaximaMotivoRechazo)
+        {
+            return DomainResult.Failure(DomainError.MotivoRechazoExcedeLongitudMaxima);
         }
 
         if (fechaResolucionUtc.Kind != DateTimeKind.Utc)
@@ -95,6 +116,14 @@ public class SolicitudPermiso
 
     private bool EsAutoResolucion(string aprobador) =>
         string.Equals(Solicitante, aprobador.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static void ValidarLongitud(string valor, int longitudMaxima, string parametro)
+    {
+        if (valor.Trim().Length > longitudMaxima)
+        {
+            throw new ArgumentException($"El valor no puede superar {longitudMaxima} caracteres.", parametro);
+        }
+    }
 
     private bool TransicionarA(params EstadoSolicitudPermiso[] ruta)
     {
