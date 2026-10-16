@@ -33,4 +33,10 @@ public sealed class SolicitudPermisoRepository(PermissionsDbContext dbContext) :
             .Where(solicitud => solicitud.Estado == EstadoSolicitudPermiso.Pendiente)
             .OrderBy(solicitud => solicitud.FechaCreacion)
             .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<SolicitudPermiso>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await dbContext.SolicitudesPermisos
+            .AsNoTracking()
+            .OrderBy(solicitud => solicitud.FechaCreacion)
+            .ToListAsync(cancellationToken);
 }

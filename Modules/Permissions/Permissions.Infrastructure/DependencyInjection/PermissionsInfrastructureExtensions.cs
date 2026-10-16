@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Permissions.Application.Interfaces;
+using Permissions.Application.Services;
 using Permissions.Infrastructure.Persistence;
 using Permissions.Infrastructure.Repositories;
 
@@ -22,6 +23,7 @@ public static class PermissionsInfrastructureExtensions
 
         services.AddDbContext<PermissionsDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<ISolicitudPermisoRepository, SolicitudPermisoRepository>();
+        services.AddScoped<ISolicitudPermisoService, SolicitudPermisoService>();
 
         return services;
     }
