@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Permissions.Domain\Permissions.Domain.csproj" />
+    <ProjectReference Include="..\..\Modules\Permissions\Permissions.Domain\Permissions.Domain.csproj" />
   </ItemGroup>
 
 </Project>

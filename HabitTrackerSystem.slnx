@@ -31,12 +31,14 @@
   <Folder Name="/Modules/Permissions/">
     <Project Path="Modules/Permissions/Permissions.Application/Permissions.Application.csproj" />
     <Project Path="Modules/Permissions/Permissions.Domain/Permissions.Domain.csproj" />
-    <Project Path="Modules/Permissions/Permissions.Domain.Tests/Permissions.Domain.Tests.csproj" />
     <Project Path="Modules/Permissions/Permissions.Infrastructure/Permissions.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/Modules/Reports/">
     <Project Path="Modules/Reports/Reports.Application/Reports.Application.csproj" />
     <Project Path="Modules/Reports/Reports.Domain/Reports.Domain.csproj" />
     <Project Path="Modules/Reports/Reports.Infrastructure/Reports.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Permissions.Domain.Tests/Permissions.Domain.Tests.csproj" />
   </Folder>
 </Solution>
