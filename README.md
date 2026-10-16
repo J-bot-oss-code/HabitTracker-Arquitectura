@@ -143,3 +143,25 @@ Sigue estas instrucciones desde Swagger o Postman para validar la rúbrica:
 
 ---
 *Documentación de la Máquina de Estados disponible en `docs/maquina-de-estados.md`.*
+
+## Asignación 2 — Gestión de Permisos
+
+Pieza del Core con máquina de estados propia (`Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`; cualquier otra transición está prohibida). Capas: `Permissions.Domain` (entidad rica `SolicitudPermiso` + `TransicionesSolicitudPermiso` + `DomainResult`), `Permissions.Application` (`SolicitudPermisoService` con filtro por rol), `Permissions.Infrastructure` (`PermissionsDbContext` propio + `SolicitudPermisoRepository`) y endpoints en `PermissionsController` (`api/permissions`) protegidos con JWT.
+
+### Pruebas
+
+```bash
+# Suite completa con un solo comando (17 pruebas, sin levantar la API ni la BD)
+dotnet test
+```
+
+### Guía de verificación (Swagger o cURL, RF-GP-01 a RF-GP-07)
+
+1. Registra dos usuarios Estándar y activa sus cuentas (`POST /api/auth/register`, `POST /api/auth/activate`).
+2. Promueve uno a Administrador en la BD (`UPDATE usuarios SET Rol = 2 WHERE Correo = '...'`) e inicia sesión con ambos para obtener sus JWT.
+3. **RF-GP-01:** como Estándar, `POST /api/permissions` con `{"permisoSolicitado":"Acceso reportes"}` → `201` con el `id`.
+4. **RF-GP-02:** como Estándar, `GET /api/permissions` → solo ve las suyas; como Administrador → ve todas. Como Estándar, `GET /api/permissions/{id-ajeno}` → `401`.
+5. **RF-GP-03/05:** como Administrador, `POST /api/permissions/{id}/approve` → `200`; verifica en BD que el estado quedó `Aplicada`.
+6. **RF-GP-06:** repite el approve sobre la misma solicitud → `400`; aprueba un `id` inexistente → `404`.
+7. **RF-GP-04:** `POST /api/permissions/{id}/reject` con `{"motivoRechazo":""}` → `400`; con motivo válido → `200`.
+8. **RF-GP-07:** crea una solicitud como Administrador e intenta aprobarla él mismo → `400` (auto-resolución prohibida).

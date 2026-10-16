@@ -73,6 +73,6 @@ public class AdminUsuariosController : ControllerBase
 }
 
 public record CambiarRolRequest(
-    [property: Required, StringLength(32, MinimumLength = 1)] string NuevoRol);
+    [param: Required, StringLength(32, MinimumLength = 1)] string NuevoRol);
 
-public record CambiarEstadoRequest([property: Required] bool? NuevoEstado);
+public record CambiarEstadoRequest([param: Required] bool? NuevoEstado);
