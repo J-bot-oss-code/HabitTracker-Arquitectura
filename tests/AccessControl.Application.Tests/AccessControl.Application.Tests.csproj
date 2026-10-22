@@ -21,6 +21,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Modules\AccessControl\AccessControl.Application\AccessControl.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\AccessControl\AccessControl.Infrastructure\AccessControl.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Host\WebApi\WebApi.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
 </Project>
