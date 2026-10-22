@@ -48,11 +48,6 @@ public class SolicitudPermiso
             return DomainResult.Failure(DomainError.AprobadorExcedeLongitudMaxima);
         }
 
-        if (EsAutoResolucion(aprobador))
-        {
-            return DomainResult.Failure(DomainError.AutoResolucionProhibida);
-        }
-
         if (fechaResolucionUtc.Kind != DateTimeKind.Utc)
         {
             return DomainResult.Failure(DomainError.FechaResolucionDebeSerUtc);
