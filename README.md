@@ -151,7 +151,7 @@ Pieza del Core con máquina de estados propia (`Pendiente → Aprobada → Aplic
 ### Pruebas
 
 ```bash
-# Suite completa con un solo comando (17 pruebas, sin levantar la API ni la BD)
+# Suite completa con un solo comando (23 pruebas, sin levantar la API ni una BD externa)
 dotnet test
 ```
 
@@ -161,7 +161,12 @@ dotnet test
 2. Promueve uno a Administrador en la BD (`UPDATE usuarios SET Rol = 2 WHERE Correo = '...'`) e inicia sesión con ambos para obtener sus JWT.
 3. **RF-GP-01:** como Estándar, `POST /api/permissions` con `{"permisoSolicitado":"Acceso reportes"}` → `201` con el `id`.
 4. **RF-GP-02:** como Estándar, `GET /api/permissions` → solo ve las suyas; como Administrador → ve todas. Como Estándar, `GET /api/permissions/{id-ajeno}` → `401`.
-5. **RF-GP-03/05:** como Administrador, `POST /api/permissions/{id}/approve` → `200`; verifica en BD que el estado quedó `Aplicada`.
-6. **RF-GP-06:** repite el approve sobre la misma solicitud → `400`; aprueba un `id` inexistente → `404`.
-7. **RF-GP-04:** `POST /api/permissions/{id}/reject` con `{"motivoRechazo":""}` → `400`; con motivo válido → `200`.
-8. **RF-GP-07:** crea una solicitud como Administrador e intenta aprobarla él mismo → `400` (auto-resolución prohibida).
+5. **RF-GP-03:** como Administrador, `POST /api/permissions/{id}/approve` → `200`; el estado queda `Aplicada` y se registran el administrador y la fecha UTC.
+6. **RF-GP-05 — acción protegida:** crea la solicitud con el permiso `Consultar mi historial de permisos`. Como Estándar, intenta `GET /api/permissions/actions/Consultar%20mi%20historial%20de%20permisos/execute` antes de aprobarla: debe responder `403 Forbidden`. Aprueba la solicitud como Administrador y repite la misma llamada con el JWT del solicitante: debe responder `200 OK` con las solicitudes persistidas de ese usuario, incluida la recién aplicada. El servicio verifica en el servidor que la solicitud esté `Aplicada` y luego consulta el historial propio; no se modifica el rol ni se requiere una asignación manual adicional. Un usuario distinto que no tenga aplicado ese permiso recibe `403`; si lo tiene aplicado, solo consulta su propio historial.
+7. **RF-GP-06:** repite el approve sobre la misma solicitud → `400`; aprueba un `id` inexistente → `404`.
+8. **RF-GP-04:** `POST /api/permissions/{id}/reject` con `{"motivoRechazo":""}` → `400`; con motivo válido → `200`.
+9. **RF-GP-07:** crea una solicitud como Administrador e intenta aprobarla él mismo → `400` (auto-resolución prohibida).
+
+#### Evidencia automatizada de RF-GP-05
+
+`dotnet test` incluye pruebas independientes de Aplicación, Infraestructura y API. Comprueban que la operación se rechaza mientras la solicitud está pendiente, que la aprobación aplica el permiso y habilita la consulta del historial, que otro usuario no hereda el permiso, y que el controlador traduce esos resultados a `403` y `200`. La prueba de infraestructura usa SQLite en memoria; ninguna prueba levanta el servidor HTTP ni requiere una base de datos externa.
