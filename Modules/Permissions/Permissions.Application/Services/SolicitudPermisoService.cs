@@ -121,6 +121,32 @@ public sealed class SolicitudPermisoService(
         logger.LogInformation("Solicitud {SolicitudId} rechazada por {Aprobador}.", solicitud.Id, command.Aprobador);
     }
 
+    public async Task<IReadOnlyList<SolicitudPermisoDto>> EjecutarAccionProtegidaAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
+        ArgumentException.ThrowIfNullOrWhiteSpace(permisoSolicitado);
+
+        var identidad = solicitante.Trim();
+        var permiso = permisoSolicitado.Trim();
+        if (identidad.Length > 256 || permiso.Length > 256)
+        {
+            throw new ArgumentException("El solicitante o el permiso excede la longitud permitida.");
+        }
+
+        var tienePermiso = await repository.TienePermisoAplicadoAsync(identidad, permiso, cancellationToken);
+        if (!tienePermiso)
+        {
+            throw new UnauthorizedAccessException("El usuario no tiene aplicado el permiso solicitado.");
+        }
+
+        var historial = await repository.GetBySolicitanteAsync(identidad, cancellationToken);
+        logger.LogInformation("Historial protegido consultado por {Solicitante}.", identidad);
+        return historial.Select(ToDto).ToList();
+    }
+
     private static bool EsAdministrador(string rol) =>
         string.Equals(rol, "Administrador", StringComparison.OrdinalIgnoreCase);
 

@@ -13,4 +13,13 @@ public interface ISolicitudPermisoRepository
     Task<IReadOnlyList<SolicitudPermiso>> GetPendingAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<SolicitudPermiso>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    Task<bool> TienePermisoAplicadoAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SolicitudPermiso>> GetBySolicitanteAsync(
+        string solicitante,
+        CancellationToken cancellationToken = default);
 }
