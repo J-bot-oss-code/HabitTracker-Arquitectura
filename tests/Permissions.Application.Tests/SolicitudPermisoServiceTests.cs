@@ -126,6 +126,30 @@ public sealed class SolicitudPermisoServiceTests
         Assert.True(despuesDeAprobar);
     }
 
+    [Fact]
+    [Trait("Requirement", "RF-GP-05")]
+    public async Task RF_GP_05_AccionProtegida_RechazaAntesYConsultaHistorialPropioTrasAprobar()
+    {
+        // Arrange
+        const string permiso = "Consultar mi historial de permisos";
+        var solicitud = new SolicitudPermiso("persona@ejemplo.com", permiso);
+        var historialAjeno = new SolicitudPermiso("otra-persona@ejemplo.com", permiso);
+        var repository = new InMemorySolicitudPermisoRepository([solicitud, historialAjeno]);
+        var service = CrearServicio(repository);
+
+        // Act
+        var errorAntesDeAprobar = await Record.ExceptionAsync(() =>
+            service.EjecutarAccionProtegidaAsync(solicitud.Solicitante, permiso));
+        await service.AprobarAsync(new AprobarSolicitudCommand(solicitud.Id, "admin@ejemplo.com"));
+        var historial = await service.EjecutarAccionProtegidaAsync(solicitud.Solicitante, permiso);
+
+        // Assert
+        Assert.IsType<UnauthorizedAccessException>(errorAntesDeAprobar);
+        Assert.Equal(solicitud.Id, Assert.Single(historial).Id);
+        Assert.DoesNotContain(historial, item => item.Id == historialAjeno.Id);
+        Assert.Equal(EstadoSolicitudPermiso.Aplicada.ToString(), Assert.Single(historial).Estado);
+    }
+
     private static SolicitudPermisoService CrearServicio(ISolicitudPermisoRepository repository) =>
         new(repository, NullLogger<SolicitudPermisoService>.Instance);
 

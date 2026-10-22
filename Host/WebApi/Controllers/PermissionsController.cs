@@ -59,6 +59,26 @@ public class PermissionsController : ControllerBase
             : Forbid();
     }
 
+    /// <summary>Consulta el historial propio mediante una acción protegida por el permiso aplicado (RF-GP-05).</summary>
+    [HttpGet("actions/{permiso}/execute")]
+    [ProducesResponseType(typeof(IEnumerable<SolicitudPermisoDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> EjecutarAccionProtegida(
+        [FromRoute, Required, StringLength(256, MinimumLength = 1)] string permiso)
+    {
+        try
+        {
+            var resultado = await _service.EjecutarAccionProtegidaAsync(ObtenerEmail(), permiso);
+            return Ok(resultado);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
     /// <summary>Consulta el detalle de una solicitud (RF-GP-02).</summary>
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(SolicitudPermisoDto), StatusCodes.Status200OK)]

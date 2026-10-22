@@ -18,4 +18,9 @@ public interface ISolicitudPermisoService
         string solicitante,
         string permisoSolicitado,
         CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<SolicitudPermisoDto>> EjecutarAccionProtegidaAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default);
 }
