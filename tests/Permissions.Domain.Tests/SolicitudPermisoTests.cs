@@ -261,6 +261,21 @@ public class SolicitudPermisoTests
 
     [Fact]
     [Trait("Requirement", "RF-GP-06")]
+    public void RF_GP_06_Transicion_RechazadaNoPuedeIrDirectamenteAAplicada()
+    {
+        // Arrange
+        var estadoActual = EstadoSolicitudPermiso.Rechazada;
+        var nuevoEstado = EstadoSolicitudPermiso.Aplicada;
+
+        // Act
+        var transicionValida = TransicionesSolicitudPermiso.EsValida(estadoActual, nuevoEstado);
+
+        // Assert
+        Assert.False(transicionValida);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-GP-06")]
     public void RF_GP_06_Aprobar_AprobadorQueSuperaLongitudMaximaRechazaSinModificarSolicitud()
     {
         // Arrange

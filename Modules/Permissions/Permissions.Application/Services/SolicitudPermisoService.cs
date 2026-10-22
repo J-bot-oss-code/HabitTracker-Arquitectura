@@ -123,6 +123,25 @@ public sealed class SolicitudPermisoService(
         logger.LogInformation("Solicitud {SolicitudId} rechazada por {Aprobador}.", solicitud.Id, command.Aprobador);
     }
 
+    public Task<bool> TienePermisoEfectivoAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
+        ArgumentException.ThrowIfNullOrWhiteSpace(permisoSolicitado);
+
+        if (solicitante.Trim().Length > 256 || permisoSolicitado.Trim().Length > 256)
+        {
+            throw new ArgumentException("El solicitante o el permiso excede la longitud permitida.");
+        }
+
+        return repository.TienePermisoAplicadoAsync(
+            solicitante,
+            permisoSolicitado,
+            cancellationToken);
+    }
+
     private static bool EsAdministrador(string rol) =>
         string.Equals(rol, "Administrador", StringComparison.OrdinalIgnoreCase);
 

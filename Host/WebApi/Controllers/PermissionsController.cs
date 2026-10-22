@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -41,6 +42,21 @@ public class PermissionsController : ControllerBase
             new ObtenerSolicitudesQuery(ObtenerEmail(), ObtenerRol(), soloPendientes));
 
         return Ok(resultado);
+    }
+
+    /// <summary>Comprueba si un permiso solicitado ya está aplicado al usuario autenticado (RF-GP-05).</summary>
+    [HttpGet("effective/{permiso}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ConsultarPermisoEfectivo(
+        [FromRoute, Required, StringLength(256, MinimumLength = 1)] string permiso)
+    {
+        var tienePermiso = await _service.TienePermisoEfectivoAsync(ObtenerEmail(), permiso);
+        return tienePermiso
+            ? Ok(new { permiso, efectivo = true })
+            : Forbid();
     }
 
     /// <summary>Consulta el detalle de una solicitud (RF-GP-02).</summary>

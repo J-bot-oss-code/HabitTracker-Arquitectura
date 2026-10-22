@@ -66,7 +66,7 @@ La siguiente tabla documenta los seis defectos de la Variante A y las pruebas ex
 | Defecto Tag | Requisito | Archivo y Método / Línea Afectada | Prueba que lo Detecta | Comportamiento Erróneo Producido |
 |---|---|---|---|---|
 | `practica-2-defecto-1` | RF-GP-06 | Dominio: `Modules/Permissions/Permissions.Domain/Entities/SolicitudPermiso.cs`, método `Aprobar` — reemplazar la validación de transición válida por una comprobación que solo excluya `Rechazada`. | `RF_GP_06_Aprobar_SolicitudAplicadaNoPuedeAprobarseOtraVez` | Permite aprobar otra vez una solicitud ya aplicada y sobrescribe los datos de resolución. |
-| `practica-2-defecto-2` | RF-GP-06 | Dominio: `Modules/Permissions/Permissions.Domain/Entities/TransicionesSolicitudPermiso.cs`, método `EsValida` — permitir la transición desde `Rechazada` hacia el flujo de aprobación y aplicación (`Aprobada` → `Aplicada`). | `RF_GP_06_Aprobar_SolicitudRechazadaNoPuedeAprobarse` | Una solicitud rechazada puede ser aprobada y terminar aplicada. |
+| `practica-2-defecto-2` | RF-GP-06 | Dominio: `Modules/Permissions/Permissions.Domain/Entities/TransicionesSolicitudPermiso.cs`, método `EsValida` — agregar únicamente la transición directa `Rechazada` → `Aplicada`. | `RF_GP_06_Transicion_RechazadaNoPuedeIrDirectamenteAAplicada` | La máquina de estados acepta una transición prohibida desde Rechazada directamente a Aplicada. |
 | `practica-2-defecto-3` | RF-GP-07 | Dominio: `Modules/Permissions/Permissions.Domain/Entities/SolicitudPermiso.cs`, método `Aprobar` — omitir la validación de auto-resolución. | `RF_GP_07_Aprobar_AdminNoPuedeResolverSuPropiaSolicitud` | Un Administrador puede aprobar su propia solicitud. |
 | `practica-2-defecto-4` | RF-GP-02 | Infraestructura: `Modules/Permissions/Permissions.Infrastructure/Repositories/SolicitudPermisoRepository.cs`, método `GetBySolicitanteAsync` — invertir el filtro de solicitante. | `RF_GP_02_Repository_FiltraPorSolicitanteYEstadoEnLaBaseDeDatos` | Un usuario Estándar recibe solicitudes ajenas en lugar de ver únicamente las propias. |
 | `practica-2-defecto-5` | RF-GP-06 | Dominio: `Modules/Permissions/Permissions.Domain/Entities/TransicionesSolicitudPermiso.cs`, método `EsValida` — agregar la transición `Aprobada` → `Pendiente`. | `RF_GP_06_Transicion_AprobadaNoPuedeVolverAPendiente` | Una solicitud aprobada puede volver al estado Pendiente. |
@@ -146,6 +146,7 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 2. Aplica las migraciones a tu base de datos local (SQL Server):
    `dotnet ef database update --project Modules/AccessControl/AccessControl.Infrastructure --startup-project Host/WebApi --context ApplicationDbContext`
    `dotnet ef database update --project Modules/HabitTracker/HabitTracker.Infrastructure --startup-project Host/WebApi --context HabitTrackerDbContext`
+   `dotnet ef database update --project Modules/Permissions/Permissions.Infrastructure --startup-project Host/WebApi --context PermissionsDbContext`
 3. Levanta la API:
    `dotnet run --project Host/WebApi/WebApi.csproj`
 4. Abre Swagger en `http://localhost:5246/swagger` (usa el botón Authorize con `Bearer {token}`).
@@ -155,7 +156,15 @@ Sigue estas instrucciones desde Swagger o Postman para validar la rúbrica:
 
 *   **Registro y rechazo controlado:** Usa `POST /api/auth/register` con una clave menor a 8 caracteres o sin números. Recibirás un error 400 controlado.
 *   **Encolado de correos (Sin SMTP):** Si el servidor SMTP no está configurado o falla, el registro (201 Created) y la recuperación de clave terminan con éxito. Los correos quedan pendientes en la tabla/cola interna.
-*   **Activación y un solo uso:** Tras registrarte, usa el token simulado en `POST /api/auth/activate`. Si lo envías dos veces, la segunda vez será rechazado.
+*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura123"}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el token del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl. Activa la cuenta con `POST /api/auth/activate` y `{"token":"TOKEN_RECIBIDO"}`. La cuenta queda activa; reutilizar el token se rechaza.
+
+    ```sql
+    SELECT TokenAcceso, Vencimiento
+    FROM usuarios
+    WHERE Correo = N'persona@ejemplo.com';
+    ```
+
+*   **Inicio y cierre de sesión:** Inicia sesión con `POST /api/auth/login` y `{"email":"persona@ejemplo.com","password":"ClaveSegura123"}`. Guarda el JWT recibido, úsalo como `Authorization: Bearer <JWT>` para `GET /api/auth/me` y luego envíalo en `POST /api/auth/logout`. Repite `GET /api/auth/me` con el mismo token: debe responder `401 Unauthorized`.
 *   **Seguridad de enumeración (Recuperación):** Llama a `POST /api/auth/recuperar-password` con un correo falso y luego con uno registrado. Ambos reciben `200 OK` con el mismo mensaje; el servidor aplica un tiempo mínimo de respuesta para reducir diferencias de temporización.
 *   **Recuperación de contraseña paso a paso:** Envía `POST /api/auth/forgot-password` con `{"correo":"persona@ejemplo.com"}`. El endpoint responde siempre `200 OK` con un mensaje genérico. Para una cuenta existente, el código de seis caracteres se envía por correo. En un entorno local sin SMTP operativo, consulta la cola de correos de la base `AccessControl`; el cuerpo HTML de `CorreosEnCola` contiene el código:
 
@@ -169,7 +178,7 @@ Sigue estas instrucciones desde Swagger o Postman para validar la rúbrica:
     Usa el código recibido en `POST /api/auth/reset-password` con `{"correo":"persona@ejemplo.com","codigo":"CODIGO_DE_SEIS_CARACTERES","nuevaPassword":"NuevaClave123"}`. La respuesta exitosa es `200 OK`; el código es de un solo uso y el cambio invalida las sesiones anteriores. Los nombres en español `POST /api/auth/recuperar-password` y `POST /api/auth/restablecer-password` son rutas equivalentes. Trata el código como una credencial temporal: consulta la cola solo en la base local de desarrollo y no copies su contenido a logs o reportes.
 *   **Bloqueo de fuerza bruta (15 min):** Falla cinco veces seguidas en `POST /api/auth/login`; la cuenta queda bloqueada. El siguiente inicio se rechaza incluso si se usa la contrasena correcta.
 *   **Invalidación de sesión (Logout / Cambio de Rol/Clave):** Inicia sesión, guarda el JWT. Llama a `POST /api/auth/logout`. Vuelve a intentar usar el JWT en `GET /api/auth/me`; recibirás un `401 Unauthorized`.
-*   **Protección por Roles:** Como usuario Estándar, intenta invocar `GET /api/admin/usuarios` (construyendo la petición manualmente si es necesario). El sistema devolverá `403 Forbidden`.
+*   **Protección por Roles:** Promueve una cuenta de prueba a Administrador (`UPDATE usuarios SET Rol = 2 WHERE Correo = 'admin@ejemplo.com'`) e inicia sesión con ella. Como usuario Estándar autenticado, invoca `GET /api/admin/usuarios` (construyendo la petición manualmente si es necesario); el servidor devolverá `403 Forbidden`.
 *   **Desactivación y Autodesactivación:** Como Administrador, intenta desactivarte a ti mismo en `PATCH /api/admin/usuarios/{tu_id}/estado`. El sistema lo rechazará. Desactiva a otro usuario y sus sesiones abiertas morirán instantáneamente.
 
 ---
@@ -182,7 +191,7 @@ Pieza del Core con máquina de estados propia (`Pendiente → Aprobada → Aplic
 ### Pruebas
 
 ```bash
-# Suite completa con un solo comando (29 pruebas, sin levantar la API ni la BD)
+# Suite completa con un solo comando (36 pruebas, sin levantar la API ni una BD externa)
 dotnet test
 ```
 
@@ -190,11 +199,11 @@ La suite incluye pruebas unitarias de los cuatro frentes de Control de Acceso (r
 
 ### Guía de verificación (Swagger o cURL, RF-GP-01 a RF-GP-07)
 
-1. Registra dos usuarios Estándar y activa sus cuentas (`POST /api/auth/register`, `POST /api/auth/activate`).
-2. Promueve uno a Administrador en la BD (`UPDATE usuarios SET Rol = 2 WHERE Correo = '...'`) e inicia sesión con ambos para obtener sus JWT.
+1. Registra dos usuarios Estándar y activa sus cuentas con el flujo de correo descrito arriba (`POST /api/auth/register`, `POST /api/auth/activate`).
+2. Promueve uno a Administrador en la BD (`UPDATE usuarios SET Rol = 2 WHERE Correo = '...'`) e inicia sesión de nuevo con ambos para obtener sus JWT actualizados.
 3. **RF-GP-01:** como Estándar, `POST /api/permissions` con `{"permisoSolicitado":"Acceso reportes"}` → `201` con el `id`.
 4. **RF-GP-02:** como Estándar, `GET /api/permissions` → solo ve las suyas; como Administrador → ve todas. Como Estándar, `GET /api/permissions/{id-ajeno}` → `401`.
-5. **RF-GP-03/05:** como Administrador, `POST /api/permissions/{id}/approve` → `200`; verifica en BD que el estado quedó `Aplicada`.
-6. **RF-GP-06:** repite el approve sobre la misma solicitud → `400`; aprueba un `id` inexistente → `404`.
-7. **RF-GP-04:** `POST /api/permissions/{id}/reject` con `{"motivoRechazo":""}` → `400`; con motivo válido → `200`.
-8. **RF-GP-07:** crea una solicitud como Administrador e intenta aprobarla él mismo → `400` (auto-resolución prohibida).
+5. **RF-GP-03/05:** como Administrador, `POST /api/permissions/{id}/approve` → `200`; la solicitud pasa automáticamente a `Aplicada`, con `Aprobador` y `FechaResolucion`. Como solicitante, `GET /api/permissions/effective/Acceso%20reportes` → `200` con `efectivo: true`. Antes de aprobar, esa comprobación responde `403`.
+6. **RF-GP-04:** como Administrador, `POST /api/permissions/{id}/reject` con `{"motivoRechazo":""}` → `400` y la solicitud sigue Pendiente; con `{"motivoRechazo":"No cumple la política"}` → `200`, estado Rechazada y motivo conservado.
+7. **RF-GP-06:** repite approve sobre una solicitud Aplicada → `400` y estado/metadatos intactos; aprobar una solicitud Rechazada también se rechaza. Consulta un `id` inexistente → `404`.
+8. **RF-GP-07:** crea una solicitud como Administrador e intenta aprobarla y rechazarla él mismo → ambas operaciones se rechazan (`400`).

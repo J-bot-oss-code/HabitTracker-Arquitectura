@@ -93,4 +93,50 @@ public sealed class SolicitudPermisoRepositoryTests
             Assert.Equal(id, pendientes[0].Id);
         }
     }
+
+    [Fact]
+    [Trait("Requirement", "RF-GP-05")]
+    public async Task RF_GP_05_Repository_SoloReconoceComoEfectivoElPermisoAplicado()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PermissionsDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new PermissionsDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+        }
+
+        var pendiente = new SolicitudPermiso("persona@ejemplo.com", "Acceso a reportes");
+        var aprobada = new SolicitudPermiso("persona@ejemplo.com", "Acceso a documentos");
+        aprobada.Aprobar("admin@ejemplo.com", DateTime.UtcNow);
+
+        await using (var writeContext = new PermissionsDbContext(options))
+        {
+            var repository = new SolicitudPermisoRepository(writeContext);
+            await repository.AddAsync(pendiente);
+            await repository.AddAsync(aprobada);
+        }
+
+        // Act
+        await using var readContext = new PermissionsDbContext(options);
+        var readRepository = new SolicitudPermisoRepository(readContext);
+        var permisoPendienteEfectivo = await readRepository.TienePermisoAplicadoAsync(
+            "PERSONA@EJEMPLO.COM",
+            "Acceso a reportes");
+        var permisoAplicadoEfectivo = await readRepository.TienePermisoAplicadoAsync(
+            "persona@ejemplo.com",
+            "ACCESO A DOCUMENTOS");
+        var noPropietarioEfectivo = await readRepository.TienePermisoAplicadoAsync(
+            "otra-persona@ejemplo.com",
+            "Acceso a documentos");
+
+        // Assert
+        Assert.False(permisoPendienteEfectivo);
+        Assert.True(permisoAplicadoEfectivo);
+        Assert.False(noPropietarioEfectivo);
+    }
 }

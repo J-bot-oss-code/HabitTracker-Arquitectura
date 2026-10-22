@@ -61,4 +61,24 @@ public sealed class SolicitudPermisoRepository(PermissionsDbContext dbContext) :
             .AsNoTracking()
             .OrderBy(solicitud => solicitud.FechaCreacion)
             .ToListAsync(cancellationToken);
+
+    public Task<bool> TienePermisoAplicadoAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
+        ArgumentException.ThrowIfNullOrWhiteSpace(permisoSolicitado);
+
+        var solicitanteNormalizado = solicitante.Trim().ToUpper();
+        var permisoNormalizado = permisoSolicitado.Trim().ToUpper();
+
+        return dbContext.SolicitudesPermisos
+            .AsNoTracking()
+            .AnyAsync(solicitud =>
+                solicitud.Solicitante.ToUpper() == solicitanteNormalizado &&
+                solicitud.PermisoSolicitado.ToUpper() == permisoNormalizado &&
+                solicitud.Estado == EstadoSolicitudPermiso.Aplicada,
+                cancellationToken);
+    }
 }

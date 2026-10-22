@@ -80,18 +80,71 @@ public sealed class SolicitudPermisoServiceTests
         Assert.Equal(0, repository.AllQueryCount);
     }
 
+    [Fact]
+    [Trait("Requirement", "RF-GP-01")]
+    public async Task RF_GP_01_Crear_EstandarCreaSolicitudPendiente()
+    {
+        // Arrange
+        var repository = new InMemorySolicitudPermisoRepository([]);
+        var service = CrearServicio(repository);
+        var command = new CrearSolicitudPermisoCommand(
+            "persona@ejemplo.com",
+            "Acceso a reportes");
+
+        // Act
+        var id = await service.CrearAsync(command);
+
+        // Assert
+        var solicitud = Assert.Single(repository.Solicitudes);
+        Assert.Equal(id, solicitud.Id);
+        Assert.Equal("persona@ejemplo.com", solicitud.Solicitante);
+        Assert.Equal("Acceso a reportes", solicitud.PermisoSolicitado);
+        Assert.Equal(EstadoSolicitudPermiso.Pendiente, solicitud.Estado);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-GP-05")]
+    public async Task RF_GP_05_Aprobar_HaceEfectivoElPermisoSolicitado()
+    {
+        // Arrange
+        var solicitud = new SolicitudPermiso("persona@ejemplo.com", "Acceso a reportes");
+        var repository = new InMemorySolicitudPermisoRepository([solicitud]);
+        var service = CrearServicio(repository);
+
+        // Act
+        var antesDeAprobar = await service.TienePermisoEfectivoAsync(
+            solicitud.Solicitante,
+            solicitud.PermisoSolicitado);
+        await service.AprobarAsync(new AprobarSolicitudCommand(solicitud.Id, "admin@ejemplo.com"));
+        var despuesDeAprobar = await service.TienePermisoEfectivoAsync(
+            solicitud.Solicitante,
+            solicitud.PermisoSolicitado);
+
+        // Assert
+        Assert.False(antesDeAprobar);
+        Assert.Equal(EstadoSolicitudPermiso.Aplicada, solicitud.Estado);
+        Assert.True(despuesDeAprobar);
+    }
+
     private static SolicitudPermisoService CrearServicio(ISolicitudPermisoRepository repository) =>
         new(repository, NullLogger<SolicitudPermisoService>.Instance);
 
     private sealed class InMemorySolicitudPermisoRepository(
         IReadOnlyList<SolicitudPermiso> solicitudes) : ISolicitudPermisoRepository
     {
+        public List<SolicitudPermiso> Solicitudes { get; } = solicitudes.ToList();
         public int UpdateCount { get; private set; }
         public int OwnerQueryCount { get; private set; }
         public int AllQueryCount { get; private set; }
 
         public Task AddAsync(SolicitudPermiso solicitud, CancellationToken cancellationToken = default) =>
-            Task.CompletedTask;
+            AddAndReturnAsync(solicitud);
+
+        private Task AddAndReturnAsync(SolicitudPermiso solicitud)
+        {
+            Solicitudes.Add(solicitud);
+            return Task.CompletedTask;
+        }
 
         public Task UpdateAsync(SolicitudPermiso solicitud, CancellationToken cancellationToken = default)
         {
@@ -100,11 +153,11 @@ public sealed class SolicitudPermisoServiceTests
         }
 
         public Task<SolicitudPermiso?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
-            Task.FromResult(solicitudes.SingleOrDefault(solicitud => solicitud.Id == id));
+            Task.FromResult(Solicitudes.SingleOrDefault(solicitud => solicitud.Id == id));
 
         public Task<IReadOnlyList<SolicitudPermiso>> GetPendingAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<SolicitudPermiso>>(
-                solicitudes.Where(solicitud => solicitud.Estado == EstadoSolicitudPermiso.Pendiente).ToList());
+                Solicitudes.Where(solicitud => solicitud.Estado == EstadoSolicitudPermiso.Pendiente).ToList());
 
         public Task<IReadOnlyList<SolicitudPermiso>> GetBySolicitanteAsync(
             string solicitante,
@@ -112,7 +165,7 @@ public sealed class SolicitudPermisoServiceTests
             CancellationToken cancellationToken = default)
         {
             OwnerQueryCount++;
-            var propias = solicitudes.Where(solicitud =>
+            var propias = Solicitudes.Where(solicitud =>
                 string.Equals(solicitud.Solicitante, solicitante.Trim(), StringComparison.OrdinalIgnoreCase));
 
             if (soloPendientes)
@@ -126,7 +179,16 @@ public sealed class SolicitudPermisoServiceTests
         public Task<IReadOnlyList<SolicitudPermiso>> GetAllAsync(CancellationToken cancellationToken = default)
         {
             AllQueryCount++;
-            return Task.FromResult(solicitudes);
+            return Task.FromResult<IReadOnlyList<SolicitudPermiso>>(Solicitudes);
         }
+
+        public Task<bool> TienePermisoAplicadoAsync(
+            string solicitante,
+            string permisoSolicitado,
+            CancellationToken cancellationToken = default) =>
+            Task.FromResult(Solicitudes.Any(solicitud =>
+                solicitud.Estado == EstadoSolicitudPermiso.Aplicada &&
+                string.Equals(solicitud.Solicitante, solicitante.Trim(), StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(solicitud.PermisoSolicitado, permisoSolicitado.Trim(), StringComparison.OrdinalIgnoreCase)));
     }
 }

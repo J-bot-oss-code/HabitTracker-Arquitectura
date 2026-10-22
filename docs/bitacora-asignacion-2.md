@@ -53,6 +53,12 @@
 - **Lo que se implementó**: Se añadieron cuatro pruebas unitarias al proyecto `tests/AccessControl.Application.Tests`, usando mocks para repositorio/correo y `JwtProvider` real con configuración de prueba en memoria. Se añadieron los alias HTTP `/api/auth/forgot-password` y `/api/auth/reset-password`, preservando las rutas existentes en español. El README ahora explica cómo obtener el código desde el correo o la cola local `CorreosEnCola` y cómo usarlo una sola vez.
 - **Errores o imprecisiones detectadas y corregidas**: El texto anterior no explicaba cómo obtener el código de recuperación y el conteo de pruebas estaba desactualizado. Se documentaron ambas rutas de recuperación realmente expuestas y el total actualizado de la suite.
 
+### Tarea 9: Hacer verificable la aplicación efectiva del permiso (RF-GP-05)
+- **Lo que se pidió**: Contrastar la pieza con la rúbrica de la Práctica 2 y cerrar la brecha entre marcar una solicitud como `Aplicada` y comprobar que el solicitante puede usar el permiso concedido.
+- **Lo que se implementó**: Se añadió una consulta persistida de permiso aplicado por solicitante y nombre de permiso, expuesta mediante `GET /api/permissions/effective/{permiso}`. La operación exige JWT, devuelve `200` únicamente cuando existe una solicitud del usuario en estado `Aplicada`, y responde `403` antes de aprobar o para otro usuario. Se añadieron pruebas de servicio, SQLite y de acción HTTP para confirmar el acceso, el rechazo, la autenticación y el límite de entrada.
+- **Ajustes de suite**: Se añadió una prueba de creación en la capa de aplicación para RF-GP-01. Se agregó una prueba directa de la tabla de transiciones para RF-GP-06 (`Rechazada` → `Aplicada`), de modo que el segundo defecto de Variante A pueda plantarse exactamente sin agregar también una transición `Rechazada` → `Aprobada`.
+- **Resultado de validación**: `dotnet test` pasó 36/36 y `dotnet build HabitTrackerSystem.slnx` terminó con 0 advertencias y 0 errores.
+
 ## 3. Resumen de Commits Realizados
 - `docs(bitacora): inicializar bitacora de asignacion 2 y rama de trabajo`
 - `feat(permissions): crear entidad SolicitudPermiso y maquina de estados (RF-GP-01, RF-GP-04, RF-GP-05, RF-GP-06, RF-GP-07, RD-04)`
@@ -63,8 +69,9 @@
 - `test: alinear suite y consulta de permisos para Variante A [RF-GP-01 a RF-GP-07]` (`e49b170`)
 - `docs(readme): agregar secciones de Pruebas y tabla de Defectos para Practica 2 [RF-GP-01 a RF-GP-07]` (`4f3d879`)
 - `docs(readme): corregir prueba detectora del defecto de consulta [RF-GP-02]` (`26f178c`, tag base `practica-2`)
+- `feat(permissions): activar permisos aprobados y ampliar suite [RF-GP-05, RF-GP-06]` (base actualizada de Práctica 2)
 
-Los seis commits de mutación se mantienen como hijos directos del commit `26f178c` y modifican únicamente producción:
+Los seis commits de mutación de la entrega se sitúan directamente sobre el commit etiquetado `practica-2` y modifican únicamente código de producción de Gestión de Permisos:
 
 - `practica-2-defecto-1` — re-aprobación de una solicitud aplicada.
 - `practica-2-defecto-2` — transición inválida desde Rechazada.
@@ -74,3 +81,5 @@ Los seis commits de mutación se mantienen como hijos directos del commit `26f17
 - `practica-2-defecto-6` — omisión del motivo de rechazo.
 
 La actualización de Control de Acceso añade cuatro pruebas a las 25 ya existentes: 29 pruebas en total tras validar esta consolidación.
+
+La consolidación posterior de RF-GP-01, RF-GP-05 y RF-GP-06 suma cuatro pruebas de Permisos y tres de la acción HTTP: el total pasa a 36. El README guía la comprobación funcional del permiso efectivo y los cuatro frentes de Control de Acceso desde el tag de entrega.
