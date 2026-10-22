@@ -58,11 +58,12 @@ public class SolicitudPermiso
             return DomainResult.Failure(DomainError.FechaResolucionDebeSerUtc);
         }
 
-        if (!TransicionarA(EstadoSolicitudPermiso.Aprobada, EstadoSolicitudPermiso.Aplicada))
+        if (Estado == EstadoSolicitudPermiso.Rechazada)
         {
             return DomainResult.Failure(DomainError.EstadoTransicionInvalido);
         }
 
+        Estado = EstadoSolicitudPermiso.Aplicada;
         Aprobador = aprobador.Trim();
         FechaResolucion = fechaResolucionUtc;
         MotivoRechazo = null;
