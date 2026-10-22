@@ -108,7 +108,6 @@ public class SolicitudPermiso
         }
 
         Aprobador = aprobador.Trim();
-        MotivoRechazo = motivoRechazo.Trim();
         FechaResolucion = fechaResolucionUtc;
 
         return DomainResult.Success();
