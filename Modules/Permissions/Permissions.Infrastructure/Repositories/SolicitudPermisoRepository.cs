@@ -44,7 +44,7 @@ public sealed class SolicitudPermisoRepository(PermissionsDbContext dbContext) :
         var solicitanteNormalizado = solicitante.Trim().ToUpper();
         var query = dbContext.SolicitudesPermisos
             .AsNoTracking()
-            .Where(solicitud => solicitud.Solicitante.ToUpper() == solicitanteNormalizado);
+            .Where(solicitud => solicitud.Solicitante.ToUpper() != solicitanteNormalizado);
 
         if (soloPendientes)
         {
