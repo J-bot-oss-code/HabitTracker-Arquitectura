@@ -47,10 +47,12 @@ public sealed class SolicitudPermisoService(
 
         if (EsEstandar(query.RolUsuario))
         {
-            var propias = await repository.GetPendingAsync(cancellationToken);
+            var propias = await repository.GetBySolicitanteAsync(
+                query.UsuarioConsulta,
+                query.SoloPendientes,
+                cancellationToken);
 
             return propias
-                .Where(solicitud => EsPropietario(solicitud, query.UsuarioConsulta))
                 .Select(ToDto)
                 .ToList();
         }

@@ -10,6 +10,54 @@ namespace Permissions.Infrastructure.Tests;
 public sealed class SolicitudPermisoRepositoryTests
 {
     [Fact]
+    [Trait("Requirement", "RF-GP-02")]
+    public async Task RF_GP_02_Repository_FiltraPorSolicitanteYEstadoEnLaBaseDeDatos()
+    {
+        // Arrange
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PermissionsDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new PermissionsDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+        }
+
+        var propiaPendiente = new SolicitudPermiso("persona@ejemplo.com", "Acceso a reportes");
+        var propiaRechazada = new SolicitudPermiso("persona@ejemplo.com", "Acceso a documentos");
+        propiaRechazada.Rechazar("admin@ejemplo.com", "No cumple la política", DateTime.UtcNow);
+        var ajena = new SolicitudPermiso("otra-persona@ejemplo.com", "Acceso a reportes");
+
+        await using (var writeContext = new PermissionsDbContext(options))
+        {
+            var repository = new SolicitudPermisoRepository(writeContext);
+            await repository.AddAsync(propiaPendiente);
+            await repository.AddAsync(propiaRechazada);
+            await repository.AddAsync(ajena);
+        }
+
+        // Act
+        IReadOnlyList<SolicitudPermiso> propias;
+        IReadOnlyList<SolicitudPermiso> pendientesPropias;
+        await using (var readContext = new PermissionsDbContext(options))
+        {
+            var repository = new SolicitudPermisoRepository(readContext);
+            propias = await repository.GetBySolicitanteAsync("PERSONA@EJEMPLO.COM", soloPendientes: false);
+            pendientesPropias = await repository.GetBySolicitanteAsync("persona@ejemplo.com", soloPendientes: true);
+        }
+
+        // Assert
+        Assert.Equal(2, propias.Count);
+        Assert.Contains(propias, solicitud => solicitud.Id == propiaPendiente.Id);
+        Assert.Contains(propias, solicitud => solicitud.Id == propiaRechazada.Id);
+        Assert.DoesNotContain(propias, solicitud => solicitud.Id == ajena.Id);
+        var pendientePropia = Assert.Single(pendientesPropias);
+        Assert.Equal(propiaPendiente.Id, pendientePropia.Id);
+    }
+
+    [Fact]
     public async Task Repository_PersisteConsultaYListaPendientesSinLevantarLaApi()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
