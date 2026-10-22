@@ -117,6 +117,7 @@ public class AuthController : ControllerBase
     /// para no revelar qué correos están registrados (RF-CA-09).
     /// </summary>
     [HttpPost("recuperar-password")]
+    [HttpPost("forgot-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -128,6 +129,7 @@ public class AuthController : ControllerBase
 
     /// <summary>Restablece la contraseña con un código válido (RF-CA-11).</summary>
     [HttpPost("restablecer-password")]
+    [HttpPost("reset-password")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]

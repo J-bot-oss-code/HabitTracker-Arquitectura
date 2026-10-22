@@ -47,10 +47,12 @@ public sealed class SolicitudPermisoService(
 
         if (EsEstandar(query.RolUsuario))
         {
-            var propias = await repository.GetPendingAsync(cancellationToken);
+            var propias = await repository.GetBySolicitanteAsync(
+                query.UsuarioConsulta,
+                query.SoloPendientes,
+                cancellationToken);
 
             return propias
-                .Where(solicitud => EsPropietario(solicitud, query.UsuarioConsulta))
                 .Select(ToDto)
                 .ToList();
         }
@@ -119,6 +121,54 @@ public sealed class SolicitudPermisoService(
         await repository.UpdateAsync(solicitud, cancellationToken);
 
         logger.LogInformation("Solicitud {SolicitudId} rechazada por {Aprobador}.", solicitud.Id, command.Aprobador);
+    }
+
+    public Task<bool> TienePermisoEfectivoAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
+        ArgumentException.ThrowIfNullOrWhiteSpace(permisoSolicitado);
+
+        if (solicitante.Trim().Length > 256 || permisoSolicitado.Trim().Length > 256)
+        {
+            throw new ArgumentException("El solicitante o el permiso excede la longitud permitida.");
+        }
+
+        return repository.TienePermisoAplicadoAsync(
+            solicitante,
+            permisoSolicitado,
+            cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SolicitudPermisoDto>> EjecutarAccionProtegidaAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
+        ArgumentException.ThrowIfNullOrWhiteSpace(permisoSolicitado);
+
+        var identidad = solicitante.Trim();
+        var permiso = permisoSolicitado.Trim();
+        if (identidad.Length > 256 || permiso.Length > 256)
+        {
+            throw new ArgumentException("El solicitante o el permiso excede la longitud permitida.");
+        }
+
+        var tienePermiso = await repository.TienePermisoAplicadoAsync(identidad, permiso, cancellationToken);
+        if (!tienePermiso)
+        {
+            throw new UnauthorizedAccessException("El usuario no tiene aplicado el permiso solicitado.");
+        }
+
+        var historial = await repository.GetBySolicitanteAsync(
+            identidad,
+            soloPendientes: false,
+            cancellationToken);
+        logger.LogInformation("Historial protegido consultado por {Solicitante}.", identidad);
+        return historial.Select(ToDto).ToList();
     }
 
     private static bool EsAdministrador(string rol) =>
