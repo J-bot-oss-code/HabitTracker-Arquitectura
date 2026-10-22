@@ -8,6 +8,7 @@ internal static class TransicionesSolicitudPermiso
         (estadoActual, nuevoEstado) switch
         {
             (EstadoSolicitudPermiso.Pendiente, EstadoSolicitudPermiso.Aprobada) => true,
+            (EstadoSolicitudPermiso.Aprobada, EstadoSolicitudPermiso.Pendiente) => true,
             (EstadoSolicitudPermiso.Aprobada, EstadoSolicitudPermiso.Aplicada) => true,
             (EstadoSolicitudPermiso.Pendiente, EstadoSolicitudPermiso.Rechazada) => true,
             _ => false
