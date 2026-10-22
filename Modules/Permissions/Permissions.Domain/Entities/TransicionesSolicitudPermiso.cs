@@ -10,6 +10,7 @@ internal static class TransicionesSolicitudPermiso
             (EstadoSolicitudPermiso.Pendiente, EstadoSolicitudPermiso.Aprobada) => true,
             (EstadoSolicitudPermiso.Aprobada, EstadoSolicitudPermiso.Aplicada) => true,
             (EstadoSolicitudPermiso.Pendiente, EstadoSolicitudPermiso.Rechazada) => true,
+            (EstadoSolicitudPermiso.Rechazada, EstadoSolicitudPermiso.Aplicada) => true,
             _ => false
         };
 }
