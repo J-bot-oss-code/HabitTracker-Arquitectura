@@ -74,7 +74,7 @@ dotnet build HabitTrackerSystem.slnx
 dotnet test
 ```
 
-El tag ya entregado `practica-2` contiene 36 pruebas. En la rama revisada `feature/practica-2-rf-gp05`, `dotnet test` ejecuta 39 pruebas; las pruebas adicionales cubren la acción protegida de RF-GP-05. Las etiquetas de defecto existentes siguen vinculadas al tag original y no incluyen esta revisión. Después de validar la base, comprueba cada mutante por separado. Para cada etiqueta, `dotnet test` debe reportar al menos una prueba fallida; ese resultado es intencional:
+El tag revisado `practica-2` contiene 39 pruebas. Cada tag `practica-2-defecto-N` es un commit hijo directo de esa base y planta un solo defecto en código de producción de Gestión de Permisos. La suite debe pasar completa en `practica-2` y fallar al menos una prueba en cada tag de defecto; esos fallos son intencionales:
 
 ```bash
 git checkout --detach practica-2-defecto-1
@@ -86,9 +86,10 @@ Repite el comando para `practica-2-defecto-2` hasta `practica-2-defecto-6` y com
 ```bash
 git show -s --format="%H %P %s" practica-2-defecto-1
 git diff --stat practica-2 practica-2-defecto-1
+git diff practica-2 practica-2-defecto-1 -- Modules/Permissions/
 ```
 
-El padre mostrado debe ser el commit de `practica-2` y el diff debe contener únicamente código de producción de Gestión de Permisos, sin archivos de pruebas. Repite ambas comprobaciones para los seis tags.
+El único padre mostrado debe ser el commit de `practica-2`. El `--stat` debe listar un solo archivo productivo de Gestión de Permisos y ningún archivo de pruebas; inspecciona el diff para confirmar que contiene únicamente el defecto descrito. Repite las tres comprobaciones para los seis tags.
 
 ## Defectos
 
