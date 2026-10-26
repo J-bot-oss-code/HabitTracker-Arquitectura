@@ -25,13 +25,16 @@ public sealed class HabitoService(
         if (command.CantidadObjetivo <= 0)
             throw new ArgumentException("La cantidad objetivo debe ser positiva.", nameof(command.CantidadObjetivo));
 
+        if (command.MetaId == Guid.Empty)
+            throw new ArgumentException("El identificador de meta es obligatorio.", nameof(command.MetaId));
+
         var habito = new Habito(
             usuarioActualId,
             command.Nombre,
             command.Periodicidad,
             command.CantidadObjetivo,
             command.Unidad,
-            Guid.NewGuid());
+            command.MetaId);
 
         await habitoRepository.AddAsync(habito, cancellationToken);
         await unitOfWork.SaveChangesAsync(cancellationToken);
