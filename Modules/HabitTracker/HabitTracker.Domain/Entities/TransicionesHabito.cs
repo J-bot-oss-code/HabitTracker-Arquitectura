@@ -3,18 +3,20 @@ namespace HabitTracker.Domain.Entities;
 
 public static class TransicionesHabito
 {
-    public static bool EsTransicionValida(EstadoHabito actual, EstadoHabito nuevo) =>
+    public static bool EsTransicionValida(EstadoHabito actual, EstadoHabito nuevo, bool cumpleMetaFinal = false) =>
         (actual, nuevo) switch
         {
-            (EstadoHabito.Pendiente, EstadoHabito.Activo) => true,
+            (EstadoHabito.Planificado, EstadoHabito.Activo) => true,
             (EstadoHabito.Activo, EstadoHabito.Pausado) => true,
-            (EstadoHabito.Activo, EstadoHabito.Completado) => true,
-            (EstadoHabito.Activo, EstadoHabito.Abandonado) => true,
             (EstadoHabito.Pausado, EstadoHabito.Activo) => true,
-            (EstadoHabito.Pausado, EstadoHabito.Abandonado) => true,
-            // Transiciones prohibidas explícitas desde estados terminales (RF-NEG-04, RF-NEG-05):
-            (EstadoHabito.Completado, _) => throw new InvalidOperationException("Un hábito completado no puede cambiar de estado."),
-            (EstadoHabito.Abandonado, _) => throw new InvalidOperationException("Un hábito abandonado no puede cambiar de estado."),
+            (EstadoHabito.Activo, EstadoHabito.Completado) => cumpleMetaFinal,
+            // Prohibidas explícitas (orden intencional: defecto 1, defecto 2, terminal)
+            (EstadoHabito.Planificado, EstadoHabito.Completado) =>
+                throw new InvalidOperationException("No se puede saltar el estado Activo; permanece Planificado."),
+            (EstadoHabito.Pausado, EstadoHabito.Completado) =>
+                throw new InvalidOperationException("Primero debe volver a Activo; permanece Pausado."),
+            (EstadoHabito.Completado, _) =>
+                throw new InvalidOperationException("Completado es terminal; permanece Completado."),
             _ => false
         };
 }
