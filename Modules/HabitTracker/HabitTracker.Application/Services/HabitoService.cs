@@ -7,7 +7,8 @@ namespace HabitTracker.Application.Services;
 public sealed class HabitoService(
     IHabitoRepository habitoRepository,
     IUnitOfWork unitOfWork,
-    IPermisoService permisoService)
+    IPermisoService permisoService,
+    IMetaRepository metaRepository)
 {
     public async Task<Guid> CrearHabitoAsync(
         CrearHabitoCommand command,
@@ -27,6 +28,10 @@ public sealed class HabitoService(
 
         if (command.MetaId == Guid.Empty)
             throw new ArgumentException("El identificador de meta es obligatorio.", nameof(command.MetaId));
+
+        var metaExiste = await metaRepository.ExistsAsync(command.MetaId, cancellationToken);
+        if (!metaExiste)
+            throw new ArgumentException("La meta indicada no existe.", nameof(command.MetaId));
 
         if (!Enum.IsDefined(typeof(Periodicidad), command.Periodicidad))
             throw new ArgumentException($"La periodicidad '{command.Periodicidad}' no es válida.", nameof(command.Periodicidad));

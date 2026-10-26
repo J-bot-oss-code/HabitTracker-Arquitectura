@@ -43,6 +43,14 @@ public class HabitoServiceTests
         public void Dispose() { }
     }
 
+    private sealed class InMemoryMetaRepository : IMetaRepository
+    {
+        public HashSet<Guid> MetasExistentes { get; } = new();
+
+        public Task<bool> ExistsAsync(Guid metaId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(metaId != Guid.Empty);
+    }
+
     private sealed class FakePermisoService : IPermisoService
     {
         public HashSet<(string solicitante, string permiso)> PermisosEfectivos { get; } = new();
@@ -78,7 +86,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var command = new CrearHabitoCommand("Leer 20 paginas", Periodicidad.Diaria, 20, "paginas", Guid.NewGuid());
 
         // Act
@@ -100,7 +108,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var command = new CrearHabitoCommand("", Periodicidad.Diaria, 20, "paginas", Guid.NewGuid());
 
         // Act
@@ -120,7 +128,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var command = new CrearHabitoCommand("Leer", Periodicidad.Diaria, 0, "paginas", Guid.NewGuid());
 
         // Act
@@ -140,7 +148,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
 
         var habitoPropio = new Habito(propietario, "Leer", Periodicidad.Diaria, 10, "paginas", Guid.NewGuid());
         var habitoAjeno = new Habito(noPropietario, "Correr", Periodicidad.Diaria, 5, "km", Guid.NewGuid());
@@ -165,7 +173,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Planificado);
 
         // Act
@@ -186,7 +194,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Planificado);
 
         // Act
@@ -207,7 +215,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
 
         // Act
         var excepcion = await Record.ExceptionAsync(() => service.CambiarEstadoAsync(Guid.NewGuid(), EstadoHabito.Activo, propietario));
@@ -227,7 +235,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
@@ -249,7 +257,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
         var fechaUtc = HoyUtc();
 
@@ -273,7 +281,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
@@ -293,7 +301,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
@@ -314,7 +322,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
         var fechaLocal = DateTime.SpecifyKind(DateTime.Now, DateTimeKind.Local);
 
@@ -337,7 +345,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
@@ -361,7 +369,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
@@ -385,7 +393,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         permisoService.PermisosEfectivos.Add((propietario.ToString(), "Habits.AdvancedReconfig"));
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Completado);
 
         // Act
@@ -409,7 +417,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
@@ -432,7 +440,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act - Usar identidad diferente a la del propietario
@@ -455,7 +463,7 @@ public class HabitoServiceTests
 
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act - Usar correo correcto
@@ -475,7 +483,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var periodicidadInvalida = (Periodicidad)999;
         var command = new CrearHabitoCommand("Leer", periodicidadInvalida, 20, "paginas", Guid.NewGuid());
 
@@ -498,7 +506,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
         var periodicidadInvalida = (Periodicidad)999;
 
@@ -521,7 +529,7 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var service = new HabitoService(repository, unitOfWork, permisoService, new InMemoryMetaRepository());
         var command = new CrearHabitoCommand("Leer", Periodicidad.Diaria, 20, "paginas", Guid.Empty);
 
         // Act
