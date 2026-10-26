@@ -17,6 +17,9 @@ public sealed class HabitoService(
     {
         ArgumentNullException.ThrowIfNull(command);
 
+        if (usuarioActualId == Guid.Empty)
+            throw new UnauthorizedAccessException("Identidad de usuario inválida.");
+
         if (string.IsNullOrWhiteSpace(command.Nombre))
             throw new ArgumentException("El nombre es obligatorio.", nameof(command.Nombre));
 
@@ -54,6 +57,9 @@ public sealed class HabitoService(
         Guid usuarioActualId,
         CancellationToken cancellationToken = default)
     {
+        if (usuarioActualId == Guid.Empty)
+            throw new UnauthorizedAccessException("Identidad de usuario inválida.");
+
         var habitos = await habitoRepository.GetByUsuarioIdAsync(usuarioActualId, cancellationToken);
 
         return habitos
@@ -67,6 +73,9 @@ public sealed class HabitoService(
         Guid usuarioActualId,
         CancellationToken cancellationToken = default)
     {
+        if (usuarioActualId == Guid.Empty)
+            throw new UnauthorizedAccessException("Identidad de usuario inválida.");
+
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
 
         switch (nuevoEstado)
@@ -94,6 +103,9 @@ public sealed class HabitoService(
         Guid usuarioActualId,
         CancellationToken cancellationToken = default)
     {
+        if (usuarioActualId == Guid.Empty)
+            throw new UnauthorizedAccessException("Identidad de usuario inválida.");
+
         if (cantidad <= 0)
             throw new ArgumentException("La cantidad debe ser positiva.", nameof(cantidad));
 
@@ -125,6 +137,9 @@ public sealed class HabitoService(
 
         if (!Enum.IsDefined(typeof(Periodicidad), periodicidad))
             throw new ArgumentException($"La periodicidad '{periodicidad}' no es válida.", nameof(periodicidad));
+
+        if (usuarioActualId == Guid.Empty)
+            throw new UnauthorizedAccessException("Identidad de usuario inválida.");
 
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
 

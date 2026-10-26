@@ -56,8 +56,15 @@ public class HabitsController : ControllerBase
     public async Task<IActionResult> CambiarEstado(Guid id, [FromBody] CambiarEstadoHabitoRequest request)
     {
         var (usuarioId, _) = ObtenerIdentidad();
-        await _service.CambiarEstadoAsync(id, request.NuevoEstado, usuarioId);
-        return NoContent();
+        try
+        {
+            await _service.CambiarEstadoAsync(id, request.NuevoEstado, usuarioId);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) when (EsNoEncontrado(ex))
+        {
+            return NotFound(new ProblemDetails { Status = 404, Title = "No encontrado.", Detail = ex.Message });
+        }
     }
 
     /// <summary>Registra avance diario (RF-NEG-02.4).</summary>
@@ -70,8 +77,15 @@ public class HabitsController : ControllerBase
     public async Task<IActionResult> RegistrarAvance(Guid id, [FromBody] RegistrarAvanceRequest request)
     {
         var (usuarioId, _) = ObtenerIdentidad();
-        await _service.RegistrarAvanceAsync(id, request.Cantidad, request.FechaUtc, usuarioId);
-        return NoContent();
+        try
+        {
+            await _service.RegistrarAvanceAsync(id, request.Cantidad, request.FechaUtc, usuarioId);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) when (EsNoEncontrado(ex))
+        {
+            return NotFound(new ProblemDetails { Status = 404, Title = "No encontrado.", Detail = ex.Message });
+        }
     }
 
     /// <summary>Reconfigura un hábito con permiso aplicado (RF-NEG-02.5).</summary>
@@ -84,8 +98,15 @@ public class HabitsController : ControllerBase
     public async Task<IActionResult> Reconfigurar(Guid id, [FromBody] ReconfigurarRequest request)
     {
         var (usuarioId, correo) = ObtenerIdentidad();
-        await _service.ReconfigurarHabitoAsync(id, request.Periodicidad, request.CantidadObjetivo, request.Unidad, usuarioId, correo);
-        return NoContent();
+        try
+        {
+            await _service.ReconfigurarHabitoAsync(id, request.Periodicidad, request.CantidadObjetivo, request.Unidad, usuarioId, correo);
+            return NoContent();
+        }
+        catch (InvalidOperationException ex) when (EsNoEncontrado(ex))
+        {
+            return NotFound(new ProblemDetails { Status = 404, Title = "No encontrado.", Detail = ex.Message });
+        }
     }
 
     private (Guid usuarioId, string correo) ObtenerIdentidad()
@@ -100,6 +121,9 @@ public class HabitsController : ControllerBase
 
         return (usuarioId, correo);
     }
+
+    private static bool EsNoEncontrado(InvalidOperationException ex) =>
+        ex.Message.Contains("no existe", StringComparison.OrdinalIgnoreCase);
 }
 
 public record CrearHabitoRequest(
