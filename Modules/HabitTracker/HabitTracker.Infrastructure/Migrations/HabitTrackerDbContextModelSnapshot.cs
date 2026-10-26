@@ -81,13 +81,15 @@ namespace HabitTracker.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal>("CantidadObjetivo")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Frecuencia")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime>("FechaInicioCiclo")
+                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("MetaId")
                         .HasColumnType("uniqueidentifier");
@@ -95,6 +97,17 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Periodicidad")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Unidad")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -159,8 +172,8 @@ namespace HabitTracker.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<bool>("Completado")
-                        .HasColumnType("bit");
+                    b.Property<decimal>("Cantidad")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime2");
@@ -168,7 +181,8 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<Guid>("HabitoId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Notas")
+                    b.Property<string>("Unidad")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
@@ -229,7 +243,7 @@ namespace HabitTracker.Infrastructure.Migrations
             modelBuilder.Entity("HabitTracker.Domain.Entities.RegistroDiario", b =>
                 {
                     b.HasOne("HabitTracker.Domain.Entities.Habito", "Habito")
-                        .WithMany("RegistrosDiarios")
+                        .WithMany("Registros")
                         .HasForeignKey("HabitoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -244,7 +258,7 @@ namespace HabitTracker.Infrastructure.Migrations
 
             modelBuilder.Entity("HabitTracker.Domain.Entities.Habito", b =>
                 {
-                    b.Navigation("RegistrosDiarios");
+                    b.Navigation("Registros");
                 });
 
             modelBuilder.Entity("HabitTracker.Domain.Entities.Meta", b =>
