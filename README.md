@@ -219,6 +219,122 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
 ---
 *Documentación de la Máquina de Estados disponible en `docs/maquina-de-estados.md`.*
 
+---
+
+## Asignación 3 — Módulo de Negocio (Habit Tracker)
+
+Pieza del Core con máquina de estados propia (`Planificado → Activo → Pausado → Activo → Completado`; `Completado` único terminal). Capas: `HabitTracker.Domain` (entidad rica `Habito` + `TransicionesHabito` + `Periodicidad`), `HabitTracker.Application` (`HabitoService` con 5 casos de uso), `HabitTracker.Infrastructure` (`HabitTrackerDbContext` propio + `HabitoRepository` + `MetaRepository` + `HabitTrackerUnitOfWork`) y endpoints en `HabitsController` (`api/habits`) protegidos con JWT y rol `Estandar`.
+
+### Pruebas
+
+```bash
+# Suite completa con un solo comando (104 pruebas, sin levantar la API ni una BD externa)
+dotnet test
+```
+
+La suite incluye pruebas unitarias de dominio (43), aplicación (21), integración real con Gestión de Permisos (1), Control de Acceso (12) y Gestión de Permisos (27). Las pruebas usan dobles de prueba o componentes en memoria/SQLite; no inician la API ni requieren una base de datos externa.
+
+### Máquina de estados
+
+La entidad central es `Habito`. Exactamente cuatro estados: `Planificado` (inicial), `Activo`, `Pausado` y `Completado` (único terminal). Las transiciones se deciden en un solo punto: `TransicionesHabito.EsTransicionValida`. Detalle completo en `docs/maquina-de-estados.md`.
+
+### Las cinco funcionalidades separables (RF-NEG-02)
+
+Cada operación se puede provocar y verificar por separado. Requieren JWT válido y rol `Estandar`. La identidad y `usuarioActualId` se obtienen de los claims autenticados, nunca del cuerpo de la petición.
+
+| ID | Funcionalidad y ruta | Comportamiento |
+|---|---|---|
+| RF-NEG-02.1 | Crear hábito — `POST /api/habits` | Crea para el usuario autenticado un hábito con nombre, periodicidad, cantidad objetivo y unidad. Nace en `Planificado`. Requiere `MetaId` válido. |
+| RF-NEG-02.2 | Consultar mis hábitos — `GET /api/habits` | Devuelve únicamente hábitos del usuario autenticado. |
+| RF-NEG-02.3 | Cambiar estado — `POST /api/habits/{id}/transition` | Acepta solo las transiciones de la tabla y las condiciones de propietario/objetivo. |
+| RF-NEG-02.4 | Registrar avance diario — `POST /api/habits/{id}/progress` | Registra una cantidad positiva en la unidad configurada. Solo el propietario y solo si está `Activo`. |
+| RF-NEG-02.5 | Reconfigurar/resetear — `POST /api/habits/{id}/advanced-reconfig` | Cambia periodicidad, cantidad objetivo o unidad. Requiere permiso aplicado `Habits.AdvancedReconfig`. |
+
+### Guía de verificación (Swagger o cURL, RF-NEG-02 a RF-NEG-06)
+
+Ejecuta estos pasos con la API y SQL Server local activos, después de aplicar las migraciones descritas arriba. Usa cuentas de prueba distintas y guarda el identificador devuelto al crear cada hábito.
+
+1. Registra un usuario Estándar y activa su cuenta con el flujo de correo descrito en la Práctica 1 (`POST /api/auth/register`, `POST /api/auth/activate`). Para las comprobaciones de rol, promueve una cuenta activada a Administrador únicamente en la base local (`UPDATE usuarios SET Rol = 2 WHERE Correo = 'admin@ejemplo.com'`) y vuelve a iniciar sesión para obtener su JWT actualizado.
+
+2. **RF-NEG-02.1 (Crear):** como Estándar, `POST /api/habits` con `{"nombre":"Leer 20 páginas","periodicidad":"Diaria","cantidadObjetivo":20,"unidad":"páginas","metaId":"<GUID_META_VALIDA>"}` → `201` con el `id`. El hábito nace en `Planificado`.
+
+3. **RF-NEG-02.2 (Consultar):** como el mismo Estándar, `GET /api/habits` → solo ve sus hábitos. Como otro Estándar, `GET /api/habits` → no ve los hábitos del primero.
+
+4. **RF-NEG-02.3 (Cambiar estado):** `POST /api/habits/{id}/transition` con `{"nuevoEstado":"Activo"}` → `204`. Repetir para `Pausado`, `Activo` (desde Pausado) y `Completado` (solo si se alcanzó la meta). Intentar `Planificado → Completado` → `400`. Intentar salir de `Completado` → `400`.
+
+5. **RF-NEG-02.4 (Registrar avance):** con el hábito en `Activo`, `POST /api/habits/{id}/progress` con `{"cantidad":5,"fechaUtc":"2026-10-26T10:00:00Z"}` → `204`. Registrar avance con hábito `Pausado` → `400`. Registrar con cantidad 0 → `400`.
+
+6. **RF-NEG-02.5 (Reconfigurar):**
+   - Crear una solicitud de permiso: `POST /api/permissions` con `{"permisoSolicitado":"Habits.AdvancedReconfig"}` → `201`.
+   - Antes de aprobar, `POST /api/habits/{id}/advanced-reconfig` con `{"periodicidad":"Semanal","cantidadObjetivo":30,"unidad":"minutos"}` → `403`.
+   - Como Administrador, `POST /api/permissions/{solicitudId}/approve` → `200` (queda `Aplicada`).
+   - Reintentar la reconfiguración con el JWT del solicitante → `204`. El hábito conserva su estado y su historial de avances; los avances anteriores no cuentan para la nueva meta.
+
+7. **Propiedad:** intentar cambiar estado, registrar avance o reconfigurar un hábito de otro usuario → `403`.
+
+8. **Rechazo a no propietario en Planificado → Activo:** crear un hábito con usuario A, intentar activarlo con usuario B → `403`.
+
+9. **Condición de meta para Completado:** crear hábito con meta de 10 unidades, registrar 5, intentar completar → `400`. Registrar 5 más, completar → `204`.
+
+10. **Estado terminal:** completar un hábito, intentar cualquier transición → `400`.
+
+### Verificación de persistencia después de reiniciar la API
+
+1. Como usuario Estándar, crea un hábito y registra avance. Guarda el `id`.
+2. Detén la API con `Ctrl+C`. Deja SQL Server activo.
+3. Inicia de nuevo la API y consulta `GET /api/habits` con el JWT del usuario. El hábito y sus avances deben persistir.
+
+### Comprobación de la entrega desde un clon limpio
+
+```bash
+git clone https://github.com/J-bot-oss-code/HabitTracker-Arquitectura.git
+cd HabitTracker-Arquitectura
+git fetch origin --tags
+git checkout --detach practica-3
+dotnet build HabitTrackerSystem.slnx
+dotnet test
+```
+
+El tag revisado `practica-3` contiene 104 pruebas. Cada tag `practica-3-defecto-N` es un commit hijo directo de esa base y planta un solo defecto en código de producción de Habit Tracker. La suite debe pasar completa en `practica-3` y fallar al menos una prueba en cada tag de defecto.
+
+```bash
+git checkout --detach practica-3-defecto-1
+dotnet test
+```
+
+Repite para `practica-3-defecto-2` a `practica-3-defecto-4`. Para verificar la forma del commit de cada mutante:
+
+```bash
+git show -s --format="%H %P %s" practica-3-defecto-1
+git diff --stat practica-3 practica-3-defecto-1
+```
+
+El único padre mostrado debe ser el commit de `practica-3`. El `--stat` debe listar un solo archivo productivo y ningún archivo de pruebas.
+
+## Defectos
+
+La siguiente tabla documenta los cuatro defectos de la Práctica 3 y las pruebas existentes que los detectan. Los nombres corresponden a los métodos actuales de la suite.
+
+| Defecto Tag | Requisito | Archivo y Línea Afectada | Prueba que lo Detecta | Comportamiento Erróneo Producido |
+|---|---|---|---|---|
+| `practica-3-defecto-1` | RF-NEG-04 | Dominio: `Modules/HabitTracker/HabitTracker.Domain/Entities/TransicionesHabito.cs`, línea 15 — cambiar el rechazo de `Planificado → Completado` por `true`, permitiendo saltar `Activo`. | `RF_NEG_04_Transicion_PlanificadoACompletado_Rechazada_YPermanecePlanificado` | Permite crear un hábito y completarlo sin pasar por `Activo`. |
+| `practica-3-defecto-2` | RF-NEG-05 | Dominio: `Modules/HabitTracker/HabitTracker.Domain/Entities/TransicionesHabito.cs`, línea 19 — agregar la transición `Completado → Activo`. | `RF_NEG_05_Transicion_CompletadoAOtra_Rechazada_EstadoTerminal` | Un hábito completado puede volver a `Activo`, violando el estado terminal. |
+| `practica-3-defecto-3` | RF-NEG-04, RD-06 | Dominio: `Modules/HabitTracker/HabitTracker.Domain/Entities/Habito.cs`, línea 77 — omitir `ValidarPropietario` en `Activar()`. | `RF_NEG_04_Activar_NoPropietario_Rechaza` | Un usuario distinto del propietario puede activar el hábito (IDOR). |
+| `practica-3-defecto-4` | RF-NEG-06 | Aplicación: `Modules/HabitTracker/HabitTracker.Application/Services/HabitoService.cs` — omitir la consulta a `TienePermisoEfectivoAsync` en `ReconfigurarHabitoAsync`. | `RF_NEG_06_AdvancedReconfig_RechazaSinPermisoYPermiteTrasAprobacion` | La reconfiguración se ejecuta sin verificar el permiso `Habits.AdvancedReconfig`. |
+
+## Revisión acumulada (Práctica 3)
+
+Siguiendo el README desde el tag `practica-3`, comprobar los cinco frentes que pide el PDF:
+
+1. Registro con activación por correo.
+2. Inicio y cierre de sesión.
+3. Rechazo a un usuario Estándar que invoca una operación de Administrador.
+4. Recuperación de contraseña.
+5. Gestión de Permisos: crear, aprobar y rechazar solicitudes, y rechazar transiciones fuera de tabla.
+
+Además, verificar Habit Tracker:
+- Crear hábito, consultar, cambiar estado, registrar avance, reconfigurar con permiso.
+
 ## Asignación 2 — Gestión de Permisos
 
 Pieza del Core con máquina de estados propia (`Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`; cualquier otra transición está prohibida). Capas: `Permissions.Domain` (entidad rica `SolicitudPermiso` + `TransicionesSolicitudPermiso` + `DomainResult`), `Permissions.Application` (`SolicitudPermisoService` con filtro por rol), `Permissions.Infrastructure` (`PermissionsDbContext` propio + `SolicitudPermisoRepository`) y endpoints en `PermissionsController` (`api/permissions`) protegidos con JWT.
