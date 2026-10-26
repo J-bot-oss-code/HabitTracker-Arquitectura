@@ -28,6 +28,9 @@ public sealed class HabitoService(
         if (command.MetaId == Guid.Empty)
             throw new ArgumentException("El identificador de meta es obligatorio.", nameof(command.MetaId));
 
+        if (!Enum.IsDefined(typeof(Periodicidad), command.Periodicidad))
+            throw new ArgumentException($"La periodicidad '{command.Periodicidad}' no es válida.", nameof(command.Periodicidad));
+
         var habito = new Habito(
             usuarioActualId,
             command.Nombre,
@@ -60,9 +63,6 @@ public sealed class HabitoService(
         CancellationToken cancellationToken = default)
     {
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
-
-        if (nuevoEstado == EstadoHabito.Completado && !habito.CumpleMetaFinal)
-            throw new InvalidOperationException("No se alcanzó la meta del período.");
 
         switch (nuevoEstado)
         {
@@ -117,6 +117,9 @@ public sealed class HabitoService(
 
         if (cantidadObjetivo <= 0)
             throw new ArgumentException("La cantidad objetivo debe ser positiva.", nameof(cantidadObjetivo));
+
+        if (!Enum.IsDefined(typeof(Periodicidad), periodicidad))
+            throw new ArgumentException($"La periodicidad '{periodicidad}' no es válida.", nameof(periodicidad));
 
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
 
