@@ -1,3 +1,4 @@
+using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
 using Permissions.Infrastructure.DependencyInjection;
@@ -12,6 +13,9 @@ builder.Services.AddHabitTrackerModule(builder.Configuration);
 
 // Módulo de Gestión de Permisos (persistencia propia).
 builder.Services.AddPermissionsInfrastructure(builder.Configuration);
+
+// Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 
 // Controladores y OpenAPI.
 builder.Services.AddControllers();
