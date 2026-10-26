@@ -123,6 +123,9 @@ public sealed class HabitoService(
 
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
 
+        if (habito.Estado == EstadoHabito.Completado)
+            throw new InvalidOperationException("No se puede reconfigurar un hábito completado.");
+
         var tienePermiso = await permisoService.TienePermisoEfectivoAsync(
             correoSolicitante,
             "Habits.AdvancedReconfig",
