@@ -103,8 +103,12 @@ public sealed class HabitoService(
         decimal cantidadObjetivo,
         string unidad,
         Guid usuarioActualId,
+        string correoSolicitante,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(correoSolicitante))
+            throw new ArgumentException("El correo del solicitante es obligatorio.", nameof(correoSolicitante));
+
         if (string.IsNullOrWhiteSpace(unidad))
             throw new ArgumentException("La unidad es obligatoria.", nameof(unidad));
 
@@ -114,7 +118,7 @@ public sealed class HabitoService(
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
 
         var tienePermiso = await permisoService.TienePermisoEfectivoAsync(
-            usuarioActualId.ToString(),
+            correoSolicitante,
             "Habits.AdvancedReconfig",
             cancellationToken);
 
