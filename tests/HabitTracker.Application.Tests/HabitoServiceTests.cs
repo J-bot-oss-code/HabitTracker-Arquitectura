@@ -79,7 +79,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         var service = new HabitoService(repository, unitOfWork, permisoService);
-        var command = new CrearHabitoCommand("Leer 20 paginas", Periodicidad.Diaria, 20, "paginas");
+        var command = new CrearHabitoCommand("Leer 20 paginas", Periodicidad.Diaria, 20, "paginas", Guid.NewGuid());
 
         // Act
         var id = await service.CrearHabitoAsync(command, propietario);
@@ -101,7 +101,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         var service = new HabitoService(repository, unitOfWork, permisoService);
-        var command = new CrearHabitoCommand("", Periodicidad.Diaria, 20, "paginas");
+        var command = new CrearHabitoCommand("", Periodicidad.Diaria, 20, "paginas", Guid.NewGuid());
 
         // Act
         var excepcion = await Record.ExceptionAsync(() => service.CrearHabitoAsync(command, propietario));
@@ -121,7 +121,7 @@ public class HabitoServiceTests
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
         var service = new HabitoService(repository, unitOfWork, permisoService);
-        var command = new CrearHabitoCommand("Leer", Periodicidad.Diaria, 0, "paginas");
+        var command = new CrearHabitoCommand("Leer", Periodicidad.Diaria, 0, "paginas", Guid.NewGuid());
 
         // Act
         var excepcion = await Record.ExceptionAsync(() => service.CrearHabitoAsync(command, propietario));
@@ -342,7 +342,7 @@ public class HabitoServiceTests
 
         // Act
         var excepcion = await Record.ExceptionAsync(() => service.ReconfigurarHabitoAsync(
-            habito.Id, Periodicidad.Semanal, 30, "minutos", propietario));
+            habito.Id, Periodicidad.Semanal, 30, "minutos", propietario, "persona@ejemplo.com"));
 
         // Assert
         Assert.NotNull(excepcion);
@@ -360,12 +360,12 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        permisoService.PermisosEfectivos.Add((propietario.ToString(), "Habits.AdvancedReconfig"));
+        permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
         var service = new HabitoService(repository, unitOfWork, permisoService);
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
-        await service.ReconfigurarHabitoAsync(habito.Id, Periodicidad.Semanal, 30, "minutos", propietario);
+        await service.ReconfigurarHabitoAsync(habito.Id, Periodicidad.Semanal, 30, "minutos", propietario, "persona@ejemplo.com");
 
         // Assert
         var actualizado = await repository.GetByIdAsync(habito.Id);
@@ -390,7 +390,7 @@ public class HabitoServiceTests
 
         // Act
         var excepcion = await Record.ExceptionAsync(() => service.ReconfigurarHabitoAsync(
-            habito.Id, Periodicidad.Semanal, 30, "minutos", propietario));
+            habito.Id, Periodicidad.Semanal, 30, "minutos", propietario, "persona@ejemplo.com"));
 
         // Assert
         Assert.NotNull(excepcion);
@@ -408,13 +408,13 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        permisoService.PermisosEfectivos.Add((propietario.ToString(), "Habits.AdvancedReconfig"));
+        permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
         var service = new HabitoService(repository, unitOfWork, permisoService);
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act
         var excepcion = await Record.ExceptionAsync(() => service.ReconfigurarHabitoAsync(
-            habito.Id, Periodicidad.Semanal, 30, "minutos", noPropietario));
+            habito.Id, Periodicidad.Semanal, 30, "minutos", noPropietario, "persona@ejemplo.com"));
 
         // Assert
         Assert.NotNull(excepcion);
@@ -431,16 +431,106 @@ public class HabitoServiceTests
         var repository = new InMemoryHabitoRepository();
         var unitOfWork = new InMemoryUnitOfWork();
         var permisoService = new FakePermisoService();
-        permisoService.PermisosEfectivos.Add((propietario.ToString(), "Habits.AdvancedReconfig"));
+        permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
         var service = new HabitoService(repository, unitOfWork, permisoService);
         var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
 
         // Act - Usar identidad diferente a la del propietario
         var excepcion = await Record.ExceptionAsync(() => service.ReconfigurarHabitoAsync(
-            habito.Id, Periodicidad.Semanal, 30, "minutos", noPropietario));
+            habito.Id, Periodicidad.Semanal, 30, "minutos", noPropietario, "persona@ejemplo.com"));
 
         // Assert - Debe rechazar porque el propietario es diferente
         Assert.NotNull(excepcion);
         Assert.IsType<UnauthorizedAccessException>(excepcion);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    [Trait("Requirement", "RF-NEG-06")]
+    public async Task RF_NEG_02_AdvancedReconfig_ConsultaPermisoConCorreoCorrecto()
+    {
+        // Arrange
+        var permisoService = new FakePermisoService();
+        permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
+
+        var repository = new InMemoryHabitoRepository();
+        var unitOfWork = new InMemoryUnitOfWork();
+        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
+
+        // Act - Usar correo correcto
+        await service.ReconfigurarHabitoAsync(
+            habito.Id, Periodicidad.Semanal, 30, "minutos", propietario, "persona@ejemplo.com");
+
+        // Assert - El permiso se consultó con el correo, no con el GUID
+        Assert.Contains(("persona@ejemplo.com", "Habits.AdvancedReconfig"), permisoService.PermisosEfectivos);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_CrearHabito_PeriodicidadNoDefinida_Rechaza()
+    {
+        // Arrange
+        var repository = new InMemoryHabitoRepository();
+        var unitOfWork = new InMemoryUnitOfWork();
+        var permisoService = new FakePermisoService();
+        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var periodicidadInvalida = (Periodicidad)999;
+        var command = new CrearHabitoCommand("Leer", periodicidadInvalida, 20, "paginas", Guid.NewGuid());
+
+        // Act
+        var excepcion = await Record.ExceptionAsync(() => service.CrearHabitoAsync(command, propietario));
+
+        // Assert
+        Assert.NotNull(excepcion);
+        Assert.IsType<ArgumentException>(excepcion);
+        Assert.Contains("periodicidad", excepcion.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_Reconfigurar_PeriodicidadNoDefinida_Rechaza()
+    {
+        // Arrange
+        var repository = new InMemoryHabitoRepository();
+        var unitOfWork = new InMemoryUnitOfWork();
+        var permisoService = new FakePermisoService();
+        permisoService.PermisosEfectivos.Add(("persona@ejemplo.com", "Habits.AdvancedReconfig"));
+        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
+        var periodicidadInvalida = (Periodicidad)999;
+
+        // Act
+        var excepcion = await Record.ExceptionAsync(() => service.ReconfigurarHabitoAsync(
+            habito.Id, periodicidadInvalida, 30, "minutos", propietario, "persona@ejemplo.com"));
+
+        // Assert
+        Assert.NotNull(excepcion);
+        Assert.IsType<ArgumentException>(excepcion);
+        Assert.Contains("periodicidad", excepcion.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_CrearHabito_MetaIdVacio_Rechaza()
+    {
+        // Arrange
+        var repository = new InMemoryHabitoRepository();
+        var unitOfWork = new InMemoryUnitOfWork();
+        var permisoService = new FakePermisoService();
+        var service = new HabitoService(repository, unitOfWork, permisoService);
+        var command = new CrearHabitoCommand("Leer", Periodicidad.Diaria, 20, "paginas", Guid.Empty);
+
+        // Act
+        var excepcion = await Record.ExceptionAsync(() => service.CrearHabitoAsync(command, propietario));
+
+        // Assert
+        Assert.NotNull(excepcion);
+        Assert.IsType<ArgumentException>(excepcion);
+        Assert.Contains("meta", excepcion.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
 }
