@@ -185,3 +185,21 @@ Actualizó `docs/maquina-de-estados.md` con los 4 estados, tablas de transicione
 - Tags: `practica-3`, `practica-3-defecto-1` a `practica-3-defecto-4`
 - Rama: `feature/practica-3` (25 commits adelante de origin)
 - Push: no realizado (pendiente de instrucción del usuario)
+
+### Solicitud 10: Auditoría general y verificación de la rúbrica oficial
+
+**Prompt del usuario:**
+> Quiero que realices una auditoría general de todas las fases y requisitos, resuelvas los problemas con base en los requisitos del maestro y, al final, ejecutes `dotnet test` y la API para validar que no haya errores. También verifica la rúbrica oficial de 8.0 puntos.
+
+**Hallazgos y correcciones:**
+1. `RF_NEG_02_Reconfigurar_RegistroAntesDeCicloNoCuentaAunqueCumplaCantidad` usaba una hora fija de las 08:00 UTC, que podía ser futura al ejecutar la prueba. Se cambió a `DateTime.UtcNow.AddMinutes(-1)` para garantizar que el registro precede la reconfiguración.
+2. `Habito.Completar` comprobaba la meta antes de llamar a la máquina central, duplicando la regla de transición (**RD-04**). Se eliminó la validación duplicada; la aceptación de `Activo → Completado` permanece en `TransicionesHabito`. Se actualizaron las aserciones de dominio y aplicación para verificar el rechazo y que el estado no cambie.
+3. El middleware convertía todo `UnauthorizedAccessException` en `401`, incluso cuando el usuario ya estaba autenticado y no tenía autorización. Ahora devuelve `403` para identidad autenticada y conserva `401` para identidad no autenticada, según la guía HTTP de la práctica.
+4. La migración no añadía `Habitos.Unidad`, aunque el modelo y el snapshot la requieren. La migración incluye la columna y su reversión. Una consulta SQL de solo lectura al entorno local confirmó cero filas en `Habitos` y `RegistrosDiarios`; el esquema local contiene `Habitos.Unidad`.
+
+**Evidencia de validación:**
+- `dotnet test --artifacts-path C:\Temp2\HabitTrackerAudit`: 104 pruebas pasaron, 0 fallaron. Se usó un directorio de artefactos aislado porque otra instancia de WebApi mantenía bloqueado el ejecutable del proyecto.
+- `dotnet run --project Host\WebApi\WebApi.csproj --artifacts-path C:\Temp2\HabitTrackerApiRun --no-launch-profile -- --urls http://localhost:5256`: la API arrancó en Development sin errores de aplicación; `GET /swagger/index.html` respondió HTTP 200. La instancia de auditoría se detuvo al terminar la comprobación.
+- `sqlcmd` en modo de solo lectura: 0 hábitos y 0 registros diarios heredados.
+
+La suite de integración con Gestión de Permisos también forma parte de las 104 pruebas y pasó. La validación interactiva de los cinco frentes acumulados requiere solicitudes HTTP autenticadas y datos de prueba; no se modificaron cuentas ni hábitos de la base compartida.

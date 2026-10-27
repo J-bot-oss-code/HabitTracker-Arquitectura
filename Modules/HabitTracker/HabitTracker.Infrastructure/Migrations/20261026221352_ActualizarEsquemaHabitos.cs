@@ -23,6 +23,13 @@ namespace HabitTracker.Infrastructure.Migrations
                 name: "Frecuencia",
                 table: "Habitos");
 
+            migrationBuilder.AddColumn<string>(
+                name: "Unidad",
+                table: "Habitos",
+                type: "nvarchar(max)",
+                nullable: false,
+                defaultValue: "");
+
             migrationBuilder.AddColumn<decimal>(
                 name: "Cantidad",
                 table: "RegistrosDiarios",
@@ -91,6 +98,10 @@ namespace HabitTracker.Infrastructure.Migrations
 
             migrationBuilder.DropColumn(
                 name: "UsuarioId",
+                table: "Habitos");
+
+            migrationBuilder.DropColumn(
+                name: "Unidad",
                 table: "Habitos");
 
             migrationBuilder.AddColumn<string>(

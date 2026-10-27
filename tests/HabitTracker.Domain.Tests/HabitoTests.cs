@@ -115,7 +115,7 @@ public class HabitoTests
         // Assert
         Assert.NotNull(excepcion);
         Assert.IsType<InvalidOperationException>(excepcion);
-        Assert.Contains("No se alcanzó la meta", excepcion.Message);
+        Assert.Contains("prohibida", excepcion.Message);
         Assert.Equal(EstadoHabito.Activo, habito.Estado);
     }
 
@@ -359,11 +359,10 @@ public class HabitoTests
     public void RF_NEG_02_Reconfigurar_RegistroAntesDeCicloNoCuentaAunqueCumplaCantidad()
     {
         // Arrange
-        var hoy = DateTime.UtcNow.Date;
         var habito = new Habito(propietario, "Leer", Periodicidad.Diaria, 100, "paginas", metaId);
         habito.Activar(propietario);
         // Registro grande pero ANTES del reconfigurar
-        habito.RegistrarAvance(propietario, 100, new DateTime(hoy.Year, hoy.Month, hoy.Day, 8, 0, 0, DateTimeKind.Utc));
+        habito.RegistrarAvance(propietario, 100, DateTime.UtcNow.AddMinutes(-1));
 
         // Act - Reconfigurar con meta baja (5)
         habito.Reconfigurar(propietario, Periodicidad.Diaria, 5, "paginas");

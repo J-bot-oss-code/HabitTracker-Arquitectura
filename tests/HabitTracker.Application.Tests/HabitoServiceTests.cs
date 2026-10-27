@@ -244,7 +244,7 @@ public class HabitoServiceTests
         // Assert
         Assert.NotNull(excepcion);
         Assert.IsType<InvalidOperationException>(excepcion);
-        Assert.Contains("No se alcanzó la meta", excepcion.Message);
+        Assert.Contains("prohibida", excepcion.Message);
         Assert.Equal(EstadoHabito.Activo, habito.Estado);
     }
 

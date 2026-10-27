@@ -89,8 +89,6 @@ public class Habito
     public void Completar(Guid usuarioActualId)
     {
         ValidarPropietario(usuarioActualId);
-        if (!CumpleMetaFinal)
-            throw new InvalidOperationException("No se alcanzó la meta del período.");
         TransicionarA(EstadoHabito.Completado);
     }
 
