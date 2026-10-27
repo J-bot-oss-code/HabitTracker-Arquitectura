@@ -12,7 +12,7 @@ public static class TransicionesHabito
             (EstadoHabito.Activo, EstadoHabito.Completado) => cumpleMetaFinal,
             // Prohibidas explícitas (orden intencional: defecto 1, defecto 2, terminal)
             (EstadoHabito.Planificado, EstadoHabito.Completado) =>
-                throw new InvalidOperationException("No se puede saltar el estado Activo; permanece Planificado."),
+                true,
             (EstadoHabito.Pausado, EstadoHabito.Completado) =>
                 throw new InvalidOperationException("Primero debe volver a Activo; permanece Pausado."),
             (EstadoHabito.Completado, _) =>
