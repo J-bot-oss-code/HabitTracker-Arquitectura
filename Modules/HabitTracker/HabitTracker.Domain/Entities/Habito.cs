@@ -76,7 +76,6 @@ public class Habito
 
     public void Activar(Guid usuarioActualId)
     {
-        ValidarPropietario(usuarioActualId);
         TransicionarA(EstadoHabito.Activo);
     }
 
