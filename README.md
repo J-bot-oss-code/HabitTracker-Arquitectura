@@ -221,7 +221,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
 
 ---
 
-## Asignación 3 — Módulo de Negocio (Habit Tracker)
+## Práctica 3 — Módulo de Negocio (Habit Tracker)
 
 Pieza del Core con máquina de estados propia (`Planificado → Activo → Pausado → Activo → Completado`; `Completado` único terminal). Capas: `HabitTracker.Domain` (entidad rica `Habito` + `TransicionesHabito` + `Periodicidad`), `HabitTracker.Application` (`HabitoService` con 5 casos de uso), `HabitTracker.Infrastructure` (`HabitTrackerDbContext` propio + `HabitoRepository` + `MetaRepository` + `HabitTrackerUnitOfWork`) y endpoints en `HabitsController` (`api/habits`) protegidos con JWT y rol `Estandar`.
 
