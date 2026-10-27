@@ -15,6 +15,7 @@ public static class TransicionesHabito
                 throw new InvalidOperationException("No se puede saltar el estado Activo; permanece Planificado."),
             (EstadoHabito.Pausado, EstadoHabito.Completado) =>
                 throw new InvalidOperationException("Primero debe volver a Activo; permanece Pausado."),
+            (EstadoHabito.Completado, EstadoHabito.Activo) => true,
             (EstadoHabito.Completado, _) =>
                 throw new InvalidOperationException("Completado es terminal; permanece Completado."),
             _ => false
