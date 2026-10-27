@@ -146,14 +146,6 @@ public sealed class HabitoService(
         if (habito.Estado == EstadoHabito.Completado)
             throw new InvalidOperationException("No se puede reconfigurar un hábito completado.");
 
-        var tienePermiso = await permisoService.TienePermisoEfectivoAsync(
-            correoSolicitante,
-            "Habits.AdvancedReconfig",
-            cancellationToken);
-
-        if (!tienePermiso)
-            throw new UnauthorizedAccessException("El usuario no tiene aplicado el permiso Habits.AdvancedReconfig.");
-
         habito.Reconfigurar(usuarioActualId, periodicidad, cantidadObjetivo, unidad);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
