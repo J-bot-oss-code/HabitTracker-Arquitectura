@@ -230,11 +230,11 @@ Pieza del Core con máquina de estados propia (`Planificado → Activo → Pausa
 ### Pruebas
 
 ```bash
-# Suite completa con un solo comando (104 pruebas, sin levantar la API ni una BD externa)
+# Suite completa con un solo comando (106 pruebas, sin levantar la API ni una BD externa)
 dotnet test
 ```
 
-La suite incluye pruebas unitarias de dominio (43), aplicación (21), integración real con Gestión de Permisos (1), Control de Acceso (12) y Gestión de Permisos (27). Las pruebas usan dobles de prueba o componentes en memoria/SQLite; no inician la API ni requieren una base de datos externa.
+La suite incluye pruebas unitarias de dominio (43), aplicación (21), integración real con Gestión de Permisos (1), persistencia real de avances con EF Core/SQLite (2), Control de Acceso (12) y Gestión de Permisos (27). Las pruebas usan dobles de prueba o componentes en memoria/SQLite; no inician la API ni requieren una base de datos externa.
 
 ### Máquina de estados
 
@@ -262,9 +262,9 @@ Ejecuta estos pasos con la API y SQL Server local activos, después de aplicar l
 
 3. **RF-NEG-02.2 (Consultar):** como el mismo Estándar, `GET /api/habits` → solo ve sus hábitos. Como otro Estándar, `GET /api/habits` → no ve los hábitos del primero.
 
-4. **RF-NEG-02.3 (Cambiar estado):** `POST /api/habits/{id}/transition` con `{"nuevoEstado":"Activo"}` → `204`. Repetir para `Pausado`, `Activo` (desde Pausado) y `Completado` (solo si se alcanzó la meta). Intentar `Planificado → Completado` → `400`. Intentar salir de `Completado` → `400`.
+4. **RF-NEG-02.3 (Cambiar estado):** con el hábito recién creado (`Planificado`), `POST /api/habits/{id}/transition` con `{"nuevoEstado":"Completado"}` → `400` (no se salta `Activo`). Luego `{"nuevoEstado":"Activo"}` → `204`, `Pausado` → `204`; estando `Pausado`, `Completado` → `400`; vuelve a `Activo` → `204`. Los estados se envían como texto (`Planificado`, `Activo`, `Pausado`, `Completado`) o como número (0–3).
 
-5. **RF-NEG-02.4 (Registrar avance):** con el hábito en `Activo`, `POST /api/habits/{id}/progress` con `{"cantidad":5,"fechaUtc":"2026-10-26T10:00:00Z"}` → `204`. Registrar avance con hábito `Pausado` → `400`. Registrar con cantidad 0 → `400`.
+5. **RF-NEG-02.4 (Registrar avance):** con el hábito en `Activo`, `POST /api/habits/{id}/progress` con `{"cantidad":5,"fechaUtc":"<FECHA_UTC_ACTUAL>"}` (por ejemplo `2026-10-28T15:00:00Z`) → `204`. Registrar avance con hábito `Pausado` → `400`. Registrar con cantidad 0 → `400`. Solo cuentan para la meta los avances del período vigente (día UTC para `Diaria`, semana ISO para `Semanal`) registrados desde el inicio del ciclo.
 
 6. **RF-NEG-02.5 (Reconfigurar):**
    - Crear una solicitud de permiso: `POST /api/permissions` con `{"permisoSolicitado":"Habits.AdvancedReconfig"}` → `201`.
@@ -276,9 +276,9 @@ Ejecuta estos pasos con la API y SQL Server local activos, después de aplicar l
 
 8. **Rechazo a no propietario en Planificado → Activo:** crear un hábito con usuario A, intentar activarlo con usuario B → `403`.
 
-9. **Condición de meta para Completado:** crear hábito con meta de 10 unidades, registrar 5, intentar completar → `400`. Registrar 5 más, completar → `204`.
+9. **Condición de meta para Completado:** crear hábito con meta de 10 unidades, registrar 5 con la fecha UTC actual, intentar completar → `400`. Registrar 5 más el mismo día UTC, completar → `204`.
 
-10. **Estado terminal:** completar un hábito, intentar cualquier transición → `400`.
+10. **Estado terminal:** completar un hábito, intentar cualquier transición → `400`. `advanced-reconfig` sobre un hábito `Completado` también → `400`.
 
 ### Verificación de persistencia después de reiniciar la API
 
@@ -297,7 +297,7 @@ dotnet build HabitTrackerSystem.slnx
 dotnet test
 ```
 
-El tag revisado `practica-3` contiene 104 pruebas. Cada tag `practica-3-defecto-N` es un commit hijo directo de esa base y planta un solo defecto en código de producción de Habit Tracker. La suite debe pasar completa en `practica-3` y fallar al menos una prueba en cada tag de defecto.
+El tag revisado `practica-3` contiene 106 pruebas. Cada tag `practica-3-defecto-N` es un commit hijo directo de esa base y planta un solo defecto en código de producción de Habit Tracker. La suite debe pasar completa en `practica-3` y fallar al menos una prueba en cada tag de defecto.
 
 ```bash
 git checkout --detach practica-3-defecto-1

@@ -203,3 +203,26 @@ Actualizó `docs/maquina-de-estados.md` con los 4 estados, tablas de transicione
 - `sqlcmd` en modo de solo lectura: 0 hábitos y 0 registros diarios heredados.
 
 La suite de integración con Gestión de Permisos también forma parte de las 104 pruebas y pasó. La validación interactiva de los cinco frentes acumulados requiere solicitudes HTTP autenticadas y datos de prueba; no se modificaron cuentas ni hábitos de la base compartida.
+### Solicitud 11: Prueba final de endpoints antes de la PR
+
+**Prompt del usuario:**
+> Antes de hacer la PR vamos a hacer la última prueba: en el .md plan prueba swagger práctica 3, primero analiza, crea un plan y me notificas.
+
+**Respuesta del agente:**
+Analizó `docs/plan-prueba-swagger-practica-3.md` y encontró errores de orden en el propio plan (probar `Planificado → Completado` después de activar, avance "en pausa" después de reanudar, reconfigurar un hábito ya completado, reutilizar el permiso aprobado en la sección 2, fecha de avance que no cuenta para la meta). Con aprobación del usuario ejecutó la secuencia corregida con `curl` contra una base aislada (`HabitTracker_PruebaP3`) y SMTP desactivado.
+
+**Errores detectados en la API (no cubiertos por las 104 pruebas):**
+1. `POST /api/habits/{id}/progress` respondía `500`. El log mostró `DbUpdateConcurrencyException`: el `Id` de `RegistroDiario` lo asigna el dominio, pero EF lo tenía configurado como generado; al detectar el registro nuevo con Id ya asignado lo trató como existente y emitió `UPDATE` en lugar de `INSERT`. Las pruebas de aplicación usan repositorios en memoria y la de integración no registraba avances, por eso no lo detectaron. Sin avances tampoco se podía completar un hábito desde la API.
+2. La API no aceptaba enums como texto (`"periodicidad":"Diaria"`, `"nuevoEstado":"Activo"`) y respondía `400`, aunque así aparecen en el README.
+
+**Corrección:**
+1. Prueba nueva `HabitoPersistenciaTests` (EF Core + SQLite, un `DbContext` por operación como en la API): primero falló reproduciendo el error y después pasó tras configurar `RegistroDiario.Id` con `ValueGeneratedNever()`. Migración `RegistroDiarioIdAsignadoPorDominio` (sin cambios de esquema, solo snapshot).
+2. `JsonStringEnumConverter` en `Program.cs`; los números siguen aceptándose.
+3. Se rehízo el tag `practica-3` sobre el commit corregido y se volvieron a plantar los cuatro defectos como hijos directos (los tags anteriores aún no se habían entregado).
+
+**Error del agente detectado:**
+La primera corrida del script de prueba falló por causas propias del script: `sqlcmd` truncaba el cuerpo HTML del correo (el código de recuperación quedaba vacío) y la tilde de "política" se enviaba mal codificada desde Git Bash. Se detectó al leer los cuerpos de error (`Codigo field is required`, error JSON en `motivoRechazo`) y se corrigió extrayendo solo el fragmento del código con `SUBSTRING` y usando texto ASCII.
+
+**Evidencia:**
+- `dotnet test`: 106 pruebas pasan (43 dominio, 21 aplicación, 3 integración HabitTracker, 27 Permisos, 12 Control de Acceso).
+- Prueba E2E: 83/83 comprobaciones correctas; persistencia verificada tras reiniciar la API.
