@@ -169,7 +169,6 @@ namespace HabitTracker.Infrastructure.Migrations
             modelBuilder.Entity("HabitTracker.Domain.Entities.RegistroDiario", b =>
                 {
                     b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Cantidad")

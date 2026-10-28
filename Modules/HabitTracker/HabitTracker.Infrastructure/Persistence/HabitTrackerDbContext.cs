@@ -50,6 +50,12 @@ public class HabitTrackerDbContext : DbContext
             .Property(r => r.Fecha)
             .HasColumnType("datetime2");
 
+        // El dominio asigna el Id al crear el registro; sin esto EF trata un avance
+        // nuevo con Id ya asignado como existente y emite UPDATE en lugar de INSERT.
+        modelBuilder.Entity<RegistroDiario>()
+            .Property(r => r.Id)
+            .ValueGeneratedNever();
+
         modelBuilder.Entity<Meta>()
             .HasOne(m => m.Categoria)
             .WithMany(c => c.Metas)
