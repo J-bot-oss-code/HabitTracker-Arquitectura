@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
 using Permissions.Infrastructure.DependencyInjection;
@@ -13,8 +15,12 @@ builder.Services.AddHabitTrackerModule(builder.Configuration);
 // Módulo de Gestión de Permisos (persistencia propia).
 builder.Services.AddPermissionsInfrastructure(builder.Configuration);
 
-// Controladores y OpenAPI.
-builder.Services.AddControllers();
+// Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
+
+// Controladores y OpenAPI. Los enums viajan como texto ("Diaria", "Activo") y se aceptan también como número.
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
 
 builder.Services.AddEndpointsApiExplorer();

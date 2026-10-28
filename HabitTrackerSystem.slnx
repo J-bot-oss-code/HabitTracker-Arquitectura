@@ -40,6 +40,9 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AccessControl.Application.Tests/AccessControl.Application.Tests.csproj" />
+    <Project Path="tests/HabitTracker.Application.Tests/HabitTracker.Application.Tests.csproj" />
+    <Project Path="tests/HabitTracker.Domain.Tests/HabitTracker.Domain.Tests.csproj" />
+    <Project Path="tests/HabitTracker.Integration.Tests/HabitTracker.Integration.Tests.csproj" />
     <Project Path="tests/Permissions.Application.Tests/Permissions.Application.Tests.csproj" />
     <Project Path="tests/Permissions.Domain.Tests/Permissions.Domain.Tests.csproj" />
     <Project Path="tests/Permissions.Infrastructure.Tests/Permissions.Infrastructure.Tests.csproj" />

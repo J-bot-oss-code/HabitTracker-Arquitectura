@@ -1,72 +1,75 @@
 # Plan de implementación — Práctica 3
 
-## Objetivo
+## Propósito y fuente funcional
 
-Implementar el módulo de negocio Habit Tracker de Programación III, con una máquina de estados propia, protegida por Control de Acceso, integrada con Gestión de Permisos, cubierta por pruebas y documentada para evaluación.
+Implementar la etapa evaluada del módulo Habit Tracker, proteger su máquina de estados con pruebas e integrar una operación con Gestión de Permisos. La especificación funcional y la rúbrica detalladas están en [practica-3-modulo-negocio-requisitos.md](practica-3-modulo-negocio-requisitos.md) y se basan en el PDF oficial de la práctica.
 
-## Fase 0: Preparación del entorno y rama Git
+El alcance es RF-NEG-02, RF-NEG-03, RF-NEG-04, RF-NEG-05, RF-NEG-06 y RF-NEG-09, además de RD-04, RD-07, RD-09 y RD-12. RF-NEG-07, RF-NEG-08 y RF-NEG-10 quedan fuera de esta práctica según el PDF.
 
-1. Confirmar que `main` esté actualizada y limpia antes de iniciar el trabajo.
-2. Crear `feature/practica-3` desde `main`.
-3. Mantener el trabajo de esta práctica en esa rama y registrar cambios en commits pequeños, cada uno asociado a los requisitos funcionales o de diseño que atiende.
+## Fase 0: Preparación del entorno y Git
 
-## Fase 1: Implementación del módulo de negocio Habit Tracker
+1. Actualizar `main` desde `origin/main` y confirmar que no tenga cambios locales.
+2. Trabajar en `feature/practica-3`. Como una versión anterior de esta rama ya se integró, adelantarla desde `main` solo mediante fast-forward. Si hay commits únicos que impiden ese avance, conservarlos y crear `feature/practica-3-implementacion` desde `main`; no usar reset.
+3. Confirmar que el árbol de trabajo esté limpio antes de iniciar la implementación.
+4. Hacer commits pequeños y atómicos, en español, con los RF/RD correspondientes.
 
-- Implementar al menos cinco funcionalidades separables del negocio y explicarlas en `README.md` (**RF-NEG-02**).
-- Definir una máquina de estados propia de tres a cinco estados en un único lugar del código, independiente de Gestión de Permisos (**RF-NEG-03, RF-NEG-09**). Como propuesta inicial: `Planificado → Activo → Pausado → Completado` o `Cancelado`; `Completado` y `Cancelado` serán terminales.
-- Rechazar explícitamente al menos una transición prohibida sin modificar el estado (**RF-NEG-04**).
-- Impedir cualquier salida desde un estado terminal (**RF-NEG-05**).
-- Proteger en el servidor todas las operaciones del módulo con JWT y autorización por rol (**RF-NEG-06, RD-06**).
-- Incluir una operación de negocio que requiera un permiso previamente aprobado por un Administrador mediante Gestión de Permisos.
+## Fase 1: Módulo de negocio Habit Tracker
 
-## Fase 2: Suite unitaria de la máquina de estados
+Implementar el contrato detallado en el documento de requisitos:
 
-- Crear pruebas independientes con fases Arrange, Act y Assert identificables.
-- Cubrir cada fila de la tabla de transiciones de `docs/maquina-de-estados.md`, tanto las permitidas como las prohibidas.
-- Comprobar expresamente que una transición prohibida rechaza la operación y deja el estado intacto, y que los estados terminales no permiten transiciones de salida.
-- Ejecutar las pruebas en milisegundos, sin iniciar la API completa ni depender de una base de datos externa (**RD-12**).
+- La máquina tendrá exactamente cuatro estados: `Planificado` (inicial), `Activo`, `Pausado` y `Completado` (único terminal). Las reglas se declaran en un solo lugar del dominio y son independientes de la máquina de Gestión de Permisos.
+- La entidad registra propietario, objetivo medible, unidad y periodicidad diaria o semanal. El identificador del propietario se obtiene de la identidad autenticada, no del cuerpo de la petición.
+- Implementar las cinco operaciones separables con sus rutas y resultados observables: crear hábito, consultar hábitos propios, cambiar estado, registrar progreso y reconfigurar/resetear el hábito con el permiso aprobado `Habits.AdvancedReconfig`.
+- Validar la propiedad en el dominio para las transiciones que la exigen. Completar requiere que el objetivo del período actual se haya alcanzado.
+- Proteger todas las operaciones en el servidor con JWT y autorización por rol. La autorización de propietario se verifica en cada acceso a un hábito; la aprobación del permiso corresponde a un Administrador en Gestión de Permisos.
+- Persistir hábitos, objetivos y avances fuera del proceso (**RD-09**) y preparar la migración de esquema. Antes de retirar los estados actuales `Pendiente` y `Abandonado`, revisar si hay datos existentes; no convertir silenciosamente `Abandonado` a otro estado.
 
-## Fase 3: Integración real entre Negocio y Gestión de Permisos
+## Fase 2: Suite de la máquina de estados
 
-- Implementar una prueba unitaria de integración que use componentes reales, sin mocks, dobles ni servidor HTTP.
-- Verificar ambos lados del flujo: la operación de negocio se rechaza antes de aprobar la solicitud de permiso y se ejecuta correctamente después de que un Administrador la apruebe.
-- Comprobar que la prueba falla si la integración con Gestión de Permisos se omite.
+- Crear pruebas independientes con fases Preparar–Actuar–Verificar (AAA) y nombres que describan el comportamiento.
+- Probar cada fila permitida y prohibida del documento de requisitos. En cada transición prohibida, comprobar el rechazo y que el estado permanezca igual.
+- Probar expresamente el estado terminal, la condición de propietario de `Planificado → Activo` y la condición de objetivo para `Activo → Completado`.
+- Ejecutar la suite sin levantar la API completa ni depender de una base externa (**RD-12**). Documentar un solo comando, `dotnet test`, y comprobarlo desde un clon limpio.
 
-## Fase 4: Cuatro defectos y tags Git
+## Fase 3: Integración real con Gestión de Permisos
 
-Plantar cada defecto en un commit independiente, descendiente directo de `practica-3`. Cada commit modificará únicamente código de producción, sin archivos de pruebas, e identificará el archivo y la línea afectados.
+- Probar la operación `advanced-reconfig` usando los servicios, repositorios y dominio reales de ambos módulos, sin mocks/dobles ni servidor HTTP.
+- Con una solicitud pendiente o rechazada, comprobar que la acción se rechaza. Tras la aprobación del Administrador y el estado efectivo `Aplicada`, comprobar que se permite.
+- Asegurar que la prueba falle si se omite la consulta a Gestión de Permisos (defecto 4). Mantener la dirección de dependencias y las interfaces del diseño por capas.
 
-| Tag | Defecto plantado | Evidencia esperada |
-|---|---|---|
-| `practica-3-defecto-1` | Una transición prohibida pasa a permitirse. | Falla la prueba de esa transición. |
-| `practica-3-defecto-2` | Se permite salir de un estado terminal. | Falla la prueba del estado terminal. |
-| `practica-3-defecto-3` | Se omite la condición de una transición condicional. | Falla la prueba de la condición. |
-| `practica-3-defecto-4` | Se omite la consulta a Gestión de Permisos en la acción del negocio. | Falla la prueba de integración real. |
+## Fase 4: Defectos plantados y tags
 
-## Fase 5: Documentación
+La secuencia exacta de cada mutación y sus pruebas está en el documento de requisitos. La primera fila prohibida se fija como `Planificado → Completado`; así el defecto 1 no se confunde con el defecto 2, que permite salir del estado terminal.
 
-- Actualizar `README.md` con las instrucciones para ejecutar el proyecto y provocar cada una de las cinco funcionalidades de negocio.
-- Documentar los requisitos implementados, cómo ejecutar las pruebas y qué resultado se espera para transiciones permitidas, prohibidas y terminales.
-- Crear o actualizar `docs/maquina-de-estados.md` con estados, transiciones permitidas, condiciones, rechazos y estados terminales.
-- Añadir a `README.md` la tabla de los cuatro defectos, los tags, el requisito afectado y la prueba que evidencia cada mutación.
+- Crear el tag base `practica-3` sobre el commit donde toda la suite pasa.
+- Crear cuatro commits independientes, todos hijos directos del commit `practica-3`. Cada commit cambia un único archivo de código de producción, no modifica pruebas y menciona archivo y línea en el mensaje.
+- Crear los tags `practica-3-defecto-1` a `practica-3-defecto-4`. En cada tag de defecto, el comando documentado debe hacer fallar al menos una prueba correspondiente; en `practica-3`, todas pasan.
+- No corregir las mutaciones en sus tags.
 
-## Fase 6: Bitácora de la sesión
+## Fase 5: Documentación de entrega
 
-Crear `docs/bitacora-practica-3.md` con las tareas solicitadas al agente, sus respuestas y evidencia de la sesión. Registrar al menos un error del agente, cómo se detectó y cómo se corrigió.
+- Documentar en `README.md` cómo ejecutar y provocar individualmente las cinco funcionalidades, cómo ejecutar todas las pruebas con un comando y cómo iniciar la API para la revisión acumulada.
+- Actualizar `docs/maquina-de-estados.md` para que sus estados, filas, condiciones, rechazos y estado terminal coincidan exactamente con el código y las pruebas. Mantener `Planificado → Completado` como primera fila prohibida.
+- Añadir en `README.md` la sección `## Defectos`, con los cuatro tags, el requisito, la prueba que falla y el comportamiento mutado.
+- No documentar como implementado lo que aún no se haya probado.
 
-## Rúbrica oficial — 8 puntos
+## Fase 6: Bitácora
 
-| Criterio | Puntaje máximo |
+Crear `docs/bitacora-practica-3.md` con solicitudes reales al agente, respuestas y evidencia de la sesión. Registrar al menos un error del agente, cómo se detectó y cómo se corrigió; no inventar evidencia.
+
+## Puntaje oficial — 8.0 puntos
+
+| Criterio | Puntaje |
 |---|---:|
-| Módulo de negocio implementado (**RF-NEG-02 a RF-NEG-06 y RF-NEG-09**) | 1.5 |
-| Suite de la máquina de estados: cobertura de todas las filas y del estado terminal | 1.0 |
-| Detección de los defectos 1 a 3 y forma de sus tags: hijos directos de `practica-3`, solo código de producción | 1.5 |
-| Integración real con Gestión de Permisos: ambas caras del flujo y detección del defecto 4 | 2.0 |
-| Revisión acumulada: Control de Acceso y Gestión de Permisos en los cinco frentes requeridos | 2.0 |
+| Módulo de negocio RF-NEG-02 a RF-NEG-06 y RF-NEG-09 | 1.5 |
+| Suite de la máquina de estados | 1.0 |
+| Detección de los defectos 1 a 3 y forma de sus tags | 1.5 |
+| Prueba de integración con Gestión de Permisos | 2.0 |
+| Revisión acumulada: Control de Acceso y Gestión de Permisos | 2.0 |
 | **Total** | **8.0** |
 
-Para cada criterio, la evaluación distingue **No logrado (0 %)**, **Parcialmente logrado (50 %)** y **Logrado (100 %)**.
+Los descriptores completos de No logrado, Parcialmente logrado y Logrado están en el documento de requisitos y deben aplicarse literalmente.
 
-## Verificación final como evaluador
+## Revisión final como evaluador
 
-Al terminar, revisar la entrega como profesor de Programación III desde un clon limpio: verificar los comandos de checkout de `practica-3` y de los cuatro tags, comprobar `git diff --stat practica-3 practica-3-defecto-N` para cada defecto, confirmar que cada diff toque un único archivo productivo y ningún archivo de pruebas, ejecutar la suite en la base y en los cuatro mutantes, y presentar la matriz cuantitativa final sobre 8.0 puntos con la evidencia de cada criterio.
+Desde un clon limpio, seguir el README y verificar `git checkout practica-3`, el comando único de pruebas y los cinco frentes acumulados. Para cada defecto, confirmar que su único padre sea `practica-3`, revisar `git diff --stat practica-3 practica-3-defecto-N`, verificar que no toque pruebas y ejecutar el mismo comando de pruebas. Contrastar el README, `docs/maquina-de-estados.md`, las pruebas y el código; presentar la matriz con la rúbrica oficial de 8 puntos del documento de requisitos.
