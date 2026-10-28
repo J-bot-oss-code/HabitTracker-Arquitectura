@@ -1,4 +1,7 @@
+using HabitTracker.Application.Interfaces;
+using HabitTracker.Application.Services;
 using HabitTracker.Infrastructure.Persistence;
+using HabitTracker.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,6 +21,11 @@ public static class HabitTrackerModuleExtensions
 
         services.AddDbContext<HabitTrackerDbContext>(options =>
             options.UseSqlServer(connectionString));
+
+        services.AddScoped<IHabitoRepository, HabitoRepository>();
+        services.AddScoped<IMetaRepository, MetaRepository>();
+        services.AddScoped<IUnitOfWork, HabitTrackerUnitOfWork>();
+        services.AddScoped<HabitoService>();
 
         return services;
     }

@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Modules\HabitTracker\HabitTracker.Application\HabitTracker.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\HabitTracker\HabitTracker.Domain\HabitTracker.Domain.csproj" />
+    <ProjectReference Include="..\..\Modules\HabitTracker\HabitTracker.Infrastructure\HabitTracker.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Permissions\Permissions.Application\Permissions.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Permissions\Permissions.Domain\Permissions.Domain.csproj" />
+    <ProjectReference Include="..\..\Modules\Permissions\Permissions.Infrastructure\Permissions.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

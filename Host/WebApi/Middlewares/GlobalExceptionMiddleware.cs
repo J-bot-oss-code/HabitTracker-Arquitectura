@@ -34,7 +34,10 @@ public class GlobalExceptionMiddleware
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogInformation(ex, "Operación no autorizada.");
-            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "No autorizado.", "No se pudo autorizar la solicitud.");
+            var statusCode = context.User.Identity?.IsAuthenticated == true
+                ? HttpStatusCode.Forbidden
+                : HttpStatusCode.Unauthorized;
+            await WriteProblemAsync(context, statusCode, "No autorizado.", "No se pudo autorizar la solicitud.");
         }
         catch (InvalidOperationException ex)
         {
