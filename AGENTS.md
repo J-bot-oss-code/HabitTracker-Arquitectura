@@ -1,25 +1,28 @@
 # AGENTS.md — HabitTracker-Arquitectura
 
-Greenfield .NET 10 Clean Architecture skeleton. Only template code exists (`Core.Api/Program.cs` weatherforecast + empty `Class1.cs` placeholders).
+.NET 10 modular monolith (Clean Architecture). Single host `Host/WebApi` + modules under `Modules/`.
 
 ## Solution / projects
 
 - Solution is `HabitTrackerSystem.slnx` (new XML format, not `.sln`).
-- Projects: `core.Domain` (no deps) ← `Core.Application` ← `Core.Infraestructure`; `Core.Api` is the entrypoint (`Core.Api/Program.cs`).
-- Preserve exact names: `core.Domain` (lowercase `c`), `Core.Infraestructure` (misspelled — do not "fix").
+- Each module has `<Module>.Domain` ← `<Module>.Application` ← `<Module>.Infrastructure`, wired in `Host/WebApi/Extensions/ServiceExtensions.cs`.
+- Implemented modules: `AccessControl` (Práctica 1), `Permissions` (Práctica 2), `HabitTracker` (Práctica 3). `Auditing`, `DocumentManager`, `Notifications`, `Reports` are empty skeletons.
+- Each module owns its DbContext/migrations (SQL Server); no cross-module table access — modules talk through Application interfaces (e.g. HabitTracker `IPermisoService` → `PermisoServiceAdapter`).
 - All projects: `net10.0`, `Nullable enable`, `ImplicitUsings enable`. Requires .NET 10 SDK.
 
 ## Commands
 
 - `dotnet build HabitTrackerSystem.slnx`
-- `dotnet run --project Core.Api` (`http://localhost:5031`, `https://localhost:7002` per `Core.Api/Properties/launchSettings.json`)
-- No test projects, lint, or CI configured yet — do not invent commands.
+- `dotnet test` — xUnit + Moq suites in `tests/`; no API or external DB needed (SQLite in memory).
+- `dotnet run --project Host/WebApi/WebApi.csproj` (`http://localhost:5246`, Swagger at `/swagger`). Secrets (connection string, `JwtSettings:*`, SMTP) via User Secrets/env vars — see README.
+- Migrations: `dotnet ef database update --project Modules/<M>/<M>.Infrastructure --startup-project Host/WebApi --context <Ctx>` (`ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext`).
+- Tags `practica-N` / `practica-N-defecto-M` are graded deliverables — never move or rewrite them.
 
 ## Architecture rules (from `.github/copilot/agents/`)
 
-- Dependency flow only inward: `Api → Infrastructure → Application → Domain`. `core.Domain` must have zero `ProjectReference`s; business logic never references EF.
-- `Core.Api` currently has no `ProjectReference`s (only `Microsoft.AspNetCore.OpenApi 10.0.9`) — add references to Application/Infrastructure when wiring DI. OpenAPI via `AddOpenApi()` / `MapOpenApi()` (dev only).
-- Intended stack (not yet implemented): EF Core + Fluent API + migrations, Repository + Unit of Work in Infrastructure implementing Application ports; CQRS/Mediator-style use cases in Application; JWT Bearer + roles/claims, FluentValidation, `ProblemDetails` middleware, RESTful status codes in Api.
+- Dependency flow only inward: `Api → Infrastructure → Application → Domain`. Domain projects have zero `ProjectReference`s; business logic never references EF.
+- State machines live in a single domain point (`TransicionesSolicitudPermiso`, `TransicionesHabito`).
+- Api: JWT Bearer + roles (`Estandar`, `Administrador`), identity from claims, `GlobalExceptionMiddleware` → `ProblemDetails`, RESTful status codes.
 
 ## Reglas Obligatorias para Commits y Código
 
