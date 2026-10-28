@@ -1,6 +1,6 @@
 # 📊 Estado del Flujo de Trabajo (Core PIII)
 
-Este archivo sirve como un tablero Kanban en texto para trackear el progreso del desarrollo.
+Este archivo sirve como un tablero Kanban en texto para trackear el progreso del desarrollo. El contexto completo (tags, decisiones, deuda técnica, entorno) está en `docs/ESTADO-DEL-PROYECTO.md`.
 
 ## ✅ Pieza 1 (detalle)
 * **Pieza 1: Control de Acceso (Semanas 2 a 4)**

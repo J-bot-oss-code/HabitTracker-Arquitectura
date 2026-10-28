@@ -2,6 +2,8 @@
 
 .NET 10 modular monolith (Clean Architecture). Single host `Host/WebApi` + modules under `Modules/`.
 
+**Al iniciar una sesión, leer `docs/ESTADO-DEL-PROYECTO.md`**: estado por módulo, tags de entrega, decisiones, deuda técnica, entorno local y próximos pasos. Actualizarlo al cerrar cada entrega.
+
 ## Solution / projects
 
 - Solution is `HabitTrackerSystem.slnx` (new XML format, not `.sln`).
