@@ -55,21 +55,33 @@ una:
 2. Ejecutar `frontend-architect` para planificar la feature.
 3. Implementarla con `frontend-ui-builder`, registrar la ruta perezosa en `app/routes.tsx` y
    quitar `proximamente` en `app/navigation.ts` y la entrada de `piezas.ts`.
-4. Escribir las pruebas con `frontend-test-writer`.
-5. Revisar con `frontend-reviewer` antes del commit.
+4. Pasar siempre por `frontend-design-critic` y atender sus quejas (el builder lo hace como
+   parte de su ciclo).
+5. Escribir las pruebas con `frontend-test-writer`.
+6. Revisar con `frontend-reviewer` antes del commit.
 
 ## Equipo de agentes (`.claude/agents/`)
 
-| Agente                  | Rol                                                                | Edita                 |
-| ----------------------- | ------------------------------------------------------------------ | --------------------- |
-| `frontend-architect`    | Plan de la feature: archivos, capas, rutas, roles, pruebas         | No                    |
-| `frontend-api-contract` | Alinear tipos y mocks con los controllers reales                   | Sí (solo `frontend/`) |
-| `frontend-ui-builder`   | Páginas y componentes                                              | Sí                    |
-| `frontend-test-writer`  | Pruebas Vitest/Testing Library                                     | Sí                    |
-| `frontend-reviewer`     | Revisión RD + seguridad + aislamiento del backend antes del commit | No                    |
+| Agente                     | Rol                                                                | Edita                 |
+| -------------------------- | ------------------------------------------------------------------ | --------------------- |
+| `frontend-architect`       | Plan de la feature: archivos, capas, rutas, roles, pruebas         | No                    |
+| `frontend-api-contract`    | Alinear tipos y mocks con los controllers reales                   | Sí (solo `frontend/`) |
+| `frontend-ui-builder`      | Páginas y componentes con diseño deportivo-futurista y temas       | Sí                    |
+| `frontend-design-critic`   | Crítica UI/UX tras cada cambio; el builder atiende sus quejas      | No                    |
+| `frontend-test-writer`     | Pruebas Vitest/Testing Library                                     | Sí                    |
+| `frontend-reviewer`        | Revisión RD + seguridad + aislamiento del backend antes del commit | No                    |
+| `ciberseguridad-pentester` | Auditoría de seguridad con ataques locales; solo antes de entregar | No                    |
 
-Flujo: **architect → api-contract → ui-builder → test-writer → reviewer**. Los agentes del
+Flujo: **architect → api-contract → ui-builder ⇄ design-critic → test-writer → reviewer**.
+El crítico se ejecuta siempre tras implementar o cambiar una funcionalidad; el pentester y el
+plugin `frontend-design` se reservan para el final por su coste en tokens. Los agentes del
 backend (`.github/copilot/agents/`) siguen aplicando a `Host/` y `Modules/`.
+
+## Identidad visual
+
+Diseño deportivo y futurista (marcador de rendimiento, números protagonistas, progreso visible)
+con temas Claro, Oscuro, Cálido, Estadio y Sistema, basados en tokens semánticos. Los detalles
+están en `.claude/agents/frontend-ui-builder.md`.
 
 ## Conectar con el backend real
 
