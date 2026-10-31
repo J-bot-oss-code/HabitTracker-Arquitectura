@@ -45,7 +45,7 @@ export function RegisterPage() {
       titulo="Crear cuenta"
       descripcion="Las cuentas nuevas tienen rol Estándar."
       pie={
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-atenuado">
           ¿Ya tienes cuenta?{' '}
           <Link to="/login" className={claseEnlace}>
             Inicia sesión

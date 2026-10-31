@@ -1,16 +1,21 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
+import { Icono, type NombreIcono } from './Icono'
 
 type Tono = 'info' | 'exito' | 'aviso' | 'peligro'
 
-const tonos: Record<Tono, string> = {
-  info: 'border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900 dark:bg-sky-950/50 dark:text-sky-200',
-  exito:
-    'border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200',
-  aviso:
-    'border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-200',
-  peligro:
-    'border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200',
+const tonos: Record<Tono, { clase: string; icono: NombreIcono }> = {
+  info: { clase: 'border-info/50 bg-info/10', icono: 'info' },
+  exito: { clase: 'border-exito/50 bg-exito/10', icono: 'check' },
+  aviso: { clase: 'border-aviso/50 bg-aviso/10', icono: 'alerta' },
+  peligro: { clase: 'border-peligro/50 bg-peligro/10', icono: 'alerta' },
+}
+
+const colorIcono: Record<Tono, string> = {
+  info: 'text-info',
+  exito: 'text-exito',
+  aviso: 'text-aviso',
+  peligro: 'text-peligro',
 }
 
 export function Alert({
@@ -27,10 +32,20 @@ export function Alert({
   return (
     <div
       role={tono === 'peligro' ? 'alert' : 'status'}
-      className={cn('rounded-lg border px-4 py-3 text-sm', tonos[tono], className)}
+      className={cn(
+        'flex gap-3 rounded-lg border px-4 py-3 text-sm text-texto',
+        tonos[tono].clase,
+        className,
+      )}
     >
-      {titulo && <p className="font-medium">{titulo}</p>}
-      {children && <div className={titulo ? 'mt-1' : undefined}>{children}</div>}
+      <Icono
+        nombre={tonos[tono].icono}
+        className={cn('mt-0.5 size-5 shrink-0', colorIcono[tono])}
+      />
+      <div className="min-w-0">
+        {titulo && <p className="font-semibold">{titulo}</p>}
+        {children && <div className={titulo ? 'mt-1' : undefined}>{children}</div>}
+      </div>
     </div>
   )
 }

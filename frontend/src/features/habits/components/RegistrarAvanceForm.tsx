@@ -25,9 +25,7 @@ export function RegistrarAvanceForm({ habito }: { habito: HabitoDto }) {
 
   if (habito.estado !== 'Activo') {
     return (
-      <p className="text-sm text-slate-500">
-        Solo se registra avance cuando el hábito está Activo.
-      </p>
+      <p className="text-sm text-atenuado">Solo se registra avance cuando el hábito está Activo.</p>
     )
   }
 
@@ -61,7 +59,7 @@ export function RegistrarAvanceForm({ habito }: { habito: HabitoDto }) {
           {...register('cantidad', { valueAsNumber: true })}
         />
         <Input
-          etiqueta="Fecha (UTC)"
+          etiqueta="Fecha"
           type="date"
           max={hoyUtcInput()}
           error={errors.fecha?.message}

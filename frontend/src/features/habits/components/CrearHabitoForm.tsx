@@ -64,9 +64,9 @@ export function CrearHabitoForm({ alCrear }: { alCrear: (id: string) => void }) 
         />
       </div>
       <Input
-        etiqueta="Id de la meta"
-        placeholder="00000000-0000-0000-0000-000000000000"
-        ayuda="El backend aún no expone el listado de metas; usa el Id de una meta existente."
+        etiqueta="Meta"
+        placeholder="Identificador de la meta"
+        ayuda="Pega el identificador de una meta existente."
         error={errors.metaId?.message}
         {...register('metaId')}
       />

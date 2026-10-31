@@ -1,5 +1,9 @@
-import { useEffect, useId } from 'react'
+import { useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { Icono } from './Icono'
+
+const FOCALIZABLES =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
 export function Modal({
   abierto,
@@ -13,40 +17,78 @@ export function Modal({
   children: ReactNode
 }) {
   const tituloId = useId()
+  const panel = useRef<HTMLDivElement>(null)
+  // El callback puede cambiar de identidad en cada render del padre; el efecto no debe
+  // reiniciarse (y robar el foco) por eso.
+  const cerrar = useRef(alCerrar)
+  useEffect(() => {
+    cerrar.current = alCerrar
+  })
 
   useEffect(() => {
     if (!abierto) return
+    const anterior = document.activeElement as HTMLElement | null
+    // Foco inicial en el primer campo del contenido (no en el botón de cerrar).
+    const dentro = panel.current?.querySelectorAll<HTMLElement>(FOCALIZABLES)
+    const primerCampo = Array.from(dentro ?? []).find((el) => el.dataset.cerrar === undefined)
+    ;(primerCampo ?? panel.current)?.focus()
+
     const alPresionar = (evento: KeyboardEvent) => {
-      if (evento.key === 'Escape') alCerrar()
+      if (evento.key === 'Escape') {
+        cerrar.current()
+        return
+      }
+      // Atrapa el foco dentro del diálogo mientras está abierto.
+      if (evento.key !== 'Tab' || !panel.current) return
+      const items = Array.from(panel.current.querySelectorAll<HTMLElement>(FOCALIZABLES))
+      if (items.length === 0) return
+      const primero = items[0]
+      const ultimo = items[items.length - 1]
+      if (evento.shiftKey && document.activeElement === primero) {
+        evento.preventDefault()
+        ultimo.focus()
+      } else if (!evento.shiftKey && document.activeElement === ultimo) {
+        evento.preventDefault()
+        primero.focus()
+      }
     }
     document.addEventListener('keydown', alPresionar)
-    return () => document.removeEventListener('keydown', alPresionar)
-  }, [abierto, alCerrar])
+    return () => {
+      document.removeEventListener('keydown', alPresionar)
+      // Al cerrar, el foco vuelve al control que abrió el diálogo.
+      anterior?.focus?.()
+    }
+  }, [abierto])
 
   if (!abierto) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <div className="absolute inset-0 bg-slate-950/50" aria-hidden="true" onClick={alCerrar} />
       <div
+        className="absolute inset-0 bg-fondo/80 backdrop-blur-sm"
+        aria-hidden="true"
+        onClick={alCerrar}
+      />
+      <div
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
-        className="relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6 shadow-xl dark:bg-slate-900"
+        tabIndex={-1}
+        className="anim-aparecer relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-borde-fuerte bg-superficie p-6 shadow-brillo"
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 id={tituloId} className="text-lg font-semibold">
+          <h2 id={tituloId} className="text-2xl font-bold uppercase tracking-wide">
             {titulo}
           </h2>
           <button
             type="button"
+            data-cerrar
             onClick={alCerrar}
             aria-label="Cerrar"
-            className="rounded-md p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+            className="grid size-11 shrink-0 place-items-center rounded-lg text-atenuado hover:bg-superficie-2 hover:text-texto"
           >
-            <svg viewBox="0 0 20 20" className="size-5" fill="currentColor" aria-hidden="true">
-              <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
-            </svg>
+            <Icono nombre="cerrar" />
           </button>
         </div>
         {children}

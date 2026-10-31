@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { mensajeDeError } from '@/shared/api/problem'
 import { Alert } from '@/shared/ui/Alert'
-import { Card, CardBody, PageHeader } from '@/shared/ui/Card'
+import { PageHeader, Seccion } from '@/shared/ui/Card'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useSolicitudes } from '../api'
 import { FiltroPendientes } from '../components/FiltroPendientes'
@@ -17,20 +17,18 @@ export function MyPermissionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
+        rotulo="Accesos"
         titulo="Mis permisos"
         descripcion="Solicita permisos para acciones protegidas y consulta su estado."
       />
 
-      <Card>
-        <CardBody>
-          <h2 className="mb-4 text-base font-semibold">Nueva solicitud</h2>
-          <SolicitarPermisoForm permisoInicial={params.get('solicitar') ?? undefined} />
-        </CardBody>
-      </Card>
+      <Seccion titulo="Nueva solicitud">
+        <SolicitarPermisoForm permisoInicial={params.get('solicitar') ?? undefined} />
+      </Seccion>
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-semibold">Mis solicitudes</h2>
+          <h2 className="text-xl font-bold uppercase tracking-wide">Mis solicitudes</h2>
           <FiltroPendientes valor={soloPendientes} alCambiar={setSoloPendientes} />
         </div>
         {solicitudes.isPending ? (

@@ -50,7 +50,7 @@ export function LoginPage() {
       titulo="Iniciar sesión"
       descripcion="Accede para gestionar tus hábitos y permisos."
       pie={
-        <p className="text-slate-600 dark:text-slate-400">
+        <p className="text-atenuado">
           ¿No tienes cuenta?{' '}
           <Link to="/registro" className={claseEnlace}>
             Regístrate

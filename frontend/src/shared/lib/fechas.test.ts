@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fechaInputAUtcIso, hoyUtcInput, parsearFechaUtc } from './fechas'
+import { etiquetaDiaSemanaUtc, fechaInputAUtcIso, hoyUtcInput, parsearFechaUtc } from './fechas'
 
 describe('fechas en UTC (RD-11)', () => {
   it('interpreta como UTC una fecha del backend que llega sin "Z"', () => {
@@ -18,5 +18,12 @@ describe('fechas en UTC (RD-11)', () => {
 
   it('calcula el día de hoy en UTC', () => {
     expect(hoyUtcInput(new Date('2026-10-30T23:30:00-05:00'))).toBe('2026-10-31')
+  })
+})
+
+describe('etiquetaDiaSemanaUtc', () => {
+  it('usa el día UTC aunque la zona local sea otra', () => {
+    expect(etiquetaDiaSemanaUtc(new Date('2026-10-26T23:30:00Z'))).toMatch(/lun/i)
+    expect(etiquetaDiaSemanaUtc(new Date('2026-10-27T00:30:00Z'))).toMatch(/mar/i)
   })
 })

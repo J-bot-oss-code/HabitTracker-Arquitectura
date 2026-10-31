@@ -30,3 +30,10 @@ export function fechaInputAUtcIso(fecha: string): string {
 export function hoyUtcInput(ahora = new Date()): string {
   return ahora.toISOString().slice(0, 10)
 }
+
+const formatoDiaSemana = new Intl.DateTimeFormat('es-DO', { weekday: 'short', timeZone: 'UTC' })
+
+// Día de la semana abreviado ("lun", "mar"…) del día UTC que contiene la fecha.
+export function etiquetaDiaSemanaUtc(fecha: Date): string {
+  return formatoDiaSemana.format(fecha)
+}

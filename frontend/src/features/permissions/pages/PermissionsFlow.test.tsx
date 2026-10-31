@@ -29,7 +29,10 @@ describe('permisos', () => {
 
     const admin = renderApp('/admin/permisos', { como: 'admin' })
     const fila = (await screen.findByText('estandar@demo.com', { selector: 'td' })).closest('tr')!
-    await admin.user.click(within(fila).getByRole('button', { name: 'Aprobar' }))
+    await admin.user.click(within(fila).getByRole('button', { name: /^Aprobar/ }))
+    // Aprobar concede un permiso: pide confirmación.
+    const confirmar = await screen.findByRole('dialog', { name: 'Aprobar solicitud' })
+    await admin.user.click(within(confirmar).getByRole('button', { name: 'Aprobar y aplicar' }))
     expect(await screen.findByText('Solicitud aprobada y aplicada.')).toBeInTheDocument()
     expect(db.solicitudes.find((s) => s.solicitante === 'estandar@demo.com')?.estado).toBe(
       'Aplicada',
@@ -60,7 +63,7 @@ describe('permisos', () => {
   it('el Administrador rechaza con motivo', async () => {
     const { user } = renderApp('/admin/permisos', { como: 'admin' })
     const fila = (await screen.findByText('otro@demo.com', { selector: 'td' })).closest('tr')!
-    await user.click(within(fila).getByRole('button', { name: 'Rechazar' }))
+    await user.click(within(fila).getByRole('button', { name: /^Rechazar/ }))
 
     const dialogo = screen.getByRole('dialog', { name: 'Rechazar solicitud' })
     await user.click(within(dialogo).getByRole('button', { name: 'Rechazar' }))
@@ -89,6 +92,6 @@ describe('permisos', () => {
     renderApp('/admin/permisos', { como: 'admin' })
     const fila = (await screen.findByText('admin@demo.com', { selector: 'td' })).closest('tr')!
     expect(within(fila).getByText('No puedes resolver tu propia solicitud')).toBeInTheDocument()
-    expect(within(fila).queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument()
+    expect(within(fila).queryByRole('button', { name: /^Aprobar/ })).not.toBeInTheDocument()
   })
 })

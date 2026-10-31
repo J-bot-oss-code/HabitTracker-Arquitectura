@@ -19,11 +19,23 @@ export function Spinner({ className }: { className?: string }) {
   )
 }
 
+// Bloque de carga con la forma del contenido que viene, para evitar saltos de diseño.
+export function Esqueleto({ className }: { className?: string }) {
+  return (
+    <div aria-hidden="true" className={cn('esqueleto rounded-lg', className ?? 'h-4 w-full')} />
+  )
+}
+
 export function CargandoPagina({ texto = 'Cargando…' }: { texto?: string }) {
   return (
-    <div role="status" className="flex items-center justify-center gap-3 py-16 text-slate-500">
-      <Spinner />
-      <span>{texto}</span>
+    <div role="status" aria-live="polite" className="space-y-4 py-4">
+      <span className="sr-only">{texto}</span>
+      <Esqueleto className="h-8 w-56" />
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Esqueleto className="h-36" />
+        <Esqueleto className="h-36" />
+        <Esqueleto className="h-36 hidden sm:block" />
+      </div>
     </div>
   )
 }

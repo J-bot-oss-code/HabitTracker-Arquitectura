@@ -15,6 +15,7 @@ export function PermissionsInboxPage() {
   return (
     <>
       <PageHeader
+        rotulo="Administración"
         titulo="Solicitudes de permiso"
         descripcion="Aprueba o rechaza las solicitudes de los usuarios."
         acciones={<FiltroPendientes valor={soloPendientes} alCambiar={setSoloPendientes} />}

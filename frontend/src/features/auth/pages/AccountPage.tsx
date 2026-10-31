@@ -8,6 +8,7 @@ import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card, CardBody, PageHeader } from '@/shared/ui/Card'
 import { Input } from '@/shared/ui/Field'
+import { SelectorTemaTarjetas } from '@/shared/theme/SelectorTema'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useCambiarPassword, useMe } from '../api'
 import { cambiarPasswordSchema, type CambiarPasswordForm } from '../schemas'
@@ -35,7 +36,11 @@ export function AccountPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader titulo="Mi cuenta" descripcion="Datos de tu sesión y seguridad." />
+      <PageHeader
+        rotulo="Perfil"
+        titulo="Mi cuenta"
+        descripcion="Datos de tu sesión y seguridad."
+      />
 
       <div className="grid gap-6">
         <Card>
@@ -47,11 +52,15 @@ export function AccountPage() {
             ) : (
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-xs uppercase tracking-wide text-slate-500">Correo</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-atenuado">
+                    Correo
+                  </dt>
                   <dd className="mt-1 font-medium">{me.data.correo}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-wide text-slate-500">Rol</dt>
+                  <dt className="text-xs font-semibold uppercase tracking-wider text-atenuado">
+                    Rol
+                  </dt>
                   <dd className="mt-1">
                     <Badge tono="marca">{etiquetaRol[me.data.rol]}</Badge>
                   </dd>
@@ -63,8 +72,18 @@ export function AccountPage() {
 
         <Card>
           <CardBody>
-            <h2 className="text-lg font-semibold">Cambiar contraseña</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <h2 className="text-xl font-bold uppercase tracking-wide">Apariencia</h2>
+            <p className="mb-4 mt-1 text-sm text-atenuado">
+              Elige el tema de la interfaz. Se guarda en este navegador.
+            </p>
+            <SelectorTemaTarjetas />
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardBody>
+            <h2 className="text-xl font-bold uppercase tracking-wide">Cambiar contraseña</h2>
+            <p className="mt-1 text-sm text-atenuado">
               Al cambiarla se cerrarán todas tus sesiones, incluida esta.
             </p>
             {cambiar.isError && (

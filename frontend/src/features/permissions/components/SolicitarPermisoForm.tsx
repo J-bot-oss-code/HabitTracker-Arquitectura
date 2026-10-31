@@ -55,7 +55,7 @@ export function SolicitarPermisoForm({ permisoInicial }: { permisoInicial?: stri
           </option>
         ))}
       </Select>
-      {seleccionado && <p className="text-sm text-slate-500">{seleccionado.descripcion}</p>}
+      {seleccionado && <p className="text-sm text-atenuado">{seleccionado.descripcion}</p>}
       <Button type="submit" cargando={crear.isPending}>
         Enviar solicitud
       </Button>

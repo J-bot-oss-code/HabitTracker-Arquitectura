@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/auth/AuthContext'
 import { formatearFechaHora } from '@/shared/lib/fechas'
 import { Alert } from '@/shared/ui/Alert'
 import { Card, CardBody } from '@/shared/ui/Card'
+import { Icono } from '@/shared/ui/Icono'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useSolicitud } from '../api'
 import { nombrePermiso } from '../catalogo'
@@ -14,7 +15,7 @@ import { ResolverSolicitud } from '../components/ResolverSolicitud'
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs uppercase tracking-wide text-slate-500">{etiqueta}</dt>
+      <dt className="text-xs font-semibold uppercase tracking-wider text-atenuado">{etiqueta}</dt>
       <dd className="mt-1">{children}</dd>
     </div>
   )
@@ -28,8 +29,12 @@ export function PermissionDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <Link to={volver} className="text-sm text-slate-500 hover:text-slate-700">
-        ← Volver a solicitudes
+      <Link
+        to={volver}
+        className="inline-flex min-h-11 items-center gap-1.5 text-sm text-atenuado hover:text-texto"
+      >
+        <Icono nombre="volver" className="size-4" />
+        Volver a solicitudes
       </Link>
 
       {solicitud.isPending ? (
@@ -45,10 +50,12 @@ export function PermissionDetailPage() {
           <CardBody className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h1 className="text-xl font-semibold">
+                <h1 className="text-3xl font-bold uppercase tracking-wide">
                   {nombrePermiso(solicitud.data.permisoSolicitado)}
                 </h1>
-                <p className="text-sm text-slate-500">{solicitud.data.permisoSolicitado}</p>
+                {tieneRol('Administrador') && (
+                  <p className="text-sm text-atenuado">{solicitud.data.permisoSolicitado}</p>
+                )}
               </div>
               <EstadoSolicitudBadge estado={solicitud.data.estado} />
             </div>

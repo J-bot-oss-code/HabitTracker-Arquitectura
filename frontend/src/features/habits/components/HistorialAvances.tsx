@@ -21,7 +21,7 @@ export function HistorialAvances({ registros }: { registros: RegistroAvanceDto[]
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="text-xs uppercase tracking-wide text-slate-500">
+        <thead className="text-xs font-semibold uppercase tracking-wider text-atenuado">
           <tr>
             <th scope="col" className="py-2 pr-4 font-medium">
               Fecha
@@ -31,7 +31,7 @@ export function HistorialAvances({ registros }: { registros: RegistroAvanceDto[]
             </th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+        <tbody className="divide-y divide-borde">
           {ordenados.map((r) => (
             <tr key={r.id}>
               <td className="py-2 pr-4">{formatearFecha(r.fecha)}</td>

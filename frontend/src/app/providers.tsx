@@ -3,6 +3,7 @@ import { useState } from 'react'
 import type { ReactNode } from 'react'
 import { ApiError } from '@/shared/api/problem'
 import { AuthProvider } from '@/shared/auth/AuthContext'
+import { ThemeProvider } from '@/shared/theme/ThemeContext'
 import { ToastProvider } from '@/shared/ui/Toast'
 
 export function crearQueryClient() {
@@ -29,9 +30,11 @@ export function Providers({
   const [cliente] = useState(() => queryClient ?? crearQueryClient())
   return (
     <QueryClientProvider client={cliente}>
-      <AuthProvider>
-        <ToastProvider>{children}</ToastProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <ToastProvider>{children}</ToastProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

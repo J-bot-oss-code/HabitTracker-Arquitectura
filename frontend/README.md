@@ -51,6 +51,12 @@ Recorrido sugerido:
 3. Entra como `admin@demo.com` y aprueba la solicitud.
 4. Vuelve como estándar y reconfigura el hábito.
 
+## Apariencia y temas
+
+Diseño deportivo y futurista: cifras tipo marcador, anillos de progreso, rachas y barras de los últimos 7 días. Cinco temas — **Sistema** (por defecto), **Claro**, **Oscuro**, **Cálido** y **Estadio** (alto contraste, neón) — que se eligen desde el icono de la cabecera o en **Mi cuenta → Apariencia**. La elección se guarda en el navegador y se aplica antes del primer pintado.
+
+Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2.2 AA (lo verifica `npm test`). Las fuentes (Barlow Condensed e Inter) se empaquetan con la app: no hay peticiones a CDN externas.
+
 ## Configuración
 
 Copia `.env.example` a `.env.local` (no se versiona):

@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router'
 import { usePermisoEfectivo } from '@/features/permissions/api'
+import { nombrePermiso } from '@/features/permissions/catalogo'
 import { mensajeDeError } from '@/shared/api/problem'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
@@ -18,12 +19,12 @@ export function ReconfigurarHabito({ habito }: { habito: HabitoDto }) {
   const permiso = usePermisoEfectivo(PERMISO_RECONFIGURACION)
 
   if (habito.estado === 'Completado') {
-    return <p className="text-sm text-slate-500">Un hábito completado no se puede reconfigurar.</p>
+    return <p className="text-sm text-atenuado">Un hábito completado no se puede reconfigurar.</p>
   }
 
   if (permiso.isPending) {
     return (
-      <div className="flex items-center gap-2 text-sm text-slate-500">
+      <div className="flex items-center gap-2 text-sm text-atenuado">
         <Spinner className="size-4" /> Comprobando permiso…
       </div>
     )
@@ -37,8 +38,8 @@ export function ReconfigurarHabito({ habito }: { habito: HabitoDto }) {
     return (
       <Alert tono="aviso" titulo="Necesitas un permiso">
         <p>
-          Reconfigurar requiere el permiso <code>{PERMISO_RECONFIGURACION}</code> aprobado por un
-          Administrador.
+          Reconfigurar requiere el permiso «{nombrePermiso(PERMISO_RECONFIGURACION)}» aprobado por
+          un Administrador.
         </p>
         <Link
           to={`/permisos?solicitar=${encodeURIComponent(PERMISO_RECONFIGURACION)}`}
@@ -79,7 +80,7 @@ function FormularioReconfiguracion({ habito }: { habito: HabitoDto }) {
       noValidate
       className="space-y-4"
     >
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-atenuado">
         Al guardar se inicia un ciclo nuevo; el historial de avances se conserva.
       </p>
       {reconfigurar.isError && (

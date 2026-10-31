@@ -9,14 +9,12 @@ import type {
 import { cn } from '@/shared/lib/cn'
 
 const control =
-  'block w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-xs placeholder:text-slate-400 disabled:bg-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:disabled:bg-slate-800'
+  'block w-full min-h-11 rounded-lg border bg-superficie px-3.5 py-2 text-sm text-texto placeholder:text-atenuado transition-colors disabled:cursor-not-allowed disabled:opacity-60'
 
 function claseControl(error?: string) {
   return cn(
     control,
-    error
-      ? 'border-rose-500 focus:border-rose-500'
-      : 'border-slate-300 focus:border-brand-500 dark:border-slate-700',
+    error ? 'border-peligro' : 'border-borde-fuerte hover:border-acento focus:border-acento',
   )
 }
 
@@ -35,17 +33,17 @@ function Campo({
 }: CampoBase & { id: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <label htmlFor={id} className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+      <label htmlFor={id} className="block text-sm font-medium text-texto">
         {etiqueta}
       </label>
       {children}
       {ayuda && !error && (
-        <p id={`${id}-ayuda`} className="text-xs text-slate-500">
+        <p id={`${id}-ayuda`} className="text-xs text-atenuado">
           {ayuda}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-xs text-rose-600 dark:text-rose-400">
+        <p id={`${id}-error`} role="alert" className="text-xs font-medium text-peligro">
           {error}
         </p>
       )}

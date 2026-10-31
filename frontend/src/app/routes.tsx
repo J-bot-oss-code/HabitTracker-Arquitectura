@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import type { RouteObject } from 'react-router'
+import { Link, type RouteObject } from 'react-router'
 import { ActivatePage } from '@/features/auth/pages/ActivatePage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
@@ -13,7 +13,18 @@ import { AppLayout } from './layout/AppLayout'
 import { AuthLayout } from './layout/AuthLayout'
 
 function NoEncontrada() {
-  return <EmptyState titulo="Página no encontrada" descripcion="La dirección no existe." />
+  return (
+    <EmptyState
+      icono="alerta"
+      titulo="Página no encontrada"
+      descripcion="La dirección no existe."
+      accion={
+        <Link to="/" className="font-semibold text-acento underline">
+          Ir al inicio
+        </Link>
+      }
+    />
+  )
 }
 
 // Las pantallas autenticadas se cargan bajo demanda: el login no descarga cada feature.

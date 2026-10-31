@@ -12,7 +12,7 @@ describe('hábitos', () => {
     expect(await screen.findByText('Leer')).toBeInTheDocument()
     expect(screen.getByText('Correr')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('tab', { name: /Pausado/ }))
+    await user.click(screen.getByRole('button', { name: /Pausado/ }))
     expect(screen.getByText('Meditar')).toBeInTheDocument()
     expect(screen.queryByText('Leer')).not.toBeInTheDocument()
   })
@@ -24,7 +24,7 @@ describe('hábitos', () => {
     await user.type(within(dialogo).getByLabelText('Nombre'), 'Beber agua')
     await user.type(within(dialogo).getByLabelText('Objetivo'), '8')
     await user.type(within(dialogo).getByLabelText('Unidad'), 'vasos')
-    await user.type(within(dialogo).getByLabelText('Id de la meta'), META_DEMO_ID)
+    await user.type(within(dialogo).getByLabelText('Meta'), META_DEMO_ID)
     await user.click(within(dialogo).getByRole('button', { name: 'Crear hábito' }))
 
     expect(await screen.findByRole('heading', { name: 'Beber agua', level: 1 })).toBeInTheDocument()
@@ -45,7 +45,10 @@ describe('hábitos', () => {
 
     expect(await screen.findByText('Meta del período cumplida.')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Completar' }))
-    expect(await screen.findByText(/Estado terminal/)).toBeInTheDocument()
+    // Completar es definitivo: pide confirmación antes de aplicarse.
+    const dialogo = await screen.findByRole('dialog', { name: 'Completar hábito' })
+    await user.click(within(dialogo).getByRole('button', { name: 'Sí, completar' }))
+    expect(await screen.findByText(/ya está completado/)).toBeInTheDocument()
   })
 
   it('solo permite registrar avance en estado Activo', async () => {

@@ -29,6 +29,7 @@ export default tseslint.config(
       'src/mocks/**',
       'src/app/**',
       'src/shared/auth/**',
+      'src/shared/theme/**',
       'src/shared/ui/Toast.tsx',
     ],
     rules: { 'react-refresh/only-export-components': 'off' },

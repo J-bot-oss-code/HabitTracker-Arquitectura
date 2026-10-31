@@ -138,8 +138,20 @@ export function reiniciarDb() {
         },
         {
           id: '9e8d7c6b-5a49-4382-9100-000000000002',
-          cantidad: 15,
+          cantidad: 20,
           fecha: inicioDelDiaUtc(-1, ahora),
+          unidad: 'páginas',
+        },
+        {
+          id: '9e8d7c6b-5a49-4382-9100-000000000005',
+          cantidad: 22,
+          fecha: inicioDelDiaUtc(-3, ahora),
+          unidad: 'páginas',
+        },
+        {
+          id: '9e8d7c6b-5a49-4382-9100-000000000006',
+          cantidad: 18,
+          fecha: inicioDelDiaUtc(-4, ahora),
           unidad: 'páginas',
         },
         {

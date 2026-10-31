@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
+import { Icono, type NombreIcono } from './Icono'
 
 type TonoToast = 'exito' | 'peligro' | 'info'
 
@@ -16,12 +17,10 @@ interface ToastContextValue {
 
 const ToastContext = createContext<ToastContextValue | null>(null)
 
-const tonos: Record<TonoToast, string> = {
-  exito:
-    'border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100',
-  peligro:
-    'border-rose-300 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-100',
-  info: 'border-slate-300 bg-white text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100',
+const tonos: Record<TonoToast, { clase: string; icono: NombreIcono; color: string }> = {
+  exito: { clase: 'border-exito/60', icono: 'check', color: 'text-exito' },
+  peligro: { clase: 'border-peligro/60', icono: 'alerta', color: 'text-peligro' },
+  info: { clase: 'border-borde-fuerte', icono: 'info', color: 'text-info' },
 }
 
 let siguienteId = 1
@@ -37,7 +36,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     (mensaje: string, tono: TonoToast = 'exito') => {
       const id = siguienteId++
       setToasts((actuales) => [...actuales, { id, tono, mensaje }])
-      window.setTimeout(() => quitar(id), 4000)
+      // Los errores se quedan hasta que el usuario los descarte (WCAG 2.2.1).
+      if (tono !== 'peligro') window.setTimeout(() => quitar(id), 5000)
     },
     [quitar],
   )
@@ -49,28 +49,30 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 bottom-4 z-[60] flex flex-col items-end gap-2 sm:left-auto"
+        className="pointer-events-none fixed inset-x-4 bottom-20 z-[60] flex flex-col items-end gap-2 lg:bottom-4"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
-            role="status"
+            role={t.tono === 'peligro' ? 'alert' : 'status'}
             className={cn(
-              'pointer-events-auto w-full max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg',
-              tonos[t.tono],
+              'anim-aparecer pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-superficie px-4 py-3 text-sm text-texto shadow-brillo',
+              tonos[t.tono].clase,
             )}
           >
-            <div className="flex items-start justify-between gap-3">
-              <span>{t.mensaje}</span>
-              <button
-                type="button"
-                onClick={() => quitar(t.id)}
-                aria-label="Descartar"
-                className="text-current opacity-60 hover:opacity-100"
-              >
-                ×
-              </button>
-            </div>
+            <Icono
+              nombre={tonos[t.tono].icono}
+              className={cn('mt-0.5 size-5 shrink-0', tonos[t.tono].color)}
+            />
+            <span className="flex-1">{t.mensaje}</span>
+            <button
+              type="button"
+              onClick={() => quitar(t.id)}
+              aria-label="Descartar"
+              className="-m-2 grid size-11 shrink-0 place-items-center rounded-lg text-atenuado hover:text-texto"
+            >
+              <Icono nombre="cerrar" className="size-4" />
+            </button>
           </div>
         ))}
       </div>
