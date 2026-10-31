@@ -1,0 +1,288 @@
+@import '@fontsource-variable/inter';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/700.css';
+@import 'tailwindcss';
+
+/*
+ * Sistema de diseño de HabitTracker Nexus: deportivo y futurista.
+ * Todos los colores salen de tokens semánticos (--c-*). Cada tema los redefine con
+ * data-theme en <html>. Los pares texto/fondo cumplen WCAG 2.2 AA (ver tema.test.ts).
+ */
+
+@theme inline {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Barlow Condensed', 'Arial Narrow', ui-sans-serif, system-ui, sans-serif;
+
+  --color-fondo: var(--c-fondo);
+  --color-superficie: var(--c-superficie);
+  --color-superficie-2: var(--c-superficie-2);
+  --color-borde: var(--c-borde);
+  --color-borde-fuerte: var(--c-borde-fuerte);
+  --color-texto: var(--c-texto);
+  --color-atenuado: var(--c-atenuado);
+  --color-acento: var(--c-acento);
+  --color-acento-texto: var(--c-acento-texto);
+  --color-acento-2: var(--c-acento-2);
+  --color-exito: var(--c-exito);
+  --color-aviso: var(--c-aviso);
+  --color-peligro: var(--c-peligro);
+  --color-info: var(--c-info);
+  --color-foco: var(--c-foco);
+
+  --shadow-brillo: 0 0 0 1px var(--c-acento), 0 0 22px -4px var(--c-brillo);
+  --shadow-tarjeta: 0 1px 0 var(--c-borde), 0 12px 32px -18px var(--c-sombra);
+}
+
+/* ---------- Temas ---------- */
+
+:root,
+:root[data-theme='claro'] {
+  color-scheme: light;
+  --c-fondo: #f3f5fb;
+  --c-superficie: #ffffff;
+  --c-superficie-2: #e9edf7;
+  --c-borde: #d3dae9;
+  --c-borde-fuerte: #76829a;
+  --c-texto: #0b1220;
+  --c-atenuado: #4a566b;
+  --c-acento: #2f4fe6;
+  --c-acento-texto: #ffffff;
+  --c-acento-2: #c4245c;
+  --c-exito: #047857;
+  --c-aviso: #975a00;
+  --c-peligro: #c0262d;
+  --c-info: #0369a1;
+  --c-foco: #2f4fe6;
+  --c-brillo: rgb(47 79 230 / 0.35);
+  --c-sombra: rgb(15 23 60 / 0.35);
+  --c-rejilla: rgb(47 79 230 / 0.07);
+  --c-halo: rgb(47 79 230 / 0.07);
+}
+
+:root[data-theme='oscuro'] {
+  color-scheme: dark;
+  --c-fondo: #0b0f17;
+  --c-superficie: #121826;
+  --c-superficie-2: #1a2233;
+  --c-borde: #26314a;
+  --c-borde-fuerte: #5b6c96;
+  --c-texto: #eef2ff;
+  --c-atenuado: #9fadc9;
+  --c-acento: #c6ff3d;
+  --c-acento-texto: #0b0f17;
+  --c-acento-2: #5cc8ff;
+  --c-exito: #34d399;
+  --c-aviso: #fbbf24;
+  --c-peligro: #ff7b88;
+  --c-info: #5cc8ff;
+  --c-foco: #c6ff3d;
+  --c-brillo: rgb(198 255 61 / 0.35);
+  --c-sombra: rgb(0 0 0 / 0.7);
+  --c-rejilla: rgb(198 255 61 / 0.05);
+  --c-halo: rgb(198 255 61 / 0.1);
+}
+
+:root[data-theme='calido'] {
+  color-scheme: light;
+  --c-fondo: #f5ecdc;
+  --c-superficie: #fffaf0;
+  --c-superficie-2: #ede1ca;
+  --c-borde: #ddcfb4;
+  --c-borde-fuerte: #8a7048;
+  --c-texto: #2a1b0d;
+  --c-atenuado: #6a5238;
+  --c-acento: #b53a0b;
+  --c-acento-texto: #ffffff;
+  --c-acento-2: #7a4b00;
+  --c-exito: #3b6310;
+  --c-aviso: #8f5600;
+  --c-peligro: #b42318;
+  --c-info: #075f8f;
+  --c-foco: #b53a0b;
+  --c-brillo: rgb(181 58 11 / 0.3);
+  --c-sombra: rgb(90 50 10 / 0.35);
+  --c-rejilla: rgb(181 58 11 / 0.07);
+  --c-halo: rgb(224 130 40 / 0.07);
+}
+
+/* Estadio: el más futurista. Negro profundo, neón y alto contraste. */
+:root[data-theme='estadio'] {
+  color-scheme: dark;
+  --c-fondo: #04050a;
+  --c-superficie: #0b0e18;
+  --c-superficie-2: #121729;
+  --c-borde: #232c4d;
+  --c-borde-fuerte: #5d70ab;
+  --c-texto: #ffffff;
+  --c-atenuado: #b7c0de;
+  --c-acento: #00e5ff;
+  --c-acento-texto: #00141a;
+  --c-acento-2: #ff2bd6;
+  --c-exito: #2dff9a;
+  --c-aviso: #ffd60a;
+  --c-peligro: #ff6b81;
+  --c-info: #52c7ff;
+  --c-foco: #00e5ff;
+  --c-brillo: rgb(0 229 255 / 0.5);
+  --c-sombra: rgb(0 0 0 / 0.85);
+  --c-rejilla: rgb(0 229 255 / 0.07);
+  --c-halo: rgb(255 43 214 / 0.14);
+}
+
+/* "Sistema": sin data-theme explícito, el script de index.html fija claro u oscuro según
+   prefers-color-scheme. Este bloque cubre el caso sin JavaScript. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --c-fondo: #0b0f17;
+    --c-superficie: #121826;
+    --c-superficie-2: #1a2233;
+    --c-borde: #26314a;
+    --c-borde-fuerte: #5b6c96;
+    --c-texto: #eef2ff;
+    --c-atenuado: #9fadc9;
+    --c-acento: #c6ff3d;
+    --c-acento-texto: #0b0f17;
+    --c-acento-2: #5cc8ff;
+    --c-exito: #34d399;
+    --c-aviso: #fbbf24;
+    --c-peligro: #ff7b88;
+    --c-info: #5cc8ff;
+    --c-foco: #c6ff3d;
+    --c-brillo: rgb(198 255 61 / 0.35);
+    --c-sombra: rgb(0 0 0 / 0.7);
+    --c-rejilla: rgb(198 255 61 / 0.05);
+    --c-halo: rgb(198 255 61 / 0.1);
+  }
+}
+
+/* ---------- Base ---------- */
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply min-h-screen bg-fondo font-sans text-texto antialiased;
+    background-image:
+      radial-gradient(60rem 28rem at 85% -8%, var(--c-halo), transparent 70%),
+      linear-gradient(var(--c-rejilla) 1px, transparent 1px),
+      linear-gradient(90deg, var(--c-rejilla) 1px, transparent 1px);
+    background-size:
+      auto,
+      44px 44px,
+      44px 44px;
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-wide;
+  }
+
+  ::selection {
+    background: var(--c-acento);
+    color: var(--c-acento-texto);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--c-foco);
+    outline-offset: 2px;
+  }
+
+  button,
+  [role='button'],
+  a,
+  select,
+  summary {
+    touch-action: manipulation;
+  }
+
+  code {
+    @apply rounded bg-superficie-2 px-1.5 py-0.5 text-[0.85em];
+  }
+}
+
+/* ---------- Utilidades de la identidad ---------- */
+
+@layer components {
+  /* Cifra grande tipo marcador. */
+  .cifra {
+    @apply font-display font-bold tabular-nums leading-none tracking-tight;
+  }
+
+  /* Etiqueta pequeña en mayúsculas, como el rótulo de un marcador. */
+  .rotulo {
+    @apply text-xs font-semibold uppercase tracking-[0.14em] text-atenuado;
+  }
+
+  /* Corte diagonal futurista. Solo para elementos NO interactivos: clip-path recorta el
+     foco y las sombras, así que no se usa en enlaces ni botones. */
+  .corte {
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+}
+
+/* ---------- Movimiento ---------- */
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes pulso-brillo {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 18px 0 var(--c-brillo);
+  }
+}
+
+@keyframes brillo-esqueleto {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.anim-aparecer {
+  animation: aparecer 220ms ease-out both;
+}
+
+.anim-pulso {
+  animation: pulso-brillo 2.4s ease-in-out infinite;
+}
+
+.esqueleto {
+  background: linear-gradient(
+    90deg,
+    var(--c-superficie-2) 30%,
+    var(--c-borde) 50%,
+    var(--c-superficie-2) 70%
+  );
+  background-size: 200% 100%;
+  animation: brillo-esqueleto 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
