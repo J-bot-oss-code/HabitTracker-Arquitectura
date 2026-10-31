@@ -86,3 +86,23 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
 - Módulo de negocio: RF-NEG-07, RF-NEG-08 y RF-NEG-10 (fuera del alcance de la P3).
 - Piezas del Core pendientes: Notificaciones, Auditoría, Reportes y Manejador de Documentos (ver `docs/WORKFLOW_STATUS.md`).
 - Atender la deuda técnica de §6.
+
+## 10. Frontend (monorepo)
+
+> Añadido el 30-10-2026 en la rama `feature/frontend-base`. No modifica el backend: los tags de entrega y los archivos de `Host/`, `Modules/` y `tests/` quedan intactos.
+
+- Ubicación: `frontend/`. Stack: React 19, Vite 8, TypeScript estricto, React Router 7, TanStack Query 5, react-hook-form + zod, Tailwind 4, MSW 2 y Vitest + Testing Library. Guía: `frontend/README.md`. Reglas: `frontend/AGENTS.md`.
+- Pantallas funcionales (lo que ya entrega el backend):
+  - Control de acceso: registro, activación, login, logout, recuperación, restablecimiento y cambio de contraseña.
+  - Hábitos: lista con filtros, creación, transiciones, avance, historial y reconfiguración con permiso.
+  - Permisos: solicitud y bandeja del Administrador con aprobación y rechazo.
+  - Administración de usuarios.
+- Pantallas "Próximamente" con sus RF: Documentos, Notificaciones, Cola de correos, Reportes y Auditoría, que incluyen RF-NEG-07/08/10 (`frontend/src/features/coming-soon/piezas.ts`).
+- Datos: API simulada con MSW (`frontend/src/mocks`) que replica el contrato y las reglas de `Host/WebApi`. Para conectar el backend real: `VITE_USE_MOCKS=false` más **CORS en `Program.cs`**, que hoy no está configurado. Este último es un cambio del backend pendiente.
+- Pruebas: `cd frontend && npm test` ejecuta 84 pruebas (unitarias, flujos de UI por rol y contrato de la API simulada) sin backend.
+- Agentes del frontend en `.claude/agents/frontend-*.md`: architect, api-contract, ui-builder, test-writer y reviewer. El flujo está en `frontend/AGENTS.md`.
+- Contrato observado al construirlo:
+  - `GET /api/permissions` usa `soloPendientes=true` por defecto;
+  - el login usa `email` y el resto de endpoints `correo`;
+  - el rol llega en el claim URI largo;
+  - no existe `GET /api/habits/{id}` ni un listado de metas, así que el `metaId` se escribe a mano.
