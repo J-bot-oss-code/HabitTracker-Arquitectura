@@ -1,0 +1,32 @@
+// RD-11: todas las fechas viajan y se muestran en UTC, igual que en el backend.
+
+// El backend devuelve algunas fechas leídas de SQL sin "Z" (deuda técnica §6.4).
+// Se interpretan como UTC para no desplazarlas según la zona del navegador.
+export function parsearFechaUtc(iso: string): Date {
+  const tieneZona = /([zZ]|[+-]\d{2}:?\d{2})$/.test(iso)
+  return new Date(tieneZona ? iso : `${iso}Z`)
+}
+
+const formatoFecha = new Intl.DateTimeFormat('es-DO', { dateStyle: 'medium', timeZone: 'UTC' })
+const formatoFechaHora = new Intl.DateTimeFormat('es-DO', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'UTC',
+})
+
+export function formatearFecha(iso: string): string {
+  return formatoFecha.format(parsearFechaUtc(iso))
+}
+
+export function formatearFechaHora(iso: string): string {
+  return `${formatoFechaHora.format(parsearFechaUtc(iso))} UTC`
+}
+
+// "2026-10-30" (input type=date) → "2026-10-30T00:00:00.000Z".
+export function fechaInputAUtcIso(fecha: string): string {
+  return new Date(`${fecha}T00:00:00.000Z`).toISOString()
+}
+
+export function hoyUtcInput(ahora = new Date()): string {
+  return ahora.toISOString().slice(0, 10)
+}
