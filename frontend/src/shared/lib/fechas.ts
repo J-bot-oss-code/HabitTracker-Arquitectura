@@ -23,7 +23,10 @@ export function formatearFechaHora(iso: string): string {
 }
 
 // "2026-10-30" (input type=date) → "2026-10-30T00:00:00.000Z".
-export function fechaInputAUtcIso(fecha: string): string {
+// Si la fecha es hoy se envía el instante actual: un avance a las 00:00 quedaría antes del
+// inicio de un ciclo que empezó hoy (hábito recién creado o reconfigurado) y no contaría.
+export function fechaInputAUtcIso(fecha: string, ahora = new Date()): string {
+  if (fecha === hoyUtcInput(ahora)) return ahora.toISOString()
   return new Date(`${fecha}T00:00:00.000Z`).toISOString()
 }
 

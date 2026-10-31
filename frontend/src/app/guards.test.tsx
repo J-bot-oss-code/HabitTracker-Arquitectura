@@ -26,6 +26,15 @@ describe('rutas protegidas y navegación por rol', () => {
     expect(router.state.location.pathname).toBe('/habitos')
   })
 
+  it('tras otra sesión, el Administrador no vuelve a una ruta de Estándar', async () => {
+    iniciarSesionComo('admin')
+    const { router } = renderAppConEstado('/login', { desde: '/habitos' })
+    expect(
+      await screen.findByRole('heading', { name: 'Solicitudes de permiso' }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin/permisos')
+  })
+
   it('el menú del Estándar no ofrece secciones de Administrador', async () => {
     renderApp('/habitos', { como: 'estandar' })
     const nav = await screen.findByRole('navigation', { name: 'Principal' })

@@ -60,3 +60,18 @@ export function navegacionPara(rol: Rol): ItemNavegacion[] {
 export function rutaInicial(rol: Rol): string {
   return rol === 'Administrador' ? '/admin/permisos' : '/habitos'
 }
+
+// Rutas reservadas a un rol. Debe coincidir con los <RequireAuth roles> de routes.tsx.
+const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
+  { patron: /^\/admin(\/|$)/i, roles: ['Administrador'] },
+  { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
+  { patron: /^\/permisos\/?$/i, roles: ['Estandar'] },
+]
+
+// Indica si el rol puede abrir la ruta. Sirve para no devolver a alguien, tras iniciar sesión,
+// a la página que dejó abierta un usuario de otro rol.
+export function rutaPermitida(rol: Rol, ruta: string): boolean {
+  const camino = ruta.split(/[?#]/)[0]
+  const regla = RUTAS_POR_ROL.find((r) => r.patron.test(camino))
+  return !regla || regla.roles.includes(rol)
+}

@@ -33,6 +33,11 @@ describe('hábitos', () => {
     await user.click(screen.getByRole('button', { name: 'Activar' }))
     expect(await screen.findByRole('button', { name: 'Pausar' })).toBeInTheDocument()
     expect(db.habitos.find((h) => h.nombre === 'Beber agua')?.estado).toBe('Activo')
+
+    // Regresión: el avance de hoy cuenta aunque el ciclo haya empezado hoy mismo.
+    await user.type(screen.getByLabelText('Cantidad (vasos)'), '8')
+    await user.click(screen.getByRole('button', { name: 'Registrar avance' }))
+    expect(await screen.findByText('Meta del período cumplida.')).toBeInTheDocument()
   })
 
   it('no ofrece completar hasta cumplir la meta y luego lo permite', async () => {

@@ -13,7 +13,13 @@ describe('fechas en UTC (RD-11)', () => {
   })
 
   it('convierte el valor de un input date a ISO UTC con "Z"', () => {
-    expect(fechaInputAUtcIso('2026-10-30')).toBe('2026-10-30T00:00:00.000Z')
+    const ahora = new Date('2026-11-05T15:00:00Z')
+    expect(fechaInputAUtcIso('2026-10-30', ahora)).toBe('2026-10-30T00:00:00.000Z')
+  })
+
+  it('para el día de hoy envía el instante actual (cuenta en un ciclo que empezó hoy)', () => {
+    const ahora = new Date('2026-10-30T15:20:00Z')
+    expect(fechaInputAUtcIso('2026-10-30', ahora)).toBe('2026-10-30T15:20:00.000Z')
   })
 
   it('calcula el día de hoy en UTC', () => {

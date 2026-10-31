@@ -99,7 +99,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
   - Administración de usuarios.
 - Pantallas "Próximamente" con sus RF: Documentos, Notificaciones, Cola de correos, Reportes y Auditoría, que incluyen RF-NEG-07/08/10 (`frontend/src/features/coming-soon/piezas.ts`).
 - Datos: API simulada con MSW (`frontend/src/mocks`) que replica el contrato y las reglas de `Host/WebApi`. Para conectar el backend real: `VITE_USE_MOCKS=false` más **CORS en `Program.cs`**, que hoy no está configurado. Este último es un cambio del backend pendiente.
-- Pruebas: `cd frontend && npm test` ejecuta 207 pruebas (unitarias, flujos de UI por rol y contrato de la API simulada) sin backend.
+- Pruebas: `cd frontend && npm test` ejecuta 222 pruebas (unitarias, flujos de UI por rol y contrato de la API simulada) sin backend.
+- Modo demo sin Service Worker (30-10-2026): en el navegador, la API simulada se resuelve dentro de la página (`frontend/src/mocks/fetchSimulado.ts` envuelve `fetch` con los handlers de MSW). Así, el login demo funciona en modo privado, tras una recarga forzada y en navegadores que bloquean los service workers. Un recorrido E2E en Edge real cubre 26 flujos de los dos roles.
 - Agentes del frontend en `.claude/agents/frontend-*.md`: architect, api-contract, ui-builder, test-writer y reviewer. El flujo está en `frontend/AGENTS.md`.
 - Contrato observado al construirlo:
   - `GET /api/permissions` usa `soloPendientes=true` por defecto;

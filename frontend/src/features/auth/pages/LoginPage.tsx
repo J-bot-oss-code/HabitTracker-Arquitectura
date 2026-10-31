@@ -21,6 +21,9 @@ function mensajeLogin(error: unknown): string {
   // o está bloqueada temporalmente por intentos fallidos.
   if (esErrorHttp(error, 400))
     return 'No se pudo iniciar sesión. Verifica que tu cuenta esté activada; si fallaste varias veces, espera 15 minutos.'
+  // Sin servicio de autenticación (API caída o ruta inexistente) el problema no es del usuario.
+  if (esErrorHttp(error, 404) || error instanceof TypeError)
+    return 'No se pudo contactar con el servicio de inicio de sesión. Inténtalo de nuevo en unos minutos.'
   return mensajeDeError(error)
 }
 

@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router'
-import { rutaInicial } from '@/app/navigation'
+import { rutaInicial, rutaPermitida } from '@/app/navigation'
 import { useAuth } from '@/shared/auth/AuthContext'
 import type { Rol } from '@/shared/auth/roles'
 import { EmptyState } from '@/shared/ui/Card'
@@ -33,9 +33,12 @@ export function SoloInvitados() {
   const location = useLocation()
   if (usuario) {
     const desde = (location.state as { desde?: unknown } | null)?.desde
-    // Solo rutas internas: evita redirecciones abiertas.
+    // Solo rutas internas (evita redirecciones abiertas) y accesibles para el rol que entra.
     const destino =
-      typeof desde === 'string' && desde.startsWith('/') && !/^\/[\\/]/.test(desde)
+      typeof desde === 'string' &&
+      desde.startsWith('/') &&
+      !/^\/[\\/]/.test(desde) &&
+      rutaPermitida(usuario.rol, desde)
         ? desde
         : rutaInicial(usuario.rol)
     return <Navigate to={destino} replace />
