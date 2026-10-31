@@ -86,3 +86,28 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
 - Módulo de negocio: RF-NEG-07, RF-NEG-08 y RF-NEG-10 (fuera del alcance de la P3).
 - Piezas del Core pendientes: Notificaciones, Auditoría, Reportes y Manejador de Documentos (ver `docs/WORKFLOW_STATUS.md`).
 - Atender la deuda técnica de §6.
+
+## 10. Frontend (monorepo)
+
+> Añadido el 30-10-2026 en la rama `feature/frontend-base`. No modifica el backend: los tags de entrega y los archivos de `Host/`, `Modules/` y `tests/` quedan intactos.
+
+- Ubicación: `frontend/`. Stack: React 19, Vite 8, TypeScript estricto, React Router 7, TanStack Query 5, react-hook-form + zod, Tailwind 4, MSW 2 y Vitest + Testing Library. Guía: `frontend/README.md`. Reglas: `frontend/AGENTS.md`.
+- Pantallas funcionales (lo que ya entrega el backend):
+  - Control de acceso: registro, activación, login, logout, recuperación, restablecimiento y cambio de contraseña.
+  - Hábitos: lista con filtros, creación, transiciones, avance, historial y reconfiguración con permiso.
+  - Permisos: solicitud y bandeja del Administrador con aprobación y rechazo.
+  - Administración de usuarios.
+- Pantallas "Próximamente" con sus RF: Documentos, Notificaciones, Cola de correos, Reportes y Auditoría, que incluyen RF-NEG-07/08/10 (`frontend/src/features/coming-soon/piezas.ts`).
+- Datos: API simulada con MSW (`frontend/src/mocks`) que replica el contrato y las reglas de `Host/WebApi`. Para conectar el backend real: `VITE_USE_MOCKS=false` más **CORS en `Program.cs`**, que hoy no está configurado. Este último es un cambio del backend pendiente.
+- Pruebas: `cd frontend && npm test` ejecuta 222 pruebas (unitarias, flujos de UI por rol y contrato de la API simulada) sin backend.
+- Modo demo sin Service Worker (30-10-2026): en el navegador, la API simulada se resuelve dentro de la página (`frontend/src/mocks/fetchSimulado.ts` envuelve `fetch` con los handlers de MSW). Así, el login demo funciona en modo privado, tras una recarga forzada y en navegadores que bloquean los service workers. Un recorrido E2E en Edge real cubre 26 flujos de los dos roles.
+- Agentes del frontend en `.claude/agents/frontend-*.md`: architect, api-contract, ui-builder, test-writer y reviewer. El flujo está en `frontend/AGENTS.md`.
+- Contrato observado al construirlo:
+  - `GET /api/permissions` usa `soloPendientes=true` por defecto;
+  - el login usa `email` y el resto de endpoints `correo`;
+  - el rol llega en el claim URI largo;
+  - no existe `GET /api/habits/{id}` ni un listado de metas, así que el `metaId` se escribe a mano.
+- Rediseño 2026 (30-10-2026): identidad deportiva-futurista con tokens semánticos y cinco temas (Sistema, Claro, Oscuro, Cálido, Estadio) guardados en el navegador. Componentes nuevos en `shared/ui`: anillo de progreso, estadísticas tipo marcador, mini barras, filtros segmentados y diálogo de confirmación. Métricas de presentación (racha, avance por día) en `features/habits/estados.ts`; la regla de completar sigue siendo del servidor.
+- Calidad del diseño: `frontend-design-critic` revisa cada cambio (2 rondas sobre el rediseño; sin bloqueantes ni altas al cierre). Las pruebas de contraste (`shared/theme/contraste.test.ts`) exigen WCAG 2.2 AA en todos los temas. Navegación apta para 360 px y acciones de alto impacto con confirmación.
+- Seguridad: `ciberseguridad-pentester` y el plugin `claude-security` están reservados para ejecutarse al final, antes de integrar con el backend.
+- Deuda del frontend: `npm audit` (completo) marca un aviso moderado de `minimatch` en las herramientas de lint (solo desarrollo, 0 en producción); se resolverá al actualizar ESLint.

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="HabitTracker Nexus: registro de hábitos, metas y progreso." />
+    <title>HabitTracker Nexus</title>
+    <script>
+      // Aplica el tema antes del primer pintado para evitar el parpadeo. Debe coincidir con
+      // src/shared/theme/temas.ts (clave y lista de temas).
+      try {
+        var t = localStorage.getItem('habittracker.tema')
+        var validos = ['sistema', 'claro', 'oscuro', 'calido', 'estadio']
+        if (validos.indexOf(t) === -1) t = 'sistema'
+        var r = document.documentElement
+        r.dataset.temaElegido = t
+        r.dataset.theme =
+          t === 'sistema'
+            ? window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'oscuro'
+              : 'claro'
+            : t
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
