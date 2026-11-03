@@ -65,6 +65,7 @@ export function rutaInicial(rol: Rol): string {
 const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
   { patron: /^\/admin(\/|$)/i, roles: ['Administrador'] },
   { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
+  { patron: /^\/bienvenida\/?$/i, roles: ['Estandar'] },
   { patron: /^\/permisos\/?$/i, roles: ['Estandar'] },
 ]
 

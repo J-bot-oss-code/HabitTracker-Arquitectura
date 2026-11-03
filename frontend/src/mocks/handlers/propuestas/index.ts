@@ -1,5 +1,6 @@
 import type { HttpHandler } from 'msw'
 import type { Rol } from '@/shared/auth/roles'
+import { contratosPerfil, perfilHandlers } from './perfil'
 
 // Contratos propuestos: endpoints que Host/WebApi todavía NO tiene y que el frontend necesita
 // para mostrar la aplicación como debe verse en producción (docs/mejoras). Se simulan aquí
@@ -30,7 +31,10 @@ interface ModuloPropuesto {
   handlers: HttpHandler[]
 }
 
-const modulos: ModuloPropuesto[] = []
+const modulos: ModuloPropuesto[] = [
+  // Paso 3: perfil del onboarding y consentimientos.
+  { contratos: contratosPerfil, handlers: perfilHandlers },
+]
 
 export const CONTRATOS_PROPUESTOS: ContratoPropuesto[] = modulos.flatMap((m) => m.contratos)
 

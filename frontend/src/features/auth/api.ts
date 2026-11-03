@@ -1,5 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { useCallback, useState } from 'react'
 import { api, type MensajeResponse } from '@/shared/api/http'
+import { useAuth } from '@/shared/auth/AuthContext'
 import type {
   CambiarPasswordRequest,
   LoginRequest,
@@ -42,3 +44,16 @@ export const useReenviarActivacion = () => useMutation({ mutationFn: authApi.ree
 export const useRecuperarPassword = () => useMutation({ mutationFn: authApi.recuperarPassword })
 export const useRestablecerPassword = () => useMutation({ mutationFn: authApi.restablecerPassword })
 export const useCambiarPassword = () => useMutation({ mutationFn: authApi.cambiarPassword })
+
+// Cierre de sesión voluntario. RF-CA-18: el backend invalida el token (blacklist); localmente
+// se borra siempre, aunque la llamada falle.
+export function useCerrarSesion() {
+  const { cerrarSesion } = useAuth()
+  const [saliendo, setSaliendo] = useState(false)
+  const salir = useCallback(async () => {
+    setSaliendo(true)
+    await authApi.logout().catch(() => undefined)
+    cerrarSesion({ voluntario: true })
+  }, [cerrarSesion])
+  return { salir, saliendo }
+}

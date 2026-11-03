@@ -88,6 +88,7 @@ export const INFO_LEGAL: Record<DocumentoLegal, InfoDocumentoLegal> = {
         titulo: 'Qué guardamos en tu navegador',
         parrafos: [
           'Solo lo esencial para que la aplicación funcione: tu sesión y tu preferencia de tema. No usamos cookies de publicidad.',
+          'Mientras terminas de crear tu cuenta recordamos en este navegador los consentimientos que aceptaste, la meta elegida y, si usaste la calculadora, sus datos. Se borran al terminar el alta y, como máximo, a los 7 días (los datos de la calculadora, a las 48 horas).',
         ],
       },
     ],

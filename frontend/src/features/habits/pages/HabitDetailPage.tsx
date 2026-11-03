@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router'
-import { mensajeDeError } from '@/shared/api/problem'
 import { formatearFechaHora } from '@/shared/lib/fechas'
+import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Alert } from '@/shared/ui/Alert'
 import { AnilloProgreso } from '@/shared/ui/AnilloProgreso'
 import { Card, CardBody, EmptyState, Seccion } from '@/shared/ui/Card'
@@ -31,7 +31,11 @@ export function HabitDetailPage() {
   if (consulta.isPending) return <CargandoPagina texto="Cargando hábito…" />
   if (consulta.isError) {
     return (
-      <Alert tono="peligro">{mensajeDeError(consulta.error, 'No se pudo cargar el hábito.')}</Alert>
+      <ErrorCarga
+        error={consulta.error}
+        porDefecto="No se pudo cargar el hábito."
+        alReintentar={() => consulta.refetch()}
+      />
     )
   }
 

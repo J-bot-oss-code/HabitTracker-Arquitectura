@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { esErrorHttp, mensajeDeError } from '@/shared/api/problem'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { etiquetaRol } from '@/shared/auth/roles'
+import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Alert } from '@/shared/ui/Alert'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
@@ -48,7 +49,7 @@ export function AccountPage() {
             {me.isPending ? (
               <CargandoPagina />
             ) : me.isError ? (
-              <Alert tono="peligro">{mensajeDeError(me.error)}</Alert>
+              <ErrorCarga error={me.error} alReintentar={() => me.refetch()} />
             ) : (
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div>

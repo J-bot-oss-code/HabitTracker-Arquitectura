@@ -1,6 +1,7 @@
 // Base de datos en memoria de la API simulada. Solo existe en el navegador (modo demo)
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
+import type { ConsentimientosDto, PerfilDto } from '@/features/perfil/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import type { Rol } from '@/shared/auth/roles'
 
@@ -45,12 +46,18 @@ export interface HabitoMock {
   registros: RegistroMock[]
 }
 
+// --- Contratos propuestos (sin backend todavía; ver handlers/propuestas) ---
+export type PerfilMock = Omit<PerfilDto, 'nombre'>
+
 interface Db {
   usuarios: UsuarioMock[]
   habitos: HabitoMock[]
   solicitudes: SolicitudPermisoDto[]
   metas: Set<string>
   tokensRevocados: Set<string>
+  // Por id de usuario.
+  perfiles: Map<string, PerfilMock>
+  consentimientos: Map<string, ConsentimientosDto>
 }
 
 export const db: Db = {
@@ -59,6 +66,8 @@ export const db: Db = {
   solicitudes: [],
   metas: new Set(),
   tokensRevocados: new Set(),
+  perfiles: new Map(),
+  consentimientos: new Map(),
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -210,6 +219,55 @@ export function reiniciarDb() {
 
   db.metas = new Set([META_DEMO_ID])
   db.tokensRevocados = new Set()
+
+  // Ana y Luis ya completaron el onboarding. La cuenta sin activar y las que se registren
+  // empiezan sin perfil, así que pasan por /bienvenida.
+  const consentimiento = (marketing: boolean): ConsentimientosDto => ({
+    terminosVersion: 'v2.1',
+    privacidadVersion: 'v1.4',
+    aceptadoEn: new Date(ahora - 17 * DIA).toISOString(),
+    datosSalud: true,
+    marketing,
+    compartirCumplimiento: false,
+    estadisticasAnonimas: true,
+  })
+  db.perfiles = new Map([
+    [
+      estandar,
+      {
+        edad: 29,
+        sexo: 'mujer',
+        alturaCm: 165,
+        pesoKg: 68.4,
+        actividad: 'ligera',
+        diasPorSemana: 3,
+        minutosPorSesion: 30,
+        metaSlug: 'primeros-5-km',
+        // Semana 3 de 8 del plan.
+        inicioPlan: inicioDelDiaUtc(-17, ahora),
+        avisoSaludAceptado: true,
+      },
+    ],
+    [
+      db.usuarios[2].id,
+      {
+        edad: 34,
+        sexo: null,
+        alturaCm: 178,
+        pesoKg: 81,
+        actividad: 'moderada',
+        diasPorSemana: 4,
+        minutosPorSesion: 45,
+        metaSlug: null,
+        inicioPlan: null,
+        avisoSaludAceptado: true,
+      },
+    ],
+  ])
+  db.consentimientos = new Map([
+    [estandar, consentimiento(false)],
+    [db.usuarios[2].id, consentimiento(true)],
+  ])
 }
 
 reiniciarDb()

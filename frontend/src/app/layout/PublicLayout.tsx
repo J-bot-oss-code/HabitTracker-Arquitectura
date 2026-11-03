@@ -26,7 +26,7 @@ const claseEnlaceNav = ({ isActive }: { isActive: boolean }) =>
   cn(
     'flex min-h-11 items-center rounded-lg px-3 text-sm font-medium transition-colors',
     isActive
-      ? 'bg-acento-suave text-acento-fuerte'
+      ? 'bg-acento-suave font-bold text-acento-fuerte shadow-[inset_0_-3px_0_var(--c-acento)]'
       : 'text-texto-2 hover:bg-hover hover:text-texto',
   )
 

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { mensajeDeError } from '@/shared/api/problem'
-import { Alert } from '@/shared/ui/Alert'
+import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { PageHeader, Seccion } from '@/shared/ui/Card'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useSolicitudes } from '../api'
@@ -34,7 +33,7 @@ export function MyPermissionsPage() {
         {solicitudes.isPending ? (
           <CargandoPagina />
         ) : solicitudes.isError ? (
-          <Alert tono="peligro">{mensajeDeError(solicitudes.error)}</Alert>
+          <ErrorCarga error={solicitudes.error} alReintentar={() => solicitudes.refetch()} />
         ) : (
           <SolicitudesTabla
             solicitudes={solicitudes.data}

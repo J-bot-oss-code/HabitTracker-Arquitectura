@@ -15,5 +15,8 @@ export default defineConfig({
     setupFiles: ['./src/test/setup.ts'],
     css: false,
     restoreMocks: true,
+    // Cada archivo crea un jsdom y carga rutas perezosas: con todos los núcleos a la vez las
+    // pruebas se pisan y vencen sus esperas sin un fallo real.
+    maxWorkers: 4,
   },
 })

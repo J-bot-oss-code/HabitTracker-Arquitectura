@@ -11,10 +11,11 @@ import { LandingPage } from '@/features/publico/pages/LandingPage'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { EmptyState } from '@/shared/ui/Card'
 import { ErrorRuta } from './ErrorRuta'
-import { RequireAuth, SoloInvitados } from './guards'
+import { RequierePerfil, RequireAuth, SoloInvitados } from './guards'
 import { AppLayout } from './layout/AppLayout'
 import { AuthLayout } from './layout/AuthLayout'
 import { PublicLayout } from './layout/PublicLayout'
+import { RaizApp } from './layout/RaizApp'
 import { rutaInicial } from './navigation'
 
 // Página 404 pública: con sesión, "Ir al inicio" vuelve al panel del rol.
@@ -55,6 +56,7 @@ const paginas = {
     'CalculadorasPage',
   ),
   legal: perezosa(() => import('@/features/publico/pages/LegalPage'), 'LegalPage'),
+  bienvenida: perezosa(() => import('@/features/perfil/pages/OnboardingPage'), 'OnboardingPage'),
   cuenta: perezosa(() => import('@/features/auth/pages/AccountPage'), 'AccountPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
@@ -78,13 +80,21 @@ export const rutas: RouteObject[] = [
   {
     element: <PublicLayout />,
     children: [
-      { index: true, element: <LandingPage /> },
-      { path: 'metas', ...paginas.metas },
-      { path: 'calculadoras', ...paginas.calculadoras },
-      { path: 'legal/:documento', ...paginas.legal },
+      {
+        index: true,
+        handle: { titulo: 'Convierte tu meta en un plan diario' },
+        element: <LandingPage />,
+      },
+      { path: 'metas', handle: { titulo: 'Elige una meta' }, ...paginas.metas },
+      {
+        path: 'calculadoras',
+        handle: { titulo: 'Calculadora de calorías' },
+        ...paginas.calculadoras,
+      },
+      { path: 'legal/:documento', handle: { titulo: 'Documentos legales' }, ...paginas.legal },
       // Cualquier dirección desconocida, con o sin sesión. Las rutas protegidas son explícitas,
       // así que una de ellas sin sesión sigue llevando al login.
-      { path: '*', element: <NoEncontrada /> },
+      { path: '*', handle: { titulo: 'Página no encontrada' }, element: <NoEncontrada /> },
     ],
   },
   {
@@ -93,15 +103,39 @@ export const rutas: RouteObject[] = [
       {
         element: <SoloInvitados />,
         children: [
-          { path: 'login', element: <LoginPage /> },
-          { path: 'registro', element: <RegisterPage /> },
-          { path: 'recuperar', element: <ForgotPasswordPage /> },
-          { path: 'reenviar-activacion', element: <ResendActivationPage /> },
+          { path: 'login', handle: { titulo: 'Iniciar sesión' }, element: <LoginPage /> },
+          { path: 'registro', handle: { titulo: 'Crea tu cuenta' }, element: <RegisterPage /> },
+          {
+            path: 'recuperar',
+            handle: { titulo: 'Recuperar contraseña' },
+            element: <ForgotPasswordPage />,
+          },
+          {
+            path: 'reenviar-activacion',
+            handle: { titulo: 'Reenviar activación' },
+            element: <ResendActivationPage />,
+          },
         ],
       },
       // Accesibles también con sesión: vienen de enlaces de correo.
-      { path: 'activar', element: <ActivatePage /> },
-      { path: 'restablecer', element: <ResetPasswordPage /> },
+      { path: 'activar', handle: { titulo: 'Activar cuenta' }, element: <ActivatePage /> },
+      {
+        path: 'restablecer',
+        handle: { titulo: 'Restablecer contraseña' },
+        element: <ResetPasswordPage />,
+      },
+    ],
+  },
+  // Onboarding (pasos 3 a 5 del alta): con sesión de Estándar y el panel del alta.
+  {
+    element: <RequireAuth roles={['Estandar']} />,
+    children: [
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: 'bienvenida', handle: { titulo: 'Prepara tu plan' }, ...paginas.bienvenida },
+        ],
+      },
     ],
   },
   {
@@ -110,37 +144,61 @@ export const rutas: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          { path: 'cuenta', ...paginas.cuenta },
-          { path: 'permisos/:id', ...paginas.permiso },
+          { path: 'cuenta', handle: { titulo: 'Mi cuenta' }, ...paginas.cuenta },
+          { path: 'permisos/:id', handle: { titulo: 'Solicitud de permiso' }, ...paginas.permiso },
           {
             element: <RequireAuth roles={['Estandar']} />,
             children: [
-              { path: 'habitos', ...paginas.habitos },
-              { path: 'habitos/:id', ...paginas.habito },
-              { path: 'permisos', ...paginas.misPermisos },
+              {
+                element: <RequierePerfil />,
+                children: [
+                  { path: 'habitos', handle: { titulo: 'Mis hábitos' }, ...paginas.habitos },
+                  {
+                    path: 'habitos/:id',
+                    handle: { titulo: 'Detalle del hábito' },
+                    ...paginas.habito,
+                  },
+                  { path: 'permisos', handle: { titulo: 'Mis permisos' }, ...paginas.misPermisos },
+                ],
+              },
             ],
           },
           {
             element: <RequireAuth roles={['Administrador']} />,
             children: [
-              { path: 'admin/permisos', ...paginas.bandejaPermisos },
-              { path: 'admin/usuarios', ...paginas.usuarios },
+              {
+                path: 'admin/permisos',
+                handle: { titulo: 'Solicitudes de permiso' },
+                ...paginas.bandejaPermisos,
+              },
+              { path: 'admin/usuarios', handle: { titulo: 'Usuarios' }, ...paginas.usuarios },
               {
                 path: 'admin/cola-correos',
+                handle: { titulo: 'Cola de correos' },
                 element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.colaCorreos} />,
               },
               {
                 path: 'admin/auditoria',
+                handle: { titulo: 'Auditoría' },
                 element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.auditoria} />,
               },
             ],
           },
-          { path: 'documentos', element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.documentos} /> },
+          {
+            path: 'documentos',
+            handle: { titulo: 'Documentos' },
+            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.documentos} />,
+          },
           {
             path: 'notificaciones',
+            handle: { titulo: 'Notificaciones' },
             element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.notificaciones} />,
           },
-          { path: 'reportes', element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.reportes} /> },
+          {
+            path: 'reportes',
+            handle: { titulo: 'Reportes' },
+            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.reportes} />,
+          },
         ],
       },
     ],
@@ -148,4 +206,9 @@ export const rutas: RouteObject[] = [
 ]
 
 // Raíz del router (App y pruebas): todas las rutas con un límite de errores genérico.
-export const rutaRaiz: RouteObject = { path: '/', errorElement: <ErrorRuta />, children: rutas }
+export const rutaRaiz: RouteObject = {
+  path: '/',
+  element: <RaizApp />,
+  errorElement: <ErrorRuta />,
+  children: rutas,
+}

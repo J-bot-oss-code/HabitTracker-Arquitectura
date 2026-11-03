@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
-import { authApi } from '@/features/auth/api'
+import { useCerrarSesion } from '@/features/auth/api'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { etiquetaRol } from '@/shared/auth/roles'
 import { cn } from '@/shared/lib/cn'
@@ -13,9 +13,9 @@ import { AvisoModoDemo } from './AvisoModoDemo'
 import { Marca } from './Marca'
 
 export function AppLayout() {
-  const { usuario, cerrarSesion } = useAuth()
+  const { usuario } = useAuth()
+  const { salir, saliendo } = useCerrarSesion()
   const { pathname } = useLocation()
-  const [saliendo, setSaliendo] = useState(false)
   const nav = useRef<HTMLElement>(null)
 
   // En móvil la barra inferior se desplaza: el ítem activo se mantiene a la vista.
@@ -27,13 +27,6 @@ export function AppLayout() {
 
   if (!usuario) return null
   const items = navegacionPara(usuario.rol)
-
-  // RF-CA-18: el backend invalida el token (blacklist); localmente se borra siempre.
-  const salir = async () => {
-    setSaliendo(true)
-    await authApi.logout().catch(() => undefined)
-    cerrarSesion({ voluntario: true })
-  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -107,8 +100,10 @@ export function AppLayout() {
                 cn(
                   'relative flex min-h-14 min-w-[5rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-xs font-semibold leading-tight transition-colors',
                   'lg:min-h-11 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-sm',
+                  // La página actual no depende solo del color (WCAG 1.4.1): negrita y una marca
+                  // de acento (arriba en la barra inferior, a la izquierda en el lateral).
                   isActive
-                    ? 'bg-acento-suave text-acento-fuerte'
+                    ? 'bg-acento-suave font-bold text-acento-fuerte shadow-[inset_0_3px_0_var(--c-acento)] lg:shadow-[inset_3px_0_0_var(--c-acento)]'
                     : 'text-texto-2 hover:bg-hover hover:text-texto',
                 )
               }

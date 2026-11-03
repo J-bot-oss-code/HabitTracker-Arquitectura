@@ -24,3 +24,12 @@ export const LIMITES_CORPORALES = {
   alturaCm: { min: 120, max: 230 },
   pesoKg: { min: 30, max: 300 },
 } as const
+
+// Datos de la calculadora que el registro guarda para proponerlos en el onboarding.
+export interface DatosCorporales {
+  edad: number
+  sexo: Sexo
+  alturaCm: number
+  pesoKg: number
+  actividad: NivelActividad
+}

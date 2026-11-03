@@ -3,6 +3,7 @@ import type { UsuarioResponseDto } from '@/features/auth/types'
 import { mensajeDeError } from '@/shared/api/problem'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { ROLES, etiquetaRol, type Rol } from '@/shared/auth/roles'
+import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Alert } from '@/shared/ui/Alert'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
@@ -82,7 +83,7 @@ export function UsersPage() {
       {usuarios.isPending ? (
         <CargandoPagina texto="Cargando usuarios…" />
       ) : usuarios.isError ? (
-        <Alert tono="peligro">{mensajeDeError(usuarios.error)}</Alert>
+        <ErrorCarga error={usuarios.error} alReintentar={() => usuarios.refetch()} />
       ) : visibles.length === 0 ? (
         <EmptyState
           icono="buscar"

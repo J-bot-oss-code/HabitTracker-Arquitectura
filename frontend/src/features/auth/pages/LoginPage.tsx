@@ -7,7 +7,7 @@ import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { Input } from '@/shared/ui/Field'
 import { useLogin } from '../api'
-import { AuthCard, claseEnlace } from '../components/AuthCard'
+import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
 import { loginSchema, type LoginForm } from '../schemas'
 
 interface EstadoNavegacion {

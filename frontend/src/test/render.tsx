@@ -31,7 +31,8 @@ export function renderApp(ruta: string, opciones: { como?: keyof typeof CORREOS 
 }
 
 // Igual que renderApp, pero con un location.state inicial (p. ej. { desde }).
-export function renderAppConEstado(ruta: string, state: unknown) {
+export function renderAppConEstado(ruta: string, state: unknown, como?: keyof typeof CORREOS) {
+  if (como) iniciarSesionComo(como)
   return montar({ pathname: ruta, state })
 }
 
