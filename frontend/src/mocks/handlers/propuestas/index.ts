@@ -1,5 +1,6 @@
 import type { HttpHandler } from 'msw'
 import type { Rol } from '@/shared/auth/roles'
+import { adminHandlers, contratosAdmin } from './admin'
 import { contratosPerfil, perfilHandlers } from './perfil'
 import { contratosPrivacidad, privacidadHandlers } from './privacidad'
 import { contratosProgreso, progresoHandlers } from './progreso'
@@ -40,6 +41,8 @@ const modulos: ModuloPropuesto[] = [
   { contratos: contratosProgreso, handlers: progresoHandlers },
   // Paso 6: Centro de privacidad.
   { contratos: contratosPrivacidad, handlers: privacidadHandlers },
+  // Paso 7: métricas anónimas y auditoría del administrador.
+  { contratos: contratosAdmin, handlers: adminHandlers },
 ]
 
 export const CONTRATOS_PROPUESTOS: ContratoPropuesto[] = modulos.flatMap((m) => m.contratos)

@@ -350,7 +350,7 @@ export function reiniciarDb() {
     evento(1, 40, 'estandar@demo.com', 'Registro', 'Usuario'),
     evento(2, 38, 'otro@demo.com', 'Registro', 'Usuario'),
     evento(3, 30, 'admin@demo.com', 'InicioSesion', 'Sesión'),
-    evento(4, 22, 'otro@demo.com', 'InicioSesion', 'Sesión'),
+    evento(4, 33, 'otro@demo.com', 'InicioSesion', 'Sesión'),
     evento(5, 9, 'estandar@demo.com', 'InicioSesion', 'Sesión'),
     evento(6, 6, 'admin@demo.com', 'CambioRol', 'Usuario', {
       entidadId: db.usuarios[2].id,

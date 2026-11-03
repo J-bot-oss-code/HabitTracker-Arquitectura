@@ -169,8 +169,10 @@ function Lista({
           <Link to="/legal/privacidad" className="font-semibold text-acento underline">
             Política de privacidad {actual.privacidadVersion}
           </Link>{' '}
-          el {formatearFecha(actual.aceptadoEn)}. Vigentes hoy: Términos{' '}
-          {INFO_LEGAL.terminos.version} y Política {INFO_LEGAL.privacidad.version}.
+          el {formatearFecha(actual.aceptadoEn)}.
+          {(actual.terminosVersion !== INFO_LEGAL.terminos.version ||
+            actual.privacidadVersion !== INFO_LEGAL.privacidad.version) &&
+            ` Hay versiones más recientes: Términos ${INFO_LEGAL.terminos.version} y Política ${INFO_LEGAL.privacidad.version}.`}
         </p>
       )}
     </>

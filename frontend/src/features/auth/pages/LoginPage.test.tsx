@@ -20,16 +20,14 @@ describe('LoginPage', () => {
     expect(await screen.findByRole('link', { name: 'Leer' })).toBeInTheDocument()
   })
 
-  it('un Administrador llega a la bandeja de solicitudes', async () => {
+  it('un Administrador llega a su resumen', async () => {
     const { user, router } = renderApp('/login')
     await user.type(screen.getByLabelText('Correo'), 'admin@demo.com')
     await user.type(screen.getByLabelText('Contraseña'), PASSWORD_DEMO)
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    expect(
-      await screen.findByRole('heading', { name: 'Solicitudes de permiso' }),
-    ).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/admin/permisos')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Resumen' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin')
   })
 
   it('con credenciales incorrectas muestra un mensaje que no revela qué falló', async () => {

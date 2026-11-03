@@ -194,23 +194,27 @@ export function GraficaLinea({
         )}
       </figcaption>
 
-      <table id={idTabla} className="sr-only">
-        <caption>{conclusion}</caption>
-        <thead>
-          <tr>
-            <th scope="col">Fecha</th>
-            <th scope="col">Real ({unidad})</th>
-          </tr>
-        </thead>
-        <tbody>
-          {real.map((p, i) => (
-            <tr key={`${p.t}-${i}`}>
-              <td>{formatoFecha(p.t)}</td>
-              <td>{formatoValor(p.v)}</td>
+      {/* Contenedor sr-only (posición absoluta y 1 px): una tabla suelta con su caption largo
+          ensanchaba toda la página en móvil. */}
+      <div className="sr-only">
+        <table id={idTabla}>
+          <caption>{conclusion}</caption>
+          <thead>
+            <tr>
+              <th scope="col">Fecha</th>
+              <th scope="col">Real ({unidad})</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {real.map((p, i) => (
+              <tr key={`${p.t}-${i}`}>
+                <td>{formatoFecha(p.t)}</td>
+                <td>{formatoValor(p.v)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </figure>
   )
 }

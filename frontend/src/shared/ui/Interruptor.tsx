@@ -4,7 +4,8 @@ import { cn } from '@/shared/lib/cn'
 
 // Switch de la especificación (§3) con role="switch" y aria-checked. El estado se lee también
 // en el texto "Activado"/"Desactivado", no solo en el color ni en la posición de la perilla.
-// El objetivo táctil es de 44 px de alto y la etiqueta es parte del control.
+// El objetivo táctil es de 44 px de alto. En móvil la etiqueta y su ayuda ocupan todo el ancho
+// y el control va debajo; desde `sm` va a la derecha.
 export function Interruptor({
   etiqueta,
   descripcion,
@@ -20,7 +21,7 @@ export function Interruptor({
 }) {
   const idDescripcion = useId()
   return (
-    <div className="flex items-start justify-between gap-4 py-3">
+    <div className="flex flex-col gap-1 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
       <div className="min-w-0">
         <p className="font-semibold">{etiqueta}</p>
         {descripcion && (
@@ -42,13 +43,10 @@ export function Interruptor({
           if (!deshabilitado) alCambiar(!activado)
         }}
         className={cn(
-          'group flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-1',
+          'group flex min-h-11 shrink-0 items-center gap-3 self-start rounded-lg sm:px-1',
           deshabilitado && 'cursor-not-allowed opacity-60',
         )}
       >
-        <span className="w-24 text-right text-xs font-semibold text-atenuado">
-          {activado ? 'Activado' : 'Desactivado'}
-        </span>
         <span
           aria-hidden="true"
           className={cn(
@@ -62,6 +60,9 @@ export function Interruptor({
               activado ? 'translate-x-[1.375rem] bg-acento-texto' : 'translate-x-0.5 bg-control',
             )}
           />
+        </span>
+        <span className="min-w-[5.5rem] text-sm font-semibold text-atenuado">
+          {activado ? 'Activado' : 'Desactivado'}
         </span>
       </button>
     </div>

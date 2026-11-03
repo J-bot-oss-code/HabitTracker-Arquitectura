@@ -63,6 +63,11 @@ const paginas = {
     'PrivacidadPage',
   ),
   progreso: perezosa(() => import('@/features/progreso/pages/ProgresoPage'), 'ProgresoPage'),
+  resumenAdmin: perezosa(
+    () => import('@/features/auditoria/pages/ResumenAdminPage'),
+    'ResumenAdminPage',
+  ),
+  auditoria: perezosa(() => import('@/features/auditoria/pages/AuditoriaPage'), 'AuditoriaPage'),
   hoy: perezosa(() => import('@/features/habits/pages/HoyPage'), 'HoyPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
@@ -180,6 +185,7 @@ export const rutas: RouteObject[] = [
           {
             element: <RequireAuth roles={['Administrador']} />,
             children: [
+              { path: 'admin', handle: { titulo: 'Resumen' }, ...paginas.resumenAdmin },
               {
                 path: 'admin/permisos',
                 handle: { titulo: 'Solicitudes de permiso' },
@@ -191,11 +197,7 @@ export const rutas: RouteObject[] = [
                 handle: { titulo: 'Cola de correos' },
                 element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.colaCorreos} />,
               },
-              {
-                path: 'admin/auditoria',
-                handle: { titulo: 'Auditoría' },
-                element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.auditoria} />,
-              },
+              { path: 'admin/auditoria', handle: { titulo: 'Auditoría' }, ...paginas.auditoria },
             ],
           },
           {

@@ -147,7 +147,7 @@ describe('inicio público (sin sesión)', () => {
 describe('inicio público con sesión', () => {
   it.each([
     ['estandar', '/hoy'],
-    ['admin', '/admin/permisos'],
+    ['admin', '/admin'],
   ] as const)('%s: ofrece ir a su panel en lugar del registro', async (como, panel) => {
     renderApp('/', { como })
     expect(await screen.findByRole('link', { name: 'Ir a mi panel' })).toHaveAttribute(

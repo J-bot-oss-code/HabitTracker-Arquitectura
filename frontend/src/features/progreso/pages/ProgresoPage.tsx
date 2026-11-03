@@ -78,7 +78,7 @@ function FotosCard() {
         </p>
         <p className="text-sm text-texto-2">
           Podrás guardar fotos privadas y compararlas antes y después. Se habilitará cuando el
-          servidor entregue el manejo de documentos (RF-DOC-01).
+          servidor entregue el manejo de documentos.
         </p>
       </CardBody>
     </Card>
@@ -157,7 +157,9 @@ function ConstanciaYLogros() {
               ['Completados', records.habitosCompletados, 'hábitos'],
             ].map(([etiqueta, valor, detalle]) => (
               <div key={etiqueta} className="min-w-0 px-3 py-3 text-center">
-                <dt className="text-xs font-medium text-atenuado">{etiqueta}</dt>
+                <dt className="break-words text-xs font-medium text-atenuado [overflow-wrap:anywhere]">
+                  {etiqueta}
+                </dt>
                 <dd className="cifra mt-1 text-2xl">{valor}</dd>
                 <dd className="text-xs text-atenuado">{detalle}</dd>
               </div>

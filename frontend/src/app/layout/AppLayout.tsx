@@ -96,6 +96,7 @@ export function AppLayout() {
             <NavLink
               key={item.a}
               to={item.a}
+              end={item.fin}
               className={({ isActive }) =>
                 cn(
                   'relative flex min-h-14 min-w-[5rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-xs font-semibold leading-tight transition-colors',

@@ -24,13 +24,13 @@ const TEXTOS: Record<
     titulo: 'Desactivar mi cuenta',
     boton: 'Desactivar cuenta',
     explicacion:
-      'Tu cuenta deja de estar activa y se cierran tus sesiones. No se borra nada y un administrador puede reactivarla.',
+      'Tu cuenta deja de estar activa y se cierran tus sesiones. No se borra nada, pero no podrás volver a entrar hasta que un administrador la reactive.',
     aviso: 'Tu cuenta quedó desactivada.',
   },
   eliminar: {
     titulo: 'Eliminar mi cuenta',
     boton: 'Eliminar mi cuenta',
-    explicacion: `Se cierra tu sesión hoy y, pasados ${DIAS_DE_GRACIA} días, se borran para siempre tu cuenta, tus hábitos, tu peso, tus medidas y tus consentimientos. La auditoría se conserva sin datos que te identifiquen.`,
+    explicacion: `Se cierra tu sesión hoy y, pasados ${DIAS_DE_GRACIA} días, se borran para siempre tu cuenta, tus hábitos, tu peso, tus medidas y tus consentimientos. Durante ese plazo un administrador puede cancelar la eliminación si lo pides. La auditoría se conserva sin datos que te identifiquen.`,
     aviso: `Pediste eliminar tu cuenta. Tus datos se borrarán en ${DIAS_DE_GRACIA} días.`,
   },
 }
@@ -43,11 +43,18 @@ export function PanelBaja() {
     <Card className="border-peligro-borde">
       <CardBody>
         <h2 className="text-lg font-bold text-peligro">Retirarme de la plataforma</h2>
-        <p className="mt-1 text-sm text-texto-2">
-          <strong>Desactivar</strong> pausa tu cuenta sin borrar nada. <strong>Eliminar</strong> la
-          borra definitivamente tras {DIAS_DE_GRACIA} días. Ambas cierran tu sesión.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-3">
+        <ul className="mt-2 space-y-1 text-sm text-texto-2">
+          <li>
+            <strong>Desactivar:</strong> no podrás entrar hasta que un administrador reactive tu
+            cuenta. No se borra nada.
+          </li>
+          <li>
+            <strong>Eliminar:</strong> pasados {DIAS_DE_GRACIA} días se borra todo y no se puede
+            deshacer. Antes, descarga tus datos si quieres conservarlos.
+          </li>
+        </ul>
+        <p className="mt-2 text-sm text-atenuado">Las dos opciones cierran tu sesión.</p>
+        <div className="mt-4 flex flex-col gap-4 sm:flex-row">
           <Button variante="secundario" onClick={() => setModo('desactivar')}>
             Desactivar
           </Button>

@@ -111,3 +111,22 @@ describe('GraficaLinea con datos corruptos', () => {
     expect(container.querySelectorAll('circle')).toHaveLength(2)
   })
 })
+
+describe('GraficaLinea no ensancha la página', () => {
+  it('la tabla de datos va dentro de un contenedor sr-only (no suelta)', () => {
+    const { container } = render(
+      <GraficaLinea
+        real={[
+          { t: 1000, v: 70 },
+          { t: 2000, v: 69 },
+        ]}
+        conclusion="Una conclusión larga que antes ensanchaba toda la página en un móvil de 360 píxeles."
+        formatoValor={(v) => v.toFixed(1)}
+        formatoFecha={(t) => `d${t}`}
+        unidad="kg"
+      />,
+    )
+    const tabla = container.querySelector('table')
+    expect(tabla?.parentElement).toHaveClass('sr-only')
+  })
+})

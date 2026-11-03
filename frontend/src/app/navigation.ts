@@ -7,6 +7,8 @@ export interface ItemNavegacion {
   icono: NombreIcono
   roles: Rol[]
   proximamente?: boolean
+  // Solo coincide con la ruta exacta (/admin no debe marcarse activa en /admin/usuarios).
+  fin?: boolean
 }
 
 // El menú se adapta al rol para no ofrecer lo que el servidor va a rechazar
@@ -17,8 +19,10 @@ export const NAVEGACION: ItemNavegacion[] = [
   { a: '/progreso', etiqueta: 'Progreso', icono: 'trofeo', roles: ['Estandar'] },
   { a: '/ajustes/privacidad', etiqueta: 'Privacidad', icono: 'candado', roles: ['Estandar'] },
   { a: '/permisos', etiqueta: 'Mis permisos', icono: 'permisos', roles: ['Estandar'] },
+  { a: '/admin', etiqueta: 'Resumen', icono: 'reportes', roles: ['Administrador'], fin: true },
   { a: '/admin/permisos', etiqueta: 'Solicitudes', icono: 'permisos', roles: ['Administrador'] },
   { a: '/admin/usuarios', etiqueta: 'Usuarios', icono: 'usuarios', roles: ['Administrador'] },
+  { a: '/admin/auditoria', etiqueta: 'Auditoría', icono: 'auditoria', roles: ['Administrador'] },
   {
     a: '/documentos',
     etiqueta: 'Documentos',
@@ -47,13 +51,6 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['Administrador'],
     proximamente: true,
   },
-  {
-    a: '/admin/auditoria',
-    etiqueta: 'Auditoría',
-    icono: 'auditoria',
-    roles: ['Administrador'],
-    proximamente: true,
-  },
 ]
 
 export function navegacionPara(rol: Rol): ItemNavegacion[] {
@@ -61,7 +58,7 @@ export function navegacionPara(rol: Rol): ItemNavegacion[] {
 }
 
 export function rutaInicial(rol: Rol): string {
-  return rol === 'Administrador' ? '/admin/permisos' : '/hoy'
+  return rol === 'Administrador' ? '/admin' : '/hoy'
 }
 
 // Rutas reservadas a un rol. Debe coincidir con los <RequireAuth roles> de routes.tsx.

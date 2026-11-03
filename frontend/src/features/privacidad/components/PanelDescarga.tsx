@@ -18,7 +18,8 @@ export function PanelDescarga() {
         <h2 className="text-lg font-bold">Descargar mis datos</h2>
         <p className="mt-1 text-sm text-atenuado">
           Recibirás un archivo JSON con tu cuenta, tus hábitos y avances, tus solicitudes de
-          permiso, tu perfil, tu peso y medidas, y tus consentimientos. Se genera en tu navegador.
+          permiso, tu perfil, tu peso y medidas, y tus consentimientos. El archivo se crea en tu
+          dispositivo.
         </p>
         <p className="mt-2 text-sm text-atenuado">
           El archivo no está cifrado y incluye datos de salud: guárdalo en un lugar seguro.
