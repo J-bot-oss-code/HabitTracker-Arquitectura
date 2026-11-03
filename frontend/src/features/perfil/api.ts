@@ -24,6 +24,7 @@ export {
 export const perfilApi = {
   obtener: () => api.get<PerfilDto>('/api/profile'),
   guardar: (body: GuardarPerfilRequest) => api.put<PerfilDto>('/api/profile', body),
+  consentimientos: () => api.get<ConsentimientosDto>('/api/privacy/consents'),
   guardarConsentimientos: (body: GuardarConsentimientosRequest) =>
     api.put<ConsentimientosDto>('/api/privacy/consents', body),
 }
@@ -50,6 +51,15 @@ export function usePerfil(habilitado = true) {
     // Una consulta fallida (404 "sin perfil" o pieza no disponible) no se repite al montar otro
     // observador: en v5 volvería a "pending" y el guard RequierePerfil desmontaría la página
     // que acaba de montar, en un ciclo sin fin.
+    retryOnMount: false,
+  })
+}
+
+export function useConsentimientos() {
+  return useQuery({
+    queryKey: perfilKeys.consentimientos,
+    queryFn: perfilApi.consentimientos,
+    // Igual que el perfil: un 404 no se repite al montar otro observador.
     retryOnMount: false,
   })
 }

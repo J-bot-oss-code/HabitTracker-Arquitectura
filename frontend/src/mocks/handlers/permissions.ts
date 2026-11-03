@@ -1,3 +1,4 @@
+import { auditar } from '../auditoria'
 import { http, HttpResponse } from 'msw'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import { db } from '../db'
@@ -101,6 +102,14 @@ export const permissionsHandlers = [
       return respuestas.operacion()
     }
     // Aprobar y aplicar ocurren juntos en SolicitudPermisoService.
+    auditar({
+      actor: sesion.usuario.correo,
+      accion: 'ResolucionPermiso',
+      entidad: 'SolicitudPermiso',
+      entidadId: solicitud.id,
+      valorAnterior: 'Pendiente',
+      valorNuevo: 'Aplicada',
+    })
     Object.assign(solicitud, {
       estado: 'Aplicada',
       aprobador: sesion.usuario.correo,
@@ -120,6 +129,14 @@ export const permissionsHandlers = [
     if (solicitud.estado !== 'Pendiente' || esPropia(solicitud, sesion.usuario.correo)) {
       return respuestas.operacion()
     }
+    auditar({
+      actor: sesion.usuario.correo,
+      accion: 'ResolucionPermiso',
+      entidad: 'SolicitudPermiso',
+      entidadId: solicitud.id,
+      valorAnterior: 'Pendiente',
+      valorNuevo: 'Rechazada',
+    })
     Object.assign(solicitud, {
       estado: 'Rechazada',
       aprobador: sesion.usuario.correo,

@@ -1,6 +1,7 @@
 // Base de datos en memoria de la API simulada. Solo existe en el navegador (modo demo)
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
+import type { EventoAuditoriaDto } from '@/features/auditoria/types'
 import type { ConsentimientosDto, PerfilDto } from '@/features/perfil/types'
 import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
@@ -50,6 +51,15 @@ export interface HabitoMock {
 // --- Contratos propuestos (sin backend todavía; ver handlers/propuestas) ---
 export type PerfilMock = Omit<PerfilDto, 'nombre'>
 
+// Solicitud de desactivar o eliminar la cuenta (contrato propuesto, docs/mejoras §7.1).
+export interface SolicitudBajaMock {
+  usuarioId: string
+  tipo: 'desactivar' | 'eliminar'
+  solicitadaEn: string
+  // Solo al eliminar: fin del periodo de gracia, a partir del cual se borran los datos.
+  borradoEn: string | null
+}
+
 interface Db {
   usuarios: UsuarioMock[]
   habitos: HabitoMock[]
@@ -61,6 +71,8 @@ interface Db {
   consentimientos: Map<string, ConsentimientosDto>
   pesos: Map<string, PesosDto>
   mediciones: Map<string, MedicionDto[]>
+  auditoria: EventoAuditoriaDto[]
+  solicitudesBaja: SolicitudBajaMock[]
 }
 
 export const db: Db = {
@@ -73,6 +85,8 @@ export const db: Db = {
   consentimientos: new Map(),
   pesos: new Map(),
   mediciones: new Map(),
+  auditoria: [],
+  solicitudesBaja: [],
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -311,6 +325,43 @@ export function reiniciarDb() {
       ],
     ],
   ])
+
+  // Auditoría de ejemplo: los últimos 40 días, con el historial que alimenta las métricas.
+  const evento = (
+    n: number,
+    dias: number,
+    actor: string,
+    accion: EventoAuditoriaDto['accion'],
+    entidad: string,
+    extra: Partial<EventoAuditoriaDto> = {},
+  ): EventoAuditoriaDto => ({
+    id: `dd000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    fecha: new Date(ahora - dias * DIA - n * 60_000).toISOString(),
+    actor,
+    accion,
+    entidad,
+    entidadId: null,
+    valorAnterior: null,
+    valorNuevo: null,
+    origen: 'Web',
+    ...extra,
+  })
+  db.auditoria = [
+    evento(1, 40, 'estandar@demo.com', 'Registro', 'Usuario'),
+    evento(2, 38, 'otro@demo.com', 'Registro', 'Usuario'),
+    evento(3, 30, 'admin@demo.com', 'InicioSesion', 'Sesión'),
+    evento(4, 22, 'otro@demo.com', 'InicioSesion', 'Sesión'),
+    evento(5, 9, 'estandar@demo.com', 'InicioSesion', 'Sesión'),
+    evento(6, 6, 'admin@demo.com', 'CambioRol', 'Usuario', {
+      entidadId: db.usuarios[2].id,
+      valorAnterior: 'Administrador',
+      valorNuevo: 'Estandar',
+    }),
+    evento(7, 3, 'estandar@demo.com', 'InicioSesion', 'Sesión'),
+    evento(8, 2, 'admin@demo.com', 'InicioSesion', 'Sesión'),
+    evento(9, 4, 'estandar@demo.com', 'DescargaDatos', 'Cuenta'),
+  ]
+  db.solicitudesBaja = []
 }
 
 reiniciarDb()

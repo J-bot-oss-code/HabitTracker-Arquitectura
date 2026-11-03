@@ -66,12 +66,16 @@ function perfilValido(b: Partial<GuardarPerfilRequest> | null): b is GuardarPerf
 
 function consentimientosValidos(
   b: Partial<GuardarConsentimientosRequest> | null,
+  aceptadas?: ConsentimientosDto,
 ): b is GuardarConsentimientosRequest {
+  // Se acepta la versión vigente de cada documento o la que el usuario ya había aceptado:
+  // cambiar un interruptor no debe obligar a aceptar documentos nuevos que no ha visto.
+  const versionOk = (enviada: unknown, vigente: string, previa: string | null | undefined) =>
+    enviada === vigente || (previa != null && enviada === previa)
   return (
     !!b &&
-    // Solo se acepta la versión vigente de cada documento.
-    b.terminosVersion === VERSION_TERMINOS &&
-    b.privacidadVersion === VERSION_PRIVACIDAD &&
+    versionOk(b.terminosVersion, VERSION_TERMINOS, aceptadas?.terminosVersion) &&
+    versionOk(b.privacidadVersion, VERSION_PRIVACIDAD, aceptadas?.privacidadVersion) &&
     typeof b.datosSalud === 'boolean' &&
     typeof b.marketing === 'boolean' &&
     typeof b.compartirCumplimiento === 'boolean' &&
@@ -134,8 +138,8 @@ export const perfilHandlers = [
     const { sesion, error } = autenticar(request, ['Estandar'])
     if (error) return error
     const body = await leerJson<GuardarConsentimientosRequest>(request)
-    if (!consentimientosValidos(body)) return respuestas.invalida()
     const anterior = db.consentimientos.get(sesion.usuario.id)
+    if (!consentimientosValidos(body, anterior)) return respuestas.invalida()
     const mismasVersiones =
       anterior?.terminosVersion === body.terminosVersion &&
       anterior?.privacidadVersion === body.privacidadVersion

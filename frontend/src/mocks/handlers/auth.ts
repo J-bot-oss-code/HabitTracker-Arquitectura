@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { UsuarioResponseDto } from '@/features/auth/types'
+import { auditar } from '../auditoria'
 import { CODIGO_RECUPERACION_DEMO, db, TOKEN_ACTIVACION_DEMO, type UsuarioMock } from '../db'
 import {
   autenticar,
@@ -57,6 +58,7 @@ export const authHandlers = [
       sesionesValidasDesde: 0,
     }
     db.usuarios.push(nuevo)
+    auditar({ actor: nuevo.correo, accion: 'Registro', entidad: 'Usuario', entidadId: nuevo.id })
     return HttpResponse.json(aDto(nuevo), { status: 201 })
   }),
 
@@ -100,6 +102,7 @@ export const authHandlers = [
 
     usuario.intentosFallidos = 0
     usuario.bloqueadoHasta = null
+    auditar({ actor: usuario.correo, accion: 'InicioSesion', entidad: 'Sesión' })
     return HttpResponse.json(aDto(usuario, emitirToken(usuario)))
   }),
 
