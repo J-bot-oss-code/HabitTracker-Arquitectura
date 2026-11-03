@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
+import { BarraProgreso } from './BarraProgreso'
 import { Button } from './Button'
 import { ConfirmarDialogo } from './ConfirmarDialogo'
 import { Estadistica } from './Estadistica'
@@ -132,5 +133,30 @@ describe('Estadistica e Icono', () => {
     expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
     rerender(<Icono nombre="check" titulo="Hecho" />)
     expect(screen.getByRole('img', { name: 'Hecho' })).toBeInTheDocument()
+  })
+})
+
+describe('BarraProgreso y Estadistica con progreso', () => {
+  it.each([
+    [150, '100'],
+    [-5, '0'],
+    [Number.NaN, '0'],
+    [66.6, '67'],
+  ])('limita %s a un aria-valuenow de %s', (porcentaje, esperado) => {
+    render(<BarraProgreso porcentaje={porcentaje} etiqueta="Tareas de hoy" />)
+    expect(screen.getByRole('progressbar', { name: 'Tareas de hoy' })).toHaveAttribute(
+      'aria-valuenow',
+      esperado,
+    )
+  })
+
+  it('Estadistica muestra la barra solo si recibe progreso', () => {
+    const { rerender } = render(<Estadistica etiqueta="Tareas" valor="4/6" />)
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+    rerender(<Estadistica etiqueta="Tareas" valor="4/6" progreso={67} />)
+    expect(screen.getByRole('progressbar', { name: 'Tareas' })).toHaveAttribute(
+      'aria-valuenow',
+      '67',
+    )
   })
 })

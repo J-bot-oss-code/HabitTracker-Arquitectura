@@ -28,7 +28,7 @@ export function MyPermissionsPage() {
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-xl font-bold uppercase tracking-wide">Mis solicitudes</h2>
+          <h2 className="text-lg font-bold">Mis solicitudes</h2>
           <FiltroPendientes valor={soloPendientes} alCambiar={setSoloPendientes} />
         </div>
         {solicitudes.isPending ? (

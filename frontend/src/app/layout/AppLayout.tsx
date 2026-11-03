@@ -5,6 +5,7 @@ import { useAuth } from '@/shared/auth/AuthContext'
 import { etiquetaRol } from '@/shared/auth/roles'
 import { cn } from '@/shared/lib/cn'
 import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
+import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Icono } from '@/shared/ui/Icono'
 import { navegacionPara } from '../navigation'
@@ -44,11 +45,15 @@ export function AppLayout() {
       </a>
       <AvisoModoDemo />
 
-      <header className="sticky top-0 z-40 border-b border-borde bg-fondo/85 backdrop-blur-md">
+      <header data-no-imprimir className="sticky top-0 z-40 border-b border-borde bg-superficie">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
-          <Link to="/" aria-label="Inicio" className="min-w-0 rounded-lg">
-            <Marca />
-          </Link>
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link to="/" aria-label="Inicio" className="min-w-0 rounded-lg">
+              <Marca />
+            </Link>
+            {/* Cabecera de administración (§5.6): insignia visible del rol. */}
+            {usuario.rol === 'Administrador' && <Badge tono="marca">Admin</Badge>}
+          </div>
           <div className="flex shrink-0 items-center gap-2">
             <SelectorTemaMenu />
             <Link
@@ -83,9 +88,10 @@ export function AppLayout() {
         {/* Un solo <nav>: barra inferior desplazable en móvil y barra lateral desde lg. */}
         <nav
           ref={nav}
+          data-no-imprimir
           aria-label="Principal"
           className={cn(
-            'fixed inset-x-0 bottom-0 z-40 flex gap-1 overflow-x-auto border-t border-borde-fuerte bg-superficie/95 px-2 py-1.5 backdrop-blur-md',
+            'fixed inset-x-0 bottom-0 z-40 flex gap-1 overflow-x-auto border-t border-borde-fuerte bg-superficie px-2 py-1.5',
             'lg:sticky lg:top-24 lg:bottom-auto lg:z-auto lg:h-fit lg:w-60 lg:shrink-0 lg:flex-col lg:overflow-visible lg:rounded-2xl lg:border lg:border-borde lg:bg-superficie lg:p-2',
           )}
         >
@@ -97,7 +103,9 @@ export function AppLayout() {
                 cn(
                   'relative flex min-h-14 min-w-[5rem] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl px-2 py-1 text-xs font-semibold leading-tight transition-colors',
                   'lg:min-h-11 lg:min-w-0 lg:flex-row lg:justify-start lg:gap-3 lg:px-3 lg:text-sm',
-                  isActive ? 'bg-acento text-acento-texto' : 'text-texto hover:bg-superficie-2',
+                  isActive
+                    ? 'bg-acento-suave text-acento-fuerte'
+                    : 'text-texto-2 hover:bg-hover hover:text-texto',
                 )
               }
             >
@@ -110,7 +118,7 @@ export function AppLayout() {
                     aria-hidden="true"
                     className="absolute right-2 top-1.5 size-2 rounded-full bg-aviso lg:hidden"
                   />
-                  <span className="hidden rounded border border-aviso/60 px-1.5 text-xs font-semibold uppercase lg:inline">
+                  <span className="hidden rounded-full bg-superficie-2 px-2 text-xs font-medium text-atenuado lg:inline">
                     Pronto
                   </span>
                   <span className="sr-only">(próximamente)</span>

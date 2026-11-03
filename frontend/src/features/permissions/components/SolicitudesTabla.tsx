@@ -11,8 +11,8 @@ import { EstadoSolicitudBadge } from './EstadoSolicitudBadge'
 // aunque el CSS cambie el `display`.
 const celda = 'block px-4 py-1.5 md:table-cell md:py-3'
 const conRotulo =
-  'before:mb-0.5 before:block before:text-xs before:font-semibold before:uppercase before:tracking-wider before:text-atenuado before:content-[attr(data-etiqueta)] md:before:hidden'
-const encabezado = 'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-atenuado'
+  'before:mb-0.5 before:block before:rotulo before:content-[attr(data-etiqueta)] md:before:hidden'
+const encabezado = 'px-4 py-3 rotulo'
 
 export function SolicitudesTabla({
   solicitudes,
@@ -30,7 +30,7 @@ export function SolicitudesTabla({
   const ordenadas = [...solicitudes].sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion))
 
   return (
-    <div className="md:overflow-hidden md:rounded-xl md:border md:border-borde md:bg-superficie md:shadow-tarjeta">
+    <div className="md:overflow-hidden md:rounded-xl md:border md:border-borde md:bg-superficie">
       <table role="table" className="block w-full text-left text-sm md:table">
         <thead role="rowgroup" className="sr-only md:not-sr-only md:table-header-group">
           <tr role="row" className="md:table-row">
@@ -63,7 +63,7 @@ export function SolicitudesTabla({
             <tr
               key={s.id}
               role="row"
-              className="block rounded-xl border border-borde bg-superficie py-3 shadow-tarjeta md:table-row md:rounded-none md:border-0 md:bg-transparent md:py-0 md:shadow-none"
+              className="block rounded-xl border border-borde bg-superficie py-3 md:table-row md:rounded-none md:border-0 md:bg-transparent md:py-0"
             >
               <td role="cell" data-etiqueta="Permiso" className={`${celda} ${conRotulo}`}>
                 <Link to={`/permisos/${s.id}`} className="font-semibold hover:text-acento">

@@ -16,7 +16,7 @@ export function AuthCard({
     <Card className="anim-aparecer w-full max-w-md">
       <CardBody className="space-y-6 p-6 sm:p-8">
         <div>
-          <h1 className="text-4xl font-bold uppercase tracking-wide">{titulo}</h1>
+          <h1 className="text-[1.75rem] font-extrabold">{titulo}</h1>
           {descripcion && <p className="mt-1.5 text-sm text-atenuado">{descripcion}</p>}
         </div>
         {children}

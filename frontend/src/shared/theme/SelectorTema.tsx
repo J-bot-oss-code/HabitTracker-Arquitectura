@@ -89,7 +89,7 @@ export function SelectorTemaMenu() {
           id={idMenu}
           role="menu"
           aria-label="Tema de la interfaz"
-          className="anim-aparecer absolute right-0 z-50 mt-2 w-64 rounded-xl border border-borde-fuerte bg-superficie p-1.5 shadow-brillo"
+          className="anim-aparecer absolute right-0 z-50 mt-2 w-64 rounded-xl border border-borde-fuerte bg-superficie p-1.5 shadow-flotante"
         >
           {INFO_TEMAS.map((t) => (
             <button
@@ -105,7 +105,7 @@ export function SelectorTemaMenu() {
                 disparador()?.focus()
               }}
               className={cn(
-                'flex min-h-11 w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-superficie-2',
+                'flex min-h-11 w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left text-sm hover:bg-hover',
                 t.clave === tema && 'bg-superficie-2 font-semibold',
               )}
             >
@@ -124,14 +124,14 @@ export function SelectorTemaMenu() {
 export function SelectorTemaTarjetas() {
   const { tema, cambiarTema } = useTema()
   return (
-    <div role="radiogroup" aria-label="Tema de la interfaz" className="grid gap-3 sm:grid-cols-2">
+    <div role="radiogroup" aria-label="Tema de la interfaz" className="grid gap-3 sm:grid-cols-3">
       {INFO_TEMAS.map((t) => (
         <label
           key={t.clave}
           className={cn(
             'flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-foco',
             t.clave === tema
-              ? 'border-acento bg-superficie-2 shadow-brillo'
+              ? 'border-acento bg-acento-suave ring-1 ring-acento'
               : 'border-borde-fuerte hover:border-acento',
           )}
         >

@@ -21,7 +21,7 @@ export function HistorialAvances({ registros }: { registros: RegistroAvanceDto[]
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm">
-        <thead className="text-xs font-semibold uppercase tracking-wider text-atenuado">
+        <thead className="rotulo">
           <tr>
             <th scope="col" className="py-2 pr-4 font-medium">
               Fecha

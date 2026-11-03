@@ -66,7 +66,7 @@ una:
 | -------------------------- | ------------------------------------------------------------------ | --------------------- |
 | `frontend-architect`       | Plan de la feature: archivos, capas, rutas, roles, pruebas         | No                    |
 | `frontend-api-contract`    | Alinear tipos y mocks con los controllers reales                   | Sí (solo `frontend/`) |
-| `frontend-ui-builder`      | Páginas y componentes con diseño deportivo-futurista y temas       | Sí                    |
+| `frontend-ui-builder`      | Páginas y componentes según la especificación de diseño y temas    | Sí                    |
 | `frontend-design-critic`   | Crítica UI/UX tras cada cambio; el builder atiende sus quejas      | No                    |
 | `frontend-test-writer`     | Pruebas Vitest/Testing Library                                     | Sí                    |
 | `frontend-reviewer`        | Revisión RD + seguridad + aislamiento del backend antes del commit | No                    |
@@ -79,11 +79,22 @@ backend (`.github/copilot/agents/`) siguen aplicando a `Host/` y `Modules/`.
 
 ## Identidad visual
 
-Diseño deportivo y futurista (marcador de rendimiento, números protagonistas, progreso visible)
-con temas Claro, Oscuro, Cálido, Estadio y Sistema, basados en tokens semánticos. Los detalles
-están en `.claude/agents/frontend-ui-builder.md`.
+La fuente de verdad es la especificación `docs/mejoras/diseno-ui-web-movil.md`: diseño sobrio
+(fondo gris claro, tarjetas blancas con borde sutil, un solo acento índigo, sin degradados ni
+sombras pesadas), Plus Jakarta Sans para títulos y cifras e Inter para el cuerpo. Temas Claro,
+Oscuro y Sistema sobre tokens semánticos (`src/index.css`); la equivalencia con los tokens de la
+especificación y las desviaciones por accesibilidad están en `docs/PLAN-FRONTEND-NEXUS.md`.
 
-## Conectar con el backend real
+## Backend congelado y contratos propuestos
+
+Hasta terminar las prácticas del maestro **no se modifica el backend** (ni CORS). Las pantallas
+que necesitan endpoints inexistentes usan contratos propuestos simulados en
+`src/mocks/handlers/propuestas/` (registro `CONTRATOS_PROPUESTOS`, verificado por
+`mocks/propuestas.test.ts`). Validaciones: idénticas al backend donde ya existen; si no, límites
+marcados como "Límite propuesto para el backend (mejora futura)". Cada necesidad se anota en
+`docs/PLAN-FRONTEND-NEXUS.md` › "Pendientes para el backend".
+
+## Conectar con el backend real (después de las prácticas)
 
 1. Habilitar CORS en `Host/WebApi/Program.cs` para el origen del frontend. Es un cambio del
    backend y se hace en su propia PR.

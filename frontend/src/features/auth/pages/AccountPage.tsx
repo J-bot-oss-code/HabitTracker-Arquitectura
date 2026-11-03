@@ -52,15 +52,11 @@ export function AccountPage() {
             ) : (
               <dl className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wider text-atenuado">
-                    Correo
-                  </dt>
+                  <dt className="rotulo">Correo</dt>
                   <dd className="mt-1 font-medium">{me.data.correo}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs font-semibold uppercase tracking-wider text-atenuado">
-                    Rol
-                  </dt>
+                  <dt className="rotulo">Rol</dt>
                   <dd className="mt-1">
                     <Badge tono="marca">{etiquetaRol[me.data.rol]}</Badge>
                   </dd>
@@ -72,7 +68,7 @@ export function AccountPage() {
 
         <Card>
           <CardBody>
-            <h2 className="text-xl font-bold uppercase tracking-wide">Apariencia</h2>
+            <h2 className="text-lg font-bold">Apariencia</h2>
             <p className="mb-4 mt-1 text-sm text-atenuado">
               Elige el tema de la interfaz. Se guarda en este navegador.
             </p>
@@ -82,7 +78,7 @@ export function AccountPage() {
 
         <Card>
           <CardBody>
-            <h2 className="text-xl font-bold uppercase tracking-wide">Cambiar contraseña</h2>
+            <h2 className="text-lg font-bold">Cambiar contraseña</h2>
             <p className="mt-1 text-sm text-atenuado">
               Al cambiarla se cerrarán todas tus sesiones, incluida esta.
             </p>

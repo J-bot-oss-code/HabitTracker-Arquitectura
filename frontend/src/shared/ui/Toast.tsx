@@ -56,7 +56,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             key={t.id}
             role={t.tono === 'peligro' ? 'alert' : 'status'}
             className={cn(
-              'anim-aparecer pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-superficie px-4 py-3 text-sm text-texto shadow-brillo',
+              'anim-aparecer pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-superficie px-4 py-3 text-sm text-texto shadow-flotante',
               tonos[t.tono].clase,
             )}
           >

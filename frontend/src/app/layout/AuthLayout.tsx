@@ -4,46 +4,34 @@ import { Icono } from '@/shared/ui/Icono'
 import { AvisoModoDemo } from './AvisoModoDemo'
 import { Marca } from './Marca'
 
-const puntos = [
-  { icono: 'llama', texto: 'Rachas que te mantienen en movimiento' },
-  { icono: 'trofeo', texto: 'Metas con cierre claro: cumples o sigues' },
-  { icono: 'permisos', texto: 'Acciones avanzadas con permiso del administrador' },
+const beneficios = [
+  'Un plan diario con pocas tareas concretas',
+  'Rachas y progreso visibles cada semana',
+  'Descarga o borra tus datos cuando quieras',
 ] as const
 
-// Pantalla dividida: panel deportivo a la izquierda (desde lg) y formulario a la derecha.
+// Pantalla dividida (§5.2): panel de tinta a la izquierda (desde lg) y formulario a la derecha.
 export function AuthLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <AvisoModoDemo />
-      <div className="grid flex-1 lg:grid-cols-[1.05fr_1fr]">
-        <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-borde bg-superficie p-10 lg:flex">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-acento/20 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-32 -left-16 size-80 rounded-full bg-acento-2/20 blur-3xl"
-          />
-          <Marca className="relative" forzarTexto />
-          <div className="relative space-y-8">
-            <p className="font-display text-6xl font-bold uppercase leading-[0.95] tracking-wide xl:text-7xl">
-              Entrena la
-              <br />
-              <span className="text-acento">constancia.</span>
+      <div className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <aside className="hidden flex-col justify-between panel-tinta p-10 lg:flex xl:p-14">
+          <Marca forzarTexto />
+          <div className="max-w-md space-y-8">
+            <p className="font-display text-4xl font-extrabold leading-[1.1] tracking-tight xl:text-5xl">
+              Tu meta, un día a la vez.
             </p>
             <ul className="space-y-4">
-              {puntos.map((p) => (
-                <li key={p.texto} className="flex items-center gap-3 text-atenuado">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-borde-fuerte bg-superficie-2 text-acento-2">
-                    <Icono nombre={p.icono} />
-                  </span>
-                  <span className="text-texto">{p.texto}</span>
+              {beneficios.map((texto) => (
+                <li key={texto} className="flex items-start gap-3">
+                  <Icono nombre="check" className="mt-0.5 size-5 shrink-0 text-acento-claro" />
+                  <span>{texto}</span>
                 </li>
               ))}
             </ul>
           </div>
-          <p className="relative text-xs text-atenuado">Programación III · ITLA · 2026</p>
+          <p className="text-sm text-tinta-atenuado">Programación III · ITLA · 2026</p>
         </aside>
 
         <main className="relative flex flex-col items-center justify-center gap-8 px-4 py-10">

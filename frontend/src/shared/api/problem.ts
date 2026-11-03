@@ -58,3 +58,13 @@ export function mensajeDeError(
 export function esErrorHttp(error: unknown, status: number): boolean {
   return error instanceof ApiError && error.status === status
 }
+
+// Un endpoint que el backend todavía no tiene (contrato propuesto, ver
+// mocks/handlers/propuestas) responde 404 sin ProblemDetails, porque ninguna ruta lo atiende,
+// o 405 si la ruta existe con otro método. Un 404 con cuerpo es "recurso inexistente" y no
+// cuenta. Con esto, las pantallas de piezas futuras muestran un aviso en vez de un error.
+export function esNoDisponible(error: unknown): boolean {
+  return (
+    error instanceof ApiError && (error.status === 405 || (error.status === 404 && !error.problem))
+  )
+}

@@ -43,7 +43,7 @@ export function MiniBarras({
                 key={`${d.etiqueta}-${i}`}
                 className={cn(
                   'flex-1 rounded-t-md transition-[height] duration-500',
-                  d.valor === 0 ? 'bg-superficie-2' : cumple ? 'bg-exito' : 'bg-acento',
+                  d.valor === 0 ? 'bg-borde' : cumple ? 'bg-exito' : 'bg-acento',
                 )}
                 style={{ height: d.valor === 0 ? '6%' : `${Math.max(alto, 8)}%` }}
               />
@@ -54,7 +54,7 @@ export function MiniBarras({
           {datos.map((d, i) => (
             <span
               key={`${d.etiqueta}-${i}`}
-              className="flex-1 text-center text-xs font-medium uppercase text-atenuado"
+              className="flex-1 text-center text-xs font-medium text-atenuado"
             >
               {d.etiqueta}
             </span>

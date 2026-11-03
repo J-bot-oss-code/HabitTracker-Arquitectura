@@ -15,7 +15,7 @@ import { ResolverSolicitud } from '../components/ResolverSolicitud'
 function Dato({ etiqueta, children }: { etiqueta: string; children: ReactNode }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wider text-atenuado">{etiqueta}</dt>
+      <dt className="rotulo">{etiqueta}</dt>
       <dd className="mt-1">{children}</dd>
     </div>
   )
@@ -50,7 +50,7 @@ export function PermissionDetailPage() {
           <CardBody className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h1 className="text-3xl font-bold uppercase tracking-wide">
+                <h1 className="text-3xl font-extrabold">
                   {nombrePermiso(solicitud.data.permisoSolicitado)}
                 </h1>
                 {tieneRol('Administrador') && (

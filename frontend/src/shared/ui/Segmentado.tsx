@@ -31,8 +31,8 @@ export function Segmentado<T extends string | boolean>({
           className={cn(
             'min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors',
             o.valor === valor
-              ? 'border-acento bg-acento text-acento-texto'
-              : 'border-borde-fuerte bg-superficie text-texto hover:border-acento',
+              ? 'border-acento bg-acento-suave text-acento-fuerte'
+              : 'border-borde-fuerte bg-superficie text-texto-2 hover:border-acento',
           )}
         >
           {o.etiqueta}

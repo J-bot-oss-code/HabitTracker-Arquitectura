@@ -55,14 +55,21 @@ describe('contraste de los temas (WCAG 2.2 AA)', () => {
       ['texto', 'fondo'],
       ['texto', 'superficie'],
       ['texto', 'superficie-2'],
+      ['texto-2', 'fondo'],
+      ['texto-2', 'superficie'],
       ['atenuado', 'fondo'],
       ['atenuado', 'superficie'],
       ['atenuado', 'superficie-2'],
       ['acento-texto', 'acento'],
       ['acento', 'fondo'],
       ['acento', 'superficie'],
-      ['acento-2', 'fondo'],
-      ['acento-2', 'superficie'],
+      ['acento-fuerte', 'acento-suave'],
+      ['acento-fuerte', 'superficie'],
+      ['tinta-texto', 'tinta'],
+      ['tinta-atenuado', 'tinta'],
+      ['racha-texto', 'racha-fondo'],
+      ['nota-texto', 'nota-fondo'],
+      ['exito', 'exito-fondo'],
       ['exito', 'fondo'],
       ['exito', 'superficie'],
       ['aviso', 'fondo'],
@@ -75,13 +82,46 @@ describe('contraste de los temas (WCAG 2.2 AA)', () => {
       expect(contraste(t[primer], t[fondo])).toBeGreaterThanOrEqual(4.5)
     })
 
+    // `control` es el borde de inputs, casillas e interruptores (WCAG 1.4.11). `borde-fuerte`
+    // es decorativo (separadores, botón secundario con texto) y no necesita 3:1.
     it.each([
-      ['borde-fuerte', 'fondo'],
-      ['borde-fuerte', 'superficie'],
+      ['control', 'fondo'],
+      ['control', 'superficie'],
       ['foco', 'fondo'],
       ['foco', 'superficie'],
+      ['calor-3', 'superficie'],
+      ['acento-claro', 'tinta'],
+      ['tinta-foco', 'tinta'],
     ])('componente %s sobre %s ≥ 3:1', (primer, fondo) => {
       expect(contraste(t[primer], t[fondo])).toBeGreaterThanOrEqual(3)
     })
+  })
+})
+
+// Copias que deben coincidir y que nadie vigilaría a simple vista.
+function todosLosTokens(cuerpo: string): Tokens {
+  const tokens: Tokens = {}
+  for (const [, nombre, valor] of cuerpo.matchAll(/--c-([\w-]+):\s*([^;]+);/g)) {
+    tokens[nombre] = valor.trim().toLowerCase()
+  }
+  return tokens
+}
+
+describe('sincronía de los temas', () => {
+  it('el bloque sin JavaScript (prefers-color-scheme: dark) es idéntico al tema oscuro', () => {
+    const oscuro = css.match(/:root\[data-theme='oscuro'\]\s*\{([^}]*)\}/)?.[1] ?? ''
+    const sistema =
+      css.match(
+        /@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme\]\)\s*\{([^}]*)\}/,
+      )?.[1] ?? ''
+    expect(Object.keys(todosLosTokens(oscuro)).length).toBeGreaterThan(30)
+    expect(todosLosTokens(sistema)).toEqual(todosLosTokens(oscuro))
+  })
+
+  it('el script anti-parpadeo de index.html conoce exactamente los temas del catálogo', () => {
+    const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
+    const lista = html.match(/var validos = \[([^\]]*)\]/)?.[1] ?? ''
+    const validos = [...lista.matchAll(/'(\w+)'/g)].map((m) => m[1])
+    expect(validos).toEqual([...TEMAS])
   })
 })
