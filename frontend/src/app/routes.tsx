@@ -58,6 +58,7 @@ const paginas = {
   legal: perezosa(() => import('@/features/publico/pages/LegalPage'), 'LegalPage'),
   bienvenida: perezosa(() => import('@/features/perfil/pages/OnboardingPage'), 'OnboardingPage'),
   cuenta: perezosa(() => import('@/features/auth/pages/AccountPage'), 'AccountPage'),
+  progreso: perezosa(() => import('@/features/progreso/pages/ProgresoPage'), 'ProgresoPage'),
   hoy: perezosa(() => import('@/features/habits/pages/HoyPage'), 'HoyPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
@@ -154,6 +155,7 @@ export const rutas: RouteObject[] = [
                 element: <RequierePerfil />,
                 children: [
                   { path: 'hoy', handle: { titulo: 'Hoy' }, ...paginas.hoy },
+                  { path: 'progreso', handle: { titulo: 'Tu progreso' }, ...paginas.progreso },
                   { path: 'habitos', handle: { titulo: 'Mis hábitos' }, ...paginas.habitos },
                   {
                     path: 'habitos/:id',

@@ -56,7 +56,7 @@ export function AppLayout() {
             <Link
               to="/cuenta"
               aria-label="Mi cuenta"
-              className="flex min-h-11 items-center gap-2.5 rounded-lg border border-borde-fuerte bg-superficie px-2.5 hover:border-acento md:px-3"
+              className="flex min-h-11 min-w-11 items-center justify-center gap-2.5 rounded-lg border border-borde-fuerte bg-superficie px-2.5 hover:border-acento md:px-3"
             >
               <Icono nombre="cuenta" />
               <span className="hidden text-left leading-tight md:block">

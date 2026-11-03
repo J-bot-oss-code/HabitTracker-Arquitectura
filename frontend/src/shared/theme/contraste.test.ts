@@ -89,6 +89,7 @@ describe('contraste de los temas (WCAG 2.2 AA)', () => {
       ['control', 'superficie'],
       ['foco', 'fondo'],
       ['foco', 'superficie'],
+      ['calor-1', 'superficie'],
       ['calor-3', 'superficie'],
       ['acento-claro', 'tinta'],
       ['tinta-foco', 'tinta'],
@@ -123,5 +124,19 @@ describe('sincronía de los temas', () => {
     const lista = html.match(/var validos = \[([^\]]*)\]/)?.[1] ?? ''
     const validos = [...lista.matchAll(/'(\w+)'/g)].map((m) => m[1])
     expect(validos).toEqual([...TEMAS])
+  })
+})
+
+// El mapa de constancia distingue sus niveles por luminosidad (más borde en el 0): cada salto
+// entre niveles consecutivos debe notarse (>= 2:1) para quien no distingue bien los tonos.
+describe('niveles del mapa de constancia', () => {
+  describe.each(temasConColor)('tema %s', (nombre) => {
+    const t = temas[nombre]
+    it.each([
+      ['calor-1', 'calor-2'],
+      ['calor-2', 'calor-3'],
+    ])('%s frente a %s >= 2:1', (a, b) => {
+      expect(contraste(t[a], t[b])).toBeGreaterThanOrEqual(2)
+    })
   })
 })

@@ -95,9 +95,9 @@
   --c-info: #0369a1;
   --c-foco: #4f46e5;
   --c-calor-0: #e2e8f0;
-  --c-calor-1: #c7d2fe;
-  --c-calor-2: #818cf8;
-  --c-calor-3: #4f46e5;
+  --c-calor-1: #7a80f0;
+  --c-calor-2: #4338ca;
+  --c-calor-3: #1e1b4b;
   --c-sombra: rgb(15 23 42 / 0.08);
   --c-velo: rgb(15 23 42 / 0.45);
   /* Fondo al pasar el cursor: superficie-2 casi no se distingue del blanco. */
@@ -139,9 +139,9 @@
   --c-info: #38bdf8;
   --c-foco: #a5b4fc;
   --c-calor-0: #26324a;
-  --c-calor-1: #3730a3;
-  --c-calor-2: #6366f1;
-  --c-calor-3: #a5b4fc;
+  --c-calor-1: #5b5bd6;
+  --c-calor-2: #8f9ff9;
+  --c-calor-3: #eef2ff;
   --c-sombra: rgb(0 0 0 / 0.5);
   --c-velo: rgb(2 6 23 / 0.7);
   --c-hover: #1f2a40;
@@ -185,9 +185,9 @@
     --c-info: #38bdf8;
     --c-foco: #a5b4fc;
     --c-calor-0: #26324a;
-    --c-calor-1: #3730a3;
-    --c-calor-2: #6366f1;
-    --c-calor-3: #a5b4fc;
+    --c-calor-1: #5b5bd6;
+    --c-calor-2: #8f9ff9;
+    --c-calor-3: #eef2ff;
     --c-sombra: rgb(0 0 0 / 0.5);
     --c-velo: rgb(2 6 23 / 0.7);
     --c-hover: #1f2a40;
@@ -303,6 +303,13 @@
    (marcada con data-no-imprimir). Siempre con los colores claros: los navegadores no imprimen
    fondos, y el texto del tema oscuro quedaría casi invisible sobre el papel. */
 @media print {
+  /* Los navegadores no imprimen fondos por defecto: el mapa de constancia y las muestras de
+     la leyenda se dibujan solo con ellos. */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
   [data-no-imprimir] {
     display: none !important;
   }
@@ -328,9 +335,9 @@
     --c-peligro: #b91c1c;
     --c-info: #0369a1;
     --c-calor-0: #e2e8f0;
-    --c-calor-1: #c7d2fe;
-    --c-calor-2: #818cf8;
-    --c-calor-3: #4f46e5;
+    --c-calor-1: #7a80f0;
+    --c-calor-2: #4338ca;
+    --c-calor-3: #1e1b4b;
   }
 }
 

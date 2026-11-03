@@ -14,6 +14,7 @@ export interface ItemNavegacion {
 export const NAVEGACION: ItemNavegacion[] = [
   { a: '/hoy', etiqueta: 'Hoy', icono: 'rayo', roles: ['Estandar'] },
   { a: '/habitos', etiqueta: 'Mis hábitos', icono: 'habitos', roles: ['Estandar'] },
+  { a: '/progreso', etiqueta: 'Progreso', icono: 'trofeo', roles: ['Estandar'] },
   { a: '/permisos', etiqueta: 'Mis permisos', icono: 'permisos', roles: ['Estandar'] },
   { a: '/admin/permisos', etiqueta: 'Solicitudes', icono: 'permisos', roles: ['Administrador'] },
   { a: '/admin/usuarios', etiqueta: 'Usuarios', icono: 'usuarios', roles: ['Administrador'] },
@@ -66,6 +67,7 @@ export function rutaInicial(rol: Rol): string {
 const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
   { patron: /^\/admin(\/|$)/i, roles: ['Administrador'] },
   { patron: /^\/hoy\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/progreso\/?$/i, roles: ['Estandar'] },
   { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
   { patron: /^\/bienvenida\/?$/i, roles: ['Estandar'] },
   { patron: /^\/permisos\/?$/i, roles: ['Estandar'] },

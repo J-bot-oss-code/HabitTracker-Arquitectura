@@ -4,6 +4,7 @@ import { usePerfil } from '@/features/perfil/api'
 import { buscarMeta } from '@/features/publico/api'
 import { fechaLargaUtc } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/Button'
+import { claseBoton } from '@/shared/ui/claseBoton'
 import { Card, CardBody, EmptyState } from '@/shared/ui/Card'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Esqueleto } from '@/shared/ui/Spinner'
@@ -92,6 +93,9 @@ export function HoyPage() {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link to="/progreso?registrar=peso" className={claseBoton({ variante: 'secundario' })}>
+            Registrar peso
+          </Link>
           <Button onClick={() => setCreando(true)}>
             <Icono nombre="mas" className="size-4" />
             Añadir hábito
@@ -120,9 +124,9 @@ export function HoyPage() {
           detalle="hábitos diarios, últimos 7 días"
         />
         <Estadistica
-          etiqueta="Plan"
+          etiqueta="Plan · semana"
           icono="calendario"
-          valor={semanaPlan && meta ? `Semana ${semanaPlan} de ${meta.semanas}` : 'Sin plan'}
+          valor={semanaPlan && meta ? `${semanaPlan} de ${meta.semanas}` : 'Sin plan'}
           detalle={
             meta ? (
               meta.nombre

@@ -223,7 +223,7 @@ describe('bordes de las métricas de hoy', () => {
     expect(tareasDeHoy([h], inicioSiguiente)[0].hecha).toBe(false)
   })
 
-  it('los registros anteriores al ciclo no cuentan para el récord', () => {
+  it('el récord conserva el historial anterior al ciclo (reconfigurar no lo borra)', () => {
     const h = habito({
       fechaInicioCiclo: dia(-2),
       registros: [
@@ -233,7 +233,8 @@ describe('bordes de las métricas de hoy', () => {
         [-1, 10],
       ],
     })
-    expect(rachaMasLarga([h])).toBe(1)
+    // Los días −5, −4 y −3 son de antes del ciclo, pero siguen contando como serie de 3.
+    expect(rachaMasLarga([h])).toBe(3)
   })
 
   it('un plan que empieza en el futuro es la semana 1', () => {

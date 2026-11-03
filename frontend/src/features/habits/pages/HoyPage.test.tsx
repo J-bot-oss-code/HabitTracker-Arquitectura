@@ -20,7 +20,8 @@ describe('panel Hoy', () => {
       'aria-valuenow',
       '0',
     )
-    expect(within(resumen).getByText('Semana 3 de 8')).toBeInTheDocument()
+    expect(within(resumen).getByText('3 de 8')).toBeInTheDocument()
+    expect(within(resumen).getByText('Plan · semana')).toBeInTheDocument()
     expect(within(resumen).getByText('Primeros 5 km')).toBeInTheDocument()
     expect(within(resumen).getByText(/récord/)).toBeInTheDocument()
   })
@@ -76,6 +77,14 @@ describe('panel Hoy', () => {
     expect(await screen.findByText('Avance registrado.')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(await screen.findByText(/11 \/ 20/)).toBeInTheDocument()
+  })
+
+  it('"Registrar peso" lleva a Progreso', async () => {
+    renderApp('/hoy', { como: 'estandar' })
+    expect(await screen.findByRole('link', { name: 'Registrar peso' })).toHaveAttribute(
+      'href',
+      '/progreso?registrar=peso',
+    )
   })
 
   it('"Añadir hábito" abre el formulario de creación', async () => {

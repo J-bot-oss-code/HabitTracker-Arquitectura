@@ -44,7 +44,7 @@ export function resumenDeHoy(tareas: TareaDeHoy[]) {
 }
 
 // Sumas por día UTC dentro del ciclo actual de un hábito.
-function sumasPorDia(habito: HabitoDto): Map<number, number> {
+export function sumasPorDia(habito: HabitoDto): Map<number, number> {
   const inicio = parsearFechaUtc(habito.fechaInicioCiclo).getTime()
   const sumas = new Map<number, number>()
   for (const r of habito.registros) {
@@ -63,12 +63,23 @@ export function rachaDeHoy(habitos: HabitoDto[], ahora = new Date()): number {
   return Math.max(0, ...diariosActivos(habitos).map((h) => rachaActual(h, ahora)))
 }
 
-// Récord: la serie más larga de días seguidos que cumplieron el objetivo, en cualquier hábito
-// diario (activo o no), dentro de su ciclo actual.
+// Sumas por día UTC de TODO el historial del hábito (reconfigurar inicia un ciclo nuevo pero
+// conserva los avances). Sirve para los récords, que no deben perderse al reconfigurar.
+function sumasHistoricasPorDia(habito: HabitoDto): Map<number, number> {
+  const sumas = new Map<number, number>()
+  for (const r of habito.registros) {
+    const dia = indiceDia(parsearFechaUtc(r.fecha).getTime())
+    sumas.set(dia, (sumas.get(dia) ?? 0) + r.cantidad)
+  }
+  return sumas
+}
+
+// Récord: la serie más larga de días seguidos que cumplieron el objetivo vigente, en cualquier
+// hábito diario (activo o no), con todo su historial.
 export function rachaMasLarga(habitos: HabitoDto[]): number {
   let record = 0
   for (const h of habitos.filter((x) => x.periodicidad === 'Diaria')) {
-    const sumas = sumasPorDia(h)
+    const sumas = sumasHistoricasPorDia(h)
     const cumplidos = [...sumas.entries()]
       .filter(([, suma]) => suma >= h.cantidadObjetivo)
       .map(([dia]) => dia)

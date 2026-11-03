@@ -45,12 +45,10 @@ export function FilaTarea({
   return (
     <li className="flex items-center gap-3 py-3">
       {hecha ? (
-        <span
-          role="img"
-          aria-label="Hecha"
-          className="grid size-8 shrink-0 place-items-center rounded-lg bg-acento text-acento-texto"
-        >
-          <Icono nombre="check" className="size-5" />
+        <span role="img" aria-label="Hecha" className="grid size-11 shrink-0 place-items-center">
+          <span className="grid size-7 place-items-center rounded-lg bg-acento text-acento-texto">
+            <Icono nombre="check" className="size-5" />
+          </span>
         </span>
       ) : (
         // Objetivo táctil de 44 px alrededor de una casilla de 28 px.
@@ -72,7 +70,7 @@ export function FilaTarea({
           ref={enlace}
           to={`/habitos/${habito.id}`}
           className={cn(
-            'flex min-h-8 items-center truncate font-semibold hover:underline',
+            'flex min-h-11 items-center truncate font-semibold hover:underline',
             hecha && 'text-atenuado line-through',
           )}
         >

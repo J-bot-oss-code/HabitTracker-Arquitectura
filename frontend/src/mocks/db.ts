@@ -2,6 +2,7 @@
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
 import type { ConsentimientosDto, PerfilDto } from '@/features/perfil/types'
+import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import type { Rol } from '@/shared/auth/roles'
 
@@ -58,6 +59,8 @@ interface Db {
   // Por id de usuario.
   perfiles: Map<string, PerfilMock>
   consentimientos: Map<string, ConsentimientosDto>
+  pesos: Map<string, PesosDto>
+  mediciones: Map<string, MedicionDto[]>
 }
 
 export const db: Db = {
@@ -68,6 +71,8 @@ export const db: Db = {
   tokensRevocados: new Set(),
   perfiles: new Map(),
   consentimientos: new Map(),
+  pesos: new Map(),
+  mediciones: new Map(),
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -267,6 +272,44 @@ export function reiniciarDb() {
   db.consentimientos = new Map([
     [estandar, consentimiento(false)],
     [db.usuarios[2].id, consentimiento(true)],
+  ])
+
+  // Progreso de Ana (datos de ejemplo): un peso por semana durante 10 semanas y medidas al
+  // inicio y hoy.
+  const pesosAna = [71, 70.8, 70.5, 70.1, 69.9, 69.6, 69.4, 69.1, 68.8, 68.4]
+  db.pesos = new Map([
+    [
+      estandar,
+      {
+        objetivoKg: 66,
+        registros: pesosAna.map((pesoKg, i) => ({
+          id: `bb000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+          fecha: inicioDelDiaUtc(-7 * (pesosAna.length - 1 - i), ahora),
+          pesoKg,
+        })),
+      },
+    ],
+  ])
+  const medida = (n: number, dias: number, zona: MedicionDto['zona'], valor: number) => ({
+    id: `cc000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    fecha: inicioDelDiaUtc(dias, ahora),
+    zona,
+    valor,
+  })
+  db.mediciones = new Map([
+    [
+      estandar,
+      [
+        medida(1, -63, 'Cintura', 82),
+        medida(2, -63, 'Pecho', 96),
+        medida(3, -63, 'Brazo', 29),
+        medida(4, -63, 'Grasa', 27),
+        medida(5, -1, 'Cintura', 78),
+        medida(6, -1, 'Pecho', 95),
+        medida(7, -1, 'Brazo', 29.5),
+        medida(8, -1, 'Grasa', 25),
+      ],
+    ],
   ])
 }
 
