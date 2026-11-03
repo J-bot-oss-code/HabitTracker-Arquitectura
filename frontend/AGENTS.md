@@ -19,6 +19,7 @@ src/
   app/        router (routes.tsx), guards (RequireAuth / SoloInvitados), layouts, navigation, providers
   shared/     api (http + ProblemDetails), auth (JWT, sesión, roles), config (env), lib, ui
   features/   auth · habits · permissions · admin-users · coming-soon
+              publico · perfil · progreso · privacidad · auditoria (pantallas de producto)
               cada una con types.ts · api.ts · schemas.ts · components/ · pages/ · *.test.ts(x)
   mocks/      API simulada: db.ts (memoria), http.ts (auth, ProblemDetails), handlers/, contrato.test.ts
   test/       setup.ts y render.tsx (renderApp, iniciarSesionComo)
@@ -84,6 +85,17 @@ La fuente de verdad es la especificación `docs/mejoras/diseno-ui-web-movil.md`:
 sombras pesadas), Plus Jakarta Sans para títulos y cifras e Inter para el cuerpo. Temas Claro,
 Oscuro y Sistema sobre tokens semánticos (`src/index.css`); la equivalencia con los tokens de la
 especificación y las desviaciones por accesibilidad están en `docs/PLAN-FRONTEND-NEXUS.md`.
+
+## Pantallas de producto (visión de producción)
+
+Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs/PLAN-FRONTEND-NEXUS.md`:
+
+- Públicas: landing `/`, `/metas`, `/calculadoras` y `/legal/:documento`.
+- Alta: `/registro` con consentimientos y `/bienvenida` (onboarding).
+- Estándar: `/hoy` (inicio), `/progreso` y `/ajustes/privacidad`.
+- Administrador: `/admin` (inicio) y `/admin/auditoria`.
+
+Cada pantalla pone su título de pestaña y el foco en su encabezado (`app/layout/RaizApp.tsx`). Las rutas nuevas llevan `handle: { titulo }` en `routes.tsx`.
 
 ## Backend congelado y contratos propuestos
 

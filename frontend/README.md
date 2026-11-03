@@ -84,3 +84,7 @@ Para usar el backend real hay que habilitar antes CORS en `Host/WebApi` (ver `AG
 | Calidad       | ESLint + Prettier                                  |
 
 La estructura, las reglas y el equipo de agentes están en [`AGENTS.md`](AGENTS.md).
+
+## Pantallas y estado del plan
+
+El plan por pasos, las desviaciones de la especificación y los pendientes del backend están en `docs/PLAN-FRONTEND-NEXUS.md`. Las pantallas que aún no tienen endpoint (perfil, peso y medidas, privacidad, métricas y auditoría) funcionan con la API simulada y se anuncian como "llegará pronto" si el servidor real no las tiene.

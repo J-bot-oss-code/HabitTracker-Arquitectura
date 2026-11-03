@@ -20,7 +20,7 @@
 - [x] **Paso 5** — Progreso y estadísticas en `/progreso`: peso con gráfica Real frente al Plan y selector de periodo, medidas Inicio/Hoy, fotos (próximamente), mapa de constancia de 10 semanas, récords y logros. Peso y medidas son contratos propuestos; la constancia, los récords y los logros salen de los hábitos reales. _(Crítica de diseño, ronda 2.)_
 - [x] **Paso 6** — Centro de privacidad en `/ajustes/privacidad`: descarga de datos (JSON armado en el navegador), consentimientos con interruptores (retirar los datos de salud pide confirmación), y baja con contraseña (desactivar o eliminar con 30 días de gracia). Contratos propuestos de consentimientos, exportación y baja; la auditoría registra descarga y baja.
 - [x] **Paso 7** — Administración: `/admin` (inicio del Administrador) con indicadores agregados y anónimos, planes más iniciados y auditoría reciente; `/admin/auditoria` con filtros por usuario, acción y fechas, y exportación a CSV. Contratos propuestos de métricas y auditoría.
-- [ ] **Cierre** — `frontend/AGENTS.md`, `frontend/README.md`, `docs/ESTADO-DEL-PROYECTO.md` §10 y recorrido manual a 360 px y 1280 px.
+- [x] **Cierre** — `frontend/AGENTS.md`, `frontend/README.md` y `docs/ESTADO-DEL-PROYECTO.md` §10.1 actualizados. Queda el recorrido manual a 360 px y 1280 px.
 
 Cada paso cierra con `typecheck`, `lint`, `format:check`, `test` y `build` del frontend, `dotnet test` (106 en verde), `git diff --stat -- Host Modules tests` vacío, revisión RD-01..RD-12 y un commit en español con sus RF/RD.
 
