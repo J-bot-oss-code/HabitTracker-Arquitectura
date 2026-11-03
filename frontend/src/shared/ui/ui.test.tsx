@@ -7,6 +7,7 @@ import { Button } from './Button'
 import { ConfirmarDialogo } from './ConfirmarDialogo'
 import { Estadistica } from './Estadistica'
 import { Icono } from './Icono'
+import { InsigniaRacha } from './InsigniaRacha'
 import { MiniBarras } from './MiniBarras'
 import { Modal } from './Modal'
 import { Segmentado } from './Segmentado'
@@ -158,5 +159,14 @@ describe('BarraProgreso y Estadistica con progreso', () => {
       'aria-valuenow',
       '67',
     )
+  })
+})
+
+describe('InsigniaRacha', () => {
+  it('usa singular y plural', () => {
+    const { rerender } = render(<InsigniaRacha dias={1} />)
+    expect(screen.getByText('1 día de racha')).toBeInTheDocument()
+    rerender(<InsigniaRacha dias={12} />)
+    expect(screen.getByText('12 días de racha')).toBeInTheDocument()
   })
 })

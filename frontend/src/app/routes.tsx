@@ -7,27 +7,41 @@ import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { ForgotPasswordPage, ResendActivationPage } from '@/features/auth/pages/SoloCorreoPage'
 import { ComingSoonPage } from '@/features/coming-soon/ComingSoonPage'
 import { PIEZAS_PENDIENTES } from '@/features/coming-soon/piezas'
+import { LandingPage } from '@/features/publico/pages/LandingPage'
+import { useAuth } from '@/shared/auth/AuthContext'
 import { EmptyState } from '@/shared/ui/Card'
-import { RedirigirInicio, RequireAuth, SoloInvitados } from './guards'
+import { ErrorRuta } from './ErrorRuta'
+import { RequireAuth, SoloInvitados } from './guards'
 import { AppLayout } from './layout/AppLayout'
 import { AuthLayout } from './layout/AuthLayout'
+import { PublicLayout } from './layout/PublicLayout'
+import { rutaInicial } from './navigation'
 
+// Página 404 pública: con sesión, "Ir al inicio" vuelve al panel del rol.
 function NoEncontrada() {
+  const { usuario } = useAuth()
   return (
-    <EmptyState
-      icono="alerta"
-      titulo="Página no encontrada"
-      descripcion="La dirección no existe."
-      accion={
-        <Link to="/" className="font-semibold text-acento underline">
-          Ir al inicio
-        </Link>
-      }
-    />
+    <div className="py-12">
+      <EmptyState
+        nivelTitulo={1}
+        icono="alerta"
+        titulo="Página no encontrada"
+        descripcion="La dirección no existe."
+        accion={
+          <Link
+            to={usuario ? rutaInicial(usuario.rol) : '/'}
+            className="inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-acento underline"
+          >
+            {usuario ? 'Ir a mi panel' : 'Ir al inicio'}
+          </Link>
+        }
+      />
+    </div>
   )
 }
 
-// Las pantallas autenticadas se cargan bajo demanda: el login no descarga cada feature.
+// Las pantallas se cargan bajo demanda, salvo la landing, el login y el registro (puertas de
+// entrada): así cada visita descarga solo lo que usa.
 function perezosa<M>(cargar: () => Promise<M>, nombre: keyof M): Pick<RouteObject, 'lazy'> {
   return {
     lazy: async () => ({ Component: (await cargar())[nombre] as ComponentType }),
@@ -35,6 +49,12 @@ function perezosa<M>(cargar: () => Promise<M>, nombre: keyof M): Pick<RouteObjec
 }
 
 const paginas = {
+  metas: perezosa(() => import('@/features/publico/pages/MetasPage'), 'MetasPage'),
+  calculadoras: perezosa(
+    () => import('@/features/publico/pages/CalculadorasPage'),
+    'CalculadorasPage',
+  ),
+  legal: perezosa(() => import('@/features/publico/pages/LegalPage'), 'LegalPage'),
   cuenta: perezosa(() => import('@/features/auth/pages/AccountPage'), 'AccountPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
@@ -54,7 +74,19 @@ const paginas = {
 }
 
 export const rutas: RouteObject[] = [
-  { index: true, element: <RedirigirInicio /> },
+  // Páginas públicas (§5.1): se ven con y sin sesión.
+  {
+    element: <PublicLayout />,
+    children: [
+      { index: true, element: <LandingPage /> },
+      { path: 'metas', ...paginas.metas },
+      { path: 'calculadoras', ...paginas.calculadoras },
+      { path: 'legal/:documento', ...paginas.legal },
+      // Cualquier dirección desconocida, con o sin sesión. Las rutas protegidas son explícitas,
+      // así que una de ellas sin sesión sigue llevando al login.
+      { path: '*', element: <NoEncontrada /> },
+    ],
+  },
   {
     element: <AuthLayout />,
     children: [
@@ -109,9 +141,11 @@ export const rutas: RouteObject[] = [
             element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.notificaciones} />,
           },
           { path: 'reportes', element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.reportes} /> },
-          { path: '*', element: <NoEncontrada /> },
         ],
       },
     ],
   },
 ]
+
+// Raíz del router (App y pruebas): todas las rutas con un límite de errores genérico.
+export const rutaRaiz: RouteObject = { path: '/', errorElement: <ErrorRuta />, children: rutas }

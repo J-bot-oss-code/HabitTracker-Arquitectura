@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router'
+import { Link, Outlet } from 'react-router'
 import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
 import { Icono } from '@/shared/ui/Icono'
 import { AvisoModoDemo } from './AvisoModoDemo'
@@ -17,7 +17,9 @@ export function AuthLayout() {
       <AvisoModoDemo />
       <div className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <aside className="hidden flex-col justify-between panel-tinta p-10 lg:flex xl:p-14">
-          <Marca forzarTexto />
+          <Link to="/" aria-label="HabitTracker Nexus, inicio" className="self-start rounded-lg">
+            <Marca forzarTexto />
+          </Link>
           <div className="max-w-md space-y-8">
             <p className="font-display text-4xl font-extrabold leading-[1.1] tracking-tight xl:text-5xl">
               Tu meta, un día a la vez.
@@ -38,7 +40,9 @@ export function AuthLayout() {
           <div className="absolute right-4 top-4">
             <SelectorTemaMenu />
           </div>
-          <Marca className="lg:hidden" forzarTexto />
+          <Link to="/" aria-label="HabitTracker Nexus, inicio" className="rounded-lg lg:hidden">
+            <Marca forzarTexto />
+          </Link>
           <Outlet />
         </main>
       </div>

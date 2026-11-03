@@ -8,7 +8,7 @@ import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Icono } from '@/shared/ui/Icono'
-import { navegacionPara } from '../navigation'
+import { navegacionPara, rutaInicial } from '../navigation'
 import { AvisoModoDemo } from './AvisoModoDemo'
 import { Marca } from './Marca'
 
@@ -48,7 +48,11 @@ export function AppLayout() {
       <header data-no-imprimir className="sticky top-0 z-40 border-b border-borde bg-superficie">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-2.5">
-            <Link to="/" aria-label="Inicio" className="min-w-0 rounded-lg">
+            <Link
+              to={rutaInicial(usuario.rol)}
+              aria-label="Inicio"
+              className="inline-flex min-h-11 min-w-11 items-center rounded-lg"
+            >
               <Marca />
             </Link>
             {/* Cabecera de administración (§5.6): insignia visible del rol. */}

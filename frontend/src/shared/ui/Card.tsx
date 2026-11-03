@@ -53,18 +53,22 @@ export function EmptyState({
   descripcion,
   accion,
   icono = 'rayo',
+  nivelTitulo,
 }: {
   titulo: string
   descripcion?: ReactNode
   accion?: ReactNode
   icono?: NombreIcono
+  // Si el estado vacío es todo el contenido de la página, su título es el encabezado.
+  nivelTitulo?: 1 | 2
 }) {
+  const Titulo = nivelTitulo === 1 ? 'h1' : nivelTitulo === 2 ? 'h2' : 'p'
   return (
     <div className="rounded-2xl border border-dashed border-borde-fuerte bg-superficie px-6 py-12 text-center">
       <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-acento-suave text-acento-fuerte">
         <Icono nombre={icono} className="size-6" />
       </span>
-      <p className="font-display text-lg font-bold">{titulo}</p>
+      <Titulo className="font-display text-lg font-bold">{titulo}</Titulo>
       {descripcion && <p className="mx-auto mt-1 max-w-md text-sm text-atenuado">{descripcion}</p>}
       {accion && <div className="mt-5">{accion}</div>}
     </div>

@@ -45,8 +45,3 @@ export function SoloInvitados() {
   }
   return <Outlet />
 }
-
-export function RedirigirInicio() {
-  const { usuario } = useAuth()
-  return <Navigate to={usuario ? rutaInicial(usuario.rol) : '/login'} replace />
-}

@@ -14,7 +14,7 @@
 
 - [x] **Paso 0** — Rama, línea base (backend 106/106, frontend 222/222) y este plan.
 - [x] **Paso 1** — Identidad de la especificación (tokens, Plus Jakarta Sans, temas Claro, Oscuro y Sistema; sin halos ni degradados), componentes base reestilizados (`Estadistica` con barra, `BarraProgreso`, insignia Admin), cliente con `put`/`delete`, `esNoDisponible` y registro de contratos propuestos con su prueba. Cada ruta nueva se registra en el paso que construye su pantalla, para que ningún commit deje rutas vacías.
-- [ ] **Paso 2** — Landing pública, catálogo de metas y calculadora de calorías.
+- [x] **Paso 2** — Landing pública en `/` con `PublicLayout` (cabecera con menú móvil y pie legal), catálogo de metas con filtro por área (`/metas`), calculadora de calorías Mifflin-St Jeor sin guardar nada (`/calculadoras`) y documentos legales versionados (`/legal/:documento`: términos v2.1, privacidad v1.4, cookies, salud). Con sesión, la cabecera lleva al panel del rol.
 - [ ] **Paso 3** — Registro con consentimiento legal y onboarding de 4 pasos. _(Crítica de diseño, ronda 1.)_
 - [ ] **Paso 4** — Panel "Hoy".
 - [ ] **Paso 5** — Progreso y estadísticas: peso, medidas, constancia, récords. _(Crítica de diseño, ronda 2.)_
@@ -65,10 +65,19 @@ Los componentes usan nombres semánticos (`bg-superficie`, `text-atenuado`…) d
 
 Tipografía: Plus Jakarta Sans 600–800 (títulos y cifras) e Inter (cuerpo), ambas empaquetadas con `@fontsource`, sin CDN. Radios: inputs y botones 12 px, tarjetas 16 px, destacadas 20 px, chips 999 px. La única sombra es `shadow-flotante`, que se usa en la tarjeta del hero y en las capas flotantes (modal, toast, menú).
 
+**Desviaciones de la especificación en el Paso 2:**
+
+- La cabecera pública no incluye "Ejercicios": la biblioteca de ejercicios no existe todavía (mejoras §4.3).
+- "Ver plan" pasa a "Empezar este plan", porque lleva al registro con la meta y no a un detalle del plan.
+
 ## Pendientes para el backend (mejoras futuras)
 
 Se completa en cada paso. Cada fila es una necesidad del frontend que hoy resuelve la API simulada o que se omite.
 
-| Pieza | Qué falta en el backend                        | Cómo lo resuelve hoy el frontend  | Origen               |
-| ----- | ---------------------------------------------- | --------------------------------- | -------------------- |
-| CORS  | `Program.cs` no permite el origen del frontend | Solo funciona con la API simulada | `frontend/AGENTS.md` |
+| Pieza                              | Qué falta en el backend                                                                                           | Cómo lo resuelve hoy el frontend                      | Origen               |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | -------------------- |
+| CORS                               | `Program.cs` no permite el origen del frontend                                                                    | Solo funciona con la API simulada                     | `frontend/AGENTS.md` |
+| Catálogo de metas y plantillas     | `PlanTemplate` y un `GET` público del catálogo; el `slug` como identificador estable                              | Catálogo estático en `features/publico/catalogo.ts`   | mejoras §4.1         |
+| Documentos legales versionados     | Textos y versiones servidos por el Manejador de documentos                                                        | Textos de demostración en `features/publico/legal.ts` | mejoras §3, §6.2     |
+| Perfil físico y plan               | `GET/PUT /api/profile` con los límites de `LIMITES_CORPORALES` y `LIMITES_PLAN`                                   | Contrato propuesto (Paso 3)                           | mejoras §3           |
+| Descarga de datos y baja de cuenta | Exportación completa y `AccountDeletionRequested` con periodo de gracia; la landing y los términos ya lo prometen | Contrato propuesto (Paso 6)                           | mejoras §7.1         |
