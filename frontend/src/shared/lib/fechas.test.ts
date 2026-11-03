@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { etiquetaDiaSemanaUtc, fechaInputAUtcIso, hoyUtcInput, parsearFechaUtc } from './fechas'
+import {
+  etiquetaDiaSemanaUtc,
+  fechaInputAUtcIso,
+  fechaLargaUtc,
+  hoyUtcInput,
+  parsearFechaUtc,
+} from './fechas'
 
 describe('fechas en UTC (RD-11)', () => {
   it('interpreta como UTC una fecha del backend que llega sin "Z"', () => {
@@ -31,5 +37,16 @@ describe('etiquetaDiaSemanaUtc', () => {
   it('usa el día UTC aunque la zona local sea otra', () => {
     expect(etiquetaDiaSemanaUtc(new Date('2026-10-26T23:30:00Z'))).toMatch(/lun/i)
     expect(etiquetaDiaSemanaUtc(new Date('2026-10-27T00:30:00Z'))).toMatch(/mar/i)
+  })
+})
+
+describe('fechaLargaUtc', () => {
+  it('escribe el día UTC en español, con mayúscula inicial', () => {
+    expect(fechaLargaUtc(new Date('2026-10-30T15:00:00Z'))).toBe('Viernes, 30 de octubre')
+  })
+
+  it('no se desplaza por la zona del navegador cerca de medianoche UTC', () => {
+    expect(fechaLargaUtc(new Date('2026-10-30T23:59:59Z'))).toBe('Viernes, 30 de octubre')
+    expect(fechaLargaUtc(new Date('2026-10-31T00:00:00Z'))).toBe('Sábado, 31 de octubre')
   })
 })

@@ -4,15 +4,20 @@ import { PASSWORD_DEMO } from '@/mocks/db'
 import { renderApp } from '@/test/render'
 
 describe('LoginPage', () => {
-  it('un usuario Estándar entra y llega a sus hábitos', async () => {
+  it('un usuario Estándar entra y llega a su panel Hoy', async () => {
     const { user, router } = renderApp('/login')
     await user.type(screen.getByLabelText('Correo'), 'estandar@demo.com')
     await user.type(screen.getByLabelText('Contraseña'), PASSWORD_DEMO)
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/habitos')
-    expect(await screen.findByText('Leer')).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/hoy')
+    expect(await screen.findByRole('link', { name: 'Leer' })).toBeInTheDocument()
   })
 
   it('un Administrador llega a la bandeja de solicitudes', async () => {

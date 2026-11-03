@@ -47,6 +47,10 @@ export function usePerfil(habilitado = true) {
     // El reintento por defecto (solo 5xx y red) deja pasar al instante "sin perfil" (404) y
     // "pieza no disponible".
     staleTime: 60_000,
+    // Una consulta fallida (404 "sin perfil" o pieza no disponible) no se repite al montar otro
+    // observador: en v5 volvería a "pending" y el guard RequierePerfil desmontaría la página
+    // que acaba de montar, en un ciclo sin fin.
+    retryOnMount: false,
   })
 }
 

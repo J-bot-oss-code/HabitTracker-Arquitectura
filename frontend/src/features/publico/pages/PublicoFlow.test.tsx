@@ -146,7 +146,7 @@ describe('inicio público (sin sesión)', () => {
 
 describe('inicio público con sesión', () => {
   it.each([
-    ['estandar', '/habitos'],
+    ['estandar', '/hoy'],
     ['admin', '/admin/permisos'],
   ] as const)('%s: ofrece ir a su panel en lugar del registro', async (como, panel) => {
     renderApp('/', { como })
@@ -162,7 +162,7 @@ describe('inicio público con sesión', () => {
     expect(await screen.findByRole('heading', { name: 'Página no encontrada' })).toBeInTheDocument()
     expect(
       within(screen.getByRole('main')).getByRole('link', { name: 'Ir a mi panel' }),
-    ).toHaveAttribute('href', '/habitos')
+    ).toHaveAttribute('href', '/hoy')
   })
 })
 

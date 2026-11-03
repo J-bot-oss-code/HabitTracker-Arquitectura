@@ -34,7 +34,12 @@ describe('flujos de cuenta', () => {
     expect(await screen.findByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
     expect(screen.getByText('Paso 3 de 5')).toBeInTheDocument()
     await completarOnboarding(user)
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
 
     const nueva = db.usuarios.find((u) => u.correo === 'nueva@demo.com')
     expect(db.perfiles.get(nueva?.id ?? '')).toMatchObject({
@@ -163,7 +168,12 @@ describe('flujos de cuenta', () => {
     await user.type(screen.getByLabelText('Correo'), 'estandar@demo.com')
     await user.type(screen.getByLabelText('Contraseña'), 'NuevaClave9')
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
   })
 
   it('cambiar la contraseña cierra la sesión (RF-CA-12)', async () => {

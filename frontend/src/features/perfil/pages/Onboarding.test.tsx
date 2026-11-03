@@ -38,8 +38,13 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
 
   it('quien ya tiene perfil no vuelve a ver el onboarding', async () => {
     const { router } = renderApp('/bienvenida', { como: 'estandar' })
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/habitos')
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/hoy')
   })
 
   it('el Administrador no tiene onboarding', async () => {
@@ -102,7 +107,12 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
     await user.click(screen.getByRole('checkbox', { name: /Términos de uso/ }))
     await user.click(screen.getByRole('checkbox', { name: /Política de privacidad/ }))
     await user.click(screen.getByRole('button', { name: 'Empezar mi plan' }))
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
     expect(db.consentimientos.get(luis())).toMatchObject({ datosSalud: true, marketing: false })
     expect(db.perfiles.get(luis())).toMatchObject({ metaSlug: null })
   })
@@ -111,7 +121,12 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
     recordarRegistro()
     const { user } = renderApp('/bienvenida', { como: 'otro' })
     await completarOnboarding(user)
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
     expect(localStorage.getItem('habittracker.registro-pendiente')).toBeNull()
     expect(db.perfiles.get(luis())).toMatchObject({ metaSlug: 'fuerza-en-casa' })
   })
@@ -167,8 +182,13 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
     recordarRegistro()
     const { user, router } = renderAppConEstado('/bienvenida', { desde: '//evil.example' }, 'otro')
     await completarOnboarding(user)
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/habitos')
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/hoy')
   })
 })
 

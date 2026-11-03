@@ -22,8 +22,13 @@ describe('rutas protegidas y navegación por rol', () => {
   it('no redirige fuera de la app aunque el destino previo lo intente', async () => {
     iniciarSesionComo('estandar')
     const { router } = renderAppConEstado('/login', { desde: '/\\evil.example' })
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/habitos')
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/hoy')
   })
 
   it('tras otra sesión, el Administrador no vuelve a una ruta de Estándar', async () => {

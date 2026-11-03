@@ -40,3 +40,16 @@ const formatoDiaSemana = new Intl.DateTimeFormat('es-DO', { weekday: 'short', ti
 export function etiquetaDiaSemanaUtc(fecha: Date): string {
   return formatoDiaSemana.format(fecha)
 }
+
+const formatoFechaLarga = new Intl.DateTimeFormat('es-DO', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: 'UTC',
+})
+
+// "Viernes, 30 de octubre" del día UTC en curso, igual que el día en que cuentan los avances.
+export function fechaLargaUtc(fecha = new Date()): string {
+  const texto = formatoFechaLarga.format(fecha)
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}

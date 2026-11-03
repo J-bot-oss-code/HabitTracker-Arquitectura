@@ -16,7 +16,7 @@
 - [x] **Paso 1** — Identidad de la especificación (tokens, Plus Jakarta Sans, temas Claro, Oscuro y Sistema; sin halos ni degradados), componentes base reestilizados (`Estadistica` con barra, `BarraProgreso`, insignia Admin), cliente con `put`/`delete`, `esNoDisponible` y registro de contratos propuestos con su prueba. Cada ruta nueva se registra en el paso que construye su pantalla, para que ningún commit deje rutas vacías.
 - [x] **Paso 2** — Landing pública en `/` con `PublicLayout` (cabecera con menú móvil y pie legal), catálogo de metas con filtro por área (`/metas`), calculadora de calorías Mifflin-St Jeor sin guardar nada (`/calculadoras`) y documentos legales versionados (`/legal/:documento`: términos v2.1, privacidad v1.4, cookies, salud). Con sesión, la cabecera lleva al panel del rol.
 - [x] **Paso 3** — Registro con consentimiento legal y onboarding (3 pantallas: pasos 3 a 5 del alta). _(Crítica de diseño, ronda 1.)_
-- [ ] **Paso 4** — Panel "Hoy".
+- [x] **Paso 4** — Panel "Hoy" en `/hoy` (destino tras iniciar sesión y tras el onboarding del Estándar): fecha y saludo, 4 estadísticas, tareas del día con "Marcar hecha" y "Registrar cantidad", próxima tarea y tira de la semana. Usa los hábitos reales; el perfil propuesto solo aporta el nombre y el plan.
 - [ ] **Paso 5** — Progreso y estadísticas: peso, medidas, constancia, récords. _(Crítica de diseño, ronda 2.)_
 - [ ] **Paso 6** — Centro de privacidad: descarga de datos, consentimientos y baja.
 - [ ] **Paso 7** — Panel de administración: métricas anónimas y auditoría. _(Crítica de diseño, ronda 3 + WCAG 2.2 AA.)_
@@ -64,6 +64,13 @@ Los componentes usan nombres semánticos (`bg-superficie`, `text-atenuado`…) d
 - Para el Paso 5: entre sí, los niveles `calor-1/2` no llegan a 3:1, así que cada celda del mapa de calor necesita una alternativa en texto.
 
 Tipografía: Plus Jakarta Sans 600–800 (títulos y cifras) e Inter (cuerpo), ambas empaquetadas con `@fontsource`, sin CDN. Radios: inputs y botones 12 px, tarjetas 16 px, destacadas 20 px, chips 999 px. La única sombra es `shadow-flotante`, que se usa en la tarjeta del hero y en las capas flotantes (modal, toast, menú).
+
+**Desviaciones y notas del Paso 4:**
+
+- No se incluyen "Iniciar entrenamiento", "Mi plan", "Retos" ni el aviso de revisión semanal: no hay backend de entrenamientos, retos ni reportes semanales.
+- La racha, el cumplimiento y la tira cuentan solo los hábitos **diarios** activos; los semanales aparecen en las tareas pero no en esas métricas.
+- El día es el día UTC (RD-11), igual que los avances. El saludo usa la hora local de quien mira; en UTC-4, de 20:00 a 24:00 el encabezado dice "Buenas noches" con la fecha del día siguiente.
+- Un avance no se deshace desde la interfaz: la API no tiene borrado de avances.
 
 **Desviaciones de la especificación en el Paso 2:**
 

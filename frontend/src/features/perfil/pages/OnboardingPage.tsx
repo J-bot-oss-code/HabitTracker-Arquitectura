@@ -49,7 +49,7 @@ import {
 
 // Al terminar el onboarding el usuario aterriza en su panel, o vuelve a la página interna que
 // pidió (RequierePerfil la pasa en state.desde).
-export const DESTINO_TRAS_ONBOARDING = '/habitos'
+export const DESTINO_TRAS_ONBOARDING = '/hoy'
 
 function destinoPedido(state: unknown): string {
   const desde = (state as { desde?: unknown } | null)?.desde
@@ -85,7 +85,7 @@ export function OnboardingPage() {
           descripcion="Esta parte del alta aún no está disponible en el servidor. Mientras tanto puedes usar tus hábitos."
           accion={
             <Link to={DESTINO_TRAS_ONBOARDING} className={claseEnlace}>
-              Ir a mis hábitos
+              Ir a mi panel
             </Link>
           }
         />
