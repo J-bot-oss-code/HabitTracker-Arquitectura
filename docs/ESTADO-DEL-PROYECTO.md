@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 04-11-2026, al cerrar la Práctica 4 (rama `feature/practica-4-documentos-contenedor`). Antes: 28-10-2026, Práctica 3 integrada en `main` (PR #32 → `develop`, PR #33 → `main`).
+> Última actualización: 04-11-2026, al cerrar la Práctica 4 (PR #40 y #41 → `develop`, PR #42 → `main`, etiqueta `practica-4`). Antes: 28-10-2026, Práctica 3 integrada en `main` (PR #32 → `develop`, PR #33 → `main`).
 > Lee este archivo al iniciar una sesión. Las reglas de trabajo están en `AGENTS.md` y la guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -24,7 +24,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
 | `asignacion-2` | `6433209` | |
 | `practica-2` | `86f7e0a` | 39 pruebas. Defectos `practica-2-defecto-1..6`, hijos directos. |
 | `practica-3` | `318daab` | 106 pruebas. Defectos `practica-3-defecto-1..4` (`485a0a1`, `dcd2bea`, `f1d3335`, `f802c65`), hijos directos. |
-| `practica-4` | _por crear al integrar en `main`_ | 308 pruebas. Contenedor, documentos y API externa (ver §11). |
+| `practica-4` | `0403df5` | 347 pruebas. Contenedor, documentos, API externa y activación con código de 6 dígitos (ver §11). Creado el 04-11-2026 sobre `main` tras verificarlo desde un clon limpio (92 + 4 comprobaciones). |
 
 - Los tags de la Práctica 3 se rehicieron el 28-10 (antes de entregar) para incluir dos correcciones (ver §5). Quien tenga clones antiguos debe ejecutar `git fetch --tags --force`.
 - Cada commit de defecto cambia un solo archivo de producción y su mensaje indica archivo y línea. La tabla con la prueba que detecta cada defecto está en `README.md` › `## Defectos — Práctica 2/3`.
