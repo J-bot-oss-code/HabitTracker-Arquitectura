@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Text.RegularExpressions;
 using AccessControl.Domain.Entities;
 using AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -121,15 +122,50 @@ public class EmailSenderWorker : BackgroundService
             && string.IsNullOrWhiteSpace(host);
     }
 
+    /// <summary>
+    /// Resume el correo HTML en una línea: el enlace del botón (activación) y el código destacado
+    /// (token de activación o código de recuperación). Si no encuentra ninguno, devuelve el texto sin etiquetas.
+    /// </summary>
+    public static string ResumirCuerpo(string cuerpoHtml)
+    {
+        if (string.IsNullOrWhiteSpace(cuerpoHtml))
+        {
+            return string.Empty;
+        }
+
+        var partes = new List<string>();
+
+        var enlace = Regex.Match(cuerpoHtml, "href=\"(?<u>[^\"]+)\"");
+        if (enlace.Success)
+        {
+            partes.Add($"Enlace: {System.Net.WebUtility.HtmlDecode(enlace.Groups["u"].Value)}");
+        }
+
+        var codigo = Regex.Match(cuerpoHtml, @"<div[^>]*letter-spacing[^>]*>(?<c>[^<]+)</div>");
+        if (codigo.Success)
+        {
+            partes.Add($"Código: {codigo.Groups["c"].Value.Trim()}");
+        }
+
+        if (partes.Count > 0)
+        {
+            return string.Join(" | ", partes);
+        }
+
+        var texto = Regex.Replace(Regex.Replace(cuerpoHtml, "<[^>]+>", " "), @"\s+", " ").Trim();
+        return texto.Length <= 500 ? texto : texto[..500];
+    }
+
     private async Task EnviarPorSmtpAsync(CorreoEnCola correo, CancellationToken stoppingToken)
     {
         if (DebeEscribirEnConsola(_configuration))
         {
             // Canal de desarrollo para poder activar cuentas y recuperar contraseñas sin un servidor de correo.
             // El cuerpo incluye el enlace o el código: en producción se debe usar SMTP real.
+            // Una sola línea: el cuerpo HTML ocupa decenas de líneas y filtrar el log por "CORREO" no mostraría el enlace.
             _logger.LogInformation(
-                "[CORREO EN CONSOLA] Para: {Destino} | Asunto: {Asunto} | Cuerpo: {Cuerpo}",
-                correo.Destinatario, correo.Asunto, correo.Cuerpo);
+                "[CORREO EN CONSOLA] Para: {Destino} | Asunto: {Asunto} | {Resumen}",
+                correo.Destinatario, correo.Asunto, ResumirCuerpo(correo.Cuerpo));
             return;
         }
 
