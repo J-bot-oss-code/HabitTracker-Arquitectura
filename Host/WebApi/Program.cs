@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
+using DocumentManager.Infrastructure.DependencyInjection;
 using Permissions.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,9 @@ builder.Services.AddHabitTrackerModule(builder.Configuration);
 
 // Módulo de Gestión de Permisos (persistencia propia).
 builder.Services.AddPermissionsInfrastructure(builder.Configuration);
+
+// Módulo Manejador de Documentos (Pieza 3 del Core; persistencia y almacenamiento propios).
+builder.Services.AddDocumentManagerModule(builder.Configuration);
 
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();

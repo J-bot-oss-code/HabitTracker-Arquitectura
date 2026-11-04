@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using DocumentManager.Application.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Middlewares;
@@ -25,6 +26,33 @@ public class GlobalExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (DocumentoNoEncontradoException ex)
+        {
+            _logger.LogInformation(ex, "Documento no encontrado.");
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", "El documento no existe.");
+        }
+        catch (ArchivoInvalidoException ex)
+        {
+            // Debe ir antes de ArgumentException (es su subclase). Su mensaje lo escribimos nosotros
+            // ("El archivo supera el tamaño máximo...") y es seguro mostrarlo: no lleva rutas ni trazas.
+            _logger.LogInformation(ex, "Archivo rechazado.");
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, "Archivo no válido.", ex.Message);
+        }
+        catch (BadHttpRequestException ex)
+        {
+            // Kestrel lo lanza al superar el límite del cuerpo (413) o con un cuerpo mal formado (400).
+            _logger.LogInformation(ex, "Solicitud HTTP rechazada por el servidor.");
+            var status = (HttpStatusCode)ex.StatusCode;
+            var detalle = ex.StatusCode == StatusCodes.Status413PayloadTooLarge
+                ? "La solicitud supera el tamaño permitido."
+                : "La solicitud no es válida.";
+            await WriteProblemAsync(context, status, "Solicitud rechazada.", detalle);
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            // El cliente cerró la conexión a mitad de la petición: no es un error del servidor ni hay a quién responder.
+            _logger.LogInformation("Solicitud cancelada por el cliente en {Path}.", context.Request.Path);
         }
         catch (ArgumentException ex)
         {
