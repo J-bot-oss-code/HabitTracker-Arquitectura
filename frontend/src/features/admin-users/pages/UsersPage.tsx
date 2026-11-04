@@ -3,6 +3,7 @@ import type { UsuarioResponseDto } from '@/features/auth/types'
 import { mensajeDeError } from '@/shared/api/problem'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { ROLES, etiquetaRol, type Rol } from '@/shared/auth/roles'
+import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Alert } from '@/shared/ui/Alert'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
@@ -22,8 +23,8 @@ type AccionPendiente =
 
 const celda = 'block px-4 py-1.5 md:table-cell md:py-3'
 const conRotulo =
-  'before:mb-0.5 before:block before:text-xs before:font-semibold before:uppercase before:tracking-wider before:text-atenuado before:content-[attr(data-etiqueta)] md:before:hidden'
-const encabezado = 'px-4 py-3 text-xs font-semibold uppercase tracking-wider text-atenuado'
+  'before:mb-0.5 before:block before:rotulo before:content-[attr(data-etiqueta)] md:before:hidden'
+const encabezado = 'px-4 py-3 rotulo'
 
 export function UsersPage() {
   const usuarios = useUsuarios()
@@ -82,7 +83,7 @@ export function UsersPage() {
       {usuarios.isPending ? (
         <CargandoPagina texto="Cargando usuarios…" />
       ) : usuarios.isError ? (
-        <Alert tono="peligro">{mensajeDeError(usuarios.error)}</Alert>
+        <ErrorCarga error={usuarios.error} alReintentar={() => usuarios.refetch()} />
       ) : visibles.length === 0 ? (
         <EmptyState
           icono="buscar"
@@ -94,7 +95,7 @@ export function UsersPage() {
           }
         />
       ) : (
-        <div className="md:overflow-hidden md:rounded-xl md:border md:border-borde md:bg-superficie md:shadow-tarjeta">
+        <div className="md:overflow-hidden md:rounded-xl md:border md:border-borde md:bg-superficie">
           <table role="table" className="block w-full text-left text-sm md:table">
             <thead role="rowgroup" className="sr-only md:not-sr-only md:table-header-group">
               <tr role="row" className="md:table-row">
@@ -145,7 +146,7 @@ function FilaUsuario({
   return (
     <tr
       role="row"
-      className="block rounded-xl border border-borde bg-superficie py-3 shadow-tarjeta md:table-row md:rounded-none md:border-0 md:bg-transparent md:py-0 md:shadow-none"
+      className="block rounded-xl border border-borde bg-superficie py-3 md:table-row md:rounded-none md:border-0 md:bg-transparent md:py-0"
     >
       <td role="cell" data-etiqueta="Usuario" className={`${celda} ${conRotulo}`}>
         <div className="font-semibold">
@@ -164,7 +165,7 @@ function FilaUsuario({
           disabled={esYo}
           title={motivoBloqueo}
           onChange={(e) => alPedir({ tipo: 'rol', usuario, rol: e.target.value as Rol })}
-          className="min-h-11 rounded-lg border border-borde-fuerte bg-superficie px-2 text-sm text-texto disabled:cursor-not-allowed disabled:text-atenuado"
+          className="min-h-11 rounded-lg border border-control bg-superficie px-2 text-sm text-texto disabled:cursor-not-allowed disabled:text-atenuado"
         >
           {ROLES.map((r) => (
             <option key={r} value={r}>

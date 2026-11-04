@@ -1,13 +1,21 @@
 import type { ReactNode } from 'react'
-import { Card, CardBody } from '@/shared/ui/Card'
+import { Card, CardBody } from './Card'
+
+// Tarjeta de las pantallas de cuenta y del alta (registro, verificación, onboarding). Su título
+// admite foco (tabIndex -1) para anunciar el cambio de paso en un asistente.
 
 export function AuthCard({
   titulo,
   descripcion,
   children,
   pie,
+  paso,
+  total = 5,
 }: {
   titulo: string
+  // Posición en el alta (§5.2): 1 registro, 2 verificación, 3–5 onboarding.
+  paso?: number
+  total?: number
   descripcion?: ReactNode
   children: ReactNode
   pie?: ReactNode
@@ -16,7 +24,14 @@ export function AuthCard({
     <Card className="anim-aparecer w-full max-w-md">
       <CardBody className="space-y-6 p-6 sm:p-8">
         <div>
-          <h1 className="text-4xl font-bold uppercase tracking-wide">{titulo}</h1>
+          {paso !== undefined && (
+            <p className="rotulo mb-2">
+              Paso {paso} de {total}
+            </p>
+          )}
+          <h1 tabIndex={-1} className="text-[1.75rem] font-extrabold outline-none">
+            {titulo}
+          </h1>
           {descripcion && <p className="mt-1.5 text-sm text-atenuado">{descripcion}</p>}
         </div>
         {children}

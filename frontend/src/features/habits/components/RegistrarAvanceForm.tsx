@@ -10,7 +10,14 @@ import { useRegistrarAvance } from '../api'
 import { registrarAvanceSchema, type RegistrarAvanceForm as Datos } from '../schemas'
 import type { HabitoDto } from '../types'
 
-export function RegistrarAvanceForm({ habito }: { habito: HabitoDto }) {
+export function RegistrarAvanceForm({
+  habito,
+  alRegistrar,
+}: {
+  habito: HabitoDto
+  // Para cerrar un diálogo o seguir con el flujo cuando el avance quedó registrado.
+  alRegistrar?: () => void
+}) {
   const registrar = useRegistrarAvance(habito.id)
   const { notificar } = useToast()
   const {
@@ -35,6 +42,7 @@ export function RegistrarAvanceForm({ habito }: { habito: HabitoDto }) {
       {
         onSuccess: () => {
           notificar('Avance registrado.')
+          alRegistrar?.()
           reset({ fecha: d.fecha })
         },
       },

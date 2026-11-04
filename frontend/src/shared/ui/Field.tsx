@@ -9,12 +9,12 @@ import type {
 import { cn } from '@/shared/lib/cn'
 
 const control =
-  'block w-full min-h-11 rounded-lg border bg-superficie px-3.5 py-2 text-sm text-texto placeholder:text-atenuado transition-colors disabled:cursor-not-allowed disabled:opacity-60'
+  'block w-full min-h-11 rounded-xl border bg-superficie px-3.5 py-2 text-sm text-texto placeholder:text-atenuado transition-colors disabled:cursor-not-allowed disabled:opacity-60'
 
 function claseControl(error?: string) {
   return cn(
     control,
-    error ? 'border-peligro' : 'border-borde-fuerte hover:border-acento focus:border-acento',
+    error ? 'border-peligro' : 'border-control hover:border-acento focus:border-acento',
   )
 }
 

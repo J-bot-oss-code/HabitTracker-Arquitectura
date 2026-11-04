@@ -11,7 +11,7 @@
       // src/shared/theme/temas.ts (clave y lista de temas).
       try {
         var t = localStorage.getItem('habittracker.tema')
-        var validos = ['sistema', 'claro', 'oscuro', 'calido', 'estadio']
+        var validos = ['sistema', 'claro', 'oscuro']
         if (validos.indexOf(t) === -1) t = 'sistema'
         var r = document.documentElement
         r.dataset.temaElegido = t

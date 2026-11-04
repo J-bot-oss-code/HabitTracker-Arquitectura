@@ -18,7 +18,7 @@ export function HabitoCard({ habito }: { habito: HabitoDto }) {
     <Link
       to={`/habitos/${habito.id}`}
       className={cn(
-        'group flex min-h-11 items-center gap-4 rounded-xl border bg-superficie p-4 shadow-tarjeta transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-acento hover:shadow-brillo',
+        'group flex min-h-11 items-center gap-4 rounded-xl border bg-superficie p-4 transition-[border-color,box-shadow] duration-200 hover:border-acento hover:ring-1 hover:ring-acento',
         enMarcha ? 'border-borde-fuerte' : 'border-borde',
         habito.cumpleMetaFinal && enMarcha && 'border-exito',
       )}
@@ -32,12 +32,12 @@ export function HabitoCard({ habito }: { habito: HabitoDto }) {
       />
       <div className="min-w-0 flex-1 space-y-2">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="truncate text-xl font-bold uppercase leading-tight">{habito.nombre}</h3>
+          <h3 className="truncate text-lg font-bold leading-tight">{habito.nombre}</h3>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <EstadoHabitoBadge estado={habito.estado} />
           {habito.cumpleMetaFinal && enMarcha && (
-            <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-exito">
+            <span className="inline-flex items-center gap-1 text-xs font-semibold text-exito">
               <Icono nombre="trofeo" className="size-3.5" />
               Meta cumplida
             </span>
@@ -52,7 +52,7 @@ export function HabitoCard({ habito }: { habito: HabitoDto }) {
           {habito.unidad} {etiquetaPeriodo[habito.periodicidad]}
         </p>
         {racha > 0 && (
-          <p className="flex items-center gap-1 text-sm font-semibold text-acento-2">
+          <p className="flex items-center gap-1 text-sm font-semibold text-acento">
             <Icono nombre="llama" className="size-4" />
             Racha de {racha}{' '}
             {habito.periodicidad === 'Diaria'

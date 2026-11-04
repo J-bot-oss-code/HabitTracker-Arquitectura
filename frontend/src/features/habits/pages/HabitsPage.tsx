@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
-import { mensajeDeError } from '@/shared/api/problem'
-import { Alert } from '@/shared/ui/Alert'
+import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Button } from '@/shared/ui/Button'
 import { EmptyState, PageHeader } from '@/shared/ui/Card'
 import { Estadistica } from '@/shared/ui/Estadistica'
@@ -88,9 +87,11 @@ export function HabitsPage() {
       {habitos.isPending ? (
         <CargandoPagina texto="Cargando hábitos…" />
       ) : habitos.isError ? (
-        <Alert tono="peligro">
-          {mensajeDeError(habitos.error, 'No se pudieron cargar los hábitos.')}
-        </Alert>
+        <ErrorCarga
+          error={habitos.error}
+          porDefecto="No se pudieron cargar los hábitos."
+          alReintentar={() => habitos.refetch()}
+        />
       ) : visibles.length === 0 ? (
         <EmptyState
           icono="habitos"

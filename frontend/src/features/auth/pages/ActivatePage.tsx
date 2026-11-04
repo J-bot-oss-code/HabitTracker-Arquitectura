@@ -4,9 +4,10 @@ import { useForm } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
+import { claseBoton } from '@/shared/ui/claseBoton'
 import { Input } from '@/shared/ui/Field'
 import { useActivar } from '../api'
-import { AuthCard, claseEnlace } from '../components/AuthCard'
+import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
 import { activarSchema, type ActivarForm } from '../schemas'
 
 export function ActivatePage() {
@@ -34,9 +35,9 @@ export function ActivatePage() {
 
   if (activar.isSuccess) {
     return (
-      <AuthCard titulo="Cuenta activada">
-        <Alert tono="exito">Tu cuenta está activa. Ya puedes iniciar sesión.</Alert>
-        <Link to="/login" className={claseEnlace}>
+      <AuthCard titulo="Cuenta activada" paso={2}>
+        <Alert tono="exito">Tu cuenta está activa. Inicia sesión para preparar tu plan.</Alert>
+        <Link to="/login" className={claseBoton({ tamano: 'lg' })}>
           Ir a iniciar sesión
         </Link>
       </AuthCard>
@@ -46,6 +47,7 @@ export function ActivatePage() {
   return (
     <AuthCard
       titulo="Activar cuenta"
+      paso={2}
       descripcion="Pega el código que recibiste en el correo de activación."
       pie={
         <Link to="/reenviar-activacion" className={claseEnlace}>

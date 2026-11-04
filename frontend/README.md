@@ -53,9 +53,9 @@ Recorrido sugerido:
 
 ## Apariencia y temas
 
-Diseño deportivo y futurista: cifras tipo marcador, anillos de progreso, rachas y barras de los últimos 7 días. Cinco temas — **Sistema** (por defecto), **Claro**, **Oscuro**, **Cálido** y **Estadio** (alto contraste, neón) — que se eligen desde el icono de la cabecera o en **Mi cuenta → Apariencia**. La elección se guarda en el navegador y se aplica antes del primer pintado.
+Diseño sobrio según la especificación `docs/mejoras/diseno-ui-web-movil.md`: fondo gris claro, tarjetas blancas con borde sutil, un solo acento índigo, cifras KPI grandes y progreso visible. Tres temas — **Sistema** (por defecto), **Claro** y **Oscuro** — que se eligen desde el icono de la cabecera o en **Mi cuenta → Apariencia**. La elección se guarda en el navegador y se aplica antes del primer pintado.
 
-Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2.2 AA (lo verifica `npm test`). Las fuentes (Barlow Condensed e Inter) se empaquetan con la app: no hay peticiones a CDN externas.
+Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2.2 AA (lo verifica `npm test`). Las fuentes (Plus Jakarta Sans e Inter) se empaquetan con la app: no hay peticiones a CDN externas.
 
 ## Configuración
 
@@ -84,3 +84,7 @@ Para usar el backend real hay que habilitar antes CORS en `Host/WebApi` (ver `AG
 | Calidad       | ESLint + Prettier                                  |
 
 La estructura, las reglas y el equipo de agentes están en [`AGENTS.md`](AGENTS.md).
+
+## Pantallas y estado del plan
+
+El plan por pasos, las desviaciones de la especificación y los pendientes del backend están en `docs/PLAN-FRONTEND-NEXUS.md`. Las pantallas que aún no tienen endpoint (perfil, peso y medidas, privacidad, métricas y auditoría) funcionan con la API simulada y se anuncian como "llegará pronto" si el servidor real no las tiene.

@@ -56,3 +56,15 @@ export const useRegistrarAvance = (id: string) =>
 
 export const useReconfigurarHabito = (id: string) =>
   useMutacionHabitos((body: ReconfigurarHabitoRequest) => habitsApi.reconfigurar(id, body))
+
+// Métricas de presentación de Progreso, para otras features (frontend/AGENTS.md: una feature
+// solo usa de otra su api.ts/types.ts).
+export {
+  constanciaPorDia,
+  logrosDe,
+  recordsDe,
+  type DiaConstancia,
+  type Logro,
+  type NivelConstancia,
+  type Records,
+} from './progreso'

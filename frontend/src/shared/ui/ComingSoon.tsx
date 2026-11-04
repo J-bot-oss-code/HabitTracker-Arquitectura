@@ -25,10 +25,10 @@ export function ComingSoon({
   return (
     <div className="mx-auto max-w-3xl">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <span className="grid size-12 place-items-center rounded-xl bg-superficie-2 text-acento-2">
+        <span className="grid size-12 place-items-center rounded-xl bg-superficie-2 text-acento">
           <Icono nombre={icono} className="size-6" />
         </span>
-        <h1 className="text-3xl font-bold uppercase tracking-wide sm:text-4xl">{titulo}</h1>
+        <h1 className="text-3xl font-extrabold sm:text-[2rem]">{titulo}</h1>
         <Badge tono="aviso" icono="calendario">
           Próximamente
         </Badge>
@@ -49,7 +49,7 @@ export function ComingSoon({
                     aria-hidden="true"
                     className="absolute -left-[1.62rem] top-1.5 size-2.5 rounded-full bg-acento"
                   />
-                  <code className="mr-2 font-semibold text-acento-2">{r.id}</code>
+                  <code className="mr-2 font-semibold text-acento">{r.id}</code>
                   <span>{r.texto}</span>
                 </li>
               ))}

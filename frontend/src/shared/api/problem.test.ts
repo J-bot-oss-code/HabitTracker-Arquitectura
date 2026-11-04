@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError, mensajeDeError } from './problem'
+import { ApiError, esNoDisponible, mensajeDeError } from './problem'
 
 describe('mensajeDeError (RD-08)', () => {
   it('usa el primer error de validación del modelo', () => {
@@ -45,5 +45,24 @@ describe('mensajeDeError (RD-08)', () => {
     expect(mensajeDeError(new TypeError('Failed to fetch'))).toBe(
       'No se pudo contactar con el servidor.',
     )
+  })
+})
+
+describe('esNoDisponible (contratos propuestos)', () => {
+  it('un 404 sin cuerpo es un endpoint que el backend aún no tiene', () => {
+    expect(esNoDisponible(new ApiError(404, null))).toBe(true)
+  })
+
+  it('un 405 también: la ruta existe con otro método', () => {
+    expect(esNoDisponible(new ApiError(405, null))).toBe(true)
+  })
+
+  it('un 404 con ProblemDetails es un recurso inexistente, no una pieza pendiente', () => {
+    expect(esNoDisponible(new ApiError(404, { title: 'No encontrado.' }))).toBe(false)
+  })
+
+  it('otros errores no cuentan', () => {
+    expect(esNoDisponible(new ApiError(403, null))).toBe(false)
+    expect(esNoDisponible(new TypeError('fetch failed'))).toBe(false)
   })
 })

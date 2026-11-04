@@ -1,6 +1,8 @@
 // Temas de la interfaz. Los colores viven en tokens CSS (src/index.css) y se activan con
 // data-theme en <html>; aquí solo está el catálogo y la lógica de resolución.
-export const TEMAS = ['sistema', 'claro', 'oscuro', 'calido', 'estadio'] as const
+// Un valor guardado de un tema retirado (p. ej. "calido") deja de ser válido y se usa el
+// predeterminado (ver leerTemaGuardado).
+export const TEMAS = ['sistema', 'claro', 'oscuro'] as const
 export type Tema = (typeof TEMAS)[number]
 export type TemaAplicado = Exclude<Tema, 'sistema'>
 
@@ -20,31 +22,19 @@ export const INFO_TEMAS: InfoTema[] = [
     clave: 'sistema',
     nombre: 'Sistema',
     descripcion: 'Sigue el modo de tu dispositivo.',
-    muestra: ['#f3f5fb', '#0b0f17', '#2f4fe6'],
+    muestra: ['#f7f8fb', '#0b1120', '#4f46e5'],
   },
   {
     clave: 'claro',
     nombre: 'Claro',
-    descripcion: 'Limpio y luminoso, con acento eléctrico.',
-    muestra: ['#f3f5fb', '#ffffff', '#2f4fe6'],
+    descripcion: 'Gris claro con tarjetas blancas y acento índigo.',
+    muestra: ['#f7f8fb', '#ffffff', '#4f46e5'],
   },
   {
     clave: 'oscuro',
     nombre: 'Oscuro',
-    descripcion: 'Grafito con acento lima, para entrenar de noche.',
-    muestra: ['#0b0f17', '#121826', '#c6ff3d'],
-  },
-  {
-    clave: 'calido',
-    nombre: 'Cálido',
-    descripcion: 'Tonos arena y ámbar, menos cansancio visual.',
-    muestra: ['#f5ecdc', '#fffaf0', '#b53a0b'],
-  },
-  {
-    clave: 'estadio',
-    nombre: 'Estadio',
-    descripcion: 'Negro profundo con neón y alto contraste.',
-    muestra: ['#04050a', '#0b0e18', '#00e5ff'],
+    descripcion: 'Pizarra con acento índigo, para la noche.',
+    muestra: ['#0b1120', '#131c2e', '#818cf8'],
   },
 ]
 

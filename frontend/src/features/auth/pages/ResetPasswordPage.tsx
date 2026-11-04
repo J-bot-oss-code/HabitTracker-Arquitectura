@@ -5,7 +5,7 @@ import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { Input } from '@/shared/ui/Field'
 import { useRestablecerPassword } from '../api'
-import { AuthCard, claseEnlace } from '../components/AuthCard'
+import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
 import { restablecerSchema, type RestablecerForm } from '../schemas'
 
 export function ResetPasswordPage() {

@@ -1,56 +1,100 @@
-import { Outlet } from 'react-router'
+import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
+import { leerRegistroPendiente } from '@/features/perfil/api'
+import { buscarMeta, type MetaCatalogo } from '@/features/publico/api'
+import { useAuth } from '@/shared/auth/AuthContext'
 import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
 import { Icono } from '@/shared/ui/Icono'
 import { AvisoModoDemo } from './AvisoModoDemo'
 import { Marca } from './Marca'
 
-const puntos = [
-  { icono: 'llama', texto: 'Rachas que te mantienen en movimiento' },
-  { icono: 'trofeo', texto: 'Metas con cierre claro: cumples o sigues' },
-  { icono: 'permisos', texto: 'Acciones avanzadas con permiso del administrador' },
+const beneficios = [
+  'Un plan diario con pocas tareas concretas',
+  'Rachas y progreso visibles cada semana',
+  'Descarga o borra tus datos cuando quieras',
 ] as const
 
-// Pantalla dividida: panel deportivo a la izquierda (desde lg) y formulario a la derecha.
+// Meta que acompaña el alta: la de ?meta= en el registro o la recordada del registro en el
+// onboarding. Siempre validada contra el catálogo (buscarMeta).
+function useMetaElegida(): MetaCatalogo | null {
+  const [params] = useSearchParams()
+  const { pathname } = useLocation()
+  const { usuario } = useAuth()
+  if (pathname === '/registro') return buscarMeta(params.get('meta'))
+  if (pathname === '/bienvenida' && usuario) {
+    return buscarMeta(leerRegistroPendiente(usuario.correo)?.metaSlug)
+  }
+  return null
+}
+
+function PanelMeta({ meta }: { meta: MetaCatalogo }) {
+  return (
+    <div className="max-w-md space-y-6">
+      <div>
+        <p className="text-sm font-semibold text-tinta-atenuado">Meta elegida</p>
+        <p className="mt-2 font-display text-4xl font-extrabold leading-[1.1] tracking-tight xl:text-5xl">
+          {meta.nombre}
+        </p>
+        <p className="mt-3 text-tinta-atenuado">{meta.resumen}</p>
+      </div>
+      <ul className="space-y-3">
+        {meta.beneficios.map((texto) => (
+          <li key={texto} className="flex items-start gap-3">
+            <Icono nombre="check" className="mt-0.5 size-5 shrink-0 text-acento-claro" />
+            <span>{texto}</span>
+          </li>
+        ))}
+      </ul>
+      <Link
+        to="/metas"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-lg font-semibold text-acento-claro underline-offset-4 hover:underline"
+      >
+        <Icono nombre="volver" className="size-4" />
+        Volver a explorar metas
+      </Link>
+    </div>
+  )
+}
+
+function PanelGeneral() {
+  return (
+    <div className="max-w-md space-y-8">
+      <p className="font-display text-4xl font-extrabold leading-[1.1] tracking-tight xl:text-5xl">
+        Tu meta, un día a la vez.
+      </p>
+      <ul className="space-y-4">
+        {beneficios.map((texto) => (
+          <li key={texto} className="flex items-start gap-3">
+            <Icono nombre="check" className="mt-0.5 size-5 shrink-0 text-acento-claro" />
+            <span>{texto}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}
+
+// Pantalla dividida (§5.2): panel de tinta a la izquierda (desde lg) y formulario a la derecha.
 export function AuthLayout() {
+  const meta = useMetaElegida()
   return (
     <div className="flex min-h-screen flex-col">
       <AvisoModoDemo />
-      <div className="grid flex-1 lg:grid-cols-[1.05fr_1fr]">
-        <aside className="relative hidden flex-col justify-between overflow-hidden border-r border-borde bg-superficie p-10 lg:flex">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-24 size-96 rounded-full bg-acento/20 blur-3xl"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-32 -left-16 size-80 rounded-full bg-acento-2/20 blur-3xl"
-          />
-          <Marca className="relative" forzarTexto />
-          <div className="relative space-y-8">
-            <p className="font-display text-6xl font-bold uppercase leading-[0.95] tracking-wide xl:text-7xl">
-              Entrena la
-              <br />
-              <span className="text-acento">constancia.</span>
-            </p>
-            <ul className="space-y-4">
-              {puntos.map((p) => (
-                <li key={p.texto} className="flex items-center gap-3 text-atenuado">
-                  <span className="grid size-10 shrink-0 place-items-center rounded-xl border border-borde-fuerte bg-superficie-2 text-acento-2">
-                    <Icono nombre={p.icono} />
-                  </span>
-                  <span className="text-texto">{p.texto}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="relative text-xs text-atenuado">Programación III · ITLA · 2026</p>
+      <div className="grid flex-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <aside className="panel-tinta hidden flex-col justify-between p-10 lg:sticky lg:top-0 lg:flex lg:h-screen lg:self-start xl:p-14">
+          <Link to="/" aria-label="HabitTracker Nexus, inicio" className="self-start rounded-lg">
+            <Marca forzarTexto />
+          </Link>
+          {meta ? <PanelMeta meta={meta} /> : <PanelGeneral />}
+          <p className="text-sm text-tinta-atenuado">Programación III · ITLA · 2026</p>
         </aside>
 
-        <main className="relative flex flex-col items-center justify-center gap-8 px-4 py-10">
+        <main className="relative flex flex-col items-center justify-start gap-8 px-4 pb-10 pt-20 lg:justify-center lg:pt-10">
           <div className="absolute right-4 top-4">
             <SelectorTemaMenu />
           </div>
-          <Marca className="lg:hidden" forzarTexto />
+          <Link to="/" aria-label="HabitTracker Nexus, inicio" className="rounded-lg lg:hidden">
+            <Marca forzarTexto />
+          </Link>
           <Outlet />
         </main>
       </div>

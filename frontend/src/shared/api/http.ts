@@ -71,6 +71,8 @@ export const api = {
   get: <T>(ruta: string, opciones?: Omit<OpcionesHttp, 'body'>) => http<T>('GET', ruta, opciones),
   post: <T>(ruta: string, body?: unknown) => http<T>('POST', ruta, { body }),
   patch: <T>(ruta: string, body?: unknown) => http<T>('PATCH', ruta, { body }),
+  put: <T>(ruta: string, body?: unknown) => http<T>('PUT', ruta, { body }),
+  delete: <T>(ruta: string) => http<T>('DELETE', ruta),
 }
 
 // Respuesta genérica { mensaje } que devuelven varios endpoints del backend.

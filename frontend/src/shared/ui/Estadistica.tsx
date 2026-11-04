@@ -1,44 +1,46 @@
 import type { ReactNode } from 'react'
 import { cn } from '@/shared/lib/cn'
+import { BarraProgreso } from './BarraProgreso'
 import { Icono, type NombreIcono } from './Icono'
 
-// Cifra protagonista con su rótulo, como un casillero del marcador. La barra lateral de
-// acento es decorativa y no recorta el foco ni las sombras.
+// StatCard de la especificación (§3): etiqueta, cifra grande y detalle, con una barra de
+// progreso opcional. "Destacada" marca un logro con borde de acento, no con sombras.
 export function Estadistica({
   etiqueta,
   valor,
   detalle,
   icono,
   destacada = false,
+  progreso,
 }: {
   etiqueta: string
   valor: ReactNode
   detalle?: ReactNode
   icono?: NombreIcono
   destacada?: boolean
+  // Porcentaje 0–100 para la barra; se omite si no aplica.
+  progreso?: number
 }) {
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border bg-superficie p-3 pl-4 sm:p-4 sm:pl-5',
-        destacada ? 'border-acento shadow-brillo' : 'border-borde',
+        'rounded-2xl border bg-superficie p-4 sm:p-5',
+        destacada ? 'border-acento ring-1 ring-acento' : 'border-borde',
       )}
     >
-      <span
-        aria-hidden="true"
-        className={cn(
-          'absolute inset-y-0 left-0 w-1.5',
-          destacada ? 'bg-acento' : 'bg-borde-fuerte',
-        )}
-      />
       <div className="flex items-center justify-between gap-2">
-        <p className="rotulo break-words leading-tight">{etiqueta}</p>
+        <p className="break-words text-sm font-medium leading-tight text-atenuado">{etiqueta}</p>
         {icono && (
-          <Icono nombre={icono} className="hidden size-4 shrink-0 text-acento-2 sm:block" />
+          <span className="hidden size-7 shrink-0 place-items-center rounded-lg bg-acento-suave text-acento-fuerte sm:grid">
+            <Icono nombre={icono} className="size-4" />
+          </span>
         )}
       </div>
-      <p className="cifra mt-2 text-3xl sm:text-4xl">{valor}</p>
-      {detalle && <p className="mt-1 text-xs text-atenuado">{detalle}</p>}
+      <p className="cifra mt-2 text-[1.75rem] sm:text-3xl">{valor}</p>
+      {progreso !== undefined && (
+        <BarraProgreso porcentaje={progreso} etiqueta={etiqueta} className="mt-3" />
+      )}
+      {detalle && <p className="mt-2 text-xs text-atenuado">{detalle}</p>}
     </div>
   )
 }

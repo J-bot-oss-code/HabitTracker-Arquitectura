@@ -29,7 +29,10 @@ afterEach(() => {
 
 describe('lógica de temas', () => {
   it('reconoce solo los temas del catálogo', () => {
-    expect(esTema('estadio')).toBe(true)
+    expect(esTema('oscuro')).toBe(true)
+    // Temas retirados en el rediseño de la especificación: un valor antiguo deja de valer.
+    expect(esTema('estadio')).toBe(false)
+    expect(esTema('calido')).toBe(false)
     expect(esTema('neon')).toBe(false)
     expect(esTema(undefined)).toBe(false)
   })
@@ -39,7 +42,7 @@ describe('lógica de temas', () => {
     expect(resolverTema('sistema')).toBe('oscuro')
     simularPreferenciaOscura(false)
     expect(resolverTema('sistema')).toBe('claro')
-    expect(resolverTema('calido')).toBe('calido')
+    expect(resolverTema('oscuro')).toBe('oscuro')
   })
 
   it('ignora un valor guardado inválido y usa "sistema"', () => {
@@ -49,8 +52,8 @@ describe('lógica de temas', () => {
 
   it('aplica data-theme y el tema elegido en <html>', () => {
     simularPreferenciaOscura(false)
-    aplicarTema('estadio')
-    expect(document.documentElement.dataset.theme).toBe('estadio')
+    aplicarTema('oscuro')
+    expect(document.documentElement.dataset.theme).toBe('oscuro')
     aplicarTema('sistema')
     expect(document.documentElement.dataset.theme).toBe('claro')
     expect(document.documentElement.dataset.temaElegido).toBe('sistema')
@@ -60,11 +63,11 @@ describe('lógica de temas', () => {
 describe('selector de tema', () => {
   it('desde Mi cuenta cambia el tema y lo recuerda', async () => {
     const { user } = renderApp('/cuenta', { como: 'estandar' })
-    await user.click(await screen.findByRole('radio', { name: /Estadio/ }))
+    await user.click(await screen.findByRole('radio', { name: /Oscuro/ }))
 
-    expect(document.documentElement.dataset.theme).toBe('estadio')
-    expect(localStorage.getItem(CLAVE_TEMA)).toBe('estadio')
-    expect(screen.getByRole('radio', { name: /Estadio/ })).toBeChecked()
+    expect(document.documentElement.dataset.theme).toBe('oscuro')
+    expect(localStorage.getItem(CLAVE_TEMA)).toBe('oscuro')
+    expect(screen.getByRole('radio', { name: /Oscuro/ })).toBeChecked()
   })
 
   it('el menú de la cabecera funciona con teclado y se cierra con Escape', async () => {
@@ -74,7 +77,7 @@ describe('selector de tema', () => {
     await user.click(boton)
     expect(boton).toHaveAttribute('aria-expanded', 'true')
     const opciones = screen.getAllByRole('menuitemradio')
-    expect(opciones).toHaveLength(5)
+    expect(opciones).toHaveLength(3)
     expect(screen.getByRole('menuitemradio', { name: /Sistema/ })).toHaveFocus()
 
     await user.keyboard('{ArrowDown}{ArrowDown}{Enter}')
