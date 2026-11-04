@@ -79,7 +79,7 @@ docker compose logs webapi | Select-String "CORREO"      # PowerShell
 docker compose logs webapi | grep CORREO                 # Linux / macOS
 ```
 
-- **Activación:** el cuerpo trae un enlace `http://localhost:8080/api/auth/activate?token=...`. Ábrelo en el navegador, o envía el `token` a `POST /api/auth/activate`.
+- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. Ábrelo en el navegador, o envía `{"correo":"...","codigo":"123456"}` a `POST /api/auth/activate`. El código se valida siempre junto al correo; tras **5 códigos incorrectos** se invalida y hay que pedir otro con `POST /api/auth/resend-activation` (como máximo uno por minuto). Activación y reenvío admiten como máximo 30 peticiones por minuto desde una misma IP (después responden `429`).
 - **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
 
 Si rellenas los cuatro `SMTP_*` del `.env`, los correos se envían de verdad. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
@@ -115,9 +115,38 @@ El proyecto usa la API de clima **OpenWeatherMap** (`https://api.openweathermap.
 
 **Qué hace.** No reenvía la respuesta de la API. Toma los hábitos **activos** del usuario, consulta el clima de su ciudad y aplica las reglas de negocio de `RecomendadorClima`: si hay precipitación, más de 35 °C o menos de 5 °C recomienda hacerlos **bajo techo**, si no, **al aire libre**; y sugiere agua adicional según el calor (+250 ml desde 25 °C, +500 ml desde 30 °C, +1000 ml sobre 35 °C).
 
-**Ejemplo de respuesta real** (con la clave oculta; ciudad `Santo Domingo`):
+**Ejemplo de respuesta real** (obtenida el 04-11-2026 con una clave activa; la clave nunca aparece en la respuesta ni en los logs).
 
-PENDIENTE_RESPUESTA_REAL
+Lo que devuelve OpenWeatherMap a `GET https://api.openweathermap.org/data/2.5/weather?q=Santo Domingo&units=metric&lang=es&appid=<CLAVE>` (recortado a los campos relevantes):
+
+```json
+{
+  "weather": [ { "id": 501, "main": "Rain", "description": "lluvia moderada", "icon": "10d" } ],
+  "main": { "temp": 31.4, "feels_like": 38.4, "humidity": 73, "pressure": 1010 },
+  "name": "Santo Domingo",
+  "cod": 200
+}
+```
+
+Lo que devuelve **nuestra operación** `GET /api/habits/plan-del-dia?ciudad=Santo Domingo` (usuario Estándar con un hábito activo «Correr 5 km»):
+
+```json
+{
+  "ciudad": "Santo Domingo",
+  "clima": { "temperaturaC": 31.4, "precipitacion": true, "descripcion": "lluvia moderada" },
+  "aguaAdicionalMl": 500,
+  "habitos": [
+    {
+      "habitoId": "349d13fe-760e-4eee-9997-7c8e0807f36c",
+      "nombre": "Correr 5 km",
+      "lugarSugerido": "BajoTecho",
+      "motivo": "Hay precipitación: conviene hacerlo bajo techo."
+    }
+  ]
+}
+```
+
+El código `501` (lluvia) marca `precipitacion: true`, por eso la recomendación es «bajo techo»; los 31.4 °C suman 500 ml de agua extra (≥ 30 °C).
 
 **Sin clave o con la API caída.** Si `OPENWEATHER_API_KEY` no está definida, es inválida, el proveedor no responde o supera 5 segundos, la operación responde un rechazo controlado y el resto del proyecto sigue funcionando:
 
@@ -155,7 +184,7 @@ El nombre con el que se guarda cada archivo en el volumen es un GUID generado po
 
 Con el proyecto levantado (`http://localhost:8080/swagger`), los seis frentes:
 
-1. **Registro con activación por correo:** `POST /api/auth/register` → leer el enlace en `docker compose logs webapi` → abrirlo (o `POST /api/auth/activate`).
+1. **Registro con activación por correo:** `POST /api/auth/register` → leer el código de 6 dígitos en `docker compose logs webapi` → `POST /api/auth/activate` con `{"correo":"...","codigo":"..."}` (o abrir el enlace del correo).
 2. **Inicio y cierre de sesión:** `POST /api/auth/login` (`{"email","password"}`) → `GET /api/auth/me` → `POST /api/auth/logout` → `GET /api/auth/me` responde `401`.
 3. **Estándar contra una operación de Administrador:** con el token de un usuario Estándar, `GET /api/admin/usuarios` responde `403`.
 4. **Recuperación de contraseña:** `POST /api/auth/forgot-password` → leer el código en el log → `POST /api/auth/reset-password`.
@@ -319,7 +348,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
 * **Inicio de sesión, claims y expiración:** ejecuta `POST /api/auth/login` con las credenciales de una cuenta activa; autoriza Swagger con el JWT recibido y ejecuta `GET /api/auth/me` para comprobar el id, correo y rol autenticados. Inspecciona localmente el payload del JWT y confirma que contiene los datos de identidad y una expiración futura (`exp`). No publiques el JWT. Ejecuta `POST /api/auth/logout`; el mismo token debe quedar invalidado y `GET /api/auth/me` debe responder `401`.
 *   **Registro y rechazo controlado:** Usa `POST /api/auth/register` con una clave menor a 8 caracteres o sin números. Recibirás un error 400 controlado.
 *   **Encolado de correos (Sin SMTP):** Si el servidor SMTP no está configurado o falla, el registro (201 Created) y la recuperación de clave terminan con éxito. Los correos quedan pendientes en la tabla/cola interna.
-*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura123"}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el token del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl. Activa la cuenta con `POST /api/auth/activate` y `{"token":"TOKEN_RECIBIDO"}`. La cuenta queda activa; reutilizar el token se rechaza.
+*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura123"}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, `docker compose logs webapi`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
 
     ```sql
     SELECT TokenAcceso, Vencimiento

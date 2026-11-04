@@ -56,6 +56,26 @@ Implementó el módulo en cuatro commits con el patrón de Permissions: `Documen
 
 **Evidencia:** 80 de 80 comprobaciones; 308 pruebas en verde. Detalle en `docs/revision-practica-4.md`.
 
+### Solicitud 6: clave real del clima, SMTP real y código de activación de 6 dígitos
+
+**Prompt del usuario:**
+> en los archivos .env y .env.example coloque valores reales y mi correo real y mi clave de acceso real, no hay problema con eso ?
+>
+> puedes hacer que en ves de llegarle un token al usuario para activar su cuenta le llegue mejor un codigo aleatorio de maximo 6 digitos.
+
+**Respuesta del agente:**
+1. *Secretos en un archivo versionado.* Detectó, sin imprimir valores, que `.env.example` (versionado) tenía la clave del clima, el usuario y la contraseña SMTP y contraseñas nuevas. Antes de que llegara a un commit guardó una copia en `mis-valores-reales.env` (ignorado por Git) y restauró `.env.example`. Comprobó que ningún valor real estuvo nunca en el historial.
+2. *Llamada real al clima.* Con la clave del estudiante en `.env`, `GET /api/habits/plan-del-dia` respondió `200` (31.4 °C, lluvia moderada, «bajo techo», +500 ml de agua) y la clave no apareció en la respuesta ni en los logs. La respuesta real se documentó en el README.
+3. *Código de 6 dígitos* (`45ad3f9`). El registro envía 6 dígitos de `RandomNumberGenerator`; la activación pasó a `POST /api/auth/activate` con `{correo, codigo}`; migración `AgregarIntentosActivacion`.
+
+**Errores detectados:**
+- *Del estudiante:* valores reales en `.env.example`. Corregido antes de cualquier commit.
+- *Del agente:* la primera versión contaba los intentos con leer, incrementar y guardar. La revisión RD señaló un **crítico**: con peticiones en paralelo todas leen el mismo contador y una ráfaga costaría un solo intento. Se cambió a una reserva atómica en SQL (`UPDATE ... OUTPUT`) hecha antes de comparar.
+- *Del agente:* faltaba un límite por IP (se añadió una política de 30 peticiones por minuto) y el formato del código solo comprobaba la longitud (ahora exige exactamente 6 dígitos `0-9`, sin aceptar dígitos de otros alfabetos).
+- *Del agente:* el script de revisión leía el `.env` con `source` (una contraseña con espacios lo rompe), usaba una carpeta temporal que `curl` no entiende y contaba mal las respuestas paralelas (varios procesos que hacen `>>` al mismo archivo se pisan en Windows).
+
+**Evidencia:** 347 pruebas en verde; en SQL Server real, una ráfaga de 12 intentos simultáneos dejó el contador en 12, el código correcto quedó bloqueado y el límite por IP respondió `429`; 95 comprobaciones del recorrido completo y 4 de persistencia.
+
 ## Resumen de commits
 
 | Commit | Mensaje |
@@ -73,9 +93,13 @@ Implementó el módulo en cuatro commits con el patrón de Permissions: `Documen
 | `994d6a4` | feat: contenedor con Dockerfile, compose y volúmenes con nombre |
 | `689834c` | docs: secciones Contenedor, API externa y Documentos en el README |
 | `df31f3d` | fix: reintentar dotnet restore en el Dockerfile |
+| `0877a2e` | test: script de revisión extremo a extremo de la práctica 4 |
+| `6c02e08` | docs: plan de prueba, revisión del maestro, bitácora y estado |
+| `45ad3f9` | feat: el correo de activación trae un código de 6 dígitos con límite de intentos |
+| `280f9f0` | test: el script de revisión cubre el código de 6 dígitos, la ráfaga y la clave real |
 
 ## Resultados finales
 
-- 308 pruebas en verde (106 antes de la práctica).
-- 80 de 80 comprobaciones de la simulación del maestro.
-- Pendiente: ejemplo real de la respuesta del clima (requiere la clave de OpenWeatherMap del estudiante).
+- 347 pruebas en verde (106 antes de la práctica).
+- 99 de 99 comprobaciones de la simulación del maestro (95 del recorrido completo + 4 de persistencia).
+- API externa probada con una clave real (`200`) y con la de ejemplo (`503` controlado).
