@@ -1,5 +1,6 @@
 using HabitTracker.Application.Interfaces;
 using HabitTracker.Application.Services;
+using HabitTracker.Infrastructure.DependencyInjection;
 using HabitTracker.Infrastructure.Persistence;
 using HabitTracker.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,10 @@ public static class HabitTrackerModuleExtensions
         services.AddScoped<IMetaRepository, MetaRepository>();
         services.AddScoped<IUnitOfWork, HabitTrackerUnitOfWork>();
         services.AddScoped<HabitoService>();
+
+        // Plan del día: usa la API externa de clima (la clave llega por la variable OPENWEATHER_API_KEY).
+        services.AddScoped<IPlanDelDiaService, PlanDelDiaService>();
+        services.AddServicioClimaOpenWeather(configuration);
 
         return services;
     }

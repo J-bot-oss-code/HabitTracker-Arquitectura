@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using DocumentManager.Application.Exceptions;
+using HabitTracker.Application.Exceptions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Middlewares;
@@ -26,6 +27,17 @@ public class GlobalExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (ServicioClimaNoDisponibleException)
+        {
+            // La API externa falló o no hay clave. Solo esta operación se rechaza; el resto del proyecto sigue funcionando.
+            _logger.LogWarning("Servicio de clima no disponible.");
+            await WriteProblemAsync(context, HttpStatusCode.ServiceUnavailable, "Servicio no disponible.",
+                "El servicio de clima no está disponible en este momento. Inténtelo de nuevo más tarde.");
+        }
+        catch (CiudadNoEncontradaException)
+        {
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", "No se encontró la ciudad indicada.");
         }
         catch (DocumentoNoEncontradoException ex)
         {
