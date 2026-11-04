@@ -1,0 +1,136 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+# Sin permisos por defecto: cada trabajo pide solo los que necesita.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_NOLOGO: "true"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "true"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "true"
+  NUGET_XMLDOC_MODE: skip
+
+jobs:
+  backend:
+    name: Backend (.NET)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Restaurar (con auditoría de NuGet)
+        run: dotnet restore HabitTrackerSystem.slnx
+      - name: Compilar en Release (reglas de seguridad como error)
+        run: dotnet build HabitTrackerSystem.slnx -c Release --no-restore
+      - name: Pruebas (sin API ni BD externa)
+        run: dotnet test HabitTrackerSystem.slnx -c Release --no-build --logger trx --collect "XPlat Code Coverage"
+      - name: Paquetes vulnerables (alta o crítica bloquean)
+        run: bash scripts/ci/verificar-paquetes-nuget.sh
+      - name: Publicar resultados de pruebas
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: resultados-pruebas-backend
+          path: |
+            tests/**/TestResults/**
+            paquetes-vulnerables.json
+          retention-days: 14
+          if-no-files-found: ignore
+
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # --ignore-scripts: ningún paquete ejecuta código de instalación en el CI (verificado: el build y las pruebas pasan igual).
+      - name: Instalar dependencias exactas del lockfile
+        run: npm ci --ignore-scripts
+      - name: Verificar firmas y procedencia de los paquetes
+        run: npm audit signatures
+      - name: Lint
+        run: npm run lint
+      - name: Formato
+        run: npm run format:check
+      - name: Tipos
+        run: npm run typecheck
+      - name: Pruebas (sin backend)
+        run: npm test
+      - name: Compilar
+        run: npm run build
+      - name: Vulnerabilidades (alta o crítica bloquean)
+        run: npm audit --audit-level=high
+
+  reglas:
+    name: Reglas del repositorio
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: ShellCheck de los scripts del CI
+        run: shellcheck scripts/ci/*.sh
+      - name: Pruebas del validador de commits
+        run: bash scripts/ci/pruebas-verificar-commits.sh
+      - name: Reglas RD verificables (RD-03, RD-05, RD-08, RD-10, RD-11)
+        run: bash scripts/ci/verificar-reglas-rd.sh
+      - name: Formato de los commits de la PR
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: bash scripts/ci/verificar-commits.sh "$BASE_SHA" "$HEAD_SHA"
+
+  # Único check requerido de este workflow: así se pueden añadir o renombrar trabajos sin tocar la protección de ramas.
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [backend, frontend, reglas]
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: Comprobar que todos los trabajos pasaron
+        env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTADOS"
+          for r in $RESULTADOS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then exit 1; fi
+          done

@@ -1,0 +1,24 @@
+title = "gitleaks — HabitTracker"
+
+[extend]
+useDefault = true
+
+# Las excepciones son mínimas y precisas: ningún directorio completo queda exento.
+# Si gitleaks marca algo nuevo, primero se comprueba si es real (y entonces se ROTA el secreto);
+# solo un falso positivo documentado entra aquí o en .gitleaksignore, siempre con su motivo.
+
+[[allowlists]]
+description = "Archivo de variables de ejemplo: contiene valores ficticios documentados, no secretos"
+paths = [
+  '''(^|/)\.env\.example$''',
+]
+
+[[allowlists]]
+description = "Contraseña de DEMOSTRACIÓN de los ejemplos de curl del README (cuenta ficticia persona@ejemplo.com)"
+condition = "AND"
+paths = [
+  '''^README\.md$''',
+]
+regexes = [
+  '''ClaveSegura123''',
+]
