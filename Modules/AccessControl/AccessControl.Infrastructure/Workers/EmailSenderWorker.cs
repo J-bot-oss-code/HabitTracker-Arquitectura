@@ -108,8 +108,31 @@ public class EmailSenderWorker : BackgroundService
         }
     }
 
+    /// <summary>
+    /// Modo consola: solo si se pide EXPLÍCITAMENTE (CORREO_MODO=consola) y no hay un servidor SMTP configurado.
+    /// Si el operador define SMTP_HOST, el envío real tiene prioridad aunque olvide quitar CORREO_MODO.
+    /// </summary>
+    public static bool DebeEscribirEnConsola(IConfiguration configuration)
+    {
+        var modo = configuration["CORREO_MODO"];
+        var host = configuration["SMTP_HOST"];
+
+        return string.Equals(modo?.Trim(), "consola", StringComparison.OrdinalIgnoreCase)
+            && string.IsNullOrWhiteSpace(host);
+    }
+
     private async Task EnviarPorSmtpAsync(CorreoEnCola correo, CancellationToken stoppingToken)
     {
+        if (DebeEscribirEnConsola(_configuration))
+        {
+            // Canal de desarrollo para poder activar cuentas y recuperar contraseñas sin un servidor de correo.
+            // El cuerpo incluye el enlace o el código: en producción se debe usar SMTP real.
+            _logger.LogInformation(
+                "[CORREO EN CONSOLA] Para: {Destino} | Asunto: {Asunto} | Cuerpo: {Cuerpo}",
+                correo.Destinatario, correo.Asunto, correo.Cuerpo);
+            return;
+        }
+
         // RF-NOT-13 / RD-10: credenciales obligatoriamente desde configuración (variables de entorno).
         var host = _configuration["SMTP_HOST"];
         var portRaw = _configuration["SMTP_PORT"];
