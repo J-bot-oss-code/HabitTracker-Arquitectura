@@ -215,6 +215,10 @@ namespace AccessControl.Infrastructure.Migrations
                                 .HasColumnType("datetime2")
                                 .HasColumnName("Vencimiento");
 
+                            b1.Property<int?>("_intentosFallidos")
+                                .HasColumnType("int")
+                                .HasColumnName("IntentosActivacion");
+
                             b1.HasKey("UsuarioId");
 
                             b1.ToTable("usuarios");

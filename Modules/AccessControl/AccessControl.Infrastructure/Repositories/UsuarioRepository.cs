@@ -39,10 +39,40 @@ public class UsuarioRepository : IUsuarioRepository
         return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.NombreCompleto == nombreCompleto);
     }
 
-    public async Task<Usuario?> GetByTokenRecuperacionAsync(string tokenRecuperacion)
+    public async Task<int> ReservarIntentoActivacionAsync(Guid usuarioId)
     {
-        // implementacion para obtener un usuario por token de recuperacion
-        return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.TokenAcceso != null && u.TokenAcceso.Valor == tokenRecuperacion);
+        // Una sola sentencia: el motor serializa los UPDATE sobre la misma fila, así que N peticiones en paralelo
+        // obtienen N valores distintos (1, 2, 3...) y solo las primeras 5 llegan a comparar el código.
+        var conexion = _dbContext.Database.GetDbConnection();
+        var estabaAbierta = conexion.State == System.Data.ConnectionState.Open;
+        if (!estabaAbierta)
+        {
+            await conexion.OpenAsync();
+        }
+
+        try
+        {
+            await using var comando = conexion.CreateCommand();
+            comando.CommandText =
+                "UPDATE usuarios SET IntentosActivacion = ISNULL(IntentosActivacion, 0) + 1 " +
+                "OUTPUT inserted.IntentosActivacion " +
+                "WHERE Id = @id AND Activo = 0 AND TokenAcceso IS NOT NULL";
+
+            var parametro = comando.CreateParameter();
+            parametro.ParameterName = "@id";
+            parametro.Value = usuarioId;
+            comando.Parameters.Add(parametro);
+
+            var resultado = await comando.ExecuteScalarAsync();
+            return resultado is null or DBNull ? 0 : Convert.ToInt32(resultado);
+        }
+        finally
+        {
+            if (!estabaAbierta)
+            {
+                await conexion.CloseAsync();
+            }
+        }
     }
 
     public async Task SaveAsync(Usuario usuario)

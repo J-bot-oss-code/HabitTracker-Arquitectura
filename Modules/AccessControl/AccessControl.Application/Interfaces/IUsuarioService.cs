@@ -9,7 +9,7 @@ namespace AccessControl.Application.Interfaces
         Task cambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId);
         Task IniciarRecuperacionAsync(string correo);
 
-        Task ActivarCuentaAsync(string token);
+        Task ActivarCuentaAsync(string correo, string codigo);
         Task ReenviarEnlaceActivacionAsync(string correo);
         Task<IEnumerable<UsuarioResponseDto>> ObtenerTodosAsync();
         Task CambiarEstadoAsync(Guid usuarioId, bool nuevoEstado, Guid adminId);

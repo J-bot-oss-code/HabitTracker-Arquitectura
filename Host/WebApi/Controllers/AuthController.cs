@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using AccessControl.Application.DTOs;
 using AccessControl.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Controllers;
@@ -32,25 +33,33 @@ public class AuthController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, resultado);
     }
 
-    /// <summary>Activa una cuenta con el token de activación.</summary>
+    /// <summary>Activa una cuenta con el correo y el código de 6 dígitos recibido por correo.</summary>
     [HttpPost("activate")]
     [AllowAnonymous]
+    [EnableRateLimiting("activacion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Activate([FromBody] ActivateRequest request)
     {
-        await _usuarioService.ActivarCuentaAsync(request.Token);
+        await _usuarioService.ActivarCuentaAsync(request.Correo, request.Codigo);
         return Ok(new { mensaje = "Cuenta activada correctamente." });
     }
 
     /// <summary>Activa una cuenta desde el enlace del correo (RF-CA-15).</summary>
     [HttpGet("activate")]
     [AllowAnonymous]
+    [EnableRateLimiting("activacion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ActivateGet([FromQuery, Required, StringLength(256)] string token)
+    public async Task<IActionResult> ActivateGet(
+        [FromQuery, Required, EmailAddress, StringLength(150)] string correo,
+        [FromQuery, Required, RegularExpression("^[0-9]{6}$", ErrorMessage = "El código debe tener 6 dígitos.")] string codigo)
     {
-        await _usuarioService.ActivarCuentaAsync(token);
+        await _usuarioService.ActivarCuentaAsync(correo, codigo);
+
+        // El enlace lleva el correo y el código en la URL: que no se guarde en cachés ni viaje en el Referer.
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers["Referrer-Policy"] = "no-referrer";
         return Content("<html><body style=\"font-family:Arial;text-align:center;padding:48px;\"><h2>Cuenta activada correctamente.</h2><p>Ya puedes iniciar sesión en HabitTracker Nexus.</p></body></html>", "text/html");
     }
 
@@ -60,6 +69,7 @@ public class AuthController : ControllerBase
     /// </summary>
     [HttpPost("resend-activation")]
     [AllowAnonymous]
+    [EnableRateLimiting("activacion")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResendActivation([FromBody] ResendActivationRequest request)
@@ -159,7 +169,9 @@ public class AuthController : ControllerBase
     }
 }
 
-public record ActivateRequest([param: Required, StringLength(256)] string Token);
+public record ActivateRequest(
+    [param: Required, EmailAddress, StringLength(150)] string Correo,
+    [param: Required, RegularExpression("^[0-9]{6}$", ErrorMessage = "El código debe tener 6 dígitos.")] string Codigo);
 
 public record ResendActivationRequest(
     [param: Required, EmailAddress, StringLength(150)] string Correo);
