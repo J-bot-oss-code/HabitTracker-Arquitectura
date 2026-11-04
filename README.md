@@ -36,6 +36,132 @@ graph TD
     DocManager -.->|"audita subidas"| Auditing
 ```
 
+## Contenedor
+
+El proyecto completo (la API y su base de datos SQL Server) corre en contenedores. Para levantarlo **no hace falta instalar nada salvo Docker** (Docker Desktop, o Docker Engine con Compose v2).
+
+### Levantar el proyecto
+
+Desde la carpeta del repositorio:
+
+```bash
+# 1) Copia el archivo de ejemplo. Es el único paso previo.
+copy .env.example .env          # Windows (CMD o PowerShell)
+cp .env.example .env            # Linux / macOS
+
+# 2) Un solo comando construye la imagen y arranca todo.
+docker compose up --build
+```
+
+- La **primera vez** tarda varios minutos (descarga SQL Server y compila la API). Está listo cuando el log muestra `Now listening on: http://[::]:8080`. Las migraciones, el Administrador inicial y la Meta de demostración se crean solos al arrancar: no hay que crear la base ni ejecutar scripts.
+- **Dirección donde responde:** `http://localhost:8080`
+- **Swagger (para probar la API):** `http://localhost:8080/swagger` (botón *Authorize* → `Bearer {token}`).
+- **Detener el proyecto:** `Ctrl+C` en la terminal donde corre, o desde otra terminal `docker compose down`. Esto **conserva** los datos. Solo `docker compose down -v` borra los volúmenes y empieza de cero.
+
+Solo la aplicación publica un puerto (el `8080`). La base de datos **no** es accesible desde fuera de la composición: la API la encuentra por el nombre del servicio (`Server=db`), no por `localhost`.
+
+### Datos de partida
+
+Los valores del `.env.example` son de ejemplo para esta demostración; cámbialos en tu `.env` si lo usas en serio.
+
+| Dato | Valor |
+|---|---|
+| Administrador inicial | `admin@ejemplo.com` / `Ejemplo_Admin_2026!` (variables `ADMIN_CORREO` y `ADMIN_CLAVE`) |
+| Meta de demostración (para crear hábitos) | `5f1c0a00-0000-4000-8000-000000000002` |
+
+### Correos (activación de cuenta y recuperación de contraseña)
+
+No hay un servidor de correo en la composición. Con `CORREO_MODO=consola` y `SMTP_HOST` vacío (valores del `.env.example`) el sistema **escribe el correo en el log** en lugar de enviarlo. Para leerlo:
+
+```bash
+docker compose logs webapi | findstr "CORREO"            # Windows CMD
+docker compose logs webapi | Select-String "CORREO"      # PowerShell
+docker compose logs webapi | grep CORREO                 # Linux / macOS
+```
+
+- **Activación:** el cuerpo trae un enlace `http://localhost:8080/api/auth/activate?token=...`. Ábrelo en el navegador, o envía el `token` a `POST /api/auth/activate`.
+- **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
+
+Si rellenas los cuatro `SMTP_*` del `.env`, los correos se envían de verdad. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
+
+### Los datos sobreviven
+
+Hay dos volúmenes con nombre, fuera de la imagen y separados entre sí:
+
+| Volumen | Contenido |
+|---|---|
+| `documentos-archivos` | Los archivos de los documentos (`/app/data/documentos`, RF-DOC-05) |
+| `sqlserver-datos` | La base de datos: usuarios, solicitudes, hábitos y el registro de los documentos (RD-09) |
+
+Prueba de persistencia: sube un documento, ejecuta `docker compose down` (**sin** `-v`), vuelve a ejecutar `docker compose up`; el documento sigue en el listado, se descarga y el usuario inicia sesión.
+
+### Notas
+
+- La composición está pensada para **una sola réplica** de la API y para demostración o uso local: el contenedor escucha HTTP sin TLS. Para otro uso, ponle un proxy con HTTPS delante y define `SWAGGER_HABILITADO=false`.
+- Si el puerto `8080` ya está ocupado, libéralo antes de arrancar.
+- SQL Server solo tiene imagen `linux/amd64`; en Mac con chip Apple se ejecuta emulado y tarda más.
+- Evita los caracteres `$`, `;`, `=` y comillas en los valores del `.env`.
+- El `.env` real no se versiona (`.gitignore`); el repositorio solo contiene `.env.example`.
+
+## API externa
+
+El proyecto usa la API de clima **OpenWeatherMap** (`https://api.openweathermap.org/data/2.5/weather`), que exige una clave.
+
+| | |
+|---|---|
+| **Operación que la usa** | `GET /api/habits/plan-del-dia?ciudad=Santo Domingo` (rol Estándar) |
+| **Variable de entorno** | `OPENWEATHER_API_KEY` (llega al contenedor desde el `.env`, que no se versiona) |
+| **Clave gratuita** | https://openweathermap.org/api (la activación puede tardar hasta un par de horas) |
+
+**Qué hace.** No reenvía la respuesta de la API. Toma los hábitos **activos** del usuario, consulta el clima de su ciudad y aplica las reglas de negocio de `RecomendadorClima`: si hay precipitación, más de 35 °C o menos de 5 °C recomienda hacerlos **bajo techo**, si no, **al aire libre**; y sugiere agua adicional según el calor (+250 ml desde 25 °C, +500 ml desde 30 °C, +1000 ml sobre 35 °C).
+
+**Ejemplo de respuesta real** (con la clave oculta; ciudad `Santo Domingo`):
+
+PENDIENTE_RESPUESTA_REAL
+
+**Sin clave o con la API caída.** Si `OPENWEATHER_API_KEY` no está definida, es inválida, el proveedor no responde o supera 5 segundos, la operación responde un rechazo controlado y el resto del proyecto sigue funcionando:
+
+```json
+{ "status": 503, "title": "Servicio no disponible.",
+  "detail": "El servicio de clima no está disponible en este momento. Inténtelo de nuevo más tarde." }
+```
+
+Si el proveedor no conoce la ciudad responde `404`; una ciudad con caracteres no válidos o vacía, `400`. La clave nunca se escribe en el código, en el `Dockerfile`, en el `docker-compose.yml`, en la imagen, en los logs ni en los mensajes de error.
+
+## Manejador de documentos
+
+Pieza 3 del Core (RF-DOC-01 a RF-DOC-05). **Todas las operaciones exigen sesión** (`Authorization: Bearer <token>`); la identidad y el rol se leen del token firmado, nunca de la petición.
+
+| Operación | Endpoint | Regla |
+|---|---|---|
+| Subir (RF-DOC-01) | `POST /api/documents` (`multipart/form-data`, campo `archivo`) | Guarda nombre, tipo, tamaño, fecha UTC y quién lo subió. Hasta 10 MB; extensiones `.pdf .png .jpg .jpeg .txt .docx .xlsx`. Archivo ausente o vacío → `400` controlado |
+| Listar (RF-DOC-02) | `GET /api/documents` | Sin eliminados; el Estándar solo ve los suyos, el Administrador ve todos |
+| Consultar | `GET /api/documents/{id}` | Dueño o Administrador; otro usuario → `403` |
+| Descargar (RF-DOC-03) | `GET /api/documents/{id}/download` | Dueño o Administrador; otro usuario → `403` |
+| Eliminar (RF-DOC-04) | `DELETE /api/documents/{id}` | Dueño o Administrador. **Eliminación lógica**: deja de listarse, pero el registro sigue en la tabla `Documentos` (`Eliminado = 1`) y el archivo sigue en el volumen. Un documento eliminado responde `404` |
+
+Ejemplo con cURL (sustituye `TOKEN`):
+
+```bash
+curl -X POST http://localhost:8080/api/documents -H "Authorization: Bearer TOKEN" -F "archivo=@informe.pdf"
+curl http://localhost:8080/api/documents -H "Authorization: Bearer TOKEN"
+curl -OJ http://localhost:8080/api/documents/ID/download -H "Authorization: Bearer TOKEN"
+curl -X DELETE http://localhost:8080/api/documents/ID -H "Authorization: Bearer TOKEN"
+```
+
+El nombre con el que se guarda cada archivo en el volumen es un GUID generado por el servidor, nunca el nombre que escribió el usuario. La auditoría de subidas y eliminaciones (RF-DOC-06) llega con la Pieza 6.
+
+## Revisión acumulada desde el contenedor (Práctica 4)
+
+Con el proyecto levantado (`http://localhost:8080/swagger`), los seis frentes:
+
+1. **Registro con activación por correo:** `POST /api/auth/register` → leer el enlace en `docker compose logs webapi` → abrirlo (o `POST /api/auth/activate`).
+2. **Inicio y cierre de sesión:** `POST /api/auth/login` (`{"email","password"}`) → `GET /api/auth/me` → `POST /api/auth/logout` → `GET /api/auth/me` responde `401`.
+3. **Estándar contra una operación de Administrador:** con el token de un usuario Estándar, `GET /api/admin/usuarios` responde `403`.
+4. **Recuperación de contraseña:** `POST /api/auth/forgot-password` → leer el código en el log → `POST /api/auth/reset-password`.
+5. **Gestión de permisos:** `POST /api/permissions` (`{"permisoSolicitado":"Habits.AdvancedReconfig"}`); con el token del Administrador inicial, `POST /api/permissions/{id}/approve` o `/reject` (`{"motivoRechazo":"..."}`). Resolver dos veces, o aprobar una solicitud propia, se rechaza (`400`).
+6. **Módulo de negocio (hábitos):** con un usuario Estándar, `POST /api/habits` usando como `metaId` la Meta de demostración; `POST /api/habits/{id}/transition` con `{"nuevoEstado":"Activo"}` funciona y `{"nuevoEstado":"Completado"}` desde `Planificado` se rechaza (`400`).
+
 ## 🚀 Compilación y Ejecución
 
 Para trabajar con este proyecto, asegúrate de tener instalado el SDK de .NET 10 o superior.
