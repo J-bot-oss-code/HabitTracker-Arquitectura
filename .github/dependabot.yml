@@ -1,0 +1,51 @@
+version: 2
+
+# Todas las actualizaciones llegan como PR hacia develop (nunca directo a main), una vez por semana.
+# El CI (ci-ok y seguridad-ok) revisa cada PR igual que las demás.
+updates:
+  - package-ecosystem: nuget
+    # La raíz no tiene .csproj (la solución es .slnx), así que se listan las carpetas de proyectos.
+    directories:
+      - "/Host/*"
+      - "/Modules/*/*"
+      - "/tests/*"
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      nuget-menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: "/frontend"
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      npm-desarrollo:
+        dependency-type: development
+        update-types: [minor, patch]
+      npm-produccion:
+        dependency-type: production
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      acciones:
+        patterns: ["*"]
+
+  - package-ecosystem: docker
+    directory: "/"
+    target-branch: develop
+    schedule:
+      interval: weekly
+      day: monday
