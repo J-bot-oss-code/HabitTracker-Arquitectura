@@ -1,0 +1,8 @@
+# Excepciones de Trivy (imagen Docker y configuración). Vacío a propósito.
+#
+# Regla: una vulnerabilidad solo se acepta aquí si no hay parche disponible o no es explotable en este
+# proyecto. Cada línea es un identificador (CVE-AAAA-NNNN o AVD-XXX-NNNN) con un comentario ANTES que
+# explique por qué se acepta y la fecha límite para revisarla. Ejemplo:
+#
+#   # Sin parche en la imagen base; solo afecta a ... Revisar antes del 2026-12-01.
+#   CVE-2026-00000

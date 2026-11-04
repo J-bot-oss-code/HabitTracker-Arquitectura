@@ -1,0 +1,181 @@
+name: Seguridad
+
+on:
+  pull_request:
+    branches: [develop, main]
+  push:
+    branches: [develop, main]
+  schedule:
+    # Lunes 06:00 UTC: detecta CVE publicados después del último cambio.
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+# Sin permisos por defecto: cada trabajo pide solo los que necesita.
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  codeql:
+    name: CodeQL (${{ matrix.lenguaje }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lenguaje: csharp
+            modo: manual
+          - lenguaje: javascript-typescript
+            modo: none
+          - lenguaje: actions
+            modo: none
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - if: matrix.lenguaje == 'csharp'
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: 10.0.x
+      - uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          languages: ${{ matrix.lenguaje }}
+          build-mode: ${{ matrix.modo }}
+          config-file: ./.github/codeql/codeql-config.yml
+      - if: matrix.modo == 'manual'
+        name: Compilar para CodeQL
+        run: dotnet build HabitTrackerSystem.slnx -c Release
+      - uses: github/codeql-action/analyze@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          category: /language:${{ matrix.lenguaje }}
+
+  secretos:
+    name: Secretos (gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Instalar gitleaks 8.30.1 (binario oficial con SHA-256 verificado)
+        run: >
+          bash scripts/ci/instalar-herramienta.sh
+          "https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz"
+          "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+          gitleaks
+      - name: Escanear (PR = commits nuevos; push y programado = todo el historial)
+        env:
+          EVENTO: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          opciones=(git . --config .gitleaks.toml --redact --verbose --exit-code 1)
+          if [ "$EVENTO" = "pull_request" ]; then
+            opciones+=("--log-opts=${BASE_SHA}..${HEAD_SHA}")
+          fi
+          gitleaks "${opciones[@]}"
+
+  dependencias:
+    name: Revisión de dependencias
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure
+
+  imagen:
+    name: Imagen Docker (Trivy)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    env:
+      # Espejos de la base de datos de Trivy: evita fallos por el límite de descargas de GitHub Container Registry.
+      TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db,mirror.gcr.io/aquasec/trivy-db
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Validar docker-compose.yml
+        run: cp .env.example .env && docker compose config --quiet && rm .env
+      - name: Construir la imagen de la API
+        run: docker build -t habittracker-webapi:ci .
+      - name: Instalar Trivy 0.76.1 (binario oficial con SHA-256 verificado)
+        run: >
+          bash scripts/ci/instalar-herramienta.sh
+          "https://github.com/aquasecurity/trivy/releases/download/v0.76.1/trivy_0.76.1_Linux-64bit.tar.gz"
+          "c7cbe3137fb8a48a17574bede3dd6beb16742d1e9772929940fc90082c39d9c0"
+          trivy
+      - name: Configuración insegura (Dockerfile y compose) — alta o crítica bloquean
+        run: trivy config --severity HIGH,CRITICAL --exit-code 1 --ignorefile .trivyignore .
+      - name: Reporte SARIF de la imagen (todas las severidades)
+        run: trivy image --format sarif --output trivy-imagen.sarif --ignorefile .trivyignore habittracker-webapi:ci
+      - name: Vulnerabilidades de la imagen — alta o crítica con parche disponible bloquean
+        run: trivy image --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 --ignorefile .trivyignore habittracker-webapi:ci
+      - name: Subir el reporte a la pestaña Security
+        if: always() && hashFiles('trivy-imagen.sarif') != ''
+        uses: github/codeql-action/upload-sarif@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
+        with:
+          sarif_file: trivy-imagen.sarif
+          category: trivy-imagen
+
+  workflows:
+    name: Auditoría de workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Instalar actionlint 1.7.12 (binario oficial con SHA-256 verificado)
+        run: >
+          bash scripts/ci/instalar-herramienta.sh
+          "https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz"
+          "8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8"
+          actionlint
+      - name: actionlint (sintaxis y expresiones)
+        run: actionlint -color
+      - name: zizmor (seguridad de los workflows)
+        env:
+          # Solo lectura: permite a zizmor las auditorías online (acciones con CVE conocidos, commits impostores).
+          GH_TOKEN: ${{ github.token }}
+        run: pipx run zizmor==1.32.0 --min-severity medium .github/workflows
+
+  # Único check requerido de este workflow.
+  seguridad-ok:
+    name: seguridad-ok
+    if: always()
+    needs: [codeql, secretos, dependencias, imagen, workflows]
+    runs-on: ubuntu-24.04
+    permissions: {}
+    steps:
+      - name: Comprobar que todos los trabajos pasaron
+        env:
+          RESULTADOS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Resultados: $RESULTADOS"
+          for r in $RESULTADOS; do
+            if [ "$r" != "success" ] && [ "$r" != "skipped" ]; then exit 1; fi
+          done

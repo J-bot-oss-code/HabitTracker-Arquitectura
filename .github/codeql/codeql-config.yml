@@ -1,0 +1,12 @@
+name: Configuración CodeQL de HabitTracker
+
+# Consultas de seguridad ampliadas (más cobertura que el conjunto por defecto).
+queries:
+  - uses: security-extended
+
+# Solo aplica a los lenguajes que no se compilan (JavaScript/TypeScript y Actions).
+paths-ignore:
+  - frontend/dist
+  - frontend/node_modules
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
