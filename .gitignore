@@ -443,3 +443,7 @@ appsettings.*.user
 *.env.local
 *.env.development.local
 *.env.*.local
+
+# Secretos del contenedor (Práctica 4): .env nunca se versiona; .env.example sí.
+.env
+!.env.example
