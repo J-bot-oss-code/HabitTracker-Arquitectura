@@ -46,7 +46,7 @@ export function AnilloProgreso({
           r={radio}
           fill="none"
           strokeWidth={grosor}
-          className="stroke-superficie-2"
+          className="stroke-borde"
         />
         <circle
           cx={tamano / 2}
@@ -60,7 +60,6 @@ export function AnilloProgreso({
             'transition-[stroke-dasharray] duration-500 ease-out',
             cumplido ? 'stroke-exito' : 'stroke-acento',
           )}
-          style={{ filter: valor > 0 ? 'drop-shadow(0 0 6px var(--c-brillo))' : undefined }}
         />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-center">

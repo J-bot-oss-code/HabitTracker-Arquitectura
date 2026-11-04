@@ -5,11 +5,15 @@ using AccessControl.Domain.Entities.ValueObjects;
 using Microsoft.Extensions.Logging;
 using AccessControl.Domain.Entities;
 using System.Diagnostics;
+using System.Security.Cryptography;
 
 namespace AccessControl.Application.Service;
 
 public class UsuarioService : IUsuarioService
 {
+    private const int HorasValidezActivacion = 24;
+    private static readonly TimeSpan EnfriamientoReenvioActivacion = TimeSpan.FromSeconds(60);
+
     private readonly IUsuarioRepository _repository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IEmailQueue _emailQueue;
@@ -343,6 +347,10 @@ public class UsuarioService : IUsuarioService
         );
     }
 
+    /// <summary>Código de activación: 6 dígitos aleatorios (000000-999999) de un generador criptográfico.</summary>
+    private static string GenerarCodigoActivacion() =>
+        RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
+
     private static string GenerarCodigoRecuperacion() =>
         Guid.NewGuid().ToString("N")[..6].ToUpper();
 
@@ -373,33 +381,57 @@ public class UsuarioService : IUsuarioService
 
         if(usuario != null && !usuario.Activo)
         {
-            string nuevoToken = Guid.NewGuid().ToString("N");
-            usuario.EstablecerTokenActivacion(nuevoToken, DateTime.UtcNow.AddHours(24));
+            // Enfriamiento: sin él, pedir un código nuevo reiniciaría el contador de intentos y permitiría adivinar
+            // el código de otra persona sin límite. La emisión se deduce del vencimiento (siempre emisión + 24 h).
+            if (usuario.TokenAcceso != null)
+            {
+                var emision = usuario.TokenAcceso.Vencimiento.AddHours(-HorasValidezActivacion);
+                if (DateTime.UtcNow - emision < EnfriamientoReenvioActivacion)
+                {
+                    return;
+                }
+            }
+
+            string nuevoCodigo = GenerarCodigoActivacion();
+            usuario.EstablecerTokenActivacion(nuevoCodigo, DateTime.UtcNow.AddHours(HorasValidezActivacion));
 
             await _repository.UpdateAsync(usuario);
-            await _emailQueue.EncolarCorreoActivacionAsync(usuario.Correo.Valor, nuevoToken);
+            await _emailQueue.EncolarCorreoActivacionAsync(usuario.Correo.Valor, nuevoCodigo);
         }
     }
 
-     public async Task ActivarCuentaAsync(string token)
+    public async Task ActivarCuentaAsync(string correo, string codigo)
     {
-       if (string.IsNullOrWhiteSpace(token) || token.Length > 256)
-       {
-           throw new ArgumentException("El enlace de activación no es válido.", nameof(token));
-       }
-
-       _logger.LogInformation("iniciando activacion de cuenta");
-
-       var usuario = await _repository.GetByTokenRecuperacionAsync(token);
-
-       if(usuario == null)
+        // RD-07: un código mal formado se rechaza ANTES de consultar la base de datos y no consume intentos.
+        if (codigo is null || codigo.Length != 6 || !codigo.All(c => c >= '0' && c <= '9'))
         {
-            throw new InvalidOperationException("El enlace de activacion es incorrecto o ha expirado");
+            throw new ArgumentException("El código de activación debe tener 6 dígitos.", nameof(codigo));
         }
 
-       usuario.CompletarActivacion(token);
+        _logger.LogInformation("iniciando activacion de cuenta");
 
-       await _repository.UpdateAsync(usuario);
+        // El código se busca SIEMPRE junto al correo: con 6 dígitos no es único entre usuarios.
+        var usuario = await _repository.GetByCorreoAsync(new Email(correo));
+
+        // Mensaje uniforme: no revela si el correo existe, si ya está activo o si el código expiró.
+        const string mensajeUniforme = "El código de activación es incorrecto o ha expirado";
+        if (usuario == null || usuario.Activo || usuario.TokenAcceso == null)
+        {
+            throw new InvalidOperationException(mensajeUniforme);
+        }
+
+        // Fuerza bruta (RD-06): el intento se RESERVA de forma atómica en la base de datos antes de comparar.
+        // Así, aunque lleguen mil peticiones a la vez, solo las 5 primeras llegan a comparar el código;
+        // el resto recibe el mismo rechazo sin comparar. Un intento reservado cuenta aunque el código sea correcto.
+        var intentos = await _repository.ReservarIntentoActivacionAsync(usuario.Id);
+        if (intentos == 0 || intentos > TokenActivacion.MaxIntentos || !usuario.TokenAcceso.EsValido(codigo))
+        {
+            throw new InvalidOperationException(mensajeUniforme);
+        }
+
+        usuario.CompletarActivacion(codigo);
+
+        await _repository.UpdateAsync(usuario);
     }
 
     public async Task<UsuarioResponseDto> RegistrarUsuarioAsync(RegistroRequestDto request)
@@ -431,14 +463,14 @@ public class UsuarioService : IUsuarioService
         // 4. Crear la entidad
         var nuevoUsuario = new Usuario(request.nombre, Email, passwordhash );
 
-        string tokenActivacion = Guid.NewGuid().ToString("N");
-        nuevoUsuario.EstablecerTokenActivacion(tokenActivacion, DateTime.UtcNow.AddHours(24));
+        string codigoActivacion = GenerarCodigoActivacion();
+        nuevoUsuario.EstablecerTokenActivacion(codigoActivacion, DateTime.UtcNow.AddHours(HorasValidezActivacion));
 
 
         // 5. guardar
         await _repository.SaveAsync(nuevoUsuario);
 
-        await _emailQueue.EncolarCorreoActivacionAsync(nuevoUsuario.Correo.Valor, tokenActivacion);
+        await _emailQueue.EncolarCorreoActivacionAsync(nuevoUsuario.Correo.Valor, codigoActivacion);
 
         // 6. mappeamos al dto
         return new UsuarioResponseDto(

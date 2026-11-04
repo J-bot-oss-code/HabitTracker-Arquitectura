@@ -22,17 +22,20 @@ describe('rutas protegidas y navegación por rol', () => {
   it('no redirige fuera de la app aunque el destino previo lo intente', async () => {
     iniciarSesionComo('estandar')
     const { router } = renderAppConEstado('/login', { desde: '/\\evil.example' })
-    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/habitos')
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/hoy')
   })
 
   it('tras otra sesión, el Administrador no vuelve a una ruta de Estándar', async () => {
     iniciarSesionComo('admin')
     const { router } = renderAppConEstado('/login', { desde: '/habitos' })
-    expect(
-      await screen.findByRole('heading', { name: 'Solicitudes de permiso' }),
-    ).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/admin/permisos')
+    expect(await screen.findByRole('heading', { level: 1, name: 'Resumen' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/admin')
   })
 
   it('el menú del Estándar no ofrece secciones de Administrador', async () => {

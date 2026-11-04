@@ -49,14 +49,14 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       <div
         aria-live="polite"
-        className="pointer-events-none fixed inset-x-4 bottom-20 z-[60] flex flex-col items-end gap-2 lg:bottom-4"
+        className="pointer-events-none fixed inset-x-4 bottom-20 z-[45] flex flex-col items-end gap-2 lg:bottom-4"
       >
         {toasts.map((t) => (
           <div
             key={t.id}
             role={t.tono === 'peligro' ? 'alert' : 'status'}
             className={cn(
-              'anim-aparecer pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-superficie px-4 py-3 text-sm text-texto shadow-brillo',
+              'anim-aparecer pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-lg border bg-superficie px-4 py-3 text-sm text-texto shadow-flotante',
               tonos[t.tono].clase,
             )}
           >

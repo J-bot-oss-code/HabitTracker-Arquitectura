@@ -36,20 +36,20 @@ public class DatabaseEmailQueue : IEmailQueue
         await _dbContext.SaveChangesAsync();
     }
 
-    public async Task EncolarCorreoActivacionAsync(string correo, string token)
+    public async Task EncolarCorreoActivacionAsync(string correo, string codigo)
     {
         _logger.LogInformation("Encolando correo de activación para: {Destino}", correo);
 
         var baseUrl = (_configuration["App:BaseUrl"] ?? "http://localhost:5246").TrimEnd('/');
-        var enlace = $"{baseUrl}/api/auth/activate?token={Uri.EscapeDataString(token)}";
+        var enlace = $"{baseUrl}/api/auth/activate?correo={Uri.EscapeDataString(correo)}&codigo={Uri.EscapeDataString(codigo)}";
 
         var mensaje = new CorreoEnCola(
             correo,
             "Activa tu cuenta — HabitTracker Nexus",
             PlantillaHtml(
                 "Bienvenido a HabitTracker Nexus",
-                $"Hola,<br><br>Gracias por registrarte en <strong>HabitTracker Nexus</strong>. Para completar tu registro, pulsa el botón o usa el token (vence en 24 horas):",
-                token,
+                $"Hola,<br><br>Gracias por registrarte en <strong>HabitTracker Nexus</strong>. Para completar tu registro, pulsa el botón o ingresa este código de 6 dígitos junto con tu correo (vence en 24 horas):",
+                codigo,
                 "Si no creaste esta cuenta, puedes ignorar este mensaje.",
                 enlace));
 

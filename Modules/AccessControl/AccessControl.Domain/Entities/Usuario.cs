@@ -64,11 +64,14 @@ namespace AccessControl.Domain.Entities
             TokenAcceso = new TokenActivacion(valor, vencimiento);
         }
 
+        /// <summary>Cuenta un código de activación incorrecto; a los 5 el código queda invalidado.</summary>
+        public void RegistrarFalloActivacion() => TokenAcceso?.RegistrarFallo();
+
         public void CompletarActivacion(string token)
         {
             if (TokenAcceso == null || !TokenAcceso.EsValido(token))
             {
-                throw new InvalidOperationException("El enlace de activacion es incorrecto o ha expirado");
+                throw new InvalidOperationException("El código de activación es incorrecto o ha expirado");
             }
 
             Activo = true;

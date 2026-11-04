@@ -1,6 +1,9 @@
 // Base de datos en memoria de la API simulada. Solo existe en el navegador (modo demo)
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
+import type { EventoAuditoriaDto } from '@/features/auditoria/types'
+import type { ConsentimientosDto, PerfilDto } from '@/features/perfil/types'
+import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import type { Rol } from '@/shared/auth/roles'
 
@@ -45,12 +48,31 @@ export interface HabitoMock {
   registros: RegistroMock[]
 }
 
+// --- Contratos propuestos (sin backend todavía; ver handlers/propuestas) ---
+export type PerfilMock = Omit<PerfilDto, 'nombre'>
+
+// Solicitud de desactivar o eliminar la cuenta (contrato propuesto, docs/mejoras §7.1).
+export interface SolicitudBajaMock {
+  usuarioId: string
+  tipo: 'desactivar' | 'eliminar'
+  solicitadaEn: string
+  // Solo al eliminar: fin del periodo de gracia, a partir del cual se borran los datos.
+  borradoEn: string | null
+}
+
 interface Db {
   usuarios: UsuarioMock[]
   habitos: HabitoMock[]
   solicitudes: SolicitudPermisoDto[]
   metas: Set<string>
   tokensRevocados: Set<string>
+  // Por id de usuario.
+  perfiles: Map<string, PerfilMock>
+  consentimientos: Map<string, ConsentimientosDto>
+  pesos: Map<string, PesosDto>
+  mediciones: Map<string, MedicionDto[]>
+  auditoria: EventoAuditoriaDto[]
+  solicitudesBaja: SolicitudBajaMock[]
 }
 
 export const db: Db = {
@@ -59,6 +81,12 @@ export const db: Db = {
   solicitudes: [],
   metas: new Set(),
   tokensRevocados: new Set(),
+  perfiles: new Map(),
+  consentimientos: new Map(),
+  pesos: new Map(),
+  mediciones: new Map(),
+  auditoria: [],
+  solicitudesBaja: [],
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -210,6 +238,130 @@ export function reiniciarDb() {
 
   db.metas = new Set([META_DEMO_ID])
   db.tokensRevocados = new Set()
+
+  // Ana y Luis ya completaron el onboarding. La cuenta sin activar y las que se registren
+  // empiezan sin perfil, así que pasan por /bienvenida.
+  const consentimiento = (marketing: boolean): ConsentimientosDto => ({
+    terminosVersion: 'v2.1',
+    privacidadVersion: 'v1.4',
+    aceptadoEn: new Date(ahora - 17 * DIA).toISOString(),
+    datosSalud: true,
+    marketing,
+    compartirCumplimiento: false,
+    estadisticasAnonimas: true,
+  })
+  db.perfiles = new Map([
+    [
+      estandar,
+      {
+        edad: 29,
+        sexo: 'mujer',
+        alturaCm: 165,
+        pesoKg: 68.4,
+        actividad: 'ligera',
+        diasPorSemana: 3,
+        minutosPorSesion: 30,
+        metaSlug: 'primeros-5-km',
+        // Semana 3 de 8 del plan.
+        inicioPlan: inicioDelDiaUtc(-17, ahora),
+        avisoSaludAceptado: true,
+      },
+    ],
+    [
+      db.usuarios[2].id,
+      {
+        edad: 34,
+        sexo: null,
+        alturaCm: 178,
+        pesoKg: 81,
+        actividad: 'moderada',
+        diasPorSemana: 4,
+        minutosPorSesion: 45,
+        metaSlug: null,
+        inicioPlan: null,
+        avisoSaludAceptado: true,
+      },
+    ],
+  ])
+  db.consentimientos = new Map([
+    [estandar, consentimiento(false)],
+    [db.usuarios[2].id, consentimiento(true)],
+  ])
+
+  // Progreso de Ana (datos de ejemplo): un peso por semana durante 10 semanas y medidas al
+  // inicio y hoy.
+  const pesosAna = [71, 70.8, 70.5, 70.1, 69.9, 69.6, 69.4, 69.1, 68.8, 68.4]
+  db.pesos = new Map([
+    [
+      estandar,
+      {
+        objetivoKg: 66,
+        registros: pesosAna.map((pesoKg, i) => ({
+          id: `bb000000-0000-4000-8000-${String(i).padStart(12, '0')}`,
+          fecha: inicioDelDiaUtc(-7 * (pesosAna.length - 1 - i), ahora),
+          pesoKg,
+        })),
+      },
+    ],
+  ])
+  const medida = (n: number, dias: number, zona: MedicionDto['zona'], valor: number) => ({
+    id: `cc000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    fecha: inicioDelDiaUtc(dias, ahora),
+    zona,
+    valor,
+  })
+  db.mediciones = new Map([
+    [
+      estandar,
+      [
+        medida(1, -63, 'Cintura', 82),
+        medida(2, -63, 'Pecho', 96),
+        medida(3, -63, 'Brazo', 29),
+        medida(4, -63, 'Grasa', 27),
+        medida(5, -1, 'Cintura', 78),
+        medida(6, -1, 'Pecho', 95),
+        medida(7, -1, 'Brazo', 29.5),
+        medida(8, -1, 'Grasa', 25),
+      ],
+    ],
+  ])
+
+  // Auditoría de ejemplo: los últimos 40 días, con el historial que alimenta las métricas.
+  const evento = (
+    n: number,
+    dias: number,
+    actor: string,
+    accion: EventoAuditoriaDto['accion'],
+    entidad: string,
+    extra: Partial<EventoAuditoriaDto> = {},
+  ): EventoAuditoriaDto => ({
+    id: `dd000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
+    fecha: new Date(ahora - dias * DIA - n * 60_000).toISOString(),
+    actor,
+    accion,
+    entidad,
+    entidadId: null,
+    valorAnterior: null,
+    valorNuevo: null,
+    origen: 'Web',
+    ...extra,
+  })
+  db.auditoria = [
+    evento(1, 40, 'estandar@demo.com', 'Registro', 'Usuario'),
+    evento(2, 38, 'otro@demo.com', 'Registro', 'Usuario'),
+    evento(3, 30, 'admin@demo.com', 'InicioSesion', 'Sesión'),
+    evento(4, 33, 'otro@demo.com', 'InicioSesion', 'Sesión'),
+    evento(5, 9, 'estandar@demo.com', 'InicioSesion', 'Sesión'),
+    evento(6, 6, 'admin@demo.com', 'CambioRol', 'Usuario', {
+      entidadId: db.usuarios[2].id,
+      valorAnterior: 'Administrador',
+      valorNuevo: 'Estandar',
+    }),
+    evento(7, 3, 'estandar@demo.com', 'InicioSesion', 'Sesión'),
+    evento(8, 2, 'admin@demo.com', 'InicioSesion', 'Sesión'),
+    evento(9, 4, 'estandar@demo.com', 'DescargaDatos', 'Cuenta'),
+  ]
+  db.solicitudesBaja = []
 }
 
 reiniciarDb()

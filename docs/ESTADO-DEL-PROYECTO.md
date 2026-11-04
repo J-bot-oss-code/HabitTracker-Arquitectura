@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 28-10-2026, después de integrar la Práctica 3 en `main` (PR #32 → `develop`, PR #33 → `main`).
+> Última actualización: 04-11-2026, al cerrar la Práctica 4 (rama `feature/practica-4-documentos-contenedor`). Antes: 28-10-2026, Práctica 3 integrada en `main` (PR #32 → `develop`, PR #33 → `main`).
 > Lee este archivo al iniciar una sesión. Las reglas de trabajo están en `AGENTS.md` y la guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -12,7 +12,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
 | AccessControl (Control de Acceso) | Completo: registro + activación por correo, JWT, logout con blacklist, bloqueo 15 min, roles `Estandar`/`Administrador`, recuperación de contraseña, cola de correos en BD, administración de usuarios | Práctica 1 |
 | Permissions (Gestión de Permisos) | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`, autoresolución prohibida, acción protegida por permiso aplicado | Asignación 2 / Práctica 2 |
 | HabitTracker (módulo de negocio) | Completo para la P3: `Planificado → Activo ⇄ Pausado → Completado` (terminal), 5 endpoints en `api/habits`, reconfiguración con permiso `Habits.AdvancedReconfig` | Práctica 3 |
-| Auditing, DocumentManager, Notifications, Reports | Solo esqueleto (proyectos vacíos) | Pendiente |
+| DocumentManager (Manejador de documentos) | Completo para la P4: subir, listar, consultar, descargar y eliminar de forma lógica (RF-DOC-01 a 05), volumen con nombre, 5 endpoints en `api/documents` | Práctica 4 |
+| Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | Pendiente |
 
 ## 2. Tags de entrega (no mover ni reescribir)
 
@@ -23,6 +24,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
 | `asignacion-2` | `6433209` | |
 | `practica-2` | `86f7e0a` | 39 pruebas. Defectos `practica-2-defecto-1..6`, hijos directos. |
 | `practica-3` | `318daab` | 106 pruebas. Defectos `practica-3-defecto-1..4` (`485a0a1`, `dcd2bea`, `f1d3335`, `f802c65`), hijos directos. |
+| `practica-4` | _por crear al integrar en `main`_ | 308 pruebas. Contenedor, documentos y API externa (ver §11). |
 
 - Los tags de la Práctica 3 se rehicieron el 28-10 (antes de entregar) para incluir dos correcciones (ver §5). Quien tenga clones antiguos debe ejecutar `git fetch --tags --force`.
 - Cada commit de defecto cambia un solo archivo de producción y su mensaje indica archivo y línea. La tabla con la prueba que detecta cada defecto está en `README.md` › `## Defectos — Práctica 2/3`.
@@ -111,3 +113,29 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
 - Calidad del diseño: `frontend-design-critic` revisa cada cambio (2 rondas sobre el rediseño; sin bloqueantes ni altas al cierre). Las pruebas de contraste (`shared/theme/contraste.test.ts`) exigen WCAG 2.2 AA en todos los temas. Navegación apta para 360 px y acciones de alto impacto con confirmación.
 - Seguridad: `ciberseguridad-pentester` y el plugin `claude-security` están reservados para ejecutarse al final, antes de integrar con el backend.
 - Deuda del frontend: `npm audit` (completo) marca un aviso moderado de `minimatch` en las herramientas de lint (solo desarrollo, 0 en producción); se resolverá al actualizar ESLint.
+
+### 10.1 Frontend de producción (rama `feature/frontend-nexus`)
+
+> Añadido el 03-11-2026. Sigue sin modificar el backend (`Host/`, `Modules/`, `tests/` intactos): el backend no se toca hasta terminar las prácticas del maestro, y después se adaptará a este frontend.
+
+- **Plan y bitácora:** `frontend/docs/PLAN-FRONTEND-NEXUS.md` (checklist por paso, equivalencia de tokens, desviaciones de la especificación y la tabla **"Pendientes para el backend"**, que es la base del documento ORD y del README que se redactarán al terminar las prácticas). La especificación es `docs/mejoras/diseno-ui-web-movil.md`; el banco de propuestas, `docs/mejoras/mejoras-y-funcionalidades.md`.
+- **Identidad:** sustituye al rediseño deportivo-futurista de §10 por la especificación sobria (acento índigo, Plus Jakarta Sans, sin degradados ni brillos) y reduce los temas a **Sistema, Claro y Oscuro**. El contraste WCAG 2.2 AA de cada tema y de los niveles del mapa de constancia lo vigila `shared/theme/contraste.test.ts`.
+- **Pantallas nuevas:** landing pública con catálogo de metas y calculadora de calorías; registro con consentimiento legal; onboarding; panel **Hoy** (inicio del Estándar); **Progreso** (peso, medidas, constancia, récords y logros); **Centro de privacidad** (descarga de datos, consentimientos y baja); **Resumen** y **Auditoría** del Administrador.
+- **Contratos propuestos (sin backend):** perfil, consentimientos, peso, medidas, exportación y baja, métricas y auditoría. Están simulados en `src/mocks/handlers/propuestas/` y registrados en `CONTRATOS_PROPUESTOS` (una prueba exige que coincidan). Con el backend real (404 sin cuerpo) esas pantallas muestran "llegará pronto" en lugar de fallar (`esNoDisponible`). Todo lo demás (hábitos, permisos, usuarios, login) usa los endpoints reales.
+- **Pruebas:** `cd frontend && npm test` ejecuta 452 pruebas sin backend (Vitest limitado a 4 trabajadores para que la suite sea estable). El backend sigue en 106.
+- **Revisión:** cada paso pasó por `frontend-reviewer` y, en rondas, por `frontend-design-critic`; la última ronda midió en Edge real que no hay desborde horizontal a 360 px.
+- **Commits del trabajo:** `9101919` (docs), `c2b6c4c` (identidad), `fbba9bd` (pública), `aa80c85` (alta), `9eec324` (Hoy), `289f08f` (Progreso), `b2562e5` (privacidad) y `62f411a` (administración).
+- **Pendiente:** el recorrido manual a 360 px y 1280 px con `npm run dev`; la auditoría de seguridad con `ciberseguridad-pentester` (sigue reservada para antes de integrar con el backend); la edición del perfil (rectificación), reaceptar versiones nuevas de los documentos y una vista de tarjetas de la auditoría en móvil.
+
+## 11. Práctica 4 — contenedor, documentos y API externa
+
+> Añadido el 04-11-2026. Detalle de la revisión: `docs/revision-practica-4.md`; guion de prueba: `docs/plan-prueba-practica-4.md`; bitácora: `docs/bitacora-practica-4.md`.
+
+- **Arranque:** `copy .env.example .env` + `docker compose up --build` → `http://localhost:8080` (Swagger en `/swagger`). Servicios `db` (SQL Server 2022, sin puerto publicado) y `webapi`. Volúmenes con nombre `documentos-archivos` (archivos) y `sqlserver-datos` (base). Con `BaseDeDatos__MigrarAlIniciar=true` la API migra los cuatro contextos al arrancar (`Host/WebApi/Extensions/InicializacionBaseDeDatos.cs`) y siembra el Administrador (`ADMIN_CORREO`/`ADMIN_CLAVE`, mínimo 12 caracteres) y la Meta de demostración `5f1c0a00-0000-4000-8000-000000000002`.
+- **Documentos:** `Modules/DocumentManager/*` (tabla `Documentos`, migración `AgregarTablaDocumentos`). El tamaño y el tipo MIME los calcula el servidor (tope de 10 MB, lista blanca de extensiones); el archivo se guarda con un GUID. Las excepciones del módulo (`DocumentoNoEncontradoException` → 404, `ArchivoInvalidoException` → 400) y las del clima (503/404) se traducen en `GlobalExceptionMiddleware`.
+- **API externa:** OpenWeatherMap (`OPENWEATHER_API_KEY`) alimenta `GET /api/habits/plan-del-dia` (rol Estándar); la lógica está en `RecomendadorClima` y `PlanDelDiaService`. Sin clave o con la API caída → 503 controlado.
+- **Correo en el contenedor:** `CORREO_MODO=consola` con `SMTP_HOST` vacío escribe una línea `[CORREO EN CONSOLA]` con el enlace/código en el log (`docker compose logs webapi`).
+- **Pruebas:** 347 (nuevos proyectos `DocumentManager.Domain/Application/Infrastructure/Api.Tests`). Script de revisión: `scripts/revision-practica-4.sh` (95 comprobaciones + 4 de persistencia contra el contenedor).
+- **Activación de cuenta con código de 6 dígitos:** `POST /api/auth/activate` recibe `{correo, codigo}` (también `GET /api/auth/activate?correo=&codigo=`). El código sale de `RandomNumberGenerator`, vence en 24 h y se invalida a los 5 intentos; el intento se reserva con `UsuarioRepository.ReservarIntentoActivacionAsync` (`UPDATE ... OUTPUT`, atómico) y el reenvío espera 60 s. Columna `usuarios.IntentosActivacion` (nullable; migración `AgregarIntentosActivacion`). Limitador por IP: política `activacion`, 30/min (`RateLimit:ActivacionPorMinuto`). Los tokens de 32 caracteres anteriores ya no activan.
+- **Deuda nueva:** el limitador por IP está en memoria (una réplica) y, **dentro de Docker, `RemoteIpAddress` es la IP de la pasarela**, así que todos los clientes comparten un único cubo de 30/min (hasta configurar `ForwardedHeaders` con `KnownProxies` explícitos detrás de un proxy real); el registro del limitador solo se verifica en ejecución (script de revisión), no con una prueba de unidad; el enlace GET de activación tiene efecto de estado (un escáner de correos podría consumir un intento); `Usuario.Correo` sin índice único (siembra no apta para varias réplicas); sin caché del clima (cuota gratuita compartida); `webapi` sin healthcheck; la imagen se compila con `COPY . .` (sin caché de restore por `.csproj`); `PlanDelDiaTests` vive en `DocumentManager.Api.Tests` por comodidad.
+- **Entorno de Docker:** la primera construcción tarda varios minutos (SQL Server ~2.3 GB). En Git Bash anteponer `MSYS_NO_PATHCONV=1` a `docker exec` con rutas absolutas.

@@ -3,7 +3,7 @@ import { render } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { Providers } from '@/app/providers'
-import { rutas } from '@/app/routes'
+import { rutaRaiz } from '@/app/routes'
 import { db } from '@/mocks/db'
 import { emitirToken } from '@/mocks/http'
 import { tokenStorage } from '@/shared/auth/tokenStorage'
@@ -31,7 +31,8 @@ export function renderApp(ruta: string, opciones: { como?: keyof typeof CORREOS 
 }
 
 // Igual que renderApp, pero con un location.state inicial (p. ej. { desde }).
-export function renderAppConEstado(ruta: string, state: unknown) {
+export function renderAppConEstado(ruta: string, state: unknown, como?: keyof typeof CORREOS) {
+  if (como) iniciarSesionComo(como)
   return montar({ pathname: ruta, state })
 }
 
@@ -39,7 +40,7 @@ function montar(entrada: string | { pathname: string; state: unknown }) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
-  const router = createMemoryRouter([{ path: '/', children: rutas }], {
+  const router = createMemoryRouter([rutaRaiz], {
     initialEntries: [entrada],
   })
   const user = userEvent.setup()

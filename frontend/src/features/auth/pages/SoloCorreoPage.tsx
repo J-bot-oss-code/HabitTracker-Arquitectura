@@ -5,7 +5,7 @@ import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { Input } from '@/shared/ui/Field'
 import { useReenviarActivacion, useRecuperarPassword } from '../api'
-import { AuthCard, claseEnlace } from '../components/AuthCard'
+import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
 import { soloCorreoSchema, type SoloCorreoForm } from '../schemas'
 
 // Ambos endpoints responden siempre 200 con el mismo mensaje para no revelar qué correos

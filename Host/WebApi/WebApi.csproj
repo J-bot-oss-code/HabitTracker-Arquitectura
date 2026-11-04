@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Modules\AccessControl\AccessControl.Application\AccessControl.Application.csproj" />
     <ProjectReference Include="..\..\Modules\AccessControl\AccessControl.Infrastructure\AccessControl.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\DocumentManager\DocumentManager.Infrastructure\DocumentManager.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\HabitTracker\HabitTracker.Infrastructure\HabitTracker.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Permissions\Permissions.Infrastructure\Permissions.Infrastructure.csproj" />
   </ItemGroup>

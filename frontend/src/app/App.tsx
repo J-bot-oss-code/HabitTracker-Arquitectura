@@ -1,8 +1,8 @@
 import { createBrowserRouter, RouterProvider } from 'react-router'
 import { Providers } from './providers'
-import { rutas } from './routes'
+import { rutaRaiz } from './routes'
 
-const router = createBrowserRouter([{ path: '/', children: rutas }])
+const router = createBrowserRouter([rutaRaiz])
 
 export function App() {
   return (

@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router'
-import { mensajeDeError } from '@/shared/api/problem'
 import { formatearFechaHora } from '@/shared/lib/fechas'
+import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Alert } from '@/shared/ui/Alert'
 import { AnilloProgreso } from '@/shared/ui/AnilloProgreso'
 import { Card, CardBody, EmptyState, Seccion } from '@/shared/ui/Card'
@@ -31,7 +31,11 @@ export function HabitDetailPage() {
   if (consulta.isPending) return <CargandoPagina texto="Cargando hábito…" />
   if (consulta.isError) {
     return (
-      <Alert tono="peligro">{mensajeDeError(consulta.error, 'No se pudo cargar el hábito.')}</Alert>
+      <ErrorCarga
+        error={consulta.error}
+        porDefecto="No se pudo cargar el hábito."
+        alReintentar={() => consulta.refetch()}
+      />
     )
   }
 
@@ -69,9 +73,7 @@ export function HabitDetailPage() {
           Mis hábitos
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-3">
-          <h1 className="text-4xl font-bold uppercase tracking-wide sm:text-5xl">
-            {habito.nombre}
-          </h1>
+          <h1 className="text-3xl font-extrabold sm:text-[2rem]">{habito.nombre}</h1>
           <EstadoHabitoBadge estado={habito.estado} />
         </div>
         <p className="mt-1.5 text-sm text-atenuado">
@@ -80,7 +82,7 @@ export function HabitDetailPage() {
         </p>
       </div>
 
-      <Card className={habito.cumpleMetaFinal ? 'border-exito shadow-brillo' : undefined}>
+      <Card className={habito.cumpleMetaFinal ? 'border-exito ring-1 ring-exito' : undefined}>
         <CardBody className="grid gap-6 md:grid-cols-[auto_1fr] md:items-center">
           <div className="flex justify-center">
             <AnilloProgreso

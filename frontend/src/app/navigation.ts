@@ -7,15 +7,22 @@ export interface ItemNavegacion {
   icono: NombreIcono
   roles: Rol[]
   proximamente?: boolean
+  // Solo coincide con la ruta exacta (/admin no debe marcarse activa en /admin/usuarios).
+  fin?: boolean
 }
 
 // El menú se adapta al rol para no ofrecer lo que el servidor va a rechazar
 // (p. ej. api/habits es solo para Estándar). Ocultar no protege: eso lo hace la API (RD-06).
 export const NAVEGACION: ItemNavegacion[] = [
+  { a: '/hoy', etiqueta: 'Hoy', icono: 'rayo', roles: ['Estandar'] },
   { a: '/habitos', etiqueta: 'Mis hábitos', icono: 'habitos', roles: ['Estandar'] },
+  { a: '/progreso', etiqueta: 'Progreso', icono: 'trofeo', roles: ['Estandar'] },
+  { a: '/ajustes/privacidad', etiqueta: 'Privacidad', icono: 'candado', roles: ['Estandar'] },
   { a: '/permisos', etiqueta: 'Mis permisos', icono: 'permisos', roles: ['Estandar'] },
+  { a: '/admin', etiqueta: 'Resumen', icono: 'reportes', roles: ['Administrador'], fin: true },
   { a: '/admin/permisos', etiqueta: 'Solicitudes', icono: 'permisos', roles: ['Administrador'] },
   { a: '/admin/usuarios', etiqueta: 'Usuarios', icono: 'usuarios', roles: ['Administrador'] },
+  { a: '/admin/auditoria', etiqueta: 'Auditoría', icono: 'auditoria', roles: ['Administrador'] },
   {
     a: '/documentos',
     etiqueta: 'Documentos',
@@ -44,13 +51,6 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['Administrador'],
     proximamente: true,
   },
-  {
-    a: '/admin/auditoria',
-    etiqueta: 'Auditoría',
-    icono: 'auditoria',
-    roles: ['Administrador'],
-    proximamente: true,
-  },
 ]
 
 export function navegacionPara(rol: Rol): ItemNavegacion[] {
@@ -58,13 +58,17 @@ export function navegacionPara(rol: Rol): ItemNavegacion[] {
 }
 
 export function rutaInicial(rol: Rol): string {
-  return rol === 'Administrador' ? '/admin/permisos' : '/habitos'
+  return rol === 'Administrador' ? '/admin' : '/hoy'
 }
 
 // Rutas reservadas a un rol. Debe coincidir con los <RequireAuth roles> de routes.tsx.
 const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
   { patron: /^\/admin(\/|$)/i, roles: ['Administrador'] },
+  { patron: /^\/hoy\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/progreso\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/ajustes\/privacidad\/?$/i, roles: ['Estandar'] },
   { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
+  { patron: /^\/bienvenida\/?$/i, roles: ['Estandar'] },
   { patron: /^\/permisos\/?$/i, roles: ['Estandar'] },
 ]
 

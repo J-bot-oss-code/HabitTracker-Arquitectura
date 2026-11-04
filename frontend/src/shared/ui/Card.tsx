@@ -4,10 +4,7 @@ import { Icono, type NombreIcono } from './Icono'
 
 export function Card({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div
-      className={cn('rounded-xl border border-borde bg-superficie shadow-tarjeta', className)}
-      {...props}
-    />
+    <div className={cn('rounded-2xl border border-borde bg-superficie', className)} {...props} />
   )
 }
 
@@ -20,7 +17,7 @@ export function Seccion({ titulo, children }: { titulo: string; children: ReactN
   return (
     <Card>
       <CardBody>
-        <h2 className="mb-4 text-xl font-bold uppercase tracking-wide">{titulo}</h2>
+        <h2 className="mb-4 text-lg font-bold">{titulo}</h2>
         {children}
       </CardBody>
     </Card>
@@ -42,8 +39,8 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        {rotulo && <p className="rotulo mb-1 text-acento-2">{rotulo}</p>}
-        <h1 className="text-3xl font-bold uppercase tracking-wide sm:text-4xl">{titulo}</h1>
+        {rotulo && <p className="mb-1 text-sm font-medium text-atenuado">{rotulo}</p>}
+        <h1 className="text-3xl font-extrabold sm:text-[2rem]">{titulo}</h1>
         {descripcion && <p className="mt-1.5 max-w-prose text-sm text-atenuado">{descripcion}</p>}
       </div>
       {acciones && <div className="flex flex-wrap gap-2">{acciones}</div>}
@@ -56,18 +53,22 @@ export function EmptyState({
   descripcion,
   accion,
   icono = 'rayo',
+  nivelTitulo,
 }: {
   titulo: string
   descripcion?: ReactNode
   accion?: ReactNode
   icono?: NombreIcono
+  // Si el estado vacío es todo el contenido de la página, su título es el encabezado.
+  nivelTitulo?: 1 | 2
 }) {
+  const Titulo = nivelTitulo === 1 ? 'h1' : nivelTitulo === 2 ? 'h2' : 'p'
   return (
-    <div className="rounded-xl border border-dashed border-borde-fuerte px-6 py-12 text-center">
-      <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-superficie-2 text-acento-2">
+    <div className="rounded-2xl border border-dashed border-borde-fuerte bg-superficie px-6 py-12 text-center">
+      <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-acento-suave text-acento-fuerte">
         <Icono nombre={icono} className="size-6" />
       </span>
-      <p className="font-display text-xl font-semibold uppercase tracking-wide">{titulo}</p>
+      <Titulo className="font-display text-lg font-bold">{titulo}</Titulo>
       {descripcion && <p className="mx-auto mt-1 max-w-md text-sm text-atenuado">{descripcion}</p>}
       {accion && <div className="mt-5">{accion}</div>}
     </div>

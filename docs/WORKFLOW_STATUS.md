@@ -19,7 +19,7 @@ Este archivo sirve como un tablero Kanban en texto para trackear el progreso del
   * [x] Cambio de contraseña propia con sesión activa exigiendo la contraseña actual (RF-CA-22).
 
 ## ⏳ Pendiente (Backlog)
-* Pieza 3: Manejador de Documentos.
+* Pieza 3: Manejador de Documentos (RF-DOC-01 a 05 terminados, tag `practica-4`) — pendiente RF-DOC-06 (auditoría de subidas y eliminaciones) llega con la Pieza 6.
 * Pieza 4: Notificaciones (la cola de correos ya existe dentro de Control de Acceso).
 * Pieza 5: Reportes con Agregación.
 * Pieza 6: Auditoría.
@@ -30,3 +30,4 @@ Este archivo sirve como un tablero Kanban en texto para trackear el progreso del
 * Pieza 1: Control de Acceso (tag `practica-1`).
 * Pieza 2: Gestión de Permisos con máquina de estados y 6 defectos plantados (tags `practica-2`, `practica-2-defecto-1..6`).
 * Módulo de negocio Habit Tracker: 5 funcionalidades, máquina de estados, integración con Permisos y 4 defectos plantados (tags `practica-3`, `practica-3-defecto-1..4`).
+* Módulo de negocio Habit Tracker: operación `plan-del-dia` con la API de clima (OpenWeatherMap) y contenedor con `docker compose up --build` (tag `practica-4`).

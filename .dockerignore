@@ -1,0 +1,31 @@
+# Control de versiones
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# Compilación y dependencias instaladas
+**/bin/
+**/obj/
+**/node_modules/
+.vs/
+.idea/
+*.user
+
+# El frontend y las pruebas no forman parte de la imagen de la API
+frontend/
+tests/
+
+# Secretos y configuración local: nunca deben copiarse a la imagen (RD-10)
+.env
+*.env
+**/*.env
+**/appsettings.local.json
+**/secrets.json
+
+# Documentación y archivos del contenedor
+docs/
+*.md
+Dockerfile
+.dockerignore
+docker-compose*.yml

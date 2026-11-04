@@ -64,21 +64,17 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <div
-        className="absolute inset-0 bg-fondo/80 backdrop-blur-sm"
-        aria-hidden="true"
-        onClick={alCerrar}
-      />
+      <div className="absolute inset-0 bg-velo" aria-hidden="true" onClick={alCerrar} />
       <div
         ref={panel}
         role="dialog"
         aria-modal="true"
         aria-labelledby={tituloId}
         tabIndex={-1}
-        className="anim-aparecer relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-borde-fuerte bg-superficie p-6 shadow-brillo"
+        className="anim-aparecer relative max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-borde-fuerte bg-superficie p-6 shadow-flotante"
       >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <h2 id={tituloId} className="text-2xl font-bold uppercase tracking-wide">
+          <h2 id={tituloId} className="text-xl font-bold">
             {titulo}
           </h2>
           <button
@@ -86,7 +82,7 @@ export function Modal({
             data-cerrar
             onClick={alCerrar}
             aria-label="Cerrar"
-            className="grid size-11 shrink-0 place-items-center rounded-lg text-atenuado hover:bg-superficie-2 hover:text-texto"
+            className="grid size-11 shrink-0 place-items-center rounded-lg text-atenuado hover:bg-hover hover:text-texto"
           >
             <Icono nombre="cerrar" />
           </button>
