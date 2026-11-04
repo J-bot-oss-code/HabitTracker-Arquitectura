@@ -5,7 +5,14 @@ WORKDIR /src
 
 # Se copia el repositorio (.dockerignore deja fuera bin/, obj/, .git/, frontend/, tests/ y .env).
 COPY . .
-RUN dotnet publish Host/WebApi/WebApi.csproj -c Release -o /app/publish
+
+# La restauración de paquetes depende de la red (NuGet): un corte puntual no debe tumbar el build, así que se reintenta.
+RUN for intento in 1 2 3; do \
+      dotnet restore Host/WebApi/WebApi.csproj && exit 0; \
+      echo "dotnet restore falló (intento $intento de 3); reintentando..."; sleep 5; \
+    done; exit 1
+
+RUN dotnet publish Host/WebApi/WebApi.csproj -c Release -o /app/publish --no-restore
 
 # ---------- Etapa 2: imagen final, solo el runtime ----------
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
