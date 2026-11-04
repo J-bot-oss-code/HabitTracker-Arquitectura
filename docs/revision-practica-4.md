@@ -2,7 +2,7 @@
 
 Se revisó la entrega **como lo indica la especificación (§4)**: un clon limpio en una ruta corta (`C:\p4rev`), `.env.example` copiado a `.env`, el comando de la sección «Contenedor» del README al pie de la letra y, sobre el proyecto levantado, las comprobaciones de la rúbrica. El resultado de cada punto sale de `scripts/revision-practica-4.sh` y de comandos de `docker` y `git` ejecutados sobre ese clon.
 
-**Resultado de la corrida:** 76 comprobaciones del recorrido completo + 4 de persistencia tras `down`/`up` = **80 de 80 pasan**. Además, `dotnet test` ejecuta **308 pruebas** (106 antes de la Práctica 4), todas en verde.
+**Resultado de la corrida:** 95 comprobaciones del recorrido completo + 4 de persistencia tras `down`/`up` = **99 de 99 pasan**. Además, `dotnet test` ejecuta **347 pruebas** (106 antes de la Práctica 4), todas en verde.
 
 ## 1. Lo que se revisa, paso a paso
 
@@ -28,10 +28,10 @@ Se revisó la entrega **como lo indica la especificación (§4)**: un clon limpi
 | **Manejador de documentos RF-DOC-01 a 04** | 2.0 | **100 %** | Subir guarda nombre, tipo, tamaño, fecha UTC y quién lo subió. El listado excluye eliminados y ajenos (el Administrador ve todos). Solo dueño o Administrador descargan o eliminan; otro Estándar recibe `403`. La eliminación es lógica: tras eliminar, `SELECT Eliminado FROM Documentos` devuelve `1` y la fila y el archivo siguen existiendo. Sin sesión → `401`; archivo ausente, vacío o de tipo no permitido → `400` controlado |
 | **Contenedor con un solo comando** | 1.5 | **100 %** | Desde un clon limpio, `copy .env.example .env` + `docker compose up --build` levanta todo y responde en el puerto 8080 que dice el README. Hay `Dockerfile`, `.dockerignore`, `docker-compose.yml` y la sección «Contenedor». Sin pasos manuales: migraciones y semillas se aplican al arrancar |
 | **Volumen persistente RF-DOC-05** | 1.0 | **100 %** | Dos volúmenes con nombre (`documentos-archivos` y `sqlserver-datos`). Tras `down` sin `-v` y `up`: el documento se lista y se descarga y el usuario inicia sesión |
-| **API externa con la clave como secreto** | 1.5 | **100 % si la sección «API externa» incluye una respuesta real** (hoy: *pendiente de la clave*) | OpenWeatherMap alimenta `plan-del-dia` con reglas de negocio propias (no es un proxy). La clave llega por `OPENWEATHER_API_KEY` desde el `.env` no versionado; `.env.example` trae la variable. Sin clave, con clave inválida, `401`/`429`/`5xx`, timeout o JSON inesperado → `503` controlado y el resto sigue. La imagen y el historial no contienen la clave; los logs y mensajes tampoco |
+| **API externa con la clave como secreto** | 1.5 | **100 %** | OpenWeatherMap alimenta `plan-del-dia` con reglas de negocio propias (no es un proxy); con una clave real responde `200` y la sección «API externa» del README incluye la respuesta real obtenida. La clave llega por `OPENWEATHER_API_KEY` desde el `.env` no versionado; `.env.example` trae la variable. Sin clave, con clave inválida, `401`/`429`/`5xx`, timeout o JSON inesperado → `503` controlado y el resto sigue. La imagen y el historial no contienen la clave; los logs y mensajes tampoco |
 | **Revisión acumulada (6 frentes)** | 2.0 | **100 %** | Registro con activación por correo; inicio/cierre de sesión; Estándar rechazado en una operación de Administrador; recuperación de contraseña; permisos (crear, aprobar, rechazar y transiciones fuera de la tabla rechazadas); hábitos (operación válida y transición prohibida rechazada) |
 
-**Puntaje esperado: 8.0 / 8.0**, condicionado a completar el ejemplo real de la respuesta del clima (ver §4).
+**Puntaje esperado: 8.0 / 8.0.**
 
 ## 3. Cómo se verificaron los defectos que importan
 
@@ -41,7 +41,7 @@ Se revisó la entrega **como lo indica la especificación (§4)**: un clon limpi
 
 ## 4. Riesgos y pendientes (sin maquillar)
 
-1. **Ejemplo real de la API.** El README exige «un ejemplo real de la respuesta que obtuviste (sin la clave)». Hace falta una clave gratuita de OpenWeatherMap (tarda hasta 2 h en activarse) en el `.env` local; con ella se ejecuta la llamada y se pega la respuesta en la sección «API externa». **Mientras no esté, el criterio puede quedar en 50 %.**
+1. **Código de activación de 6 dígitos.** Es más corto que un token (10^6 posibilidades), así que se protege en capas: se valida siempre junto al correo; cada intento se **reserva de forma atómica en SQL** antes de comparar (probado con una ráfaga de 12 peticiones en paralelo: el contador de la base quedó en 12); a los 5 intentos el código se invalida; el reenvío tiene un enfriamiento de 60 s para que no reinicie el contador; y hay un límite de 30 peticiones por minuto por IP en activación y reenvío (`429`). Aun así, quien controla muchas IPs y muchas cuentas pendientes conserva una probabilidad pequeña por intento; no hay límite global ni CAPTCHA. Los tokens antiguos de 32 caracteres que estuvieran pendientes ya no sirven: hay que pedir un código nuevo con `resend-activation`.
 2. **Primer arranque lento.** Descargar SQL Server (~2.3 GB) y restaurar paquetes tarda varios minutos. En una prueba desde clon limpio el primer `up --build` falló por un corte de red al restaurar NuGet y el segundo levantó bien; por eso el `Dockerfile` reintenta `dotnet restore` tres veces.
 3. **Requisitos del equipo de revisión.** Docker con Compose v2, el puerto 8080 libre y acceso a internet para las imágenes y los paquetes. En Mac con chip Apple, SQL Server corre emulado.
 4. **Una sola réplica.** La siembra inicial no está protegida contra dos instancias arrancando a la vez (`Usuario.Correo` no tiene índice único; añadirlo exige una migración en AccessControl). La composición usa una réplica.

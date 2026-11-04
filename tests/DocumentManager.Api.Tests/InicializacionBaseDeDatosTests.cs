@@ -192,7 +192,7 @@ public class InicializacionBaseDeDatosTests
         public Task<bool> CorreoExistsAsync(Email correo) => Task.FromResult(Guardados.Any(u => u.Correo.Equals(correo)));
         public Task UpdateAsync(Usuario usuario) => Task.CompletedTask;
         public Task<Usuario?> GetByNameAsync(string nombreCompleto) => Task.FromResult<Usuario?>(null);
-        public Task<Usuario?> GetByTokenRecuperacionAsync(string token) => Task.FromResult<Usuario?>(null);
+        public Task<int> ReservarIntentoActivacionAsync(Guid usuarioId) => Task.FromResult(0);
         public Task<IEnumerable<Usuario>> ObtenerTodosAsync() => Task.FromResult<IEnumerable<Usuario>>(Guardados);
     }
 

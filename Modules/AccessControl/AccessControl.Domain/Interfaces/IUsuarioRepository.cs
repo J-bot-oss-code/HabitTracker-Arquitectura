@@ -11,7 +11,12 @@ public interface IUsuarioRepository
     Task<bool> CorreoExistsAsync(Email correo);
     Task UpdateAsync(Usuario usuario);
     Task<Usuario?> GetByNameAsync(string nombreCompleto);
-    Task<Usuario?> GetByTokenRecuperacionAsync(string token);
+    /// <summary>
+    /// Reserva de forma ATÓMICA un intento de activación y devuelve el total de intentos tras reservarlo
+    /// (0 si la cuenta no tiene un código pendiente). Debe ser una sola sentencia en la base de datos: con
+    /// leer-incrementar-guardar, peticiones en paralelo leerían el mismo contador y el límite no serviría.
+    /// </summary>
+    Task<int> ReservarIntentoActivacionAsync(Guid usuarioId);
     Task<IEnumerable<Usuario>> ObtenerTodosAsync();
 
 }

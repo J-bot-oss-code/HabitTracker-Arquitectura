@@ -30,13 +30,13 @@ public class EmailSenderWorkerModoConsolaTests
     {
         const string html = """
             <html><body><p>Hola</p>
-            <a href="http://localhost:8080/api/auth/activate?token=abc%2B123" style="x">Activar mi cuenta</a>
-            <div style="font-size:22px;letter-spacing:3px;color:#0f766e;">abc+123</div></body></html>
+            <a href="http://localhost:8080/api/auth/activate?correo=a%40b.com&amp;codigo=048213" style="x">Activar mi cuenta</a>
+            <div style="font-size:22px;letter-spacing:3px;color:#0f766e;">048213</div></body></html>
             """;
 
         var resumen = EmailSenderWorker.ResumirCuerpo(html);
 
-        Assert.Equal("Enlace: http://localhost:8080/api/auth/activate?token=abc%2B123 | Código: abc+123", resumen);
+        Assert.Equal("Enlace: http://localhost:8080/api/auth/activate?correo=a%40b.com&codigo=048213 | Código: 048213", resumen);
         Assert.DoesNotContain("\n", resumen);
     }
 

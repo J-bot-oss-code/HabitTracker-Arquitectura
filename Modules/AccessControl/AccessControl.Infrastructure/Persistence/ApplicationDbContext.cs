@@ -37,6 +37,10 @@ public class ApplicationDbContext : DbContext
 
             TokenActivacion.Property(t => t.Vencimiento)
             .HasColumnName("Vencimiento");
+
+            // Intentos fallidos con el código de activación (límite de fuerza bruta). Columna anulable: ver TokenActivacion.
+            TokenActivacion.Property<int?>("_intentosFallidos")
+            .HasColumnName("IntentosActivacion");
         });
 
             entity.OwnsOne(u => u.Bloqueo);

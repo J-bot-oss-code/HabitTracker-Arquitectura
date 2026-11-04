@@ -23,11 +23,11 @@ namespace AccessControl.Application.Tests;
 public class FlujosControlAccesoTests
 {
     [Fact]
-    public async Task RF_CA_01_02_RegistroYActivacion_CreaCuentaInactivaYLaActivaConToken()
+    public async Task RF_CA_01_02_RegistroYActivacion_CreaCuentaInactivaYLaActivaConCodigoDe6Digitos()
     {
         // Arrange
         Usuario? usuarioGuardado = null;
-        string? tokenEnviado = null;
+        string? codigoEnviado = null;
         var repositorio = new Mock<IUsuarioRepository>();
         repositorio
             .Setup(r => r.CorreoExistsAsync(It.IsAny<Email>()))
@@ -37,16 +37,19 @@ public class FlujosControlAccesoTests
             .Callback<Usuario>(usuario => usuarioGuardado = usuario)
             .Returns(Task.CompletedTask);
         repositorio
-            .Setup(r => r.GetByTokenRecuperacionAsync(It.IsAny<string>()))
+            .Setup(r => r.GetByCorreoAsync(It.IsAny<Email>()))
             .Returns(() => Task.FromResult(usuarioGuardado));
         repositorio
             .Setup(r => r.UpdateAsync(It.IsAny<Usuario>()))
             .Returns(Task.CompletedTask);
+        repositorio
+            .Setup(r => r.ReservarIntentoActivacionAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(1);
 
         var colaCorreo = new Mock<IEmailQueue>();
         colaCorreo
             .Setup(q => q.EncolarCorreoActivacionAsync(It.IsAny<string>(), It.IsAny<string>()))
-            .Callback<string, string>((_, token) => tokenEnviado = token)
+            .Callback<string, string>((_, codigo) => codigoEnviado = codigo)
             .Returns(Task.CompletedTask);
 
         var hasher = new Mock<IPasswordHasher>();
@@ -64,12 +67,12 @@ public class FlujosControlAccesoTests
         Assert.NotNull(usuarioGuardado);
         Assert.False(usuarioGuardado.Activo);
         Assert.Equal("hash-guardado", usuarioGuardado.PasswordHash);
-        Assert.False(string.IsNullOrWhiteSpace(tokenEnviado));
-        Assert.Equal(tokenEnviado, usuarioGuardado.TokenAcceso?.Valor);
+        Assert.Matches(@"^\d{6}$", codigoEnviado);
+        Assert.Equal(codigoEnviado, usuarioGuardado.TokenAcceso?.Valor);
         Assert.False(respuesta.Activo);
 
         // Act
-        await servicio.ActivarCuentaAsync(tokenEnviado!);
+        await servicio.ActivarCuentaAsync("persona@ejemplo.com", codigoEnviado!);
 
         // Assert
         Assert.True(usuarioGuardado.Activo);

@@ -34,7 +34,7 @@ Swagger en `http://localhost:8080/swagger`. Los correos se leen con `docker comp
 
 | # | Frente | Pasos | Esperado |
 |---|---|---|---|
-| 1 | Registro con activación | `POST /api/auth/register` → leer `Código:` del log → `POST /api/auth/activate` | `201` y luego `200` |
+| 1 | Registro con activación | `POST /api/auth/register` → leer el **código de 6 dígitos** (`Código:`) del log → `POST /api/auth/activate` con `{"correo","codigo"}` | `201` y luego `200`; reutilizar el código → `400`; el código con el correo de otra persona → `400`; tras 5 códigos incorrectos el correcto ya no sirve; `resend-activation` dentro de 60 s no cambia el código; más de 30 peticiones por minuto desde una IP → `429` |
 | 2 | Sesión | `POST /api/auth/login` → `GET /api/auth/me` → `POST /api/auth/logout` → `GET /api/auth/me` | `200`, `200`, `200`, **`401`** |
 | 3 | Estándar vs Administrador | Token Estándar en `GET /api/admin/usuarios` | **`403`** (con el Administrador: `200`) |
 | 4 | Recuperación | `POST /api/auth/forgot-password` → código del log → `POST /api/auth/reset-password` | `200`; reusar el código → `400`; la clave vieja deja de servir |
@@ -80,4 +80,4 @@ Comprobar la fila: `docker compose exec db /opt/mssql-tools18/bin/sqlcmd -C -S l
 
 ## Versión automática
 
-El recorrido completo (76 comprobaciones + 4 de persistencia) se automatizó en `scripts/revision-practica-4.sh` (`bash scripts/revision-practica-4.sh`, y `... persistencia` después de `down`/`up`), un script de `bash` + `curl` que imprime `PASA`/`FALLA` por cada punto; el resultado de la última corrida está en `docs/revision-practica-4.md`.
+El recorrido completo (95 comprobaciones + 4 de persistencia, incluida una ráfaga de 12 intentos de activación en paralelo contra SQL Server) se automatizó en `scripts/revision-practica-4.sh` (`bash scripts/revision-practica-4.sh`, y `... persistencia` después de `down`/`up`), un script de `bash` + `curl` que imprime `PASA`/`FALLA` por cada punto; el resultado de la última corrida está en `docs/revision-practica-4.md`.
