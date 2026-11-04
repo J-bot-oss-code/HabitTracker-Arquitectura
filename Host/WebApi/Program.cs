@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
+using DocumentManager.Infrastructure.DependencyInjection;
 using Permissions.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -14,6 +15,9 @@ builder.Services.AddHabitTrackerModule(builder.Configuration);
 
 // Módulo de Gestión de Permisos (persistencia propia).
 builder.Services.AddPermissionsInfrastructure(builder.Configuration);
+
+// Módulo Manejador de Documentos (Pieza 3 del Core; persistencia y almacenamiento propios).
+builder.Services.AddDocumentManagerModule(builder.Configuration);
 
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
@@ -44,18 +48,31 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Migraciones y datos semilla (solo si BaseDeDatos:MigrarAlIniciar=true; la composición de Docker lo activa).
+await app.InicializarBaseDeDatosAsync();
+
 // Middleware global de excepciones al inicio del pipeline (RD-07, RD-08).
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Configure the HTTP request pipeline.
+// Swagger se muestra en Development y también cuando Swagger:Habilitado=true (el contenedor de la Práctica 4).
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+}
+
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Habilitado"))
+{
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// El contenedor solo escucha HTTP (puerto 8080): redirigir a HTTPS sin un puerto HTTPS configurado
+// no llevaría a ninguna parte. Fuera de Docker se mantiene como antes.
+if (!app.Configuration.GetValue<bool>("Https:RedireccionDesactivada"))
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthentication();
 app.UseMiddleware<TokenBlacklistMiddleware>();

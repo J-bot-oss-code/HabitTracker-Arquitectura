@@ -1,0 +1,73 @@
+# HabitTracker Nexus - composición completa: la API y su base de datos.
+#
+#   copy .env.example .env        (Windows)   |   cp .env.example .env   (Linux / macOS)
+#   docker compose up --build
+#
+# Este archivo NO contiene valores secretos: solo referencias ${VARIABLE} que Docker Compose
+# toma del archivo .env, que no se versiona (RD-10).
+
+services:
+  # --------------------------------------------------------------------------
+  # Base de datos. No tiene "ports": no es accesible desde fuera de la composición.
+  # La aplicación la encuentra por su NOMBRE de servicio ("db"), no por localhost.
+  # --------------------------------------------------------------------------
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+    volumes:
+      # Volumen con nombre para los datos de SQL Server (RD-09), distinto al de los documentos.
+      - sqlserver-datos:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  # --------------------------------------------------------------------------
+  # La aplicación. Es el ÚNICO servicio que publica un puerto en el equipo.
+  # --------------------------------------------------------------------------
+  webapi:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      # "Server=db": el nombre del servicio de arriba.
+      ConnectionStrings__AccessControl: "Server=db;Database=HabitTracker;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      JwtSettings__Clave: ${JWT_CLAVE:?Define JWT_CLAVE en el archivo .env}
+
+      # Arranque sin pasos manuales: migra la base y crea el Administrador y la Meta de demostración.
+      BaseDeDatos__MigrarAlIniciar: "true"
+      ADMIN_CORREO: ${ADMIN_CORREO:-}
+      ADMIN_CLAVE: ${ADMIN_CLAVE:-}
+
+      # Los archivos de los documentos se guardan en el volumen montado más abajo.
+      Documentos__RutaAlmacenamiento: /app/data/documentos
+
+      CORREO_MODO: ${CORREO_MODO:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+
+      App__BaseUrl: ${APP_BASE_URL:-http://localhost:8080}
+      Swagger__Habilitado: ${SWAGGER_HABILITADO:-false}
+      # El contenedor solo escucha HTTP: no hay a dónde redirigir.
+      Https__RedireccionDesactivada: "true"
+    volumes:
+      # Volumen con nombre para los archivos de documentos, FUERA de la imagen (RF-DOC-05).
+      - documentos-archivos:/app/data/documentos
+
+volumes:
+  sqlserver-datos:
+  documentos-archivos:
