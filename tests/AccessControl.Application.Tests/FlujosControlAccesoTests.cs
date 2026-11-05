@@ -100,7 +100,7 @@ public class FlujosControlAccesoTests
             .Returns(Task.CompletedTask);
 
         var hasher = new Mock<IPasswordHasher>();
-        hasher.Setup(h => h.verificar("hash-guardado", "ClaveSegura123")).Returns(true);
+        hasher.Setup(h => h.Verificar("hash-guardado", "ClaveSegura123")).Returns(true);
 
         var configuracion = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>

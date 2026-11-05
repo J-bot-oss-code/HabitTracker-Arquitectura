@@ -45,7 +45,7 @@ public class UsuarioService : IUsuarioService
     {
         ArgumentNullException.ThrowIfNull(request);
         var email = new Email(request.Email);
-        if (string.IsNullOrWhiteSpace(request.password) || request.password.Length > 1024)
+        if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length > 1024)
         {
             throw new ArgumentException("Las credenciales no son válidas.", nameof(request));
         }
@@ -63,7 +63,7 @@ public class UsuarioService : IUsuarioService
         // 2. Se verifica la clave ANTES de revelar si la cuenta está inactiva:
         // una clave incorrecta en cuenta activa o inactiva responde 401 genérico.
         // Solo si ya está bloqueada (el atacante provocó el bloqueo) se informa el bloqueo.
-        if (!_passwordHasher.verificar(usuario.PasswordHash, request.password))
+        if (!_passwordHasher.Verificar(usuario.PasswordHash, request.Password))
         {
             usuario.RegistrarIntentoFallido();
             await _repository.UpdateAsync(usuario);
@@ -104,7 +104,7 @@ public class UsuarioService : IUsuarioService
         );
     }
 
-    public async Task cambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId)
+    public async Task CambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId)
     {
         if (usuarioId == Guid.Empty || adminId == Guid.Empty || string.IsNullOrWhiteSpace(nuevoRol))
         {
@@ -292,7 +292,7 @@ public class UsuarioService : IUsuarioService
             throw new InvalidOperationException("El usuario no existe");
         }
 
-        if (!_passwordHasher.verificar(usuario.PasswordHash, actual))
+        if (!_passwordHasher.Verificar(usuario.PasswordHash, actual))
         {
             throw new UnauthorizedAccessException("La contraseña actual es incorrecta.");
         }
@@ -437,17 +437,17 @@ public class UsuarioService : IUsuarioService
     public async Task<UsuarioResponseDto> RegistrarUsuarioAsync(RegistroRequestDto request)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (string.IsNullOrWhiteSpace(request.nombre) || request.nombre.Trim().Length > 200)
+        if (string.IsNullOrWhiteSpace(request.Nombre) || request.Nombre.Trim().Length > 200)
         {
             throw new ArgumentException("El nombre completo no es válido.", nameof(request));
         }
-        ValidarFormatoClave(request.password);
+        ValidarFormatoClave(request.Password);
 
-        _logger.LogInformation("Iniciando registro para el correo {correo}", request.correo);
+        _logger.LogInformation("Iniciando registro para el correo {correo}", request.Correo);
 
 
         // 1. Instancias el Value Object (esto además validará que el correo tenga un formato correcto)
-        var Email = new Email(request.correo);
+        var Email = new Email(request.Correo);
 
         // 2. verificar correo unico (RF-CA-01)
         var existe = await _repository.CorreoExistsAsync(Email);
@@ -458,10 +458,10 @@ public class UsuarioService : IUsuarioService
         }
 
         // 3. Hashear password antes de crear la entidad (RF-CA-02)
-        var passwordhash = _passwordHasher.Hash(request.password);
+        var passwordhash = _passwordHasher.Hash(request.Password);
 
         // 4. Crear la entidad
-        var nuevoUsuario = new Usuario(request.nombre, Email, passwordhash );
+        var nuevoUsuario = new Usuario(request.Nombre, Email, passwordhash );
 
         string codigoActivacion = GenerarCodigoActivacion();
         nuevoUsuario.EstablecerTokenActivacion(codigoActivacion, DateTime.UtcNow.AddHours(HorasValidezActivacion));

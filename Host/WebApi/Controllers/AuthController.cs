@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using AccessControl.Application.DTOs;

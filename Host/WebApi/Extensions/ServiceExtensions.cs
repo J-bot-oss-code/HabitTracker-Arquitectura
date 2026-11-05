@@ -37,8 +37,6 @@ public static class ServiceExtensions
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<ITokenBlacklist, TokenBlacklistService>();
 
-        services.AddMemoryCache();
-
         var clave = configuration["JwtSettings:Clave"];
         var emisor = configuration["JwtSettings:Emisor"];
         var audiencia = configuration["JwtSettings:Audiencia"];

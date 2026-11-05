@@ -10,7 +10,7 @@ namespace AccessControl.Infrastructure.Security
            return BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(12));
         }
 
-        public bool verificar(string hash, string passwordPlana)
+        public bool Verificar(string hash, string passwordPlana)
         {
             // BCrypt.Verify(textoPlano, hash): el orden importa; invertido lanza excepción al parsear.
             // Un hash corrupto o con formato inválido nunca hace match: se devuelve false en vez de propagar.

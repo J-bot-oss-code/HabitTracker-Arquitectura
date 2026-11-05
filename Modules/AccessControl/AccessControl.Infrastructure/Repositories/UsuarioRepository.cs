@@ -33,12 +33,6 @@ public class UsuarioRepository : IUsuarioRepository
         return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.Id == id);
     }
 
-    public async Task<Usuario?> GetByNameAsync(string nombreCompleto)
-    {
-        // Implementación para obtener un usuario por nombre completo
-        return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.NombreCompleto == nombreCompleto);
-    }
-
     public async Task<int> ReservarIntentoActivacionAsync(Guid usuarioId)
     {
         // Una sola sentencia: el motor serializa los UPDATE sobre la misma fila, así que N peticiones en paralelo

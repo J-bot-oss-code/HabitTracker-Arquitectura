@@ -30,7 +30,7 @@ public class UsuarioServiceTests
 
         var verificadorPassword = new Mock<IPasswordHasher>();
         verificadorPassword
-            .Setup(v => v.verificar("hash-guardado", "clave-incorrecta"))
+            .Setup(v => v.Verificar("hash-guardado", "clave-incorrecta"))
             .Returns(false);
 
         var servicio = new UsuarioService(
