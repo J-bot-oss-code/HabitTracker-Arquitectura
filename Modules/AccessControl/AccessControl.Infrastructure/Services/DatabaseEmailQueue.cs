@@ -1,5 +1,6 @@
 using AccessControl.Application.Interfaces;
 using AccessControl.Domain.Entities;
+using AccessControl.Domain.Entities.ValueObjects;
 using AccessControl.Infrastructure.Persistence;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -21,7 +22,7 @@ public class DatabaseEmailQueue : IEmailQueue
 
     public async Task EncolarCorreoRecuperacionAsync(string correoDestino, string codigoGenerado)
     {
-        _logger.LogInformation("Encolando correo de recuperación para: {Destino}", correoDestino);
+        _logger.LogInformation("Encolando correo de recuperación para: {Destino}", Email.Enmascarar(correoDestino));
 
         var correo = new CorreoEnCola(
             correoDestino,
@@ -38,7 +39,7 @@ public class DatabaseEmailQueue : IEmailQueue
 
     public async Task EncolarCorreoActivacionAsync(string correo, string codigo)
     {
-        _logger.LogInformation("Encolando correo de activación para: {Destino}", correo);
+        _logger.LogInformation("Encolando correo de activación para: {Destino}", Email.Enmascarar(correo));
 
         var baseUrl = (_configuration["App:BaseUrl"] ?? "http://localhost:5246").TrimEnd('/');
         var enlace = $"{baseUrl}/api/auth/activate?correo={Uri.EscapeDataString(correo)}&codigo={Uri.EscapeDataString(codigo)}";

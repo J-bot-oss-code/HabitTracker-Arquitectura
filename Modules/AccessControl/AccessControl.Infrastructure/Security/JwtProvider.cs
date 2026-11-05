@@ -32,6 +32,8 @@ public class JwtProvider : IJwtProvider
         {
             new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, usuario.Correo.Valor),
+            // El nombre viaja en el token para que GET /api/auth/me y el frontend lo muestren sin otra consulta.
+            new Claim(JwtRegisteredClaimNames.Name, usuario.NombreCompleto),
             new Claim(ClaimTypes.Role, usuario.Rol.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, emitidoEn.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture), ClaimValueTypes.Integer64),
@@ -58,22 +60,7 @@ public class JwtProvider : IJwtProvider
     {
         var settings = new JwtSettings();
         _configuration.GetSection(JwtSettings.Seccion).Bind(settings);
-
-        if (string.IsNullOrWhiteSpace(settings.Clave) || Encoding.UTF8.GetBytes(settings.Clave).Length < 32)
-        {
-            throw new InvalidOperationException("Falta configuración JWT válida (JwtSettings:Clave de al menos 32 caracteres).");
-        }
-
-        if (string.IsNullOrWhiteSpace(settings.Emisor) || string.IsNullOrWhiteSpace(settings.Audiencia))
-        {
-            throw new InvalidOperationException("Falta configuración JWT válida (JwtSettings:Emisor y JwtSettings:Audiencia).");
-        }
-
-        if (settings.MinutosExpiracion <= 0)
-        {
-            throw new InvalidOperationException("La configuración JWT no es válida (JwtSettings:MinutosExpiracion debe ser mayor a cero).");
-        }
-
+        settings.Validar();
         return settings;
     }
 }
