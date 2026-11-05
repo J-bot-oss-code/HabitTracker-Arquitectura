@@ -309,6 +309,8 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 | `contrasena_no_valida` | 400 | La contraseña no tiene entre 12 y 1024 caracteres con al menos una letra y un número (RF-CA-14). |
 | `contrasena_filtrada` | 400 | La contraseña aparece en filtraciones de datos conocidas. |
 | `consentimiento_no_valido` | 400 | Falta aceptar las versiones **vigentes** de los Términos y de la Política de privacidad (registro) o se envió una versión que no corresponde. |
+| `sesion_invalida` | 401 | El refresh token falta, no existe, venció, fue revocado o ya se había usado; o su cuenta ya no está activa. El cliente debe iniciar sesión de nuevo. |
+| `csrf_requerido` | 403 | `POST /api/auth/refresh` sin la cabecera `X-HabitTracker-Csrf: 1`. |
 | `clave_actual_incorrecta` | 400 | La contraseña actual indicada al cambiarla no coincide (RF-CA-22). |
 | `ultimo_administrador` | 400 | La operación dejaría al sistema sin ningún administrador activo. |
 | `operacion_no_permitida` | 403 | Quien ejecuta no es un administrador activo (RF-CA-05, RF-CA-06). |
@@ -321,6 +323,7 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 | `registro` | `POST /api/auth/register` | 5 por minuto |
 | `recuperacion` | `POST /api/auth/recuperar-password` y `restablecer-password` (y sus alias) | 5 por minuto |
 | `activacion` | `activate` (GET y POST) y `resend-activation` | 30 por minuto |
+| `refresh` | `POST /api/auth/refresh` | 30 por minuto |
 
 > Dentro de Docker todos los clientes llegan con la IP de la pasarela y comparten el mismo cupo (deuda conocida, ver `docs/ESTADO-DEL-PROYECTO.md`).
 
@@ -333,6 +336,17 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 - `GET /api/privacy/consents` devuelve el consentimiento vigente (`404` si la cuenta nunca aceptó nada, como las anteriores a esta función).
 - `PUT /api/privacy/consents` actualiza `{terminosVersion, privacidadVersion, datosSalud, marketing, compartirCumplimiento, estadisticasAnonimas}` (los seis obligatorios). Acepta las versiones vigentes **o las que la persona ya había aceptado**: mover un interruptor no obliga a aceptar documentos nuevos que aún no ha visto. La fecha de aceptación solo se renueva cuando cambian las versiones.
 - `POST /api/auth/login` y `GET /api/auth/me` incluyen `requiereAceptarDocumentos`: `true` si la cuenta nunca aceptó o su última aceptación no es de las versiones vigentes. El inicio de sesión funciona igual: el cliente decide cuándo pedir la aceptación.
+
+**Sesiones** (RF-CA-03, RF-CA-12, RF-CA-18, RF-CA-20). El token de acceso (JWT) dura **15 minutos** y viaja en el cuerpo del login, como siempre. Para no pedir la contraseña cada 15 minutos, el login también abre una *sesión* y fija una cookie con un **refresh token** rotativo:
+
+- La cookie `habittracker_refresh` es **HttpOnly** (el JavaScript de la página no la lee, así un XSS no la roba), **Secure**, `SameSite=Strict` y solo viaja a `/api/auth` (el resto de la API nunca la recibe). En la base de datos solo se guarda el **hash SHA-256** del token (tabla `SesionesUsuario`); el valor son 32 bytes aleatorios en Base64Url. Dura 14 días sin usarse.
+- `POST /api/auth/refresh` canjea el refresh token por un token de acceso nuevo **y un refresh token nuevo**: el anterior queda revocado. Como se autentica solo con la cookie exige la cabecera `X-HabitTracker-Csrf: 1` (un formulario de otro sitio no puede enviarla y CORS impide que un script de otro origen la envíe); sin ella responde `403 csrf_requerido`.
+- **Reutilización = robo:** si llega un refresh token que ya fue canjeado, se revoca **toda la familia** de sesiones de ese inicio de sesión y hay que volver a entrar. Dos renovaciones simultáneas con el mismo token tampoco ganan las dos: gana una y la otra cierra la familia (el cliente debe serializar sus renovaciones). La cuenta desactivada, bloqueada o dada de baja no puede renovar.
+- `POST /api/auth/logout` invalida el token de acceso (RF-CA-18) y revoca el refresh token de la cookie. `POST /api/auth/logout-todas` cierra la sesión en todos los dispositivos. Ambos se autorizan con el Bearer, no con la cookie.
+- `GET /api/auth/sesiones` lista las sesiones abiertas (`id`, `dispositivo`, `creadaEn`, `ultimoUsoEn`, `actual`) y `DELETE /api/auth/sesiones/{id}` cierra una (`404` si no existe o es de otra persona). El token de acceso de una sesión cerrada así sigue sirviendo hasta que venza (máximo 15 minutos); `logout-todas` sí corta también los accesos emitidos.
+- Cambiar o restablecer la contraseña, forzar el restablecimiento, desactivar la cuenta o cambiar el rol revocan **todas** las sesiones (refresh y accesos) por un único punto: `IGestorSesiones.RevocarTodasAsync`.
+- Las sesiones vencidas hace más de 30 días se borran al iniciar otra. Detrás de un proxy (como Docker) la IP que se guarda es la de la pasarela (deuda conocida).
+- Configuración: `Sesion:DiasRefresh` (1-90), `Sesion:CookieSegura` (solo `false` en desarrollo sin HTTPS) y `Sesion:CookieSameSite` (`Strict`, `Lax` o `None`; `None` exige cookie segura y es lo que hace falta si el frontend y la API están en dominios distintos). Una configuración inválida detiene el arranque.
 
 **Recuperación de contraseña.** El código es de 6 dígitos y vence en 1 hora; se pide como máximo una vez por minuto (dentro del minuto se responde igual pero no se envía otro correo). Con 5 códigos incorrectos se invalida. Restablecerla cierra las sesiones abiertas y levanta el bloqueo.
 
@@ -423,7 +437,8 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 *   `JwtSettings:Clave`: (String) Clave secreta de al menos 32 caracteres para firmar los tokens JWT. Solo vía User Secrets: `dotnet user-secrets set "JwtSettings:Clave" "tu-clave..." --project Host/WebApi/WebApi.csproj`.
 *   `JwtSettings:Emisor`: (String) Emisor del token (ej. `HabitTrackerNexus`).
 *   `JwtSettings:Audiencia`: (String) Audiencia del token (ej. `HabitTrackerNexusApi`).
-*   `JwtSettings:MinutosExpiracion`: (int) Vida del token en minutos (ej. `60`).
+*   `JwtSettings:MinutosExpiracion`: (int) Vida del token de acceso en minutos (por defecto `15`; la sesión larga la sostiene el refresh token, ver «Sesiones»).
+*   `Sesion:DiasRefresh`, `Sesion:CookieSegura`, `Sesion:CookieSameSite`: (opcionales) vida del refresh token (14 días), cookie `Secure` (`true`) y `SameSite` (`Strict`; `None` si el frontend y la API están en dominios distintos).
 *   `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (String) Credenciales del servidor de correo saliente, solo por variables de entorno o User Secrets.
 *   `App:BaseUrl`: (String) URL pública de la API para armar el enlace de activación del correo (ej. `http://localhost:5246`).
 
