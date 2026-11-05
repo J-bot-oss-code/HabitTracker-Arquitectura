@@ -102,12 +102,12 @@ public class GoogleControllerTests
     [Fact]
     public async Task RF_CA_03_VincularConLaClaveCorrectaIniciaSesionConCookie()
     {
-        _externo.Setup(e => e.VincularGoogleAsync("id-token", "ClaveSegura-Nexus-2026"))
+        _externo.Setup(e => e.VincularGoogleAsync("id-token", "clave-correcta"))
             .ReturnsAsync(new ResultadoLoginExterno(Usuario(), CuentaNueva: false));
         SesionQueEmite();
         var http = Http();
 
-        var resultado = await Controlador(http).VincularGoogle(new GoogleVincularRequest("id-token", "ClaveSegura-Nexus-2026"));
+        var resultado = await Controlador(http).VincularGoogle(new GoogleVincularRequest("id-token", "clave-correcta"));
 
         Assert.Equal("jwt-de-acceso", Assert.IsType<UsuarioResponseDto>(Assert.IsType<OkObjectResult>(resultado).Value).Token);
         Assert.Contains(OpcionesSesion.NombreCookie, http.Response.Headers.SetCookie.ToString());
