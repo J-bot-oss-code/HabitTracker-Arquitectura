@@ -306,6 +306,8 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 | `cuenta_bloqueada` | 400 | 5 intentos fallidos: bloqueo de 15 minutos (RF-CA-19). También cuenta la contraseña actual incorrecta al cambiarla. |
 | `correo_ya_registrado` | 400 | Ya existe una cuenta con ese correo (RF-CA-01). Hay un índice único en la base. |
 | `codigo_invalido` | 400 | Código de activación o recuperación incorrecto, usado, vencido o agotado. |
+| `contrasena_no_valida` | 400 | La contraseña no tiene entre 12 y 1024 caracteres con al menos una letra y un número (RF-CA-14). |
+| `contrasena_filtrada` | 400 | La contraseña aparece en filtraciones de datos conocidas. |
 | `clave_actual_incorrecta` | 400 | La contraseña actual indicada al cambiarla no coincide (RF-CA-22). |
 | `ultimo_administrador` | 400 | La operación dejaría al sistema sin ningún administrador activo. |
 | `operacion_no_permitida` | 403 | Quien ejecuta no es un administrador activo (RF-CA-05, RF-CA-06). |
@@ -320,6 +322,10 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 | `activacion` | `activate` (GET y POST) y `resend-activation` | 30 por minuto |
 
 > Dentro de Docker todos los clientes llegan con la IP de la pasarela y comparten el mismo cupo (deuda conocida, ver `docs/ESTADO-DEL-PROYECTO.md`).
+
+**Política de contraseñas** (registro, restablecimiento y cambio de contraseña; RF-CA-14 pide como mínimo 8 con letras y números, esta política es más estricta). Debe tener **12 a 1024 caracteres con al menos una letra y un número** y **no aparecer en filtraciones conocidas**. La comprobación usa la API pública *Pwned Passwords* con k-anonimato: solo viaja un prefijo de 5 caracteres del hash SHA-1, nunca la contraseña. Si la API falla o tarda más de 3 segundos, **la contraseña se permite** (una caída externa no bloquea registros). Se desactiva con `Seguridad:ContrasenasFiltradas:Habilitado=false` (`CONTRASENAS_FILTRADAS=false` en Docker) y solo comprueba el formato. Las cuentas existentes con contraseñas más cortas siguen entrando: la política solo se aplica al fijar una nueva. Un rechazo por clave filtrada no consume el código de recuperación ni cierra la sesión.
+
+> Las contraseñas de ejemplo de esta documentación y del script de revisión (`ClaveSegura-Nexus-2026`, `ClaveNueva-Nexus-2026`, `ClaveOtra-Nexus-2026`) se eligieron porque **no aparecen en filtraciones**: `ClaveSegura123` y `NuevaClave123` sí aparecen y la política las rechaza. Al probar con otras contraseñas, evita las comunes.
 
 **Recuperación de contraseña.** El código es de 6 dígitos y vence en 1 hora; se pide como máximo una vez por minuto (dentro del minuto se responde igual pero no se envía otro correo). Con 5 códigos incorrectos se invalida. Restablecerla cierra las sesiones abiertas y levanta el bloqueo.
 
@@ -432,7 +438,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
 * **Inicio de sesión, claims y expiración:** ejecuta `POST /api/auth/login` con las credenciales de una cuenta activa; autoriza Swagger con el JWT recibido y ejecuta `GET /api/auth/me` para comprobar el id, correo y rol autenticados. Inspecciona localmente el payload del JWT y confirma que contiene los datos de identidad y una expiración futura (`exp`). No publiques el JWT. Ejecuta `POST /api/auth/logout`; el mismo token debe quedar invalidado y `GET /api/auth/me` debe responder `401`.
 *   **Registro y rechazo controlado:** Usa `POST /api/auth/register` con una clave menor a 8 caracteres o sin números. Recibirás un error 400 controlado.
 *   **Encolado de correos (Sin SMTP):** Si el servidor SMTP no está configurado o falla, el registro (201 Created) y la recuperación de clave terminan con éxito. Los correos quedan pendientes en la tabla/cola interna.
-*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura123"}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, `docker compose logs webapi`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
+*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026"}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, `docker compose logs webapi`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
 
     ```sql
     SELECT TokenAcceso, Vencimiento
@@ -440,7 +446,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
     WHERE Correo = N'persona@ejemplo.com';
     ```
 
-*   **Inicio y cierre de sesión:** Inicia sesión con `POST /api/auth/login` y `{"email":"persona@ejemplo.com","password":"ClaveSegura123"}`. Guarda el JWT recibido, úsalo como `Authorization: Bearer <JWT>` para `GET /api/auth/me` y luego envíalo en `POST /api/auth/logout`. Repite `GET /api/auth/me` con el mismo token: debe responder `401 Unauthorized`.
+*   **Inicio y cierre de sesión:** Inicia sesión con `POST /api/auth/login` y `{"email":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026"}`. Guarda el JWT recibido, úsalo como `Authorization: Bearer <JWT>` para `GET /api/auth/me` y luego envíalo en `POST /api/auth/logout`. Repite `GET /api/auth/me` con el mismo token: debe responder `401 Unauthorized`.
 *   **Seguridad de enumeración (Recuperación):** Llama a `POST /api/auth/recuperar-password` con un correo falso y luego con uno registrado. Ambos reciben `200 OK` con el mismo mensaje; el servidor aplica un tiempo mínimo de respuesta para reducir diferencias de temporización.
 *   **Recuperación de contraseña paso a paso:** Envía `POST /api/auth/forgot-password` con `{"correo":"persona@ejemplo.com"}`. El endpoint responde siempre `200 OK` con un mensaje genérico. Para una cuenta existente, el código de seis caracteres se envía por correo. En un entorno local sin SMTP operativo, consulta la cola de correos de la base `AccessControl`; el cuerpo HTML de `CorreosEnCola` contiene el código:
 
@@ -451,7 +457,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
     ORDER BY FechaCreacion DESC;
     ```
 
-    Usa el código recibido en `POST /api/auth/reset-password` con `{"correo":"persona@ejemplo.com","codigo":"CODIGO_DE_SEIS_CARACTERES","nuevaPassword":"NuevaClave123"}`. La respuesta exitosa es `200 OK`; el código es de un solo uso y el cambio invalida las sesiones anteriores. Los nombres en español `POST /api/auth/recuperar-password` y `POST /api/auth/restablecer-password` son rutas equivalentes. Trata el código como una credencial temporal: consulta la cola solo en la base local de desarrollo y no copies su contenido a logs o reportes.
+    Usa el código recibido en `POST /api/auth/reset-password` con `{"correo":"persona@ejemplo.com","codigo":"CODIGO_DE_SEIS_CARACTERES","nuevaPassword":"ClaveNueva-Nexus-2026"}`. La respuesta exitosa es `200 OK`; el código es de un solo uso y el cambio invalida las sesiones anteriores. Los nombres en español `POST /api/auth/recuperar-password` y `POST /api/auth/restablecer-password` son rutas equivalentes. Trata el código como una credencial temporal: consulta la cola solo en la base local de desarrollo y no copies su contenido a logs o reportes.
 *   **Bloqueo de fuerza bruta (15 min):** Falla cinco veces seguidas en `POST /api/auth/login`; la cuenta queda bloqueada. El siguiente inicio se rechaza incluso si se usa la contrasena correcta.
 *   **Invalidación de sesión (Logout / Cambio de Rol/Clave):** Inicia sesión, guarda el JWT. Llama a `POST /api/auth/logout`. Vuelve a intentar usar el JWT en `GET /api/auth/me`; recibirás un `401 Unauthorized`.
 *   **Protección por Roles:** En la base de datos local de pruebas, promueve una cuenta activada a Administrador (`UPDATE usuarios SET Rol = 2 WHERE Correo = 'admin@ejemplo.com'`; el valor 2 corresponde a `Administrador`). Inicia sesión de nuevo con esa cuenta para obtener un JWT con el rol actualizado. Autoriza Swagger con el JWT de otra cuenta Estándar e invoca `GET /api/admin/usuarios`: debe responder `403 Forbidden`. Autoriza después con el token de Administrador y la misma operación debe responder `200 OK`. No ejecutes la actualización SQL en una base compartida o de producción.
