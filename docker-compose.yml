@@ -61,6 +61,8 @@ services:
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
 
       App__BaseUrl: ${APP_BASE_URL:-http://localhost:8080}
+      # Origen del frontend que puede llamar a la API desde el navegador (CORS). Sin comodines: un solo origen exacto.
+      Cors__OrigenesPermitidos__0: ${FRONTEND_URL:-http://localhost:5173}
       Swagger__Habilitado: ${SWAGGER_HABILITADO:-false}
       # El contenedor solo escucha HTTP: no hay a dónde redirigir.
       Https__RedireccionDesactivada: "true"
