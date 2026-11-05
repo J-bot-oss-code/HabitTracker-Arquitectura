@@ -4,6 +4,7 @@ using AccessControl.Domain.Interfaces;
 using AccessControl.Domain.Entities.ValueObjects;
 using Microsoft.Extensions.Logging;
 using AccessControl.Domain.Entities;
+using AccessControl.Domain.Excepciones;
 using System.Diagnostics;
 using System.Security.Cryptography;
 
@@ -50,14 +51,16 @@ public class UsuarioService : IUsuarioService
             throw new ArgumentException("Las credenciales no son válidas.", nameof(request));
         }
 
-        _logger.LogInformation("Intento de login para: {Email}", request.Email);
+        _logger.LogInformation("Intento de login para: {Correo}", email.Enmascarado());
 
         var usuario = await _repository.GetByCorreoAsync(email);
 
-        // 1. RF-CA-03: sin revelar qué dato falló.
+        // 1. RF-CA-03: sin revelar qué dato falló. Si el correo no existe se gasta el mismo tiempo que una verificación
+        // real: sin esto, la respuesta tardaría ~250 ms menos y delataría qué correos están registrados.
         if (usuario == null)
         {
-            throw new UnauthorizedAccessException("Credenciales incorrectas");
+            _passwordHasher.SimularVerificacion(request.Password);
+            throw new CredencialesInvalidasException();
         }
 
         // 2. Se verifica la clave ANTES de revelar si la cuenta está inactiva:
@@ -70,22 +73,23 @@ public class UsuarioService : IUsuarioService
 
             if (usuario.EstaBloqueado())
             {
-                throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+                throw new CuentaBloqueadaException();
             }
 
-            throw new UnauthorizedAccessException("Credenciales incorrectas");
+            throw new CredencialesInvalidasException();
         }
 
         // 3. RF-CA-19: cuenta bloqueada por intentos fallidos (solo con clave correcta).
         if (usuario.EstaBloqueado())
         {
-            throw new InvalidOperationException("Cuenta bloqueada temporalmente por intentos fallidos.");
+            throw new CuentaBloqueadaException();
         }
 
-        // 4. RF-CA-15: la cuenta debe estar activada (solo con clave correcta).
+        // 4. RF-CA-15 / RF-CA-20: la cuenta debe estar activa (solo con clave correcta). El código distingue
+        // "falta activarla con el código del correo" de "un administrador la desactivó".
         if (!usuario.Activo)
         {
-            throw new InvalidOperationException("Debe activar su cuenta antes de iniciar sesión.");
+            throw usuario.PendienteDeActivacion ? new CuentaNoActivaException() : new CuentaDesactivadaException();
         }
 
         // 5. Éxito: se restablecen intentos, se persiste y se emite el JWT.
@@ -124,7 +128,7 @@ public class UsuarioService : IUsuarioService
         var ejecutor = await _repository.GetByIdAsync(adminId);
         if (ejecutor == null || ejecutor.Rol != Rol.Administrador)
         {
-            throw new InvalidOperationException("No tiene permiso para cambiar roles.");
+            throw new OperacionNoPermitidaException();
         }
 
         if (!Enum.TryParse<Rol>(nuevoRol, ignoreCase: true, out var rol) || !Enum.IsDefined(rol))
@@ -216,9 +220,9 @@ public class UsuarioService : IUsuarioService
     public async Task IniciarRecuperacionAsync(string correo)
     {
         var inicio = Stopwatch.GetTimestamp();
-        _logger.LogInformation("Iniciando recuperación de contraseña para el correo {correo}", correo);
-
         var Email = new Email(correo);
+
+        _logger.LogInformation("Iniciando recuperación de contraseña para el correo {Correo}", Email.Enmascarado());
 
         var usuario = await _repository.GetByCorreoAsync(Email);
 
@@ -262,7 +266,7 @@ public class UsuarioService : IUsuarioService
                 await _repository.UpdateAsync(usuario);
             }
 
-            throw new InvalidOperationException("El código de recuperación es incorrecto, ya fue usado o ha expirado.");
+            throw new CodigoInvalidoException();
         }
 
         var nuevoHash = _passwordHasher.Hash(nuevaPassword);
@@ -294,7 +298,12 @@ public class UsuarioService : IUsuarioService
 
         if (!_passwordHasher.Verificar(usuario.PasswordHash, actual))
         {
-            throw new UnauthorizedAccessException("La contraseña actual es incorrecta.");
+            // Quien tiene un token robado podría adivinar la clave actual: cada fallo cuenta para el mismo bloqueo del
+            // login (RF-CA-19). Responde 400 y no 403: un 403 aquí parecería un problema de permisos, no de la clave.
+            usuario.RegistrarIntentoFallido();
+            await _repository.UpdateAsync(usuario);
+
+            throw usuario.EstaBloqueado() ? new CuentaBloqueadaException() : new ClaveActualIncorrectaException();
         }
 
         // RF-CA-14: formato de la nueva clave.
@@ -413,11 +422,10 @@ public class UsuarioService : IUsuarioService
         // El código se busca SIEMPRE junto al correo: con 6 dígitos no es único entre usuarios.
         var usuario = await _repository.GetByCorreoAsync(new Email(correo));
 
-        // Mensaje uniforme: no revela si el correo existe, si ya está activo o si el código expiró.
-        const string mensajeUniforme = "El código de activación es incorrecto o ha expirado";
+        // Mensaje uniforme (CodigoInvalidoException): no revela si el correo existe, si ya está activo o si el código expiró.
         if (usuario == null || usuario.Activo || usuario.TokenAcceso == null)
         {
-            throw new InvalidOperationException(mensajeUniforme);
+            throw new CodigoInvalidoException();
         }
 
         // Fuerza bruta (RD-06): el intento se RESERVA de forma atómica en la base de datos antes de comparar.
@@ -426,7 +434,7 @@ public class UsuarioService : IUsuarioService
         var intentos = await _repository.ReservarIntentoActivacionAsync(usuario.Id);
         if (intentos == 0 || intentos > TokenActivacion.MaxIntentos || !usuario.TokenAcceso.EsValido(codigo))
         {
-            throw new InvalidOperationException(mensajeUniforme);
+            throw new CodigoInvalidoException();
         }
 
         usuario.CompletarActivacion(codigo);
@@ -443,18 +451,17 @@ public class UsuarioService : IUsuarioService
         }
         ValidarFormatoClave(request.Password);
 
-        _logger.LogInformation("Iniciando registro para el correo {correo}", request.Correo);
-
-
         // 1. Instancias el Value Object (esto además validará que el correo tenga un formato correcto)
         var Email = new Email(request.Correo);
+
+        _logger.LogInformation("Iniciando registro para el correo {Correo}", Email.Enmascarado());
 
         // 2. verificar correo unico (RF-CA-01)
         var existe = await _repository.CorreoExistsAsync(Email);
 
         if(existe)
         {
-            throw new InvalidOperationException("El correo ya esta registrado");
+            throw new CorreoYaRegistradoException();
         }
 
         // 3. Hashear password antes de crear la entidad (RF-CA-02)

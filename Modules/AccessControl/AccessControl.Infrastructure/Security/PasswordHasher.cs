@@ -5,9 +5,20 @@ namespace AccessControl.Infrastructure.Security
 
     public class PasswordHasher : IPasswordHasher
     {
+        private const int FactorDeCosto = 12;
+
+        // Hash válido de una clave que nadie conoce, calculado una vez con el mismo costo que los reales.
+        private static readonly string HashFicticio =
+            BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString("N"), BCrypt.Net.BCrypt.GenerateSalt(FactorDeCosto));
+
+        public void SimularVerificacion(string passwordPlana)
+        {
+            _ = Verificar(HashFicticio, passwordPlana);
+        }
+
         public string Hash(string password)
         {
-           return BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(12));
+           return BCrypt.Net.BCrypt.HashPassword(password, BCrypt.Net.BCrypt.GenerateSalt(FactorDeCosto));
         }
 
         public bool Verificar(string hash, string passwordPlana)

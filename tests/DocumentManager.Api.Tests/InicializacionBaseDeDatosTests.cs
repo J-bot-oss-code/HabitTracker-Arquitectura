@@ -180,6 +180,7 @@ public class InicializacionBaseDeDatosTests
     {
         public string Hash(string password) => "HASH::" + password.Length + "::" + new string(password.Reverse().ToArray());
         public bool Verificar(string hash, string passwordPlana) => hash == Hash(passwordPlana);
+        public void SimularVerificacion(string passwordPlana) { }
     }
 
     private sealed class RepositorioDeUsuariosFalso : IUsuarioRepository
