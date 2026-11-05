@@ -1,11 +1,13 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.ComponentModel.DataAnnotations;
 using AccessControl.Application.DTOs;
 using AccessControl.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Extensions;
+using WebApi.Paginas;
 
 namespace WebApi.Controllers;
 
@@ -25,6 +27,7 @@ public class AuthController : ControllerBase
     /// <summary>Registra un usuario con correo único (RF-CA-01, RF-CA-02).</summary>
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Registro)]
     [ProducesResponseType(typeof(UsuarioResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegistroRequestDto request)
@@ -45,22 +48,25 @@ public class AuthController : ControllerBase
         return Ok(new { mensaje = "Cuenta activada correctamente." });
     }
 
-    /// <summary>Activa una cuenta desde el enlace del correo (RF-CA-15).</summary>
+    /// <summary>
+    /// Página del enlace del correo de activación (RF-CA-15). Un GET nunca cambia el estado: la página tiene un botón
+    /// que hace el POST de activación. Así un escáner de correos o una precarga de enlaces no activa la cuenta ni gasta
+    /// los 5 intentos del código. No recibe parámetros: el navegador lee el correo y el código de la propia URL.
+    /// </summary>
     [HttpGet("activate")]
     [AllowAnonymous]
-    [EnableRateLimiting("activacion")]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Activacion)]
+    [Produces("text/html")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> ActivateGet(
-        [FromQuery, Required, EmailAddress, StringLength(150)] string correo,
-        [FromQuery, Required, RegularExpression("^[0-9]{6}$", ErrorMessage = "El código debe tener 6 dígitos.")] string codigo)
+    public ContentResult ActivateGet()
     {
-        await _usuarioService.ActivarCuentaAsync(correo, codigo);
-
-        // El enlace lleva el correo y el código en la URL: que no se guarde en cachés ni viaje en el Referer.
+        // La URL lleva el correo y el código: que no se guarde en cachés ni viaje en el Referer.
+        var nonce = Convert.ToBase64String(RandomNumberGenerator.GetBytes(16));
         Response.Headers.CacheControl = "no-store";
         Response.Headers["Referrer-Policy"] = "no-referrer";
-        return Content("<html><body style=\"font-family:Arial;text-align:center;padding:48px;\"><h2>Cuenta activada correctamente.</h2><p>Ya puedes iniciar sesión en HabitTracker Nexus.</p></body></html>", "text/html");
+        Response.Headers.ContentSecurityPolicy =
+            $"default-src 'none'; script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+        return Content(PaginaActivacion.Html(nonce), "text/html");
     }
 
     /// <summary>
@@ -81,6 +87,7 @@ public class AuthController : ControllerBase
     /// <summary>Inicia sesión y devuelve el JWT (RF-CA-03).</summary>
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Login)]
     [ProducesResponseType(typeof(UsuarioResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -100,6 +107,7 @@ public class AuthController : ControllerBase
         return Ok(new
         {
             id = User.FindFirstValue(ClaimTypes.NameIdentifier),
+            nombre = User.FindFirstValue("name") ?? User.FindFirstValue(ClaimTypes.Name),
             correo = User.FindFirstValue(ClaimTypes.Email),
             rol = User.FindFirstValue(ClaimTypes.Role)
         });
@@ -129,6 +137,7 @@ public class AuthController : ControllerBase
     [HttpPost("recuperar-password")]
     [HttpPost("forgot-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Recuperacion)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RecuperarPassword([FromBody] RecuperarPasswordRequest request)
@@ -141,6 +150,7 @@ public class AuthController : ControllerBase
     [HttpPost("restablecer-password")]
     [HttpPost("reset-password")]
     [AllowAnonymous]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Recuperacion)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> RestablecerPassword([FromBody] RestablecerPasswordRequest request)

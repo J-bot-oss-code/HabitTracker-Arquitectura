@@ -37,16 +37,10 @@ public static class ServiceExtensions
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<ITokenBlacklist, TokenBlacklistService>();
 
-        services.AddMemoryCache();
-
-        var clave = configuration["JwtSettings:Clave"];
-        var emisor = configuration["JwtSettings:Emisor"];
-        var audiencia = configuration["JwtSettings:Audiencia"];
-
-        if (string.IsNullOrWhiteSpace(clave) || string.IsNullOrWhiteSpace(emisor) || string.IsNullOrWhiteSpace(audiencia))
-        {
-            throw new InvalidOperationException("Falta configuración JWT (JwtSettings:Clave, JwtSettings:Emisor, JwtSettings:Audiencia).");
-        }
+        // Misma validación que usa el emisor de tokens: si la clave falta o es corta, la aplicación no arranca.
+        var jwt = new JwtSettings();
+        configuration.GetSection(JwtSettings.Seccion).Bind(jwt);
+        jwt.Validar();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
@@ -57,9 +51,9 @@ public static class ServiceExtensions
                     ValidateAudience = true,
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true,
-                    ValidIssuer = emisor,
-                    ValidAudience = audiencia,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(clave)),
+                    ValidIssuer = jwt.Emisor,
+                    ValidAudience = jwt.Audiencia,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt.Clave)),
                     ClockSkew = TimeSpan.Zero
                 };
             });

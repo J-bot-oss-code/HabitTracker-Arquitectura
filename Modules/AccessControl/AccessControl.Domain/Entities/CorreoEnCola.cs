@@ -10,7 +10,8 @@ public enum EstadoCorreo
 
 public class CorreoEnCola
 {
-    private const int MaxIntentos = 3;
+    /// <summary>Intentos de envío antes de rendirse; el worker lo usa para no volver a leer los correos agotados.</summary>
+    public const int MaxIntentos = 3;
 
     public Guid Id { get; private set; }
     public string Destinatario { get; private set; } = string.Empty;

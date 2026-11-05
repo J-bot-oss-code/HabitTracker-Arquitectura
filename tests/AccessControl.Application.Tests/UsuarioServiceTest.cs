@@ -3,6 +3,7 @@ using AccessControl.Application.Interfaces;
 using AccessControl.Application.Service;
 using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
+using AccessControl.Domain.Excepciones;
 using AccessControl.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -30,7 +31,7 @@ public class UsuarioServiceTests
 
         var verificadorPassword = new Mock<IPasswordHasher>();
         verificadorPassword
-            .Setup(v => v.verificar("hash-guardado", "clave-incorrecta"))
+            .Setup(v => v.Verificar("hash-guardado", "clave-incorrecta"))
             .Returns(false);
 
         var servicio = new UsuarioService(
@@ -47,7 +48,7 @@ public class UsuarioServiceTests
             "clave-incorrecta");
 
         // Act
-        var error = await Assert.ThrowsAsync<UnauthorizedAccessException>(
+        var error = await Assert.ThrowsAsync<CredencialesInvalidasException>(
             () => servicio.AutenticarUsuarioAsync(solicitud));
 
         // Assert

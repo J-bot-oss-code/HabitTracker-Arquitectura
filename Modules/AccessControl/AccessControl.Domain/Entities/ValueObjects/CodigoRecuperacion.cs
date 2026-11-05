@@ -1,4 +1,6 @@
 using System;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace AccessControl.Domain.Entities.ValueObjects;
 
@@ -24,8 +26,19 @@ public sealed class CodigoRecuperacion
         Usado = false;
     }
 
-    public bool EsValido(string codigoIngresado) => 
-        !Usado && Valor == codigoIngresado && FechaVencimiento > DateTime.UtcNow;
+    public bool EsValido(string codigoIngresado)
+    {
+        if (Usado || codigoIngresado is null || FechaVencimiento <= DateTime.UtcNow)
+        {
+            return false;
+        }
+
+        // Comparación en tiempo constante, igual que TokenActivacion: con == el tiempo de respuesta crece con cada carácter
+        // acertado y permite adivinar el código por partes.
+        return CryptographicOperations.FixedTimeEquals(
+            Encoding.UTF8.GetBytes(Valor),
+            Encoding.UTF8.GetBytes(codigoIngresado));
+    }
 
     public void MarcarComoUsado() => Usado = true;
 

@@ -27,7 +27,7 @@ namespace AccessControl.Domain.Entities
 
             if(string.IsNullOrWhiteSpace(passwordHash))
             {
-                throw new ArgumentException(nameof(passwordHash), "Un usuario debe tener un password para ser creado");
+                throw new ArgumentException("Un usuario debe tener un password para ser creado", nameof(passwordHash));
             }
 
             if (string.IsNullOrWhiteSpace(nombreCompleto))
@@ -54,10 +54,11 @@ namespace AccessControl.Domain.Entities
             Rol = nuevoRol;
         }
 
-        public void EstablecerTokenActivacion(TokenActivacion token)
-        {
-            TokenAcceso = token ?? throw new ArgumentNullException(nameof(token));
-        }
+        /// <summary>
+        /// Cuenta creada y todavía sin activar (tiene un código de activación pendiente). Se distingue de una cuenta
+        /// desactivada por un administrador, que no tiene código pendiente (RF-CA-15 frente a RF-CA-20).
+        /// </summary>
+        public bool PendienteDeActivacion => !Activo && TokenAcceso != null;
 
         public void EstablecerTokenActivacion(string valor, DateTime vencimiento)
         {
@@ -76,11 +77,6 @@ namespace AccessControl.Domain.Entities
 
             Activo = true;
             TokenAcceso = null;
-        }
-
-        public void ComopletarActivacion(string token)
-        {
-            CompletarActivacion(token);
         }
 
         public void RegistrarIntentoFallido() => Bloqueo.RegistrarFallo();
@@ -137,6 +133,8 @@ namespace AccessControl.Domain.Entities
                 throw new InvalidOperationException("El usuario ya está activo.");
             }
             Activo = true;
+            // Una cuenta activada por un administrador ya no necesita (ni acepta) el código de activación pendiente.
+            TokenAcceso = null;
         }
     }
 }

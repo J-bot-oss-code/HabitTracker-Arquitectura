@@ -10,7 +10,6 @@ public interface IUsuarioRepository
     Task SaveAsync(Usuario usuario);
     Task<bool> CorreoExistsAsync(Email correo);
     Task UpdateAsync(Usuario usuario);
-    Task<Usuario?> GetByNameAsync(string nombreCompleto);
     /// <summary>
     /// Reserva de forma ATÓMICA un intento de activación y devuelve el total de intentos tras reservarlo
     /// (0 si la cuenta no tiene un código pendiente). Debe ser una sola sentencia en la base de datos: con
@@ -18,5 +17,8 @@ public interface IUsuarioRepository
     /// </summary>
     Task<int> ReservarIntentoActivacionAsync(Guid usuarioId);
     Task<IEnumerable<Usuario>> ObtenerTodosAsync();
+
+    /// <summary>Cuántos administradores activos hay. Sirve para no dejar nunca al sistema sin ninguno (RF-CA-08, RF-CA-20).</summary>
+    Task<int> ContarAdministradoresActivosAsync();
 
 }

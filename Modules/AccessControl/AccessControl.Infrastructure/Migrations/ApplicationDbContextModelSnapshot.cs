@@ -194,6 +194,10 @@ namespace AccessControl.Infrastructure.Migrations
 
                             b1.HasKey("UsuarioId");
 
+                            b1.HasIndex("Valor")
+                                .IsUnique()
+                                .HasDatabaseName("IX_usuarios_Correo");
+
                             b1.ToTable("usuarios");
 
                             b1.WithOwner()

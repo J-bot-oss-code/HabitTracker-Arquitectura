@@ -40,6 +40,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/AccessControl.Application.Tests/AccessControl.Application.Tests.csproj" />
+    <Project Path="tests/AccessControl.Infrastructure.Tests/AccessControl.Infrastructure.Tests.csproj" />
     <Project Path="tests/DocumentManager.Api.Tests/DocumentManager.Api.Tests.csproj" />
     <Project Path="tests/DocumentManager.Application.Tests/DocumentManager.Application.Tests.csproj" />
     <Project Path="tests/DocumentManager.Domain.Tests/DocumentManager.Domain.Tests.csproj" />

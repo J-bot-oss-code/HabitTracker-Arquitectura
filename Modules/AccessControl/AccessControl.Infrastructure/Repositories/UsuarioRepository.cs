@@ -1,6 +1,6 @@
-
 using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
+using AccessControl.Domain.Excepciones;
 using AccessControl.Domain.Interfaces;
 using AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -31,12 +31,6 @@ public class UsuarioRepository : IUsuarioRepository
     {
         // Implementación para obtener un usuario por ID
         return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.Id == id);
-    }
-
-    public async Task<Usuario?> GetByNameAsync(string nombreCompleto)
-    {
-        // Implementación para obtener un usuario por nombre completo
-        return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.NombreCompleto == nombreCompleto);
     }
 
     public async Task<int> ReservarIntentoActivacionAsync(Guid usuarioId)
@@ -77,19 +71,53 @@ public class UsuarioRepository : IUsuarioRepository
 
     public async Task SaveAsync(Usuario usuario)
     {
-        // Implementación para guardar un nuevo usuario en la base de datos
         _dbContext.usuarios.Add(usuario);
-        await _dbContext.SaveChangesAsync();
+
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Dos registros simultáneos con el mismo correo: el segundo choca con el índice único (RF-CA-01).
+            // Se traduce al mismo rechazo que la comprobación previa; no importa el proveedor de base de datos.
+            // Cualquier otro fallo de la base de datos se propaga tal cual.
+            if (await ElCorreoYaExisteTrasElFalloAsync(usuario))
+            {
+                throw new CorreoYaRegistradoException();
+            }
+
+            throw;
+        }
     }
 
     public async Task UpdateAsync(Usuario usuario)
     {
-        _dbContext.usuarios.Update(usuario);
+        // Una entidad ya cargada por este contexto solo escribe las columnas que cambiaron, sin marcar todas como
+        // modificadas: así este guardado nunca toca el contador de intentos de activación que otra petición reserva con
+        // ReservarIntentoActivacionAsync (RD-06). Solo una entidad creada fuera del contexto necesita Update().
+        if (_dbContext.Entry(usuario).State == EntityState.Detached)
+        {
+            _dbContext.usuarios.Update(usuario);
+        }
+
         await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task<bool> ElCorreoYaExisteTrasElFalloAsync(Usuario usuario)
+    {
+        // El intento fallido deja la entidad en el contexto: se saca para poder consultar y para no reintentar su inserción.
+        _dbContext.Entry(usuario).State = EntityState.Detached;
+        return await CorreoExistsAsync(usuario.Correo);
     }
 
     public async Task<IEnumerable<Usuario>> ObtenerTodosAsync()
     {
         return await _dbContext.usuarios.ToListAsync();
+    }
+
+    public async Task<int> ContarAdministradoresActivosAsync()
+    {
+        return await _dbContext.usuarios.CountAsync(u => u.Rol == Rol.Administrador && u.Activo);
     }
 }

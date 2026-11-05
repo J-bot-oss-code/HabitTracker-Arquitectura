@@ -179,7 +179,8 @@ public class InicializacionBaseDeDatosTests
     private sealed class HasherFalso : IPasswordHasher
     {
         public string Hash(string password) => "HASH::" + password.Length + "::" + new string(password.Reverse().ToArray());
-        public bool verificar(string hash, string passwordPlana) => hash == Hash(passwordPlana);
+        public bool Verificar(string hash, string passwordPlana) => hash == Hash(passwordPlana);
+        public void SimularVerificacion(string passwordPlana) { }
     }
 
     private sealed class RepositorioDeUsuariosFalso : IUsuarioRepository
@@ -191,9 +192,10 @@ public class InicializacionBaseDeDatosTests
         public Task SaveAsync(Usuario usuario) { Guardados.Add(usuario); return Task.CompletedTask; }
         public Task<bool> CorreoExistsAsync(Email correo) => Task.FromResult(Guardados.Any(u => u.Correo.Equals(correo)));
         public Task UpdateAsync(Usuario usuario) => Task.CompletedTask;
-        public Task<Usuario?> GetByNameAsync(string nombreCompleto) => Task.FromResult<Usuario?>(null);
         public Task<int> ReservarIntentoActivacionAsync(Guid usuarioId) => Task.FromResult(0);
         public Task<IEnumerable<Usuario>> ObtenerTodosAsync() => Task.FromResult<IEnumerable<Usuario>>(Guardados);
+        public Task<int> ContarAdministradoresActivosAsync() =>
+            Task.FromResult(Guardados.Count(u => u.Rol == Rol.Administrador && u.Activo));
     }
 
     private sealed class LoggerQueGuarda : ILogger
