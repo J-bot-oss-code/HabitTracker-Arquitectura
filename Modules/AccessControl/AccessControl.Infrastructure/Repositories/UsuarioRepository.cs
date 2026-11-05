@@ -115,4 +115,9 @@ public class UsuarioRepository : IUsuarioRepository
     {
         return await _dbContext.usuarios.ToListAsync();
     }
+
+    public async Task<int> ContarAdministradoresActivosAsync()
+    {
+        return await _dbContext.usuarios.CountAsync(u => u.Rol == Rol.Administrador && u.Activo);
+    }
 }

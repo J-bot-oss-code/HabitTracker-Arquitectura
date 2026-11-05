@@ -14,6 +14,7 @@ public class UsuarioService : IUsuarioService
 {
     private const int HorasValidezActivacion = 24;
     private static readonly TimeSpan EnfriamientoReenvioActivacion = TimeSpan.FromSeconds(60);
+    private static readonly TimeSpan EnfriamientoRecuperacion = TimeSpan.FromSeconds(60);
 
     private readonly IUsuarioRepository _repository;
     private readonly IPasswordHasher _passwordHasher;
@@ -117,18 +118,14 @@ public class UsuarioService : IUsuarioService
 
        _logger.LogInformation("Cambio de rol para el usuario {usuarioId} a {nuevoRol} por el admin {adminId}", usuarioId, nuevoRol, adminId);
 
+        // RF-CA-05 / RF-CA-06: solo un Administrador puede cambiar roles,
+        // verificado en el servidor contra el ejecutor (adminId), no el destino.
+        await ExigirAdministradorAsync(adminId);
+
         var usuario = await _repository.GetByIdAsync(usuarioId);
         if(usuario == null)
         {
             throw new InvalidOperationException("El usuario no existe");
-        }
-
-        // RF-CA-05 / RF-CA-06: solo un Administrador puede cambiar roles,
-        // verificado en el servidor contra el ejecutor (adminId), no el destino.
-        var ejecutor = await _repository.GetByIdAsync(adminId);
-        if (ejecutor == null || ejecutor.Rol != Rol.Administrador)
-        {
-            throw new OperacionNoPermitidaException();
         }
 
         if (!Enum.TryParse<Rol>(nuevoRol, ignoreCase: true, out var rol) || !Enum.IsDefined(rol))
@@ -136,11 +133,22 @@ public class UsuarioService : IUsuarioService
             throw new InvalidOperationException("El rol especificado no es válido");
         }
 
+        // Quitar el rol al último administrador activo dejaría el sistema sin nadie que pueda administrarlo.
+        if (usuario.Rol == Rol.Administrador && rol != Rol.Administrador && usuario.Activo
+            && await _repository.ContarAdministradoresActivosAsync() <= 1)
+        {
+            throw new UltimoAdministradorException();
+        }
+
         var rolAnterior = usuario.Rol;
 
         usuario.CambiarRol(rol);
 
         await _repository.UpdateAsync(usuario);
+
+        // RF-CA-12: el rol viaja dentro del JWT. Sin cortar las sesiones abiertas, un administrador degradado
+        // conservaba sus permisos hasta que su token venciera.
+        _blacklist.RevocarSesionesAnteriores(usuarioId);
 
          // RF-CA-08: Auditoría estricta
         await _auditoria.RegistroAuditoriaAsync(
@@ -178,6 +186,9 @@ public class UsuarioService : IUsuarioService
 
         _logger.LogInformation("Cambio de estado para el usuario {usuarioId} a {nuevoEstado} por el admin {adminId}", usuarioId, nuevoEstado, adminId);
 
+        // RF-CA-05 / RF-CA-06: la autorización se verifica también aquí, no solo en el atributo del controlador (RD-06).
+        await ExigirAdministradorAsync(adminId);
+
         if (usuarioId == adminId)
         {
             throw new InvalidOperationException("Un administrador no puede desactivarse a sí mismo.");
@@ -197,6 +208,12 @@ public class UsuarioService : IUsuarioService
         }
         else
         {
+            if (usuario.Rol == Rol.Administrador && usuario.Activo
+                && await _repository.ContarAdministradoresActivosAsync() <= 1)
+            {
+                throw new UltimoAdministradorException();
+            }
+
             usuario.Desactivar();
 
             // RF-CA-20: las sesiones abiertas del usuario desactivado dejan de ser válidas.
@@ -233,13 +250,24 @@ public class UsuarioService : IUsuarioService
             return;
         }
 
+        // Enfriamiento: sin él, cada solicitud emitía un código nuevo con el contador de fallos en cero (se podían
+        // probar códigos sin fin) y se podía inundar de correos a la víctima. Dentro del minuto se responde igual
+        // (idéntico a un correo inexistente, RF-CA-09) pero no se emite ni se envía nada.
+        if (usuario.Recuperacion is { Usado: false } vigente
+            && DateTime.UtcNow - vigente.FechaEmision < EnfriamientoRecuperacion)
+        {
+            await EsperarRespuestaMinimaAsync(inicio);
+            return;
+        }
+
         var codigoGenerado = GenerarCodigoRecuperacion();
 
         usuario.GenerarCodigoRecuperacion(codigoGenerado, 1);
 
         await _repository.UpdateAsync(usuario);
 
-        await _emailQueue.EncolarCorreoRecuperacionAsync(correo, codigoGenerado);
+        // Se envía al correo normalizado de la cuenta, no al texto que llegó en la petición.
+        await _emailQueue.EncolarCorreoRecuperacionAsync(usuario.Correo.Valor, codigoGenerado);
         await EsperarRespuestaMinimaAsync(inicio);
     }
 
@@ -273,6 +301,9 @@ public class UsuarioService : IUsuarioService
 
         // RF-CA-11: valida el código (un solo uso + vencimiento) y lo marca como usado.
         usuario.RestablecerPassword(nuevoHash, codigo);
+
+        // Quien demostró controlar el correo recupera el acceso: se levanta el bloqueo por intentos fallidos (RF-CA-19).
+        usuario.RestablecerIntentos();
 
         // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
         _blacklist.RevocarSesionesAnteriores(usuario.Id);
@@ -325,6 +356,9 @@ public class UsuarioService : IUsuarioService
 
         _logger.LogInformation("Restablecimiento forzado para el usuario {usuarioId} por el admin {adminId}.", usuarioId, adminId);
 
+        // RF-CA-13: solo un Administrador puede forzarlo; se verifica en el servidor (RD-06).
+        await ExigirAdministradorAsync(adminId);
+
         var usuario = await _repository.GetByIdAsync(usuarioId);
         if (usuario == null)
         {
@@ -356,12 +390,27 @@ public class UsuarioService : IUsuarioService
         );
     }
 
-    /// <summary>Código de activación: 6 dígitos aleatorios (000000-999999) de un generador criptográfico.</summary>
-    private static string GenerarCodigoActivacion() =>
+    /// <summary>Código de 6 dígitos aleatorios (000000-999999) de un generador criptográfico.</summary>
+    private static string GenerarCodigoNumerico() =>
         RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
 
-    private static string GenerarCodigoRecuperacion() =>
-        Guid.NewGuid().ToString("N")[..6].ToUpper();
+    // Mismo generador para activación y recuperación (antes la recuperación usaba 6 caracteres de un Guid).
+    private static string GenerarCodigoActivacion() => GenerarCodigoNumerico();
+
+    private static string GenerarCodigoRecuperacion() => GenerarCodigoNumerico();
+
+    /// <summary>
+    /// RF-CA-05 / RD-06: comprueba en el servidor que quien ejecuta la operación existe, está activo y es Administrador.
+    /// No se confía en el rol del token ni en que el controlador ya lo filtró.
+    /// </summary>
+    private async Task ExigirAdministradorAsync(Guid adminId)
+    {
+        var ejecutor = await _repository.GetByIdAsync(adminId);
+        if (ejecutor == null || !ejecutor.Activo || ejecutor.Rol != Rol.Administrador)
+        {
+            throw new OperacionNoPermitidaException();
+        }
+    }
 
     private static void ValidarFormatoClave(string password)
     {

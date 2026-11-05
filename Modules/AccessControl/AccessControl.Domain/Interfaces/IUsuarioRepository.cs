@@ -18,4 +18,7 @@ public interface IUsuarioRepository
     Task<int> ReservarIntentoActivacionAsync(Guid usuarioId);
     Task<IEnumerable<Usuario>> ObtenerTodosAsync();
 
+    /// <summary>Cuántos administradores activos hay. Sirve para no dejar nunca al sistema sin ninguno (RF-CA-08, RF-CA-20).</summary>
+    Task<int> ContarAdministradoresActivosAsync();
+
 }
