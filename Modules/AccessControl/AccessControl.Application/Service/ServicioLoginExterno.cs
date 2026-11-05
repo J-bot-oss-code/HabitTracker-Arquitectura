@@ -180,7 +180,8 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
         var eliminado = await _vinculos.EliminarAsync(usuarioId, proveedor);
         if (eliminado)
         {
-            _logger.LogInformation("Proveedor {Proveedor} desvinculado del usuario {UsuarioId}.", proveedor, usuarioId);
+            // El proveedor llega en la ruta de la petición: no se escribe en el log (solo el identificador del usuario).
+            _logger.LogInformation("Proveedor externo desvinculado del usuario {UsuarioId}.", usuarioId);
         }
 
         return eliminado;
