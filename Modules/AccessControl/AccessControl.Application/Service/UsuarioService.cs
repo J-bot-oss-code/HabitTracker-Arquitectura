@@ -52,17 +52,20 @@ public class UsuarioService : IUsuarioService
             throw new ArgumentException("Las credenciales no son válidas.", nameof(request));
         }
 
-        _logger.LogInformation("Intento de login para: {Correo}", email.Enmascarado());
-
         var usuario = await _repository.GetByCorreoAsync(email);
 
+        // El correo es un dato personal que viene de la petición: no se escribe en el log (ni siquiera enmascarado).
+        // Se registra solo el identificador del usuario, que sale de la base de datos.
         // 1. RF-CA-03: sin revelar qué dato falló. Si el correo no existe se gasta el mismo tiempo que una verificación
         // real: sin esto, la respuesta tardaría ~250 ms menos y delataría qué correos están registrados.
         if (usuario == null)
         {
+            _logger.LogInformation("Intento de login con un correo no registrado.");
             _passwordHasher.SimularVerificacion(request.Password);
             throw new CredencialesInvalidasException();
         }
+
+        _logger.LogInformation("Intento de login para el usuario {UsuarioId}.", usuario.Id);
 
         // 2. Se verifica la clave ANTES de revelar si la cuenta está inactiva:
         // una clave incorrecta en cuenta activa o inactiva responde 401 genérico.
@@ -239,16 +242,17 @@ public class UsuarioService : IUsuarioService
         var inicio = Stopwatch.GetTimestamp();
         var Email = new Email(correo);
 
-        _logger.LogInformation("Iniciando recuperación de contraseña para el correo {Correo}", Email.Enmascarado());
-
         var usuario = await _repository.GetByCorreoAsync(Email);
 
         // RF-CA-09: respuesta idéntica exista o no el correo, sin revelar registros.
         if (usuario == null)
         {
+            _logger.LogInformation("Recuperación de contraseña solicitada para un correo no registrado.");
             await EsperarRespuestaMinimaAsync(inicio);
             return;
         }
+
+        _logger.LogInformation("Recuperación de contraseña iniciada para el usuario {UsuarioId}.", usuario.Id);
 
         // Enfriamiento: sin él, cada solicitud emitía un código nuevo con el contador de fallos en cero (se podían
         // probar códigos sin fin) y se podía inundar de correos a la víctima. Dentro del minuto se responde igual
@@ -503,8 +507,6 @@ public class UsuarioService : IUsuarioService
         // 1. Instancias el Value Object (esto además validará que el correo tenga un formato correcto)
         var Email = new Email(request.Correo);
 
-        _logger.LogInformation("Iniciando registro para el correo {Correo}", Email.Enmascarado());
-
         // 2. verificar correo unico (RF-CA-01)
         var existe = await _repository.CorreoExistsAsync(Email);
 
@@ -525,6 +527,8 @@ public class UsuarioService : IUsuarioService
 
         // 5. guardar
         await _repository.SaveAsync(nuevoUsuario);
+
+        _logger.LogInformation("Usuario registrado: {UsuarioId}.", nuevoUsuario.Id);
 
         await _emailQueue.EncolarCorreoActivacionAsync(nuevoUsuario.Correo.Valor, codigoActivacion);
 

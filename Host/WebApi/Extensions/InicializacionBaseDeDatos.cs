@@ -180,6 +180,6 @@ public static class InicializacionBaseDeDatos
         administrador.CompletarActivacion(tokenInterno);
 
         await repositorio.SaveAsync(administrador);
-        logger.LogInformation("Administrador inicial creado: {Correo}.", email.Enmascarado());
+        logger.LogInformation("Administrador inicial creado: {UsuarioId}.", administrador.Id);
     }
 }
