@@ -82,7 +82,7 @@ docker compose logs webapi | Select-String "CORREO"      # PowerShell
 docker compose logs webapi | grep CORREO                 # Linux / macOS
 ```
 
-- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. Ábrelo en el navegador, o envía `{"correo":"...","codigo":"123456"}` a `POST /api/auth/activate`. El código se valida siempre junto al correo; tras **5 códigos incorrectos** se invalida y hay que pedir otro con `POST /api/auth/resend-activation` (como máximo uno por minuto). Activación y reenvío admiten como máximo 30 peticiones por minuto desde una misma IP (después responden `429`).
+- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada (un escáner de correos no puede activar la cuenta ni gastar intentos), la activación ocurre al pulsar el botón. También puedes enviar `{"correo":"...","codigo":"123456"}` a `POST /api/auth/activate`. El código se valida siempre junto al correo; tras **5 códigos incorrectos** se invalida y hay que pedir otro con `POST /api/auth/resend-activation` (como máximo uno por minuto). Activación y reenvío admiten como máximo 30 peticiones por minuto desde una misma IP (después responden `429`).
 - **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
 
 Si rellenas los cuatro `SMTP_*` del `.env`, los correos se envían de verdad. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
@@ -292,6 +292,40 @@ El módulo de negocio está estructurado sobre 6 entidades que modelan la trazab
 **Seguridad:** JWT (JSON Web Tokens) & Hashing (Argon2/BCrypt)
 
 **Testing:** xUnit / Moq
+
+## Control de Acceso: errores, límites y CORS
+
+Reglas del módulo que conviene conocer al probar la API (las comprueban las pruebas de `AccessControl.*.Tests`).
+
+**Códigos de error.** Los rechazos de Control de Acceso son `application/problem+json` con una extensión `codigo` estable, para distinguir el motivo sin leer el texto. Un correo o una contraseña incorrectos siguen siendo un `401` genérico que no dice cuál falló (RF-CA-03).
+
+| `codigo` | Estado | Cuándo |
+|---|---|---|
+| `cuenta_no_activa` | 400 | Clave correcta en una cuenta sin activar (RF-CA-15). Con clave incorrecta no se revela. |
+| `cuenta_desactivada` | 400 | Clave correcta en una cuenta desactivada por un administrador (RF-CA-20). |
+| `cuenta_bloqueada` | 400 | 5 intentos fallidos: bloqueo de 15 minutos (RF-CA-19). También cuenta la contraseña actual incorrecta al cambiarla. |
+| `correo_ya_registrado` | 400 | Ya existe una cuenta con ese correo (RF-CA-01). Hay un índice único en la base. |
+| `codigo_invalido` | 400 | Código de activación o recuperación incorrecto, usado, vencido o agotado. |
+| `clave_actual_incorrecta` | 400 | La contraseña actual indicada al cambiarla no coincide (RF-CA-22). |
+| `ultimo_administrador` | 400 | La operación dejaría al sistema sin ningún administrador activo. |
+| `operacion_no_permitida` | 403 | Quien ejecuta no es un administrador activo (RF-CA-05, RF-CA-06). |
+
+**Límite de peticiones por IP** (después responde `429`). Se cambia en `RateLimit:*`; un valor de 0 detiene el arranque.
+
+| Política | Endpoints | Por defecto |
+|---|---|---|
+| `login` | `POST /api/auth/login` | 10 por minuto |
+| `registro` | `POST /api/auth/register` | 5 por minuto |
+| `recuperacion` | `POST /api/auth/recuperar-password` y `restablecer-password` (y sus alias) | 5 por minuto |
+| `activacion` | `activate` (GET y POST) y `resend-activation` | 30 por minuto |
+
+> Dentro de Docker todos los clientes llegan con la IP de la pasarela y comparten el mismo cupo (deuda conocida, ver `docs/ESTADO-DEL-PROYECTO.md`).
+
+**Recuperación de contraseña.** El código es de 6 dígitos y vence en 1 hora; se pide como máximo una vez por minuto (dentro del minuto se responde igual pero no se envía otro correo). Con 5 códigos incorrectos se invalida. Restablecerla cierra las sesiones abiertas y levanta el bloqueo.
+
+**Administración.** Cambiar el rol de un usuario cierra sus sesiones abiertas (el rol viaja en el JWT). No se puede quitar el rol ni desactivar al último administrador activo.
+
+**CORS.** Solo los orígenes de `Cors:OrigenesPermitidos` (en desarrollo, `http://localhost:5173` y `:5174`; en Docker, la variable `FRONTEND_URL`). Nunca comodines; sin orígenes configurados no se permite ninguno. `GET /api/auth/me` devuelve también el `nombre`.
 
 ## Integración continua (CI)
 
