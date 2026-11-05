@@ -27,7 +27,14 @@ public class ApplicationDbContext : DbContext
                .HasColumnName("Correo")
                .IsRequired()
                .HasMaxLength(150);
-           }); 
+
+               // RF-CA-01: el correo es único también a nivel de base de datos. Sin el índice, dos registros simultáneos
+               // con el mismo correo pasaban la comprobación previa y creaban dos cuentas (carrera "comprobar y luego insertar").
+               // El valor ya llega en minúsculas desde el objeto de valor Email.
+               Email.HasIndex(e => e.Valor)
+               .IsUnique()
+               .HasDatabaseName("IX_usuarios_Correo");
+           });
 
             entity.OwnsOne(e => e.TokenAcceso, TokenActivacion =>
         {
