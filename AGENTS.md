@@ -19,6 +19,7 @@
 - `dotnet run --project Host/WebApi/WebApi.csproj` (`http://localhost:5246`, Swagger at `/swagger`). Secrets (connection string, `JwtSettings:*`, SMTP) via User Secrets/env vars — see README.
 - Migrations: `dotnet ef database update --project Modules/<M>/<M>.Infrastructure --startup-project Host/WebApi --context <Ctx>` (`ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext`).
 - Tags `practica-N` / `practica-N-defecto-M` are graded deliverables — never move or rewrite them.
+- CI (`.github/workflows/ci.yml` and `seguridad.yml`): required checks are `ci-ok` and `seguridad-ok`; high/critical findings block the merge. Run locally with `bash scripts/ci/verificar-reglas-rd.sh`, `bash scripts/ci/verificar-commits.sh <base> HEAD` and `bash scripts/ci/pruebas-verificar-commits.sh` (RD-03/05/08/10/11 and the commit format are checked automatically). `Directory.Build.props` turns the .NET security analyzers (`analizadores-seguridad.globalconfig`) and NuGetAudit NU1903/NU1904 into build errors — fix the cause; never lower the severity of a whole category. Exceptions need a written justification (see README › Integración continua).
 
 ## Architecture rules (from `.github/copilot/agents/`)
 

@@ -1,0 +1,20 @@
+<Project>
+  <!-- CI estricto: auditoría de paquetes y reglas de seguridad del compilador [RD-05, RD-07, RD-10]. -->
+  <PropertyGroup>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+
+    <!-- Auditoría de NuGet en cada restore, también de dependencias transitivas. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>low</NuGetAuditLevel>
+    <!-- NU1903 = alta, NU1904 = crítica: rompen la compilación. NU1901/NU1902 quedan como aviso. -->
+    <WarningsAsErrors>$(WarningsAsErrors);NU1903;NU1904</WarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Las reglas de seguridad de los analizadores (CA2xxx/CA3xxx/CA5xxx) son error, salvo en los proyectos de pruebas.
+       Están enumeradas por ID en el globalconfig: la severidad por categoría no activa las reglas apagadas por defecto. -->
+  <ItemGroup Condition="!$(MSBuildProjectName.EndsWith('.Tests'))">
+    <GlobalAnalyzerConfigFiles Include="$(MSBuildThisFileDirectory)analizadores-seguridad.globalconfig" />
+  </ItemGroup>
+</Project>

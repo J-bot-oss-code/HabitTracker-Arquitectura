@@ -1,5 +1,8 @@
 # 🎯 HabitTracker Nexus - Sistema de Gestión de Hábitos
 
+[![CI](https://github.com/J-bot-oss-code/HabitTracker-Arquitectura/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/J-bot-oss-code/HabitTracker-Arquitectura/actions/workflows/ci.yml)
+[![Seguridad](https://github.com/J-bot-oss-code/HabitTracker-Arquitectura/actions/workflows/seguridad.yml/badge.svg?branch=develop)](https://github.com/J-bot-oss-code/HabitTracker-Arquitectura/actions/workflows/seguridad.yml)
+
 Plataforma de alta fidelidad para el registro de hábitos diarios, organización de metas y trazabilidad del progreso a lo largo del tiempo. Proyecto desarrollado en .NET 10 siguiendo estrictamente los principios de **Clean Architecture** y el patrón de **Monolito Modular**.
 
 ## 🏗️ Arquitectura de Componentes (C4 - Nivel 3)
@@ -289,6 +292,53 @@ El módulo de negocio está estructurado sobre 6 entidades que modelan la trazab
 **Seguridad:** JWT (JSON Web Tokens) & Hashing (Argon2/BCrypt)
 
 **Testing:** xUnit / Moq
+
+## Integración continua (CI)
+
+Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflows de GitHub Actions. Los **checks requeridos** son `ci-ok` y `seguridad-ok`: agrupan todos los trabajos de su workflow y bloquean el merge si alguno falla. El umbral es **severidad alta y crítica**: lo que quede por debajo se reporta pero no bloquea.
+
+| Workflow | Trabajo | Qué verifica | Bloquea el merge si… |
+|---|---|---|---|
+| `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 347 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
+| `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 452 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica |
+| `ci.yml` | Reglas del repositorio | formato de los commits (`tipo: descripción en español [RF-XX-NN, RD-NN]`), RD-03, RD-05, RD-08, RD-10 y RD-11, ShellCheck de los scripts | un commit o el código incumple la regla |
+| `seguridad.yml` | CodeQL (C#, JS/TS, Actions) | análisis estático con las consultas `security-extended` | la regla de *code scanning* del repositorio detecta una alerta alta o crítica |
+| `seguridad.yml` | Secretos | gitleaks sobre los commits de la PR (y sobre todo el historial en push y cada lunes) | aparece una credencial |
+| `seguridad.yml` | Revisión de dependencias | dependencias nuevas con vulnerabilidades altas o críticas | la PR añade una dependencia vulnerable |
+| `seguridad.yml` | Imagen Docker | Trivy sobre el `Dockerfile` y la imagen de la API | hay una configuración insegura o una vulnerabilidad alta o crítica con parche disponible |
+| `seguridad.yml` | Auditoría de workflows | actionlint y zizmor sobre los propios workflows | un workflow tiene un fallo de seguridad de severidad media o mayor |
+
+Además, Dependabot abre cada lunes PR hacia `develop` con actualizaciones de NuGet, npm, Docker y GitHub Actions, y `seguridad.yml` se ejecuta también los lunes para detectar vulnerabilidades publicadas después del último cambio.
+
+### Reproducir las comprobaciones en local
+
+```bash
+# Backend (desde la raíz)
+dotnet restore HabitTrackerSystem.slnx
+dotnet build HabitTrackerSystem.slnx -c Release --no-restore
+dotnet test HabitTrackerSystem.slnx -c Release --no-build
+
+# Frontend (desde frontend/)
+npm ci --ignore-scripts && npm audit signatures
+npm run lint && npm run format:check && npm run typecheck && npm test && npm run build
+npm audit --audit-level=high
+
+# Reglas del repositorio (Git Bash o Linux; requieren git y bash)
+bash scripts/ci/pruebas-verificar-commits.sh
+bash scripts/ci/verificar-reglas-rd.sh
+bash scripts/ci/verificar-commits.sh <base> HEAD     # p. ej. develop HEAD
+```
+
+> **Windows:** `npm run format:check` falla en local si Git convirtió los archivos a CRLF (`core.autocrlf=true`); en el CI y en el índice de Git son LF y pasa. Compruébalo con `npx prettier --check . --end-of-line auto`.
+
+### Justificar una excepción
+
+No se suprime nada en masa. Una excepción siempre lleva su motivo escrito:
+
+- **Secreto falso positivo:** se acota en `.gitleaks.toml` (valor y archivo exactos) o se añade su *fingerprint* a `.gitleaksignore` con un comentario `# motivo`. Si el secreto es **real**, se rota en el proveedor; no se reescribe la historia (rompería las etiquetas de entrega).
+- **Vulnerabilidad de la imagen sin parche:** línea `CVE-...` en `.trivyignore` con el motivo y la fecha de revisión.
+- **Regla del compilador:** `[SuppressMessage("Security", "CAxxxx", Justification = "...")]` en el sitio exacto, nunca bajar la severidad de toda la categoría.
+- **Alerta de CodeQL:** descartar en GitHub (*Security → Code scanning → Dismiss*) indicando el motivo, y anotarlo en `docs/ESTADO-DEL-PROYECTO.md`.
 
 ## 🤝 Guía de Colaboración (Workflow del Equipo)
 
