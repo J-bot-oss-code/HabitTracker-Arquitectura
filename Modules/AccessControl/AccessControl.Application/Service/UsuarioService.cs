@@ -23,6 +23,7 @@ public class UsuarioService : IUsuarioService
     private readonly IJwtProvider _jwtProvider;
     private readonly ITokenBlacklist _blacklist;
     private readonly ILogger<UsuarioService> _logger;
+    private readonly IPoliticaContrasena _politica;
     public UsuarioService(
         IUsuarioRepository repository, 
         IPasswordHasher passwordHasher, 
@@ -30,7 +31,8 @@ public class UsuarioService : IUsuarioService
         IAuditoriaService auditoria,
         IJwtProvider jwtProvider,
         ITokenBlacklist blacklist,
-        ILogger<UsuarioService> logger)
+        ILogger<UsuarioService> logger,
+        IPoliticaContrasena? politica = null)
     {
         _repository = repository;
         _passwordHasher = passwordHasher;
@@ -39,6 +41,8 @@ public class UsuarioService : IUsuarioService
         _jwtProvider = jwtProvider;
         _blacklist = blacklist;
         _logger = logger;
+        // En la aplicación siempre se inyecta la política completa; sin ella (pruebas) solo se comprueba el formato.
+        _politica = politica ?? PoliticaContrasena.SoloFormato;
     }
 
    
@@ -284,7 +288,7 @@ public class UsuarioService : IUsuarioService
 
         _logger.LogInformation("Restablecimiento de contraseña solicitado.");
 
-        ValidarFormatoClave(nuevaPassword);
+        _politica.ValidarFormato(nuevaPassword);
 
         var usuario = await _repository.GetByCorreoAsync(new Email(correo));
 
@@ -300,6 +304,10 @@ public class UsuarioService : IUsuarioService
 
             throw new CodigoInvalidoException();
         }
+
+        // Solo con el código ya comprobado se consulta el servicio externo de filtraciones; si la clave está filtrada el
+        // código NO se consume y la persona puede elegir otra.
+        await _politica.ValidarNoFiltradaAsync(nuevaPassword);
 
         var nuevoHash = _passwordHasher.Hash(nuevaPassword);
 
@@ -321,7 +329,7 @@ public class UsuarioService : IUsuarioService
         {
             throw new ArgumentException("Los datos para cambiar la contraseña no son válidos.");
         }
-        ValidarFormatoClave(nueva);
+        _politica.ValidarFormato(nueva);
 
         _logger.LogInformation("Cambio de contraseña para el usuario {usuarioId}.", usuarioId);
 
@@ -341,7 +349,8 @@ public class UsuarioService : IUsuarioService
             throw usuario.EstaBloqueado() ? new CuentaBloqueadaException() : new ClaveActualIncorrectaException();
         }
 
-        // RF-CA-14: formato de la nueva clave.
+        // RF-CA-14: la clave nueva no puede estar en filtraciones conocidas (el formato ya se comprobó al principio).
+        await _politica.ValidarNoFiltradaAsync(nueva);
 
         usuario.CambiarPassword(_passwordHasher.Hash(nueva));
 
@@ -413,15 +422,6 @@ public class UsuarioService : IUsuarioService
         if (ejecutor == null || !ejecutor.Activo || ejecutor.Rol != Rol.Administrador)
         {
             throw new OperacionNoPermitidaException();
-        }
-    }
-
-    private static void ValidarFormatoClave(string password)
-    {
-        if (string.IsNullOrWhiteSpace(password) || password.Length < 8 || password.Length > 1024
-            || !password.Any(char.IsLetter) || !password.Any(char.IsDigit))
-        {
-            throw new ArgumentException("La contraseña debe tener al menos 8 caracteres, e incluir letras y números.");
         }
     }
 
@@ -502,7 +502,7 @@ public class UsuarioService : IUsuarioService
         {
             throw new ArgumentException("El nombre completo no es válido.", nameof(request));
         }
-        ValidarFormatoClave(request.Password);
+        _politica.ValidarFormato(request.Password);
 
         // 1. Instancias el Value Object (esto además validará que el correo tenga un formato correcto)
         var Email = new Email(request.Correo);
@@ -514,6 +514,9 @@ public class UsuarioService : IUsuarioService
         {
             throw new CorreoYaRegistradoException();
         }
+
+        // 2b. RF-CA-14: la contraseña no puede estar en filtraciones conocidas (solo si el correo es nuevo).
+        await _politica.ValidarNoFiltradaAsync(request.Password);
 
         // 3. Hashear password antes de crear la entidad (RF-CA-02)
         var passwordhash = _passwordHasher.Hash(request.Password);

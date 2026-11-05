@@ -37,6 +37,26 @@ public static class ServiceExtensions
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<ITokenBlacklist, TokenBlacklistService>();
 
+        // Política de contraseñas (RF-CA-14): 12+ caracteres con letra y número, y sin aparecer en filtraciones conocidas.
+        // La consulta a Pwned Passwords usa k-anonimato (solo viaja un prefijo de 5 caracteres del hash) y, si la API
+        // falla o tarda más de 3 s, la contraseña se permite. Se puede apagar con Seguridad:ContrasenasFiltradas:Habilitado=false.
+        services.AddScoped<IPoliticaContrasena, PoliticaContrasena>();
+        if (configuration.GetValue("Seguridad:ContrasenasFiltradas:Habilitado", true))
+        {
+            var urlBase = configuration["Seguridad:ContrasenasFiltradas:UrlBase"] ?? "https://api.pwnedpasswords.com/";
+            services.AddHttpClient<IVerificadorContrasenasFiltradas, VerificadorHaveIBeenPwned>(cliente =>
+            {
+                cliente.BaseAddress = new Uri(urlBase.EndsWith('/') ? urlBase : urlBase + "/");
+                cliente.Timeout = TimeSpan.FromSeconds(3);
+                cliente.DefaultRequestHeaders.Add("Add-Padding", "true");
+                cliente.DefaultRequestHeaders.UserAgent.ParseAdd("HabitTrackerNexus");
+            });
+        }
+        else
+        {
+            services.AddSingleton<IVerificadorContrasenasFiltradas, VerificadorDesactivado>();
+        }
+
         // Misma validación que usa el emisor de tokens: si la clave falta o es corta, la aplicación no arranca.
         var jwt = new JwtSettings();
         configuration.GetSection(JwtSettings.Seccion).Bind(jwt);

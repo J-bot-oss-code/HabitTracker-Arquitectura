@@ -61,6 +61,8 @@ services:
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
 
       App__BaseUrl: ${APP_BASE_URL:-http://localhost:8080}
+      # Rechaza contraseñas que aparecen en filtraciones conocidas (consulta a Pwned Passwords con k-anonimato). false = solo formato.
+      Seguridad__ContrasenasFiltradas__Habilitado: ${CONTRASENAS_FILTRADAS:-true}
       # Origen del frontend que puede llamar a la API desde el navegador (CORS). Sin comodines: un solo origen exacto.
       Cors__OrigenesPermitidos__0: ${FRONTEND_URL:-http://localhost:5173}
       Swagger__Habilitado: ${SWAGGER_HABILITADO:-false}

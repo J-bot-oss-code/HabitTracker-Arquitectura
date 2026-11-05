@@ -45,8 +45,11 @@ for modulo in AccessControl Permissions DocumentManager Auditing Notifications R
 done
 
 # ---- RD-05: nada de hash débil ----
+# Única excepción: VerificadorHaveIBeenPwned usa SHA-1 porque lo exige el protocolo de k-anonimato de Pwned Passwords
+# (calcula una clave de consulta, no protege ninguna contraseña almacenada; esas usan bcrypt). Es la exclusión de ESE
+# archivo, no de un patrón: cualquier otro uso de MD5 o SHA-1 sigue fallando.
 comprobar "RD-05" "algoritmo de hash débil (MD5/SHA1); usar PBKDF2/bcrypt/argon2 para contraseñas y SHA-256 o superior" \
-  "$(git grep -nE '\b(MD5|SHA1)\.(Create|HashData)\b|new[[:space:]]+(MD5|SHA1)(CryptoServiceProvider|Managed)?\(' -- 'Host/*.cs' 'Modules/*.cs')"
+  "$(git grep -nE '\b(MD5|SHA1)\.(Create|HashData)\b|new[[:space:]]+(MD5|SHA1)(CryptoServiceProvider|Managed)?\(' -- 'Host/*.cs' 'Modules/*.cs' ':(exclude)Modules/AccessControl/AccessControl.Infrastructure/Security/VerificadorHaveIBeenPwned.cs')"
 
 # ---- RD-08: sin trazas de pila ni ex.ToString() en el código de producción ----
 comprobar "RD-08" "no se debe exponer StackTrace ni ex.ToString(); el cliente recibe mensajes genéricos" \

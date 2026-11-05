@@ -192,8 +192,8 @@ public record RecuperarPasswordRequest(
 public record RestablecerPasswordRequest(
     [param: Required, EmailAddress, StringLength(150)] string Correo,
     [param: Required, StringLength(64)] string Codigo,
-    [param: Required, StringLength(1024, MinimumLength = 8)] string NuevaPassword);
+    [param: Required, StringLength(1024)] string NuevaPassword);
 
 public record CambiarPasswordRequest(
     [param: Required, StringLength(1024)] string Actual,
-    [param: Required, StringLength(1024, MinimumLength = 8)] string Nueva);
+    [param: Required, StringLength(1024)] string Nueva);
