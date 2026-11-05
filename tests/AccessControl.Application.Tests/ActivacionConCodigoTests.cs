@@ -1,3 +1,4 @@
+using AccessControl.Application.DTOs;
 using AccessControl.Application.Interfaces;
 using AccessControl.Application.Service;
 using AccessControl.Domain.Entities;
@@ -29,7 +30,7 @@ public class ActivacionConCodigoTests
         repo.Setup(r => r.GetByCorreoAsync(It.IsAny<Email>())).ReturnsAsync(usuario);
         repo.Setup(r => r.UpdateAsync(It.IsAny<Usuario>())).Returns(Task.CompletedTask);
         repo.Setup(r => r.CorreoExistsAsync(It.IsAny<Email>())).ReturnsAsync(false);
-        repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>())).Returns(Task.CompletedTask);
 
         // Simula la reserva ATÓMICA de la base de datos: cada llamada obtiene un número distinto, aunque sea en paralelo.
         var intentos = 0;
@@ -59,7 +60,7 @@ public class ActivacionConCodigoTests
         cola.Setup(c => c.EncolarCorreoActivacionAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string>((_, codigo) => enviado = codigo).Returns(Task.CompletedTask);
 
-        await servicio.RegistrarUsuarioAsync(new("Persona", Correo, "ClaveSegura123"));
+        await servicio.RegistrarUsuarioAsync(new("Persona", Correo, "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false)));
 
         Assert.Matches(@"^\d{6}$", enviado);
     }
@@ -75,7 +76,7 @@ public class ActivacionConCodigoTests
 
         for (var i = 0; i < 300; i++)
         {
-            await servicio.RegistrarUsuarioAsync(new("Persona", $"p{i}@ejemplo.com", "ClaveSegura123"));
+            await servicio.RegistrarUsuarioAsync(new("Persona", $"p{i}@ejemplo.com", "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false)));
         }
 
         Assert.All(codigos, c => Assert.Matches(@"^\d{6}$", c));

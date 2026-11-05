@@ -33,8 +33,8 @@ public class FlujosControlAccesoTests
             .Setup(r => r.CorreoExistsAsync(It.IsAny<Email>()))
             .ReturnsAsync(false);
         repositorio
-            .Setup(r => r.SaveAsync(It.IsAny<Usuario>()))
-            .Callback<Usuario>(usuario => usuarioGuardado = usuario)
+            .Setup(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>()))
+            .Callback<Usuario, ConsentimientoUsuario>((usuario, _) => usuarioGuardado = usuario)
             .Returns(Task.CompletedTask);
         repositorio
             .Setup(r => r.GetByCorreoAsync(It.IsAny<Email>()))
@@ -61,7 +61,7 @@ public class FlujosControlAccesoTests
 
         // Act
         var respuesta = await servicio.RegistrarUsuarioAsync(
-            new RegistroRequestDto("Persona de prueba", "persona@ejemplo.com", "ClaveSegura123"));
+            new RegistroRequestDto("Persona de prueba", "persona@ejemplo.com", "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false)));
 
         // Assert
         Assert.NotNull(usuarioGuardado);

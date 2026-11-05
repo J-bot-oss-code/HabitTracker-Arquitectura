@@ -24,6 +24,7 @@ public class UsuarioService : IUsuarioService
     private readonly ITokenBlacklist _blacklist;
     private readonly ILogger<UsuarioService> _logger;
     private readonly IPoliticaContrasena _politica;
+    private readonly IVersionesLegales _versiones;
     public UsuarioService(
         IUsuarioRepository repository, 
         IPasswordHasher passwordHasher, 
@@ -32,7 +33,8 @@ public class UsuarioService : IUsuarioService
         IJwtProvider jwtProvider,
         ITokenBlacklist blacklist,
         ILogger<UsuarioService> logger,
-        IPoliticaContrasena? politica = null)
+        IPoliticaContrasena? politica = null,
+        IVersionesLegales? versiones = null)
     {
         _repository = repository;
         _passwordHasher = passwordHasher;
@@ -43,6 +45,7 @@ public class UsuarioService : IUsuarioService
         _logger = logger;
         // En la aplicación siempre se inyecta la política completa; sin ella (pruebas) solo se comprueba el formato.
         _politica = politica ?? PoliticaContrasena.SoloFormato;
+        _versiones = versiones ?? VersionesLegales.PorDefecto;
     }
 
    
@@ -403,6 +406,19 @@ public class UsuarioService : IUsuarioService
         );
     }
 
+    private ConsentimientosRegistroDto ValidarConsentimientosDelRegistro(ConsentimientosRegistroDto? consentimientos)
+    {
+        if (consentimientos is null
+            || consentimientos.Marketing is null
+            || consentimientos.TerminosVersion != _versiones.Terminos
+            || consentimientos.PrivacidadVersion != _versiones.Privacidad)
+        {
+            throw new ConsentimientoNoValidoException();
+        }
+
+        return consentimientos;
+    }
+
     /// <summary>Código de 6 dígitos aleatorios (000000-999999) de un generador criptográfico.</summary>
     private static string GenerarCodigoNumerico() =>
         RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6");
@@ -504,6 +520,9 @@ public class UsuarioService : IUsuarioService
         }
         _politica.ValidarFormato(request.Password);
 
+        // Sin la aceptación de las versiones vigentes de los documentos legales no se crea la cuenta (antes de la base de datos).
+        var consentimientos = ValidarConsentimientosDelRegistro(request.Consentimientos);
+
         // 1. Instancias el Value Object (esto además validará que el correo tenga un formato correcto)
         var Email = new Email(request.Correo);
 
@@ -529,7 +548,11 @@ public class UsuarioService : IUsuarioService
 
 
         // 5. guardar
-        await _repository.SaveAsync(nuevoUsuario);
+        // El usuario y la constancia de lo que aceptó se guardan juntos: no puede existir una cuenta sin su consentimiento.
+        var consentimiento = ConsentimientoUsuario.DelRegistro(
+            nuevoUsuario.Id, consentimientos.TerminosVersion, consentimientos.PrivacidadVersion,
+            consentimientos.Marketing.GetValueOrDefault(), DateTime.UtcNow);
+        await _repository.SaveAsync(nuevoUsuario, consentimiento);
 
         _logger.LogInformation("Usuario registrado: {UsuarioId}.", nuevoUsuario.Id);
 

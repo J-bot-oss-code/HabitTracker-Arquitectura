@@ -27,7 +27,7 @@ public class HostSeguridadTests
     {
         var servicio = new Mock<IUsuarioService>();
         var http = new DefaultHttpContext();
-        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>())
+        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<IConsentimientoService>())
         {
             ControllerContext = new ControllerContext { HttpContext = http }
         };

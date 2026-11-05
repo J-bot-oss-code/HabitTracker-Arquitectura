@@ -22,6 +22,55 @@ namespace AccessControl.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AccessControl.Domain.Entities.ConsentimientoUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AceptadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("CompartirCumplimiento")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("DatosSalud")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstadisticasAnonimas")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Marketing")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PrivacidadVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TerminosVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "ActualizadoEn");
+
+                    b.ToTable("ConsentimientosUsuario", (string)null);
+                });
+
             modelBuilder.Entity("AccessControl.Domain.Entities.CorreoEnCola", b =>
                 {
                     b.Property<Guid>("Id")
@@ -129,6 +178,15 @@ namespace AccessControl.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("usuarios");
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.ConsentimientoUsuario", b =>
+                {
+                    b.HasOne("AccessControl.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>

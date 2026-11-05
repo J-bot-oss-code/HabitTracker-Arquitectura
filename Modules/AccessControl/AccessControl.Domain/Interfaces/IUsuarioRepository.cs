@@ -8,6 +8,12 @@ public interface IUsuarioRepository
     Task<Usuario?> GetByIdAsync(Guid id);
     Task<Usuario?> GetByCorreoAsync(Email correo);
     Task SaveAsync(Usuario usuario);
+
+    /// <summary>
+    /// Guarda el usuario y su consentimiento inicial en UNA sola operación: o quedan los dos o no queda ninguno. Una cuenta
+    /// no puede existir sin constancia de lo que aceptó al registrarse.
+    /// </summary>
+    Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento);
     Task<bool> CorreoExistsAsync(Email correo);
     Task UpdateAsync(Usuario usuario);
     /// <summary>

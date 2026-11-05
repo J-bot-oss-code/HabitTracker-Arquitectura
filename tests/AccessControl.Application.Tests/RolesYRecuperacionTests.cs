@@ -399,10 +399,10 @@ public class RolesYRecuperacionTests
         e.Repo.Setup(r => r.CorreoExistsAsync(It.IsAny<Email>())).ReturnsAsync(true);
 
         var error = await Assert.ThrowsAsync<CorreoYaRegistradoException>(
-            () => e.Servicio.RegistrarUsuarioAsync(new RegistroRequestDto("Persona", "persona@ejemplo.com", "ClaveSegura123")));
+            () => e.Servicio.RegistrarUsuarioAsync(new RegistroRequestDto("Persona", "persona@ejemplo.com", "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false))));
 
         Assert.Equal("correo_ya_registrado", error.Codigo);
-        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>()), Times.Never);
+        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>()), Times.Never);
     }
 
     [Fact]
@@ -411,10 +411,10 @@ public class RolesYRecuperacionTests
         // Carrera: la comprobación previa dijo "no existe" pero otro registro ganó (el índice único lo detecta al guardar).
         var e = new Escenario();
         e.Repo.Setup(r => r.CorreoExistsAsync(It.IsAny<Email>())).ReturnsAsync(false);
-        e.Repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>())).ThrowsAsync(new CorreoYaRegistradoException());
+        e.Repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>())).ThrowsAsync(new CorreoYaRegistradoException());
 
         await Assert.ThrowsAsync<CorreoYaRegistradoException>(
-            () => e.Servicio.RegistrarUsuarioAsync(new RegistroRequestDto("Persona", "persona@ejemplo.com", "ClaveSegura123")));
+            () => e.Servicio.RegistrarUsuarioAsync(new RegistroRequestDto("Persona", "persona@ejemplo.com", "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false))));
 
         e.Cola.Verify(c => c.EncolarCorreoActivacionAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }

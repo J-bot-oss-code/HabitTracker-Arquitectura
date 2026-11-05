@@ -93,7 +93,7 @@ public class PoliticaContrasenaTests
             Repo.Setup(r => r.GetByIdAsync(It.IsAny<Guid>())).ReturnsAsync(() => Usuario);
             Repo.Setup(r => r.GetByCorreoAsync(It.IsAny<Email>())).ReturnsAsync(() => Usuario);
             Repo.Setup(r => r.UpdateAsync(It.IsAny<Usuario>())).Returns(Task.CompletedTask);
-            Repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>())).Returns(Task.CompletedTask);
+            Repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>())).Returns(Task.CompletedTask);
             Repo.Setup(r => r.CorreoExistsAsync(It.IsAny<Email>())).ReturnsAsync(false);
             Cola.Setup(c => c.EncolarCorreoActivacionAsync(It.IsAny<string>(), It.IsAny<string>())).Returns(Task.CompletedTask);
             Hasher.Setup(h => h.Hash(It.IsAny<string>())).Returns("hash-nuevo");
@@ -108,7 +108,7 @@ public class PoliticaContrasenaTests
     }
 
     private static RegistroRequestDto Registro(string password, string correo = "persona@ejemplo.com") =>
-        new("Persona", correo, password);
+        new("Persona", correo, password, new ConsentimientosRegistroDto("v2.1", "v1.4", false));
 
     [Fact]
     public async Task RF_CA_14_Registro_ConClaveDe8Caracteres_SeRechazaSinConsultarNadaNiGuardar()
@@ -120,7 +120,7 @@ public class PoliticaContrasenaTests
         // El formato se comprueba antes de la base de datos y de cualquier llamada externa (RD-07).
         e.VerificadorNoFueConsultado();
         e.Repo.Verify(r => r.CorreoExistsAsync(It.IsAny<Email>()), Times.Never);
-        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>()), Times.Never);
+        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>()), Times.Never);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public class PoliticaContrasenaTests
         var error = await Assert.ThrowsAsync<ContrasenaFiltradaException>(() => e.Servicio.RegistrarUsuarioAsync(Registro("ClaveSegura123")));
 
         Assert.Equal("contrasena_filtrada", error.Codigo);
-        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>()), Times.Never);
+        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>()), Times.Never);
         e.Cola.Verify(c => c.EncolarCorreoActivacionAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
@@ -155,7 +155,7 @@ public class PoliticaContrasenaTests
 
         Assert.False(respuesta.Activo);
         e.Verificador.Verify(v => v.EstaFiltradaAsync("ClaveSegura123", It.IsAny<CancellationToken>()), Times.Once);
-        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>()), Times.Once);
+        e.Repo.Verify(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>()), Times.Once);
     }
 
     private static Usuario UsuarioConCodigoDeRecuperacion(string codigo)
