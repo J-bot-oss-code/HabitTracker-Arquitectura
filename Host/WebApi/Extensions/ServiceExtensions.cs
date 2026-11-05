@@ -37,6 +37,14 @@ public static class ServiceExtensions
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<ITokenBlacklist, TokenBlacklistService>();
 
+        // Sesiones: token de acceso corto + refresh token rotativo en cookie HttpOnly. Una configuración inválida detiene el arranque.
+        var opcionesSesion = new OpcionesSesion();
+        configuration.GetSection(OpcionesSesion.Seccion).Bind(opcionesSesion);
+        opcionesSesion.Validar();
+        services.AddSingleton(opcionesSesion);
+        services.AddScoped<ISesionRepository, SesionRepository>();
+        services.AddScoped<IGestorSesiones, GestorSesiones>();
+
         // Consentimiento legal versionado (Ley 172-13 / GDPR). Las versiones vigentes salen de Legal:*; una versión vacía
         // detiene el arranque.
         services.AddSingleton<IVersionesLegales>(new VersionesLegalesConfiguracion(configuration));

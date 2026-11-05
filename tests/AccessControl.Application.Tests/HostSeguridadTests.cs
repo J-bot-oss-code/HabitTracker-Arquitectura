@@ -1,3 +1,4 @@
+using AccessControl.Application.Service;
 using System.Text.RegularExpressions;
 using AccessControl.Application.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -27,7 +28,7 @@ public class HostSeguridadTests
     {
         var servicio = new Mock<IUsuarioService>();
         var http = new DefaultHttpContext();
-        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<IConsentimientoService>())
+        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<IConsentimientoService>(), Mock.Of<IGestorSesiones>(), OpcionesSesion.PorDefecto)
         {
             ControllerContext = new ControllerContext { HttpContext = http }
         };
@@ -135,6 +136,7 @@ public class HostSeguridadTests
     [InlineData("RegistroPorMinuto", "-5")]
     [InlineData("RecuperacionPorMinuto", "0")]
     [InlineData("ActivacionPorMinuto", "0")]
+    [InlineData("RefreshPorMinuto", "0")]
     public void RD_07_UnTopeDeCeroOMenos_DetieneElArranqueEnLugarDeBloquearElEndpoint(string clave, string valor)
     {
         var servicios = new ServiceCollection().AddLimitacionDePeticiones(Config(($"RateLimit:{clave}", valor)));

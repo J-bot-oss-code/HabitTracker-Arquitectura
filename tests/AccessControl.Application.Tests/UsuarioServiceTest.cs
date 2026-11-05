@@ -40,7 +40,7 @@ public class UsuarioServiceTests
             new Mock<IEmailQueue>().Object,
             new Mock<IAuditoriaService>().Object,
             new Mock<IJwtProvider>().Object,
-            new Mock<ITokenBlacklist>().Object,
+            GestorSesionesDePrueba.Crear(),
             new Mock<ILogger<UsuarioService>>().Object);
 
         var solicitud = new LoginRequestDto(

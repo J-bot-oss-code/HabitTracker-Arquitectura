@@ -21,7 +21,7 @@ public class UsuarioService : IUsuarioService
     private readonly IEmailQueue _emailQueue;
     private readonly IAuditoriaService _auditoria;
     private readonly IJwtProvider _jwtProvider;
-    private readonly ITokenBlacklist _blacklist;
+    private readonly IGestorSesiones _sesiones;
     private readonly ILogger<UsuarioService> _logger;
     private readonly IPoliticaContrasena _politica;
     private readonly IVersionesLegales _versiones;
@@ -31,7 +31,7 @@ public class UsuarioService : IUsuarioService
         IEmailQueue emailQueue,
         IAuditoriaService auditoria,
         IJwtProvider jwtProvider,
-        ITokenBlacklist blacklist,
+        IGestorSesiones sesiones,
         ILogger<UsuarioService> logger,
         IPoliticaContrasena? politica = null,
         IVersionesLegales? versiones = null)
@@ -41,7 +41,7 @@ public class UsuarioService : IUsuarioService
         _emailQueue = emailQueue;
         _auditoria = auditoria;
         _jwtProvider = jwtProvider;
-        _blacklist = blacklist;
+        _sesiones = sesiones;
         _logger = logger;
         // En la aplicación siempre se inyecta la política completa; sin ella (pruebas) solo se comprueba el formato.
         _politica = politica ?? PoliticaContrasena.SoloFormato;
@@ -158,7 +158,7 @@ public class UsuarioService : IUsuarioService
 
         // RF-CA-12: el rol viaja dentro del JWT. Sin cortar las sesiones abiertas, un administrador degradado
         // conservaba sus permisos hasta que su token venciera.
-        _blacklist.RevocarSesionesAnteriores(usuarioId);
+        await _sesiones.RevocarTodasAsync(usuarioId, "cambio-de-rol");
 
          // RF-CA-08: Auditoría estricta
         await _auditoria.RegistroAuditoriaAsync(
@@ -227,7 +227,7 @@ public class UsuarioService : IUsuarioService
             usuario.Desactivar();
 
             // RF-CA-20: las sesiones abiertas del usuario desactivado dejan de ser válidas.
-            _blacklist.RevocarSesionesAnteriores(usuarioId);
+            await _sesiones.RevocarTodasAsync(usuarioId, "cuenta-desactivada");
         }
 
         await _repository.UpdateAsync(usuario);
@@ -321,7 +321,7 @@ public class UsuarioService : IUsuarioService
         usuario.RestablecerIntentos();
 
         // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
-        _blacklist.RevocarSesionesAnteriores(usuario.Id);
+        await _sesiones.RevocarTodasAsync(usuario.Id, "restablecimiento-de-contrasena");
 
         await _repository.UpdateAsync(usuario);
     }
@@ -358,7 +358,7 @@ public class UsuarioService : IUsuarioService
         usuario.CambiarPassword(_passwordHasher.Hash(nueva));
 
         // RF-CA-12: las sesiones abiertas antes del cambio dejan de ser válidas.
-        _blacklist.RevocarSesionesAnteriores(usuario.Id);
+        await _sesiones.RevocarTodasAsync(usuario.Id, "cambio-de-contrasena");
 
         await _repository.UpdateAsync(usuario);
     }
@@ -385,7 +385,7 @@ public class UsuarioService : IUsuarioService
         usuario.InvalidarPassword();
 
         // Las sesiones abiertas antes del forzado dejan de ser válidas.
-        _blacklist.RevocarSesionesAnteriores(usuario.Id);
+        await _sesiones.RevocarTodasAsync(usuario.Id, "restablecimiento-forzado");
 
         var codigoGenerado = GenerarCodigoRecuperacion();
         usuario.GenerarCodigoRecuperacion(codigoGenerado, 24);

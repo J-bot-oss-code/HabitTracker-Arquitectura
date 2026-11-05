@@ -13,6 +13,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<TokenRevocado> TokensRevocados { get; set; } = null!;
     public DbSet<RevocacionSesion> RevocacionesSesion { get; set; } = null!;
     public DbSet<ConsentimientoUsuario> ConsentimientosUsuario { get; set; } = null!;
+    public DbSet<SesionUsuario> SesionesUsuario { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -33,6 +34,25 @@ public class ApplicationDbContext : DbContext
 
             // La consulta típica es "el último consentimiento de este usuario".
             entity.HasIndex(c => new { c.UsuarioId, c.ActualizadoEn });
+        });
+
+        // Sesiones con refresh token rotativo. Solo se guarda el hash del token; ReemplazadaPorId no es clave foránea a propósito
+        // (la fila nueva y la revocación de la anterior se escriben en la misma transacción y la limpieza borra por antigüedad).
+        modelBuilder.Entity<SesionUsuario>(entity =>
+        {
+            entity.ToTable("SesionesUsuario");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.TokenHash).IsRequired().HasMaxLength(SesionUsuario.LongitudHash);
+            entity.Property(x => x.Dispositivo).IsRequired().HasMaxLength(SesionUsuario.LongitudMaximaDispositivo);
+            entity.Property(x => x.IpCreacion).HasMaxLength(SesionUsuario.LongitudMaximaIp);
+
+            // Al eliminar una cuenta se eliminan también sus sesiones (baja de cuenta, fase 6).
+            entity.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => x.UsuarioId);
+            entity.HasIndex(x => x.FamiliaId);
         });
 
         modelBuilder.Entity<Usuario>(entity =>

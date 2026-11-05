@@ -40,7 +40,7 @@ public class RolesYRecuperacionTests
 
         public UsuarioService Servicio => new(
             Repo.Object, Hasher.Object, Cola.Object, Auditoria.Object,
-            Mock.Of<IJwtProvider>(), Blacklist.Object, Mock.Of<ILogger<UsuarioService>>());
+            Mock.Of<IJwtProvider>(), GestorSesionesDePrueba.Crear(Blacklist.Object), Mock.Of<ILogger<UsuarioService>>());
 
         public Usuario Agregar(string correo, Rol rol, bool activo = true)
         {

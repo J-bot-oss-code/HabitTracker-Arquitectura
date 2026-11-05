@@ -49,7 +49,7 @@ public class LoginYCodigosDeErrorTests
 
         var servicio = new UsuarioService(
             repo.Object, hasher.Object, Mock.Of<IEmailQueue>(), Mock.Of<IAuditoriaService>(),
-            jwt.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<ILogger<UsuarioService>>());
+            jwt.Object, GestorSesionesDePrueba.Crear(), Mock.Of<ILogger<UsuarioService>>());
         return (servicio, hasher, repo);
     }
 

@@ -8,7 +8,8 @@ namespace WebApi.Extensions;
 /// - activacion: el código de activación tiene solo 6 dígitos;
 /// - login: sin límite, cualquiera podía bloquear 15 minutos la cuenta de otra persona o probar claves sin fin;
 /// - registro: evita crear cuentas en masa y vaciar la cola de correos;
-/// - recuperacion: evita probar códigos de recuperación e inundar de correos a una víctima.
+/// - recuperacion: evita probar códigos de recuperación e inundar de correos a una víctima;
+/// - refresh: evita probar refresh tokens y cargar la base de datos con renovaciones.
 /// Los topes son por minuto y se pueden cambiar en RateLimit:* (la configuración inválida detiene el arranque).
 /// </summary>
 public static class LimitacionDePeticionesExtensions
@@ -17,6 +18,7 @@ public static class LimitacionDePeticionesExtensions
     public const string Login = "login";
     public const string Registro = "registro";
     public const string Recuperacion = "recuperacion";
+    public const string Refresh = "refresh";
 
     public static IServiceCollection AddLimitacionDePeticiones(this IServiceCollection services, IConfiguration configuracion)
     {
@@ -26,6 +28,7 @@ public static class LimitacionDePeticionesExtensions
             (Login, "LoginPorMinuto", 10),
             (Registro, "RegistroPorMinuto", 5),
             (Recuperacion, "RecuperacionPorMinuto", 5),
+            (Refresh, "RefreshPorMinuto", 30),
         };
 
         services.AddRateLimiter(opciones =>

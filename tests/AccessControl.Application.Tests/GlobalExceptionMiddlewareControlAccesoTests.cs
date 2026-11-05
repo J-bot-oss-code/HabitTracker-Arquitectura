@@ -23,6 +23,7 @@ public class GlobalExceptionMiddlewareControlAccesoTests
         { new ContrasenaFiltradaException(), 400, "contrasena_filtrada" },
         { new OperacionNoPermitidaException(), 403, "operacion_no_permitida" },
         { new CredencialesInvalidasException(), 401, null },
+        { new SesionInvalidaException(), 401, "sesion_invalida" },
     };
 
     private static async Task<(DefaultHttpContext Contexto, JsonElement Cuerpo, string Texto)> Ejecutar(Exception excepcion)

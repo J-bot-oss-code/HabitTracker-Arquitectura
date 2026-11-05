@@ -101,7 +101,7 @@ public class PoliticaContrasenaTests
 
         public UsuarioService Servicio => new(
             Repo.Object, Hasher.Object, Cola.Object, Mock.Of<IAuditoriaService>(), Mock.Of<IJwtProvider>(),
-            Blacklist.Object, Mock.Of<ILogger<UsuarioService>>(), new PoliticaContrasena(Verificador.Object));
+            GestorSesionesDePrueba.Crear(Blacklist.Object), Mock.Of<ILogger<UsuarioService>>(), new PoliticaContrasena(Verificador.Object));
 
         public void VerificadorNoFueConsultado() =>
             Verificador.Verify(v => v.EstaFiltradaAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
@@ -274,7 +274,7 @@ public class PoliticaContrasenaTests
         jwt.Setup(j => j.Generar(It.IsAny<Usuario>())).Returns("jwt");
         var servicio = new UsuarioService(
             e.Repo.Object, e.Hasher.Object, e.Cola.Object, Mock.Of<IAuditoriaService>(), jwt.Object,
-            e.Blacklist.Object, Mock.Of<ILogger<UsuarioService>>(), new PoliticaContrasena(e.Verificador.Object));
+            GestorSesionesDePrueba.Crear(e.Blacklist.Object), Mock.Of<ILogger<UsuarioService>>(), new PoliticaContrasena(e.Verificador.Object));
 
         var respuesta = await servicio.AutenticarUsuarioAsync(new LoginRequestDto("persona@ejemplo.com", "Antigua1"));
 

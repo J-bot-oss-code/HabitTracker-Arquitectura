@@ -41,6 +41,23 @@ public class JwtConfiguracionTests
     }
 
     [Fact]
+    public void RF_CA_03_ElTokenDeAccesoDuraPocoPorDefecto_LaSesionLargaLaSostieneElRefreshToken()
+    {
+        Assert.Equal(15, new JwtSettings().MinutosExpiracion);
+
+        var cfg = Config(
+            ("JwtSettings:Clave", "una-clave-de-prueba-de-al-menos-32-caracteres"),
+            ("JwtSettings:Emisor", "emisor"),
+            ("JwtSettings:Audiencia", "audiencia"));
+        var usuario = new Usuario("Persona", new Email("persona@ejemplo.com"), "hash", Rol.Estandar);
+
+        var token = new JwtProvider(cfg, NullLogger<JwtProvider>.Instance).Generar(usuario);
+
+        var jwt = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler().ReadJwtToken(token);
+        Assert.InRange(jwt.ValidTo, DateTime.UtcNow.AddMinutes(14), DateTime.UtcNow.AddMinutes(16));
+    }
+
+    [Fact]
     public void RF_CA_07_ElTokenIncluyeElNombreDelUsuarioParaGetMe()
     {
         var cfg = Config(
