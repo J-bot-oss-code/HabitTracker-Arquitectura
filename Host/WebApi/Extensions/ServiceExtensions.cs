@@ -37,6 +37,12 @@ public static class ServiceExtensions
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<ITokenBlacklist, TokenBlacklistService>();
 
+        // Consentimiento legal versionado (Ley 172-13 / GDPR). Las versiones vigentes salen de Legal:*; una versión vacía
+        // detiene el arranque.
+        services.AddSingleton<IVersionesLegales>(new VersionesLegalesConfiguracion(configuration));
+        services.AddScoped<IConsentimientoRepository, ConsentimientoRepository>();
+        services.AddScoped<IConsentimientoService, ConsentimientoService>();
+
         // Política de contraseñas (RF-CA-14): 12+ caracteres con letra y número, y sin aparecer en filtraciones conocidas.
         // La consulta a Pwned Passwords usa k-anonimato (solo viaja un prefijo de 5 caracteres del hash) y, si la API
         // falla o tarda más de 3 s, la contraseña se permite. Se puede apagar con Seguridad:ContrasenasFiltradas:Habilitado=false.

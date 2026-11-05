@@ -69,10 +69,22 @@ public class UsuarioRepository : IUsuarioRepository
         }
     }
 
-    public async Task SaveAsync(Usuario usuario)
+    public Task SaveAsync(Usuario usuario)
     {
         _dbContext.usuarios.Add(usuario);
+        return GuardarNuevoAsync(usuario);
+    }
 
+    public Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento)
+    {
+        // Un solo SaveChanges = una sola transacción: o se guardan el usuario y su consentimiento, o ninguno.
+        _dbContext.usuarios.Add(usuario);
+        _dbContext.ConsentimientosUsuario.Add(consentimiento);
+        return GuardarNuevoAsync(usuario);
+    }
+
+    private async Task GuardarNuevoAsync(Usuario usuario)
+    {
         try
         {
             await _dbContext.SaveChangesAsync();
@@ -106,8 +118,14 @@ public class UsuarioRepository : IUsuarioRepository
 
     private async Task<bool> ElCorreoYaExisteTrasElFalloAsync(Usuario usuario)
     {
-        // El intento fallido deja la entidad en el contexto: se saca para poder consultar y para no reintentar su inserción.
+        // El intento fallido deja las entidades nuevas en el contexto: se sacan para poder consultar y para no reintentar su inserción.
         _dbContext.Entry(usuario).State = EntityState.Detached;
+        foreach (var consentimiento in _dbContext.ChangeTracker.Entries<ConsentimientoUsuario>()
+                     .Where(e => e.State == EntityState.Added).ToList())
+        {
+            consentimiento.State = EntityState.Detached;
+        }
+
         return await CorreoExistsAsync(usuario.Correo);
     }
 

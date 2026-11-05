@@ -12,10 +12,28 @@ public class ApplicationDbContext : DbContext
     public DbSet<CorreoEnCola> CorreosEnCola { get; set; }
     public DbSet<TokenRevocado> TokensRevocados { get; set; } = null!;
     public DbSet<RevocacionSesion> RevocacionesSesion { get; set; } = null!;
+    public DbSet<ConsentimientoUsuario> ConsentimientosUsuario { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Historial de solo inserción de lo que cada usuario aceptó (documentos legales y consentimientos opcionales).
+        modelBuilder.Entity<ConsentimientoUsuario>(entity =>
+        {
+            entity.ToTable("ConsentimientosUsuario");
+            entity.HasKey(c => c.Id);
+
+            entity.Property(c => c.TerminosVersion).IsRequired().HasMaxLength(20);
+            entity.Property(c => c.PrivacidadVersion).IsRequired().HasMaxLength(20);
+            entity.Property(c => c.Origen).IsRequired().HasMaxLength(20);
+
+            // Al eliminar una cuenta se eliminan también sus consentimientos (baja de cuenta, fase 6).
+            entity.HasOne<Usuario>().WithMany().HasForeignKey(c => c.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+
+            // La consulta típica es "el último consentimiento de este usuario".
+            entity.HasIndex(c => new { c.UsuarioId, c.ActualizadoEn });
+        });
 
         modelBuilder.Entity<Usuario>(entity =>
         {

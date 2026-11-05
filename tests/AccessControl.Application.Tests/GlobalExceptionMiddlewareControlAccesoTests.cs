@@ -18,6 +18,9 @@ public class GlobalExceptionMiddlewareControlAccesoTests
         { new CodigoInvalidoException(), 400, "codigo_invalido" },
         { new ClaveActualIncorrectaException(), 400, "clave_actual_incorrecta" },
         { new UltimoAdministradorException(), 400, "ultimo_administrador" },
+        { new ConsentimientoNoValidoException(), 400, "consentimiento_no_valido" },
+        { new ContrasenaNoValidaException(), 400, "contrasena_no_valida" },
+        { new ContrasenaFiltradaException(), 400, "contrasena_filtrada" },
         { new OperacionNoPermitidaException(), 403, "operacion_no_permitida" },
         { new CredencialesInvalidasException(), 401, null },
     };
