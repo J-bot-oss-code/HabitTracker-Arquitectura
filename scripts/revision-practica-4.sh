@@ -8,6 +8,8 @@ TMP="${TMPDIR:-/tmp}/p4-revision"; mkdir -p "$TMP"
 # curl nativo de Windows no entiende rutas /tmp dentro de -F archivo=@ruta: se usa la ruta con formato C:/...
 TMP="$(cd "$TMP" && { pwd -W 2>/dev/null || pwd; })"
 META="5f1c0a00-0000-4000-8000-000000000002"
+# Aceptación de los documentos legales: el registro la exige (versiones vigentes v2.1 y v1.4; Legal:* las cambia).
+CONSENT='"consentimientos":{"terminosVersion":"v2.1","privacidadVersion":"v1.4","marketing":false}'
 envval() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '[:cntrl:]'; }
 DB_PASSWORD="$(envval DB_PASSWORD)"
 sql() { MSYS_NO_PATHCONV=1 docker compose exec -T db /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$DB_PASSWORD" -d HabitTracker -h -1 -W -Q "SET NOCOUNT ON; $1" 2>&1 | tr -d "[:space:]"; }
@@ -45,7 +47,7 @@ leer_correo() {
 }
 login() { req POST /api/auth/login "{\"email\":\"$1\",\"password\":\"$2\"}"; TOKEN=$(campo token); [ -z "$TOKEN" ] && TOKEN=$(campo accessToken); }
 registrar_y_activar() {
-  req POST /api/auth/register "{\"nombre\":\"Prueba $1\",\"correo\":\"$1\",\"password\":\"ClaveSegura-Nexus-2026\"}"
+  req POST /api/auth/register "{\"nombre\":\"Prueba $1\",\"correo\":\"$1\",\"password\":\"ClaveSegura-Nexus-2026\",$CONSENT}"
   check "registro $1" 201 "$STATUS"
   local tok; tok=$(leer_correo "$1" "Activa")
   [ -z "$tok" ] && { bad "el log trae el correo de activación de $1" "sin línea [CORREO EN CONSOLA]"; return; }
@@ -74,10 +76,10 @@ req GET /api/documents; check "sin sesión, listar documentos" 401 "$STATUS"
 echo "=== 1. Registro con activación por correo ==="
 registrar_y_activar "$ANA"
 registrar_y_activar "$BETO"
-req POST /api/auth/register "{\"nombre\":\"x\",\"correo\":\"debil$SUF@example.com\",\"password\":\"123\"}"; check "registro con clave débil se rechaza" 400 "$STATUS"
+req POST /api/auth/register "{\"nombre\":\"x\",\"correo\":\"debil$SUF@example.com\",\"password\":\"123\",$CONSENT}"; check "registro con clave débil se rechaza" 400 "$STATUS"
 echo "  -- código de activación: fuerza bruta y reenvío (Carla) --"
 CARLA="carla$SUF@example.com"
-req POST /api/auth/register "{\"nombre\":\"Carla\",\"correo\":\"$CARLA\",\"password\":\"ClaveSegura-Nexus-2026\"}"; check "registro de Carla" 201 "$STATUS"
+req POST /api/auth/register "{\"nombre\":\"Carla\",\"correo\":\"$CARLA\",\"password\":\"ClaveSegura-Nexus-2026\",$CONSENT}"; check "registro de Carla" 201 "$STATUS"
 CC=$(leer_correo "$CARLA" "Activa")
 MALO="000000"; [ "$CC" = "000000" ] && MALO="000001"
 req POST /api/auth/activate "{\"correo\":\"$CARLA\",\"codigo\":\"$MALO\"}"; check "código incorrecto" 400 "$STATUS"
@@ -94,7 +96,7 @@ req POST /api/auth/login "{\"email\":\"$CARLA\",\"password\":\"ClaveSegura-Nexus
 
 echo "  -- ráfaga de 12 intentos EN PARALELO contra un código (Dora): la reserva debe ser atómica --"
 DORA="dora$SUF@example.com"
-req POST /api/auth/register "{\"nombre\":\"Dora\",\"correo\":\"$DORA\",\"password\":\"ClaveSegura-Nexus-2026\"}"; check "registro de Dora" 201 "$STATUS"
+req POST /api/auth/register "{\"nombre\":\"Dora\",\"correo\":\"$DORA\",\"password\":\"ClaveSegura-Nexus-2026\",$CONSENT}"; check "registro de Dora" 201 "$STATUS"
 DC=$(leer_correo "$DORA" "Activa")
 MALO2="000000"; [ "$DC" = "000000" ] && MALO2="000001"
 rm -f "$TMP"/rafaga.*.txt
