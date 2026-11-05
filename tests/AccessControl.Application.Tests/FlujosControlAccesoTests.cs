@@ -264,7 +264,7 @@ public class FlujosControlAccesoTests
             emailQueue ?? Mock.Of<IEmailQueue>(),
             Mock.Of<IAuditoriaService>(),
             jwtProvider ?? Mock.Of<IJwtProvider>(),
-            blacklist ?? Mock.Of<ITokenBlacklist>(),
+            GestorSesionesDePrueba.Crear(blacklist),
             Mock.Of<ILogger<UsuarioService>>());
     }
 

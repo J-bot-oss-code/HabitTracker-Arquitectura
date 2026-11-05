@@ -74,6 +74,13 @@ public class GlobalExceptionMiddleware
             _logger.LogInformation(ex, "Credenciales incorrectas.");
             await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "Credenciales incorrectas.", "Correo o contraseña incorrectos.");
         }
+        catch (SesionInvalidaException ex)
+        {
+            // Debe ir antes de UnauthorizedAccessException (es su subclase). El refresh token no sirve: siempre 401, con el código
+            // que le dice al cliente que debe iniciar sesión de nuevo.
+            _logger.LogInformation("Refresh token rechazado.");
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "Sesión inválida.", ex.Message, ex.Codigo);
+        }
         catch (OperacionNoPermitidaException ex)
         {
             // Debe ir antes de ControlAccesoException e InvalidOperationException (son sus clases base).

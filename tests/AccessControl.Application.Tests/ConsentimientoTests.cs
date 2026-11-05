@@ -239,7 +239,7 @@ public class ConsentimientoTests
 
         var servicio = new UsuarioService(
             repo.Object, hasher.Object, cola.Object, Mock.Of<IAuditoriaService>(), Mock.Of<IJwtProvider>(),
-            Mock.Of<ITokenBlacklist>(), Mock.Of<ILogger<UsuarioService>>(), politica: null, versiones);
+            GestorSesionesDePrueba.Crear(), Mock.Of<ILogger<UsuarioService>>(), politica: null, versiones);
         return (servicio, repo);
     }
 

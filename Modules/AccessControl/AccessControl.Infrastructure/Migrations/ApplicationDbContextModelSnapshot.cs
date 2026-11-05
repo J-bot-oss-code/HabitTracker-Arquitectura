@@ -132,6 +132,59 @@ namespace AccessControl.Infrastructure.Migrations
                     b.ToTable("RevocacionesSesion");
                 });
 
+            modelBuilder.Entity("AccessControl.Domain.Entities.SesionUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Dispositivo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ExpiraEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("FamiliaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("IpCreacion")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<Guid?>("ReemplazadaPorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevocadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("UltimoUsoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamiliaId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("SesionesUsuario", (string)null);
+                });
+
             modelBuilder.Entity("AccessControl.Domain.Entities.TokenRevocado", b =>
                 {
                     b.Property<Guid>("Id")
@@ -181,6 +234,15 @@ namespace AccessControl.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.ConsentimientoUsuario", b =>
+                {
+                    b.HasOne("AccessControl.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.SesionUsuario", b =>
                 {
                     b.HasOne("AccessControl.Domain.Entities.Usuario", null)
                         .WithMany()

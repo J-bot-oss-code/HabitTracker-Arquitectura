@@ -131,6 +131,6 @@ public class TokenBlacklistService : ITokenBlacklist
     private int LeerMinutosExpiracion()
     {
         var minutos = _configuration.GetValue<int>($"{JwtSettings.Seccion}:MinutosExpiracion");
-        return minutos > 0 ? minutos : 60;
+        return minutos > 0 ? minutos : new JwtSettings().MinutosExpiracion;
     }
 }

@@ -1,3 +1,4 @@
+using AccessControl.Application.Service;
 using System.Reflection;
 using System.Security.Claims;
 using AccessControl.Application.DTOs;
@@ -91,8 +92,16 @@ public class PrivacidadControllerTests
 
     // ---------------- Aviso de re-aceptación ----------------
 
+    private static IGestorSesiones SesionesQueEmiten()
+    {
+        var sesiones = new Mock<IGestorSesiones>();
+        sesiones.Setup(x => x.IniciarAsync(It.IsAny<Guid>(), It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new SesionEmitida("refresh-de-prueba", DateTime.UtcNow.AddDays(14)));
+        return sesiones.Object;
+    }
+
     private static AuthController CrearAuth(Mock<IUsuarioService> usuarios, Mock<IConsentimientoService> consentimientos, Guid? usuarioId = null) =>
-        new(usuarios.Object, Mock.Of<ITokenBlacklist>(), consentimientos.Object) { ControllerContext = ContextoDe(usuarioId) };
+        new(usuarios.Object, Mock.Of<ITokenBlacklist>(), consentimientos.Object, SesionesQueEmiten(), OpcionesSesion.PorDefecto) { ControllerContext = ContextoDe(usuarioId) };
 
     [Theory]
     [InlineData(true)]

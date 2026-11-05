@@ -45,7 +45,7 @@ public class ActivacionConCodigoTests
 
         var servicio = new UsuarioService(
             repo.Object, hasher.Object, cola.Object, Mock.Of<IAuditoriaService>(),
-            Mock.Of<IJwtProvider>(), Mock.Of<ITokenBlacklist>(), Mock.Of<ILogger<UsuarioService>>());
+            Mock.Of<IJwtProvider>(), GestorSesionesDePrueba.Crear(), Mock.Of<ILogger<UsuarioService>>());
         return (servicio, repo, cola);
     }
 
