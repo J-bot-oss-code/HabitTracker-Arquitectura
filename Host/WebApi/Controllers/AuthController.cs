@@ -21,14 +21,17 @@ public class AuthController : ControllerBase
     private readonly IConsentimientoService _consentimientos;
     private readonly IGestorSesiones _sesiones;
     private readonly OpcionesSesion _opcionesSesion;
+    private readonly IServicioLoginExterno _loginExterno;
 
     public AuthController(
         IUsuarioService usuarioService,
         ITokenBlacklist blacklist,
         IConsentimientoService consentimientos,
         IGestorSesiones sesiones,
-        OpcionesSesion opcionesSesion)
+        OpcionesSesion opcionesSesion,
+        IServicioLoginExterno loginExterno)
     {
+        _loginExterno = loginExterno;
         _usuarioService = usuarioService;
         _blacklist = blacklist;
         _consentimientos = consentimientos;
@@ -109,12 +112,83 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
     {
         var resultado = await _usuarioService.AutenticarUsuarioAsync(request);
-        await AbrirSesionAsync(resultado.Id);
+        return Ok(await CompletarInicioAsync(resultado));
+    }
 
-        // Si cambiaron las versiones de los documentos legales (o la cuenta es anterior a esta función), el cliente debe
-        // pedir que se vuelvan a aceptar. El inicio de sesión funciona igual: no se bloquea a nadie.
-        var requiere = await _consentimientos.RequiereAceptarDocumentosAsync(resultado.Id);
-        return Ok(resultado with { RequiereAceptarDocumentos = requiere });
+    /// <summary>
+    /// Entra con Google. El navegador obtiene un ID token con Google Identity Services y lo envía aquí; la API lo valida
+    /// (firma, emisor, vencimiento y que fue emitido para esta aplicación) y exige que Google haya verificado el correo.
+    /// Si la identidad ya está vinculada inicia sesión (200); si el correo es nuevo crea la cuenta (201, exige
+    /// <c>consentimientos</c>, o responde 400 <c>consentimiento_requerido</c>); si el correo ya tiene una cuenta con
+    /// contraseña responde 409 <c>vinculacion_requerida</c> y hay que usar /google/vincular. Abre la sesión igual que el login.
+    /// </summary>
+    [HttpPost("google")]
+    [AllowAnonymous]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Google)]
+    [ProducesResponseType(typeof(UsuarioResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UsuarioResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> Google([FromBody] GoogleLoginRequest request)
+    {
+        var resultado = await _loginExterno.IniciarConGoogleAsync(request.IdToken, request.Consentimientos);
+        var respuesta = await CompletarInicioAsync(resultado.Usuario);
+
+        return resultado.CuentaNueva ? StatusCode(StatusCodes.Status201Created, respuesta) : Ok(respuesta);
+    }
+
+    /// <summary>
+    /// Vincula Google a la cuenta con contraseña de ese mismo correo. Pide la contraseña: sin ella, quien controle el
+    /// correo en Google podría apoderarse de una cuenta ajena. Cuenta para el bloqueo por intentos fallidos (RF-CA-19).
+    /// </summary>
+    [HttpPost("google/vincular")]
+    [AllowAnonymous]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Google)]
+    [ProducesResponseType(typeof(UsuarioResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status503ServiceUnavailable)]
+    public async Task<IActionResult> VincularGoogle([FromBody] GoogleVincularRequest request)
+    {
+        var resultado = await _loginExterno.VincularGoogleAsync(request.IdToken, request.Password);
+        return Ok(await CompletarInicioAsync(resultado.Usuario));
+    }
+
+    /// <summary>Formas de entrar de la cuenta autenticada: si tiene contraseña y qué proveedores tiene vinculados.</summary>
+    [HttpGet("vinculos")]
+    [Authorize]
+    [ProducesResponseType(typeof(VinculosDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarVinculos()
+    {
+        return Ok(await _loginExterno.ListarVinculosAsync(UsuarioIdActual()));
+    }
+
+    /// <summary>Desvincula Google. Solo se permite si la cuenta tiene contraseña (si no, quedaría sin forma de entrar).</summary>
+    [HttpDelete("vinculos/{proveedor}")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Desvincular(string proveedor)
+    {
+        var desvinculado = proveedor == AccessControl.Domain.Entities.LoginExterno.ProveedorGoogle
+            && await _loginExterno.DesvincularAsync(UsuarioIdActual(), proveedor);
+
+        if (!desvinculado)
+        {
+            return NotFound(new ProblemDetails
+            {
+                Status = StatusCodes.Status404NotFound,
+                Title = "No encontrado.",
+                Detail = "La cuenta no tiene ese proveedor vinculado.",
+                Instance = HttpContext.TraceIdentifier
+            });
+        }
+
+        return NoContent();
     }
 
     /// <summary>
@@ -308,6 +382,18 @@ public class AuthController : ControllerBase
         return usuarioId;
     }
 
+    /// <summary>
+    /// Abre la sesión (cookie del refresh token) y completa la respuesta del inicio de sesión. Si cambiaron las versiones de
+    /// los documentos legales (o la cuenta es anterior a esa función), el cliente debe pedir que se vuelvan a aceptar; el
+    /// inicio de sesión funciona igual: no se bloquea a nadie.
+    /// </summary>
+    private async Task<UsuarioResponseDto> CompletarInicioAsync(UsuarioResponseDto usuario)
+    {
+        await AbrirSesionAsync(usuario.Id);
+        var requiere = await _consentimientos.RequiereAceptarDocumentosAsync(usuario.Id);
+        return usuario with { RequiereAceptarDocumentos = requiere };
+    }
+
     private async Task AbrirSesionAsync(Guid usuarioId)
     {
         var sesion = await _sesiones.IniciarAsync(
@@ -319,6 +405,14 @@ public class AuthController : ControllerBase
 public record ActivateRequest(
     [param: Required, EmailAddress, StringLength(150)] string Correo,
     [param: Required, RegularExpression("^[0-9]{6}$", ErrorMessage = "El código debe tener 6 dígitos.")] string Codigo);
+
+public record GoogleLoginRequest(
+    [param: Required, StringLength(4096)] string IdToken,
+    ConsentimientosRegistroDto? Consentimientos = null);
+
+public record GoogleVincularRequest(
+    [param: Required, StringLength(4096)] string IdToken,
+    [param: Required, StringLength(1024)] string Password);
 
 public record ResendActivationRequest(
     [param: Required, EmailAddress, StringLength(150)] string Correo);

@@ -83,6 +83,15 @@ public class UsuarioRepository : IUsuarioRepository
         return GuardarNuevoAsync(usuario);
     }
 
+    public Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento, LoginExterno vinculo)
+    {
+        // Cuenta, consentimiento y vínculo con el proveedor en una sola transacción.
+        _dbContext.usuarios.Add(usuario);
+        _dbContext.ConsentimientosUsuario.Add(consentimiento);
+        _dbContext.LoginsExternos.Add(vinculo);
+        return GuardarNuevoAsync(usuario);
+    }
+
     private async Task GuardarNuevoAsync(Usuario usuario)
     {
         try
@@ -124,6 +133,12 @@ public class UsuarioRepository : IUsuarioRepository
                      .Where(e => e.State == EntityState.Added).ToList())
         {
             consentimiento.State = EntityState.Detached;
+        }
+
+        foreach (var vinculo in _dbContext.ChangeTracker.Entries<LoginExterno>()
+                     .Where(e => e.State == EntityState.Added).ToList())
+        {
+            vinculo.State = EntityState.Detached;
         }
 
         return await CorreoExistsAsync(usuario.Correo);

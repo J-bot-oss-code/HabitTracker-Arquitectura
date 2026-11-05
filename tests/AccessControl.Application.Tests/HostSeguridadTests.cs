@@ -28,7 +28,7 @@ public class HostSeguridadTests
     {
         var servicio = new Mock<IUsuarioService>();
         var http = new DefaultHttpContext();
-        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<IConsentimientoService>(), Mock.Of<IGestorSesiones>(), OpcionesSesion.PorDefecto)
+        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<IConsentimientoService>(), Mock.Of<IGestorSesiones>(), OpcionesSesion.PorDefecto, Mock.Of<IServicioLoginExterno>())
         {
             ControllerContext = new ControllerContext { HttpContext = http }
         };
@@ -137,6 +137,7 @@ public class HostSeguridadTests
     [InlineData("RecuperacionPorMinuto", "0")]
     [InlineData("ActivacionPorMinuto", "0")]
     [InlineData("RefreshPorMinuto", "0")]
+    [InlineData("GooglePorMinuto", "-1")]
     public void RD_07_UnTopeDeCeroOMenos_DetieneElArranqueEnLugarDeBloquearElEndpoint(string clave, string valor)
     {
         var servicios = new ServiceCollection().AddLimitacionDePeticiones(Config(($"RateLimit:{clave}", valor)));

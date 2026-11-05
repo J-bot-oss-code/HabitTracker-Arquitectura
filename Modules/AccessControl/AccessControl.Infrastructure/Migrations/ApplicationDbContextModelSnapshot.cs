@@ -112,6 +112,39 @@ namespace AccessControl.Infrastructure.Migrations
                     b.ToTable("CorreosEnCola");
                 });
 
+            modelBuilder.Entity("AccessControl.Domain.Entities.LoginExterno", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Proveedor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("VinculadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Proveedor", "Subject")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId", "Proveedor")
+                        .IsUnique();
+
+                    b.ToTable("LoginsExternos", (string)null);
+                });
+
             modelBuilder.Entity("AccessControl.Domain.Entities.RevocacionSesion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -221,7 +254,6 @@ namespace AccessControl.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -234,6 +266,15 @@ namespace AccessControl.Infrastructure.Migrations
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.ConsentimientoUsuario", b =>
+                {
+                    b.HasOne("AccessControl.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.LoginExterno", b =>
                 {
                     b.HasOne("AccessControl.Domain.Entities.Usuario", null)
                         .WithMany()

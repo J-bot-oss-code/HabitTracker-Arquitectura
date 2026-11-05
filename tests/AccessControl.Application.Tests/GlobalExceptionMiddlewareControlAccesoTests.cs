@@ -24,6 +24,13 @@ public class GlobalExceptionMiddlewareControlAccesoTests
         { new OperacionNoPermitidaException(), 403, "operacion_no_permitida" },
         { new CredencialesInvalidasException(), 401, null },
         { new SesionInvalidaException(), 401, "sesion_invalida" },
+        { new TokenExternoInvalidoException(), 401, "token_externo_invalido" },
+        { new VinculacionRequeridaException(), 409, "vinculacion_requerida" },
+        { new ProveedorExternoNoDisponibleException(), 503, "proveedor_no_disponible" },
+        { new ConsentimientoRequeridoException(), 400, "consentimiento_requerido" },
+        { new ProveedorYaVinculadoException(), 400, "proveedor_ya_vinculado" },
+        { new SinContrasenaException(), 400, "sin_contrasena" },
+        { new UltimoMetodoAccesoException(), 400, "ultimo_metodo_acceso" },
     };
 
     private static async Task<(DefaultHttpContext Contexto, JsonElement Cuerpo, string Texto)> Ejecutar(Exception excepcion)
