@@ -3,10 +3,11 @@ import { CLAIM_ROL } from '@/shared/auth/jwt'
 import type { Rol } from '@/shared/auth/roles'
 import { db, type UsuarioMock } from './db'
 
-export const MINUTOS_EXPIRACION = 60
+// JwtSettings:MinutosExpiracion: el token de acceso es corto; la sesión larga la sostiene el refresh token.
+export const MINUTOS_EXPIRACION = 15
 
 // Mismas respuestas que GlobalExceptionMiddleware: títulos y detalles genéricos (RD-08).
-export function problema(status: number, title: string, detail?: string) {
+export function problema(status: number, title: string, detail?: string, codigo?: string) {
   return HttpResponse.json(
     {
       type: `https://httpstatuses.io/${status}`,
@@ -14,6 +15,8 @@ export function problema(status: number, title: string, detail?: string) {
       status,
       detail,
       instance: crypto.randomUUID(),
+      // Código estable de los rechazos de Control de Acceso (GlobalExceptionMiddleware).
+      ...(codigo ? { codigo } : {}),
     },
     { status, headers: { 'Content-Type': 'application/problem+json' } },
   )
@@ -27,6 +30,9 @@ export const respuestas = {
       'La operación no pudo completarse.',
       'La operación no está permitida en el estado actual.',
     ),
+  // Rechazo de Control de Acceso con código estable (400): ver README › códigos de error.
+  codigo: (codigo: string, detail: string) =>
+    problema(400, 'La operación no pudo completarse.', detail, codigo),
   // JwtBearer responde 401 sin cuerpo.
   noAutenticado: () => new HttpResponse(null, { status: 401 }),
   noAutorizado: () => problema(401, 'No autorizado.', 'Credenciales incorrectas.'),
@@ -126,9 +132,9 @@ export const esTexto = (v: unknown, min: number, max: number): v is string =>
 export const esCorreo = (v: unknown): v is string =>
   esTexto(v, 3, 150) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
-// UsuarioService.ValidarFormatoClave.
+// PoliticaContrasena.ValidarFormato (RF-CA-14): 12 a 1024 caracteres con letras y números.
 export const cumplePolitica = (v: unknown): v is string =>
-  typeof v === 'string' && v.length >= 8 && v.length <= 1024 && /\p{L}/u.test(v) && /\d/.test(v)
+  typeof v === 'string' && v.length >= 12 && v.length <= 1024 && /\p{L}/u.test(v) && /\d/.test(v)
 
 // Las fechas de HabitTracker se leen de SQL sin Kind UTC y salen sin "Z" (deuda §6.4).
 export const comoFechaSql = (iso: string) => iso.replace(/Z$/, '')

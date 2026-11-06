@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router'
 import { Alert } from '@/shared/ui/Alert'
@@ -10,11 +9,12 @@ import { useActivar } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
 import { activarSchema, type ActivarForm } from '../schemas'
 
+// El código de 6 dígitos no es único entre usuarios: se activa siempre con el correo. Si llega desde el
+// enlace (?correo=...&codigo=...) se rellena, pero NO se activa solo: un clic en el botón. Así un escáner
+// de correos o una precarga del enlace no gasta los 5 intentos del código (RF-CA-15).
 export function ActivatePage() {
   const [params] = useSearchParams()
-  const tokenEnUrl = params.get('token') ?? ''
   const activar = useActivar()
-  const intentado = useRef(false)
 
   const {
     register,
@@ -22,16 +22,8 @@ export function ActivatePage() {
     formState: { errors },
   } = useForm<ActivarForm>({
     resolver: zodResolver(activarSchema),
-    defaultValues: { token: tokenEnUrl },
+    defaultValues: { correo: params.get('correo') ?? '', codigo: params.get('codigo') ?? '' },
   })
-
-  // Si llega desde el enlace del correo (?token=...), se activa sin pedir nada más.
-  useEffect(() => {
-    if (tokenEnUrl && !intentado.current) {
-      intentado.current = true
-      activar.mutate(tokenEnUrl)
-    }
-  }, [tokenEnUrl, activar])
 
   if (activar.isSuccess) {
     return (
@@ -48,7 +40,7 @@ export function ActivatePage() {
     <AuthCard
       titulo="Activar cuenta"
       paso={2}
-      descripcion="Pega el código que recibiste en el correo de activación."
+      descripcion="Escribe tu correo y el código de 6 dígitos que recibiste en el correo de activación."
       pie={
         <Link to="/reenviar-activacion" className={claseEnlace}>
           ¿El código venció? Pide uno nuevo
@@ -56,17 +48,26 @@ export function ActivatePage() {
       }
     >
       {activar.isError && (
-        <Alert tono="peligro">El código no es válido o ya venció. Solicita uno nuevo.</Alert>
+        <Alert tono="peligro">
+          El código no es válido, ya se usó o venció. Tras 5 intentos fallidos hay que pedir uno
+          nuevo.
+        </Alert>
       )}
-      <form
-        onSubmit={handleSubmit((d) => activar.mutate(d.token))}
-        noValidate
-        className="space-y-4"
-      >
+      <form onSubmit={handleSubmit((d) => activar.mutate(d))} noValidate className="space-y-4">
+        <Input
+          etiqueta="Correo"
+          type="email"
+          autoComplete="email"
+          error={errors.correo?.message}
+          {...register('correo')}
+        />
         <Input
           etiqueta="Código de activación"
-          error={errors.token?.message}
-          {...register('token')}
+          inputMode="numeric"
+          autoComplete="one-time-code"
+          maxLength={6}
+          error={errors.codigo?.message}
+          {...register('codigo')}
         />
         <Button type="submit" className="w-full" cargando={activar.isPending}>
           Activar

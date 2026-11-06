@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { esErrorHttp, mensajeDeError } from '@/shared/api/problem'
+import { codigoDeError, mensajeDeError } from '@/shared/api/problem'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { etiquetaRol } from '@/shared/auth/roles'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
@@ -85,7 +85,7 @@ export function AccountPage() {
             </p>
             {cambiar.isError && (
               <Alert tono="peligro" className="mt-4">
-                {esErrorHttp(cambiar.error, 401)
+                {codigoDeError(cambiar.error) === 'clave_actual_incorrecta'
                   ? 'La contraseña actual es incorrecta.'
                   : mensajeDeError(cambiar.error)}
               </Alert>
@@ -102,7 +102,7 @@ export function AccountPage() {
                 etiqueta="Nueva contraseña"
                 type="password"
                 autoComplete="new-password"
-                ayuda="Mínimo 8 caracteres, con letras y números."
+                ayuda="Mínimo 12 caracteres, con letras y números."
                 error={errors.password?.message}
                 {...register('password')}
               />

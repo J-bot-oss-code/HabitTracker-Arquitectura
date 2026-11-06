@@ -109,7 +109,8 @@ describe('contrato propuesto del panel de administración', () => {
     await llamar('/api/auth/register', undefined, 'POST', {
       nombre: 'Persona Nueva',
       correo: 'nueva@demo.com',
-      password: 'Clave1234',
+      password: 'Clave-Segura-2026',
+      consentimientos: { terminosVersion: 'v2.1', privacidadVersion: 'v1.4', marketing: false },
     })
     const admin = iniciarSesionComo('admin')
     await llamar(`/api/admin/usuarios/${db.usuarios[2].id}/rol`, admin, 'PATCH', {

@@ -1,5 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import type { UsuarioResponseDto } from '@/features/auth/types'
+import { VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/publico/legal'
+import { CABECERA_CSRF } from '@/shared/api/sesion'
 import { auditar } from '../auditoria'
 import { CODIGO_RECUPERACION_DEMO, db, TOKEN_ACTIVACION_DEMO, type UsuarioMock } from '../db'
 import {
@@ -10,6 +12,7 @@ import {
   esTexto,
   latencia,
   leerJson,
+  problema,
   respuestas,
 } from '../http'
 
@@ -20,6 +23,17 @@ const MENSAJE_GENERICO_CORREO = 'Si el correo es válido, recibirás instruccion
 const buscarPorCorreo = (correo: string) =>
   db.usuarios.find((u) => u.correo.toLowerCase() === correo.trim().toLowerCase())
 
+// ConsentimientoService.RequiereAceptarDocumentosAsync: nunca aceptó, o su última aceptación no es de las
+// versiones vigentes.
+function requiereAceptarDocumentos(usuarioId: string): boolean {
+  const vigente = db.consentimientos.get(usuarioId)
+  return (
+    !vigente ||
+    vigente.terminosVersion !== VERSION_TERMINOS ||
+    vigente.privacidadVersion !== VERSION_PRIVACIDAD
+  )
+}
+
 export const aDto = (u: UsuarioMock, token: string | null = null): UsuarioResponseDto => ({
   id: u.id,
   nombre: u.nombre,
@@ -27,22 +41,57 @@ export const aDto = (u: UsuarioMock, token: string | null = null): UsuarioRespon
   rol: u.rol,
   activo: u.activo,
   token,
+  requiereAceptarDocumentos: requiereAceptarDocumentos(u.id),
+  bajaProgramadaPara: null,
 })
+
+// Abre la sesión como el backend: token de acceso en el cuerpo y cookie HttpOnly con el refresh token.
+function abrirSesion(usuario: UsuarioMock): string {
+  db.refresh = { usuarioId: usuario.id, valor: crypto.randomUUID() }
+  return emitirToken(usuario)
+}
+
+// IGestorSesiones.RevocarTodasAsync: corta los accesos emitidos y el refresh token.
+function revocarSesiones(usuario: UsuarioMock) {
+  usuario.sesionesValidasDesde = Date.now()
+  if (db.refresh?.usuarioId === usuario.id) db.refresh = null
+}
+
+function consentimientosValidos(
+  c: unknown,
+): c is { terminosVersion: string; privacidadVersion: string; marketing: boolean } {
+  if (!c || typeof c !== 'object') return false
+  const { terminosVersion, privacidadVersion, marketing } = c as Record<string, unknown>
+  return (
+    terminosVersion === VERSION_TERMINOS &&
+    privacidadVersion === VERSION_PRIVACIDAD &&
+    typeof marketing === 'boolean'
+  )
+}
 
 export const authHandlers = [
   http.post('/api/auth/register', async ({ request }) => {
     await latencia()
-    const body = await leerJson<{ nombre: string; correo: string; password: string }>(request)
-    if (
-      !body ||
-      !esTexto(body.nombre, 1, 200) ||
-      !esCorreo(body.correo) ||
-      !cumplePolitica(body.password)
-    ) {
+    const body = await leerJson<{
+      nombre: string
+      correo: string
+      password: string
+      consentimientos: unknown
+    }>(request)
+    if (!body || !esTexto(body.nombre, 1, 200) || !esCorreo(body.correo)) {
       return respuestas.invalida()
     }
+    if (!cumplePolitica(body.password)) {
+      return respuestas.codigo('contrasena_no_valida', 'La contraseña no cumple la política.')
+    }
+    // Sin la aceptación de las versiones vigentes de los documentos legales no se crea la cuenta.
+    if (!consentimientosValidos(body.consentimientos)) {
+      return respuestas.codigo('consentimiento_no_valido', 'Falta aceptar los documentos vigentes.')
+    }
     // RF-CA-01: correo único.
-    if (buscarPorCorreo(body.correo)) return respuestas.operacion()
+    if (buscarPorCorreo(body.correo)) {
+      return respuestas.codigo('correo_ya_registrado', 'Ya existe una cuenta con ese correo.')
+    }
 
     const nuevo: UsuarioMock = {
       id: crypto.randomUUID(),
@@ -58,17 +107,40 @@ export const authHandlers = [
       sesionesValidasDesde: 0,
     }
     db.usuarios.push(nuevo)
+    // El usuario y su consentimiento se guardan juntos (IUsuarioRepository.SaveAsync).
+    db.consentimientos.set(nuevo.id, {
+      terminosVersion: body.consentimientos.terminosVersion,
+      privacidadVersion: body.consentimientos.privacidadVersion,
+      aceptadoEn: new Date().toISOString(),
+      datosSalud: false,
+      marketing: body.consentimientos.marketing,
+      compartirCumplimiento: false,
+      estadisticasAnonimas: false,
+    })
     auditar({ actor: nuevo.correo, accion: 'Registro', entidad: 'Usuario', entidadId: nuevo.id })
     return HttpResponse.json(aDto(nuevo), { status: 201 })
   }),
 
+  // El código de 6 dígitos no es único entre usuarios: siempre va con el correo.
   http.post('/api/auth/activate', async ({ request }) => {
     await latencia()
-    const token = (await leerJson<{ token: string }>(request))?.token
-    if (!esTexto(token, 1, 256)) return respuestas.invalida()
-    // Todas las cuentas demo comparten código: se activa la registrada más recientemente.
-    const usuario = db.usuarios.findLast((u) => u.tokenActivacion === token.trim() && !u.activo)
-    if (!usuario) return respuestas.operacion()
+    const body = await leerJson<{ correo: string; codigo: string }>(request)
+    if (
+      !body ||
+      !esCorreo(body.correo) ||
+      typeof body.codigo !== 'string' ||
+      !/^\d{6}$/.test(body.codigo)
+    ) {
+      return respuestas.invalida()
+    }
+    const usuario = buscarPorCorreo(body.correo)
+    // Mismo rechazo exista o no el correo, esté activo o el código sea otro.
+    if (!usuario || usuario.activo || usuario.tokenActivacion !== body.codigo) {
+      return respuestas.codigo(
+        'codigo_invalido',
+        'El código es incorrecto, ya fue usado o ha expirado.',
+      )
+    }
     usuario.activo = true
     usuario.tokenActivacion = null
     return respuestas.mensaje('Cuenta activada correctamente.')
@@ -96,14 +168,51 @@ export const authHandlers = [
     if (usuario.password === null || usuario.password !== body.password) {
       usuario.intentosFallidos += 1
       if (usuario.intentosFallidos >= MAX_INTENTOS) usuario.bloqueadoHasta = Date.now() + BLOQUEO_MS
-      return bloqueado() ? respuestas.operacion() : respuestas.noAutorizado()
+      return bloqueado()
+        ? respuestas.codigo('cuenta_bloqueada', 'La cuenta está bloqueada temporalmente.')
+        : respuestas.noAutorizado()
     }
-    if (bloqueado() || !usuario.activo) return respuestas.operacion()
+    // Con la clave correcta el backend dice por qué no se puede entrar (RF-CA-15, RF-CA-19, RF-CA-20).
+    if (bloqueado()) {
+      return respuestas.codigo('cuenta_bloqueada', 'La cuenta está bloqueada temporalmente.')
+    }
+    if (!usuario.activo) {
+      return usuario.tokenActivacion !== null
+        ? respuestas.codigo('cuenta_no_activa', 'La cuenta todavía no está activada.')
+        : respuestas.codigo('cuenta_desactivada', 'La cuenta fue desactivada por un administrador.')
+    }
 
     usuario.intentosFallidos = 0
     usuario.bloqueadoHasta = null
     auditar({ actor: usuario.correo, accion: 'InicioSesion', entidad: 'Sesión' })
-    return HttpResponse.json(aDto(usuario, emitirToken(usuario)))
+    return HttpResponse.json(aDto(usuario, abrirSesion(usuario)))
+  }),
+
+  // POST /api/auth/refresh: se autentica solo con la cookie, así que exige la cabecera anti-CSRF. Rota el
+  // refresh token y entrega un token de acceso nuevo.
+  http.post('/api/auth/refresh', async ({ request }) => {
+    await latencia()
+    if (request.headers.get(CABECERA_CSRF) !== '1') {
+      return problema(
+        403,
+        'Solicitud no permitida.',
+        'Falta la cabecera de protección de la solicitud.',
+        'csrf_requerido',
+      )
+    }
+    const sesion = db.refresh
+    const usuario = sesion && db.usuarios.find((u) => u.id === sesion.usuarioId)
+    const bloqueado = usuario?.bloqueadoHasta != null && usuario.bloqueadoHasta > Date.now()
+    if (!sesion || !usuario || !usuario.activo || bloqueado) {
+      db.refresh = null
+      return problema(
+        401,
+        'Sesión inválida.',
+        'La sesión ya no es válida. Inicie sesión nuevamente.',
+        'sesion_invalida',
+      )
+    }
+    return HttpResponse.json(aDto(usuario, abrirSesion(usuario)))
   }),
 
   http.get('/api/auth/me', async ({ request }) => {
@@ -112,8 +221,10 @@ export const authHandlers = [
     if (error) return error
     return HttpResponse.json({
       id: sesion.usuario.id,
+      nombre: sesion.usuario.nombre,
       correo: sesion.usuario.correo,
       rol: sesion.usuario.rol,
+      requiereAceptarDocumentos: requiereAceptarDocumentos(sesion.usuario.id),
     })
   }),
 
@@ -122,6 +233,7 @@ export const authHandlers = [
     const { sesion, error } = autenticar(request)
     if (error) return error
     db.tokensRevocados.add(sesion.jti)
+    if (db.refresh?.usuarioId === sesion.usuario.id) db.refresh = null
     return respuestas.mensaje('Sesión cerrada.')
   }),
 
@@ -142,13 +254,11 @@ export const authHandlers = [
       const body = await leerJson<{ correo: string; codigo: string; nuevaPassword: string }>(
         request,
       )
-      if (
-        !body ||
-        !esCorreo(body.correo) ||
-        !esTexto(body.codigo, 1, 64) ||
-        !cumplePolitica(body.nuevaPassword)
-      ) {
+      if (!body || !esCorreo(body.correo) || !esTexto(body.codigo, 1, 64)) {
         return respuestas.invalida()
+      }
+      if (!cumplePolitica(body.nuevaPassword)) {
+        return respuestas.codigo('contrasena_no_valida', 'La contraseña no cumple la política.')
       }
       const usuario = buscarPorCorreo(body.correo)
       if (
@@ -156,11 +266,14 @@ export const authHandlers = [
         !usuario.codigoRecuperacion ||
         usuario.codigoRecuperacion !== body.codigo.trim()
       ) {
-        return respuestas.operacion()
+        return respuestas.codigo(
+          'codigo_invalido',
+          'El código es incorrecto, ya fue usado o ha expirado.',
+        )
       }
       usuario.password = body.nuevaPassword
       usuario.codigoRecuperacion = null
-      usuario.sesionesValidasDesde = Date.now()
+      revocarSesiones(usuario)
       return respuestas.mensaje('Contraseña restablecida.')
     }),
   ),
@@ -170,12 +283,17 @@ export const authHandlers = [
     const { sesion, error } = autenticar(request)
     if (error) return error
     const body = await leerJson<{ actual: string; nueva: string }>(request)
-    if (!body || !esTexto(body.actual, 1, 1024) || !cumplePolitica(body.nueva))
-      return respuestas.invalida()
-    if (sesion.usuario.password !== body.actual) return respuestas.noAutorizado()
+    if (!body || !esTexto(body.actual, 1, 1024)) return respuestas.invalida()
+    if (!cumplePolitica(body.nueva)) {
+      return respuestas.codigo('contrasena_no_valida', 'La contraseña no cumple la política.')
+    }
+    // 400 y no 401/403: un 401 cerraría la sesión del cliente por un simple error de tecleo.
+    if (sesion.usuario.password !== body.actual) {
+      return respuestas.codigo('clave_actual_incorrecta', 'La contraseña actual no coincide.')
+    }
     sesion.usuario.password = body.nueva
     // RF-CA-12: invalida las sesiones previas.
-    sesion.usuario.sesionesValidasDesde = Date.now()
+    revocarSesiones(sesion.usuario)
     return respuestas.mensaje('Contraseña actualizada.')
   }),
 ]

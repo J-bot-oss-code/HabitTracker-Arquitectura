@@ -9,9 +9,11 @@ import { CargandoPagina } from '@/shared/ui/Spinner'
 // Exige sesión y, opcionalmente, un rol. Es una ayuda de navegación: la autorización
 // real la decide el servidor en cada petición (RD-06).
 export function RequireAuth({ roles }: { roles?: Rol[] }) {
-  const { usuario, cierreVoluntario } = useAuth()
+  const { usuario, iniciando, cierreVoluntario } = useAuth()
   const location = useLocation()
 
+  // Se está restaurando la sesión con la cookie: aún no se sabe si hay que ir al login.
+  if (iniciando) return <CargandoPagina />
   if (!usuario) {
     // Tras un "Cerrar sesión" no se recuerda la ruta: quien entre después empieza de cero.
     const estado = cierreVoluntario ? undefined : { desde: location.pathname + location.search }
@@ -42,8 +44,9 @@ export function RequireAuth({ roles }: { roles?: Rol[] }) {
 // Las pantallas de login/registro no tienen sentido con una sesión abierta: al iniciar
 // sesión, este guard lleva a la ruta que se pidió antes o a la inicial del rol.
 export function SoloInvitados() {
-  const { usuario } = useAuth()
+  const { usuario, iniciando } = useAuth()
   const location = useLocation()
+  if (iniciando) return <CargandoPagina />
   if (usuario) {
     const desde = (location.state as { desde?: unknown } | null)?.desde
     // Solo rutas internas (evita redirecciones abiertas) y accesibles para el rol que entra.

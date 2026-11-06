@@ -25,9 +25,10 @@ import { registroSchema } from '../schemas'
 const esquema = z.intersection(registroSchema, consentimientoSchema)
 type Formulario = z.infer<typeof esquema>
 
-// Registro (§5.2): la meta elegida viaja en ?meta= y se conserva hasta el onboarding. El
-// POST /api/auth/register real no cambia: los consentimientos se recuerdan en el dispositivo
-// y el onboarding los registra (ver perfil/registroPendiente.ts).
+// Registro (§5.2): la meta elegida viaja en ?meta= y se conserva hasta el onboarding. El backend exige
+// las versiones vigentes de los documentos legales EN el registro (`consentimientos`): sin ellas no crea
+// la cuenta. Lo demás (meta, datos corporales) se recuerda en el dispositivo hasta el onboarding
+// (ver perfil/registroPendiente.ts).
 // RF-CA-01: el correo es único, pero la respuesta es genérica y no revela si existe. Se
 // orienta al usuario sin confirmar ni negar nada.
 function mensajeRegistro(error: unknown): string {
@@ -63,7 +64,16 @@ export function RegisterPage() {
 
   const enviar = handleSubmit((datos) =>
     registro.mutate(
-      { nombre: datos.nombre, correo: datos.correo, password: datos.password },
+      {
+        nombre: datos.nombre,
+        correo: datos.correo,
+        password: datos.password,
+        consentimientos: {
+          terminosVersion: VERSION_TERMINOS,
+          privacidadVersion: VERSION_PRIVACIDAD,
+          marketing: datos.marketing,
+        },
+      },
       {
         onSuccess: () =>
           guardarRegistroPendiente({
@@ -82,11 +92,14 @@ export function RegisterPage() {
     return (
       <AuthCard titulo="Revisa tu correo" paso={2}>
         <Alert tono="exito" titulo="Cuenta creada">
-          Te enviamos un enlace de activación a <strong>{registro.data.correo}</strong>. Activa la
-          cuenta e inicia sesión para terminar de preparar tu plan.
+          Te enviamos un código de activación a <strong>{registro.data.correo}</strong>. Actívala e
+          inicia sesión para terminar de preparar tu plan.
         </Alert>
         <div className="flex flex-col gap-2">
-          <Link to="/activar" className={claseBoton({ tamano: 'lg' })}>
+          <Link
+            to={`/activar?correo=${encodeURIComponent(registro.data.correo)}`}
+            className={claseBoton({ tamano: 'lg' })}
+          >
             Tengo el código de activación
           </Link>
           <Link to="/login" className={claseEnlace}>
@@ -147,7 +160,7 @@ export function RegisterPage() {
           etiqueta="Contraseña"
           type="password"
           autoComplete="new-password"
-          ayuda="Mínimo 8 caracteres, con letras y números."
+          ayuda="Mínimo 12 caracteres, con letras y números."
           error={errors.password?.message}
           {...register('password')}
         />

@@ -1,6 +1,7 @@
 import { tokenStorage } from '@/shared/auth/tokenStorage'
 import { apiBaseUrl } from '@/shared/config/env'
 import { ApiError, type ProblemDetails } from './problem'
+import { renovarToken } from './sesion'
 
 type Metodo = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
 
@@ -39,26 +40,43 @@ async function leerProblema(respuesta: Response): Promise<ProblemDetails | null>
   }
 }
 
+// Rutas de autenticación: su 401 significa "credenciales incorrectas" y no "token vencido", así que
+// no se intenta renovar la sesión ni se cierra la que haya.
+const RUTAS_SIN_RENOVACION = ['/api/auth/login', '/api/auth/google', '/api/auth/refresh']
+
+function hacerPeticion(metodo: Metodo, ruta: string, opciones: OpcionesHttp, token: string | null) {
+  const headers: Record<string, string> = { Accept: 'application/json' }
+  if (token) headers.Authorization = `Bearer ${token}`
+  if (opciones.body !== undefined) headers['Content-Type'] = 'application/json'
+
+  return fetch(construirUrl(ruta, opciones.query), {
+    method: metodo,
+    headers,
+    body: opciones.body !== undefined ? JSON.stringify(opciones.body) : undefined,
+    signal: opciones.signal,
+    // La cookie HttpOnly del refresh token solo viaja a /api/auth; en el resto de la API el navegador no la envía.
+    credentials: 'include',
+  })
+}
+
 export async function http<T>(
   metodo: Metodo,
   ruta: string,
   opciones: OpcionesHttp = {},
 ): Promise<T> {
-  const headers: Record<string, string> = { Accept: 'application/json' }
   const token = tokenStorage.leer()
-  if (token) headers.Authorization = `Bearer ${token}`
-  if (opciones.body !== undefined) headers['Content-Type'] = 'application/json'
+  let respuesta = await hacerPeticion(metodo, ruta, opciones, token)
 
-  const respuesta = await fetch(construirUrl(ruta, opciones.query), {
-    method: metodo,
-    headers,
-    body: opciones.body !== undefined ? JSON.stringify(opciones.body) : undefined,
-    signal: opciones.signal,
-  })
+  // Con el token de acceso vencido (dura 15 min) se intenta UNA vez renovarlo con la cookie y repetir la
+  // petición. Si ya no hay sesión (cookie vencida o revocada), entonces sí se cierra.
+  if (respuesta.status === 401 && token && !RUTAS_SIN_RENOVACION.includes(ruta)) {
+    const nuevo = await renovarToken()
+    if (nuevo) respuesta = await hacerPeticion(metodo, ruta, opciones, nuevo)
+  }
 
   if (!respuesta.ok) {
-    // Un 401 con token significa sesión vencida o revocada (blacklist / cambio de clave).
-    if (respuesta.status === 401 && token) alNoAutorizado()
+    // Un 401 con token que no se pudo renovar significa sesión vencida o revocada.
+    if (respuesta.status === 401 && token && !RUTAS_SIN_RENOVACION.includes(ruta)) alNoAutorizado()
     throw new ApiError(respuesta.status, await leerProblema(respuesta))
   }
 

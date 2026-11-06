@@ -6,14 +6,19 @@ import { leerRegistroPendiente } from '@/features/perfil/api'
 import { completarOnboarding } from '@/test/onboarding'
 import { renderApp, renderAppConEstado } from '@/test/render'
 
+// La política del backend: 12+ caracteres con letras y números.
+const CLAVE = 'Clave-Segura-2026'
+const CLAVE_NUEVA = 'NuevaClave-Segura-9'
+const CLAVE_OTRA = 'OtraClave-Segura-7'
+
 describe('flujos de cuenta', () => {
   it('registro con meta → activación → login → onboarding → panel', async () => {
     const { user } = renderApp('/registro?meta=primeros-5-km')
     expect(await screen.findByText('Paso 1 de 5')).toBeInTheDocument()
     await user.type(screen.getByLabelText('Nombre completo'), 'Nueva Persona')
     await user.type(screen.getByLabelText('Correo'), 'nueva@demo.com')
-    await user.type(screen.getByLabelText('Contraseña'), 'Clave1234')
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Clave1234')
+    await user.type(screen.getByLabelText('Contraseña'), CLAVE)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), CLAVE)
     await user.click(screen.getByRole('checkbox', { name: /Términos de uso/ }))
     await user.click(screen.getByRole('checkbox', { name: /Política de privacidad/ }))
     await user.click(screen.getByRole('checkbox', { name: /correos con consejos/ }))
@@ -21,13 +26,15 @@ describe('flujos de cuenta', () => {
     expect(await screen.findByText('Cuenta creada')).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: 'Tengo el código de activación' }))
+    // El enlace lleva el correo: el código de 6 dígitos solo identifica a la persona junto a él.
+    expect(screen.getByLabelText('Correo')).toHaveValue('nueva@demo.com')
     await user.type(screen.getByLabelText('Código de activación'), TOKEN_ACTIVACION_DEMO)
     await user.click(screen.getByRole('button', { name: 'Activar' }))
     expect(await screen.findByText(/Tu cuenta está activa/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('link', { name: 'Ir a iniciar sesión' }))
     await user.type(screen.getByLabelText('Correo'), 'nueva@demo.com')
-    await user.type(screen.getByLabelText('Contraseña'), 'Clave1234')
+    await user.type(screen.getByLabelText('Contraseña'), CLAVE)
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
     // Sin perfil, el panel lleva al onboarding con la meta del registro.
@@ -61,8 +68,8 @@ describe('flujos de cuenta', () => {
     const { user } = renderApp('/registro')
     await user.type(await screen.findByLabelText('Nombre completo'), 'Sin Consentir')
     await user.type(screen.getByLabelText('Correo'), 'sin@demo.com')
-    await user.type(screen.getByLabelText('Contraseña'), 'Clave1234')
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Clave1234')
+    await user.type(screen.getByLabelText('Contraseña'), CLAVE)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), CLAVE)
     // Ninguna casilla llega marcada.
     for (const casilla of screen.getAllByRole('checkbox')) expect(casilla).not.toBeChecked()
     await user.click(screen.getByRole('button', { name: 'Crear cuenta y continuar' }))
@@ -82,8 +89,8 @@ describe('flujos de cuenta', () => {
     const { user } = renderApp('/registro')
     await user.type(screen.getByLabelText('Nombre completo'), 'Duplicado')
     await user.type(screen.getByLabelText('Correo'), 'estandar@demo.com')
-    await user.type(screen.getByLabelText('Contraseña'), 'Clave1234')
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'Clave1234')
+    await user.type(screen.getByLabelText('Contraseña'), CLAVE)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), CLAVE)
     await user.click(screen.getByRole('checkbox', { name: /Términos de uso/ }))
     await user.click(screen.getByRole('checkbox', { name: /Política de privacidad/ }))
     await user.click(screen.getByRole('button', { name: 'Crear cuenta y continuar' }))
@@ -146,9 +153,30 @@ describe('flujos de cuenta', () => {
     expect(leerRegistroPendiente('manipula@demo.com')).toMatchObject({ datosCorporales: null })
   })
 
-  it('activa automáticamente con el token del enlace', async () => {
-    renderApp(`/activar?token=${TOKEN_ACTIVACION_DEMO}`)
+  it('el enlace de activación rellena los datos pero no activa la cuenta por sí solo', async () => {
+    const { user } = renderApp(`/activar?correo=inactiva@demo.com&codigo=${TOKEN_ACTIVACION_DEMO}`)
+    expect(await screen.findByLabelText('Correo')).toHaveValue('inactiva@demo.com')
+    expect(screen.getByLabelText('Código de activación')).toHaveValue(TOKEN_ACTIVACION_DEMO)
+    // Un escáner de correos o una precarga del enlace no gastan los intentos del código (RF-CA-15).
+    expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(false)
+
+    await user.click(screen.getByRole('button', { name: 'Activar' }))
     expect(await screen.findByText(/Tu cuenta está activa/)).toBeInTheDocument()
+    expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(true)
+  })
+
+  it('el código de activación se valida: 6 dígitos y el correo de su cuenta', async () => {
+    const { user } = renderApp('/activar')
+    await user.type(await screen.findByLabelText('Correo'), 'inactiva@demo.com')
+    await user.type(screen.getByLabelText('Código de activación'), '12ab')
+    await user.click(screen.getByRole('button', { name: 'Activar' }))
+    expect(await screen.findByText('El código tiene 6 dígitos.')).toBeInTheDocument()
+
+    await user.clear(screen.getByLabelText('Código de activación'))
+    await user.type(screen.getByLabelText('Código de activación'), '000000')
+    await user.click(screen.getByRole('button', { name: 'Activar' }))
+    expect(await screen.findByText(/no es válido, ya se usó o venció/)).toBeInTheDocument()
+    expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(false)
   })
 
   it('recuperar → restablecer → login con la nueva contraseña', async () => {
@@ -160,13 +188,13 @@ describe('flujos de cuenta', () => {
     await user.click(screen.getByRole('link', { name: 'Ya tengo el código' }))
     expect(screen.getByLabelText('Correo')).toHaveValue('estandar@demo.com')
     await user.type(screen.getByLabelText('Código'), CODIGO_RECUPERACION_DEMO)
-    await user.type(screen.getByLabelText('Nueva contraseña'), 'NuevaClave9')
-    await user.type(screen.getByLabelText('Confirmar contraseña'), 'NuevaClave9')
+    await user.type(screen.getByLabelText('Nueva contraseña'), CLAVE_NUEVA)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), CLAVE_NUEVA)
     await user.click(screen.getByRole('button', { name: 'Restablecer' }))
 
     expect(await screen.findByText(/Contraseña restablecida/)).toBeInTheDocument()
     await user.type(screen.getByLabelText('Correo'), 'estandar@demo.com')
-    await user.type(screen.getByLabelText('Contraseña'), 'NuevaClave9')
+    await user.type(screen.getByLabelText('Contraseña'), CLAVE_NUEVA)
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(
       await screen.findByRole('heading', {
@@ -180,12 +208,24 @@ describe('flujos de cuenta', () => {
     const { user, router } = renderApp('/cuenta', { como: 'estandar' })
     expect(await screen.findByText('estandar@demo.com', { selector: 'dd' })).toBeInTheDocument()
     await user.type(screen.getByLabelText('Contraseña actual'), 'Demo1234')
-    await user.type(screen.getByLabelText('Nueva contraseña'), 'OtraClave7')
-    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), 'OtraClave7')
+    await user.type(screen.getByLabelText('Nueva contraseña'), CLAVE_OTRA)
+    await user.type(screen.getByLabelText('Confirmar nueva contraseña'), CLAVE_OTRA)
     await user.click(screen.getByRole('button', { name: 'Actualizar contraseña' }))
 
     expect(await screen.findByText(/Contraseña actualizada/)).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/login')
+  })
+
+  it('el registro envía los consentimientos al servidor, que los guarda con la cuenta', async () => {
+    const { user } = renderApp('/registro')
+    await registrarCuenta(user, 'consiente@demo.com')
+
+    const nueva = db.usuarios.find((u) => u.correo === 'consiente@demo.com')
+    expect(db.consentimientos.get(nueva?.id ?? '')).toMatchObject({
+      terminosVersion: 'v2.1',
+      privacidadVersion: 'v1.4',
+      marketing: false,
+    })
   })
 
   it('cerrar sesión vuelve al login y revoca el token', async () => {
@@ -199,8 +239,8 @@ describe('flujos de cuenta', () => {
 async function registrarCuenta(user: UserEvent, correo: string) {
   await user.type(await screen.findByLabelText('Nombre completo'), 'Persona Nueva')
   await user.type(screen.getByLabelText('Correo'), correo)
-  await user.type(screen.getByLabelText('Contraseña'), 'Clave1234')
-  await user.type(screen.getByLabelText('Confirmar contraseña'), 'Clave1234')
+  await user.type(screen.getByLabelText('Contraseña'), CLAVE)
+  await user.type(screen.getByLabelText('Confirmar contraseña'), CLAVE)
   await user.click(screen.getByRole('checkbox', { name: /Términos de uso/ }))
   await user.click(screen.getByRole('checkbox', { name: /Política de privacidad/ }))
   await user.click(screen.getByRole('button', { name: 'Crear cuenta y continuar' }))
