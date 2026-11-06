@@ -142,8 +142,6 @@ public class UsuarioService : IUsuarioService
             throw new ArgumentException("Los datos para cambiar el rol no son válidos.");
         }
 
-       _logger.LogInformation("Cambio de rol para el usuario {usuarioId} a {nuevoRol} por el admin {adminId}", usuarioId, nuevoRol, adminId);
-
         // RF-CA-05 / RF-CA-06: solo un Administrador puede cambiar roles,
         // verificado en el servidor contra el ejecutor (adminId), no el destino.
         await ExigirAdministradorAsync(adminId);
@@ -158,6 +156,9 @@ public class UsuarioService : IUsuarioService
         {
             throw new InvalidOperationException("El rol especificado no es válido");
         }
+
+        // Se registra el rol ya validado (el enum), no el texto que mandó quien llama (cs/log-forging).
+        _logger.LogInformation("Cambio de rol para el usuario {UsuarioId} a {NuevoRol} por el admin {AdminId}.", usuarioId, rol, adminId);
 
         // Quitar el rol al último administrador activo dejaría el sistema sin nadie que pueda administrarlo.
         if (usuario.Rol == Rol.Administrador && rol != Rol.Administrador && usuario.Activo
