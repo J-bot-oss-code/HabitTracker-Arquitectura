@@ -19,6 +19,7 @@ async function llamar(
   })
 }
 
+const CLAVE_CUALQUIERA = 'cualquier-clave-12345'
 const CONSENTIMIENTOS = { terminosVersion: 'v2.1', privacidadVersion: 'v1.4', marketing: true }
 const entrar = (idToken: string, consentimientos?: unknown) =>
   llamar('/api/auth/google', { metodo: 'POST', body: { idToken, consentimientos } })
@@ -114,7 +115,7 @@ describe('contrato simulado: POST /api/auth/google', () => {
     for (let i = 0; i < 6; i++) {
       const r = await llamar('/api/auth/login', {
         metodo: 'POST',
-        body: { email: 'nuevo@google.com', password: 'cualquier-clave-12345' },
+        body: { email: 'nuevo@google.com', password: CLAVE_CUALQUIERA },
       })
       expect(r.status).toBe(401)
       expect((await r.json()).codigo).toBeUndefined()
