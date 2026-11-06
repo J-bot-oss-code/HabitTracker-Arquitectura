@@ -25,6 +25,16 @@ public class ConsentimientoRepository : IConsentimientoRepository
             .FirstOrDefaultAsync();
     }
 
+    public async Task<IReadOnlyList<ConsentimientoUsuario>> ListarHistorialAsync(Guid usuarioId)
+    {
+        return await _dbContext.ConsentimientosUsuario
+            .AsNoTracking()
+            .Where(c => c.UsuarioId == usuarioId)
+            .OrderBy(c => c.ActualizadoEn)
+            .ThenBy(c => c.Id)
+            .ToListAsync();
+    }
+
     public async Task AgregarAsync(ConsentimientoUsuario consentimiento)
     {
         _dbContext.ConsentimientosUsuario.Add(consentimiento);

@@ -202,5 +202,8 @@ public class PlanDelDiaServiceTests
         public Task AddAsync(Habito habito, CancellationToken cancellationToken = default) => Task.CompletedTask;
 
         public Task UpdateAsync(Habito habito, CancellationToken cancellationToken = default) => Task.CompletedTask;
+
+        public Task<int> EliminarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_habitos.RemoveAll(h => h.UsuarioId == usuarioId));
     }
 }

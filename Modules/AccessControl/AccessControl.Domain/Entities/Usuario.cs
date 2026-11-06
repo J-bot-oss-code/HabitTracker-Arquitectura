@@ -20,6 +20,15 @@ namespace AccessControl.Domain.Entities
         public CodigoRecuperacion? Recuperacion { get; private set; }
         public BloqueoCuenta Bloqueo { get; private set; } = new BloqueoCuenta();
 
+        /// <summary>Cuándo la propia persona desactivó su cuenta. Nulo si no lo hizo (o si ya volvió a entrar).</summary>
+        public DateTime? DesactivadaPorUsuarioEn { get; private set; }
+
+        /// <summary>Cuándo pidió eliminar la cuenta. Nulo si no hay una baja programada.</summary>
+        public DateTime? BajaSolicitadaEn { get; private set; }
+
+        /// <summary>Desde cuándo se puede borrar la cuenta definitivamente (fin del periodo de gracia).</summary>
+        public DateTime? BajaProgramadaPara { get; private set; }
+
         public Rol Rol { get; private set; }
 
         private Usuario() {} // Constructor privado para EF Core
@@ -77,6 +86,74 @@ namespace AccessControl.Domain.Entities
         /// desactivada por un administrador, que no tiene código pendiente (RF-CA-15 frente a RF-CA-20).
         /// </summary>
         public bool PendienteDeActivacion => !Activo && TokenAcceso != null;
+
+        /// <summary>
+        /// La persona desactivó su propia cuenta (RF-CA-20 habla de la desactivación por un administrador, que es otra cosa):
+        /// puede volver a entrar cuando quiera y la cuenta se reactiva. Una desactivada por un administrador no.
+        /// </summary>
+        public bool DesactivadaPorElUsuario => !Activo && DesactivadaPorUsuarioEn != null;
+
+        public bool TieneBajaProgramada => BajaProgramadaPara != null;
+
+        /// <summary>La persona desactiva su cuenta: no podrá entrar con ella hasta que inicie sesión de nuevo.</summary>
+        public void SolicitarDesactivacion(DateTime ahora)
+        {
+            if (!Activo)
+            {
+                throw new InvalidOperationException("El usuario ya está desactivado.");
+            }
+
+            Activo = false;
+            DesactivadaPorUsuarioEn = ahora;
+        }
+
+        /// <summary>Un inicio de sesión correcto reactiva la cuenta que la propia persona había desactivado.</summary>
+        public void ReactivarTrasDesactivacion()
+        {
+            if (!DesactivadaPorElUsuario)
+            {
+                throw new InvalidOperationException("La cuenta no fue desactivada por su dueño.");
+            }
+
+            Activo = true;
+            DesactivadaPorUsuarioEn = null;
+        }
+
+        /// <summary>
+        /// Programa el borrado de la cuenta para dentro de <paramref name="diasGracia"/> días. Mientras tanto la cuenta
+        /// sigue funcionando y puede cancelarse. Pedirlo otra vez no mueve la fecha: se conserva la original.
+        /// </summary>
+        public void ProgramarBaja(DateTime ahora, int diasGracia)
+        {
+            if (diasGracia < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(diasGracia), "El periodo de gracia no puede ser negativo.");
+            }
+
+            if (TieneBajaProgramada)
+            {
+                return;
+            }
+
+            BajaSolicitadaEn = ahora;
+            BajaProgramadaPara = ahora.AddDays(diasGracia);
+        }
+
+        /// <summary>Cancela la baja programada. False si no había ninguna.</summary>
+        public bool CancelarBaja()
+        {
+            if (!TieneBajaProgramada)
+            {
+                return false;
+            }
+
+            BajaSolicitadaEn = null;
+            BajaProgramadaPara = null;
+            return true;
+        }
+
+        /// <summary>¿Ya terminó el periodo de gracia?</summary>
+        public bool BajaVencida(DateTime ahora) => BajaProgramadaPara != null && BajaProgramadaPara <= ahora;
 
         public void EstablecerTokenActivacion(string valor, DateTime vencimiento)
         {
@@ -157,6 +234,7 @@ namespace AccessControl.Domain.Entities
                 throw new InvalidOperationException("El usuario ya está activo.");
             }
             Activo = true;
+            DesactivadaPorUsuarioEn = null;
             // Una cuenta activada por un administrador ya no necesita (ni acepta) el código de activación pendiente.
             TokenAcceso = null;
         }

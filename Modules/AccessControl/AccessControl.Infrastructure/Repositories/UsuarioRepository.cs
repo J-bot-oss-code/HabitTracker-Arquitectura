@@ -149,6 +149,32 @@ public class UsuarioRepository : IUsuarioRepository
         return await _dbContext.usuarios.ToListAsync();
     }
 
+    public async Task<IReadOnlyList<Usuario>> ObtenerConBajaVencidaAsync(DateTime ahora, int maximo)
+    {
+        // Un administrador nunca se borra solo: dejaría al sistema sin quien lo administre (si alguien con la baja
+        // programada fue promovido, la baja queda ahí hasta que se cancele o se le quite el rol).
+        return await _dbContext.usuarios
+            .AsNoTracking()
+            .Where(u => u.BajaProgramadaPara != null && u.BajaProgramadaPara <= ahora && u.Rol != Rol.Administrador)
+            .OrderBy(u => u.BajaProgramadaPara)
+            .Take(maximo)
+            .ToListAsync();
+    }
+
+    public async Task EliminarDefinitivamenteAsync(Guid usuarioId, string correo)
+    {
+        // Una sola transacción: o se borra todo lo de esta cuenta en Control de Acceso o nada. Los consentimientos, las
+        // sesiones y los vínculos caen en cascada con el usuario; el corte de sesiones y los correos en cola no tienen
+        // clave foránea, así que se borran aquí.
+        await using var transaccion = await _dbContext.Database.BeginTransactionAsync();
+
+        await _dbContext.RevocacionesSesion.Where(r => r.UsuarioId == usuarioId).ExecuteDeleteAsync();
+        await _dbContext.CorreosEnCola.Where(c => c.Destinatario == correo).ExecuteDeleteAsync();
+        await _dbContext.usuarios.Where(u => u.Id == usuarioId).ExecuteDeleteAsync();
+
+        await transaccion.CommitAsync();
+    }
+
     public async Task<int> ContarAdministradoresActivosAsync()
     {
         return await _dbContext.usuarios.CountAsync(u => u.Rol == Rol.Administrador && u.Activo);

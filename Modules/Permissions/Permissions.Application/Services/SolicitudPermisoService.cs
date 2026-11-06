@@ -32,6 +32,18 @@ public sealed class SolicitudPermisoService(
         return solicitud.Id;
     }
 
+    public async Task<int> EliminarDeSolicitanteAsync(string solicitante, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(solicitante))
+        {
+            throw new ArgumentException("El solicitante es obligatorio.", nameof(solicitante));
+        }
+
+        var borradas = await repository.EliminarPorSolicitanteAsync(solicitante, cancellationToken);
+        logger.LogInformation("Solicitudes de permiso borradas por baja de cuenta: {Cantidad}.", borradas);
+        return borradas;
+    }
+
     public async Task<IReadOnlyList<SolicitudPermisoDto>> ConsultarAsync(ObtenerSolicitudesQuery query, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(query);

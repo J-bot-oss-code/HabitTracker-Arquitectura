@@ -24,7 +24,7 @@ public class PrivacidadControllerTests
     }
 
     private static PrivacidadController CrearPrivacidad(Mock<IConsentimientoService> servicio, Guid? usuarioId = null) =>
-        new(servicio.Object) { ControllerContext = ContextoDe(usuarioId ?? UsuarioId) };
+        new(servicio.Object, Mock.Of<IServicioPrivacidad>()) { ControllerContext = ContextoDe(usuarioId ?? UsuarioId) };
 
     private static ConsentimientosDto Dto() => new("v2.1", "v1.4", DateTime.UtcNow, true, false, false, true);
 

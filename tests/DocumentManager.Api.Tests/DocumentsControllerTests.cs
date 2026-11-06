@@ -207,6 +207,9 @@ public class DocumentsControllerTests
         private static DocumentoDto Dto() =>
             new(Guid.NewGuid(), "informe.pdf", "application/pdf", 4, DateTime.UtcNow, Guid.NewGuid(), "ana@ejemplo.com");
 
+        public Task<int> PurgarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(0);
+
         public Task<DocumentoDto> SubirAsync(SubirDocumentoCommand command, CancellationToken cancellationToken = default)
         {
             UltimoComando = command;

@@ -28,6 +28,9 @@ public class HabitoServiceTests
 
         public Task UpdateAsync(Habito habito, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
+
+        public Task<int> EliminarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_habitos.RemoveAll(h => h.UsuarioId == usuarioId));
     }
 
     private sealed class InMemoryUnitOfWork : IUnitOfWork
