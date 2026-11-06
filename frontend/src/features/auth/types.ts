@@ -36,6 +36,30 @@ export interface RegistroRequest {
   consentimientos: ConsentimientosRegistro
 }
 
+// POST /api/auth/google: el ID token que entrega Google Identity Services. Para una cuenta nueva exige los
+// consentimientos (400 consentimiento_requerido si faltan); si el correo ya tiene una cuenta con contraseña
+// responde 409 vinculacion_requerida y hay que usar /google/vincular.
+export interface GoogleLoginRequest {
+  idToken: string
+  consentimientos?: ConsentimientosRegistro
+}
+
+export interface GoogleVincularRequest {
+  idToken: string
+  password: string
+}
+
+export interface VinculoDto {
+  proveedor: 'google'
+  vinculadoEn: string
+}
+
+// GET /api/auth/vinculos: formas de entrar de la cuenta. Sin contraseña no se puede desvincular Google.
+export interface VinculosResponse {
+  tienePassword: boolean
+  vinculos: VinculoDto[]
+}
+
 // POST /api/auth/activate: el código de 6 dígitos no es único entre usuarios, siempre va con el correo.
 export interface ActivarRequest {
   correo: string

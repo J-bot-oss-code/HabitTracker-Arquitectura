@@ -69,6 +69,8 @@ interface Db {
   tokensRevocados: Set<string>
   // Cookie HttpOnly del refresh token (una sola: el modo demo tiene un único navegador).
   refresh: { usuarioId: string; valor: string } | null
+  // Vínculo con Google por id de usuario (LoginsExternos: una identidad por cuenta y una cuenta por identidad).
+  vinculosGoogle: Map<string, { subject: string; vinculadoEn: string }>
   // Por id de usuario.
   perfiles: Map<string, PerfilMock>
   consentimientos: Map<string, ConsentimientosDto>
@@ -85,6 +87,7 @@ export const db: Db = {
   metas: new Set(),
   tokensRevocados: new Set(),
   refresh: null,
+  vinculosGoogle: new Map(),
   perfiles: new Map(),
   consentimientos: new Map(),
   pesos: new Map(),
@@ -243,6 +246,7 @@ export function reiniciarDb() {
   db.metas = new Set([META_DEMO_ID])
   db.tokensRevocados = new Set()
   db.refresh = null
+  db.vinculosGoogle = new Map()
 
   // Ana y Luis ya completaron el onboarding. La cuenta sin activar y las que se registren
   // empiezan sin perfil, así que pasan por /bienvenida.
