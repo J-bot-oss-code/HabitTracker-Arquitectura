@@ -121,8 +121,8 @@ salen de `CONTRATOS_PROPUESTOS` y los mocks pasan a replicar los controllers rea
   token cierran la sesión) y repite la petición. `AuthProvider` restaura la sesión al cargar (si hubo una
   antes en el navegador) y renueva el token un minuto antes de que venza.
 - **Registro:** `POST /api/auth/register` exige `consentimientos {terminosVersion, privacidadVersion,
-  marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activación:** `POST
-  /api/auth/activate` con `{correo, codigo}` (6 dígitos); el enlace `/activar?correo=...&codigo=...` rellena
+marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activación:** `POST
+/api/auth/activate` con `{correo, codigo}` (6 dígitos); el enlace `/activar?correo=...&codigo=...` rellena
   el formulario pero NO activa solo. **Contraseña:** 12 a 1024 caracteres con letras y números.
 - **Errores:** los rechazos de Control de Acceso traen `codigo` en el ProblemDetails (`cuenta_no_activa`,
   `cuenta_bloqueada`, `clave_actual_incorrecta`, `sesion_invalida`...); ver README raíz › "Control de

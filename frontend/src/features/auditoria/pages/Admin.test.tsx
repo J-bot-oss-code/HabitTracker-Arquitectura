@@ -82,6 +82,8 @@ describe('CSV seguro', () => {
   })
 })
 
+const CLAVE_NUEVA_CUENTA = 'Clave-Segura-2026'
+
 describe('contrato propuesto del panel de administración', () => {
   it('métricas y auditoría son solo del Administrador', async () => {
     for (const ruta of ['/api/admin/metrics', '/api/audit']) {
@@ -109,7 +111,7 @@ describe('contrato propuesto del panel de administración', () => {
     await llamar('/api/auth/register', undefined, 'POST', {
       nombre: 'Persona Nueva',
       correo: 'nueva@demo.com',
-      password: 'Clave-Segura-2026',
+      password: CLAVE_NUEVA_CUENTA,
       consentimientos: { terminosVersion: 'v2.1', privacidadVersion: 'v1.4', marketing: false },
     })
     const admin = iniciarSesionComo('admin')

@@ -16,12 +16,14 @@ describe('passwordNuevaSchema (RF-CA-14)', () => {
   })
 })
 
+const CLAVE_VALIDA = 'Clave-Segura-2026'
+
 describe('registroSchema', () => {
   it('exige que la confirmación coincida', () => {
     const resultado = registroSchema.safeParse({
       nombre: 'Ana',
       correo: 'ana@demo.com',
-      password: 'Clave-Segura-2026',
+      password: CLAVE_VALIDA,
       confirmacion: 'Clave-Segura-2027',
     })
     expect(resultado.success).toBe(false)

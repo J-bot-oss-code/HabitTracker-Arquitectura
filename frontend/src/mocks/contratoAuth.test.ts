@@ -29,6 +29,7 @@ async function llamar(
 
 const CONSENTIMIENTOS = { terminosVersion: 'v2.1', privacidadVersion: 'v1.4', marketing: false }
 const CLAVE = 'Clave-Segura-2026'
+const DOCE_CARACTERES = 'Clave1234567'
 const registro = (cambios: Record<string, unknown> = {}) => ({
   nombre: 'Persona Nueva',
   correo: 'nueva@demo.com',
@@ -80,7 +81,7 @@ describe('contrato simulado: registro', () => {
   it('acepta una contraseña de exactamente 12 caracteres con letras y números', async () => {
     const r = await llamar('/api/auth/register', {
       metodo: 'POST',
-      body: registro({ password: 'Clave1234567' }),
+      body: registro({ password: DOCE_CARACTERES }),
     })
     expect(r.status).toBe(201)
   })
