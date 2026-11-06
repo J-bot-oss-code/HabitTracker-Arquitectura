@@ -27,6 +27,8 @@ export interface UsuarioMock {
   codigoRecuperacion: string | null
   // Tokens emitidos antes de este instante (ms) quedan invalidados (RF-CA-12, RF-CA-21).
   sesionesValidasDesde: number
+  // La propia persona desactivó su cuenta (no un administrador): un inicio de sesión correcto la reactiva.
+  desactivadaPorUsuario?: boolean
 }
 
 export interface RegistroMock {
@@ -52,13 +54,21 @@ export interface HabitoMock {
 // --- Contratos propuestos (sin backend todavía; ver handlers/propuestas) ---
 export type PerfilMock = Omit<PerfilDto, 'nombre'>
 
-// Solicitud de desactivar o eliminar la cuenta (contrato propuesto, docs/mejoras §7.1).
-export interface SolicitudBajaMock {
-  usuarioId: string
-  tipo: 'desactivar' | 'eliminar'
+// Baja de cuenta pedida (modo "eliminar"): mientras dura el periodo de gracia la cuenta sigue activa y se puede
+// cancelar; al terminar, el proceso del backend borra todo. Desactivar no la programa: queda inactiva.
+export interface BajaProgramadaMock {
   solicitadaEn: string
-  // Solo al eliminar: fin del periodo de gracia, a partir del cual se borran los datos.
-  borradoEn: string | null
+  // Fin del periodo de gracia (UTC).
+  borradoEn: string
+}
+
+// Una sesión abierta en un dispositivo (SesionUsuario): el refresh token rotativo la sostiene.
+export interface SesionMock {
+  id: string
+  usuarioId: string
+  dispositivo: string
+  creadaEn: string
+  ultimoUsoEn: string
 }
 
 interface Db {
@@ -68,7 +78,8 @@ interface Db {
   metas: Set<string>
   tokensRevocados: Set<string>
   // Cookie HttpOnly del refresh token (una sola: el modo demo tiene un único navegador).
-  refresh: { usuarioId: string; valor: string } | null
+  refresh: { usuarioId: string; valor: string; sesionId: string } | null
+  sesiones: SesionMock[]
   // Vínculo con Google por id de usuario (LoginsExternos: una identidad por cuenta y una cuenta por identidad).
   vinculosGoogle: Map<string, { subject: string; vinculadoEn: string }>
   // Por id de usuario.
@@ -77,7 +88,7 @@ interface Db {
   pesos: Map<string, PesosDto>
   mediciones: Map<string, MedicionDto[]>
   auditoria: EventoAuditoriaDto[]
-  solicitudesBaja: SolicitudBajaMock[]
+  bajas: Map<string, BajaProgramadaMock>
 }
 
 export const db: Db = {
@@ -87,13 +98,14 @@ export const db: Db = {
   metas: new Set(),
   tokensRevocados: new Set(),
   refresh: null,
+  sesiones: [],
   vinculosGoogle: new Map(),
   perfiles: new Map(),
   consentimientos: new Map(),
   pesos: new Map(),
   mediciones: new Map(),
   auditoria: [],
-  solicitudesBaja: [],
+  bajas: new Map(),
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -246,6 +258,7 @@ export function reiniciarDb() {
   db.metas = new Set([META_DEMO_ID])
   db.tokensRevocados = new Set()
   db.refresh = null
+  db.sesiones = []
   db.vinculosGoogle = new Map()
 
   // Ana y Luis ya completaron el onboarding. La cuenta sin activar y las que se registren
@@ -370,7 +383,25 @@ export function reiniciarDb() {
     evento(8, 2, 'admin@demo.com', 'InicioSesion', 'Sesión'),
     evento(9, 4, 'estandar@demo.com', 'DescargaDatos', 'Cuenta'),
   ]
-  db.solicitudesBaja = []
+  db.bajas = new Map()
+
+  // Ana ya tiene otras sesiones abiertas (otros dispositivos) para poder probar «Sesiones activas».
+  db.sesiones = [
+    {
+      id: '5e5510a0-0000-4000-8000-000000000001',
+      usuarioId: estandar,
+      dispositivo: 'Firefox en Windows',
+      creadaEn: new Date(ahora - 5 * DIA).toISOString(),
+      ultimoUsoEn: new Date(ahora - 2 * DIA).toISOString(),
+    },
+    {
+      id: '5e5510a0-0000-4000-8000-000000000002',
+      usuarioId: estandar,
+      dispositivo: 'Safari en iPhone',
+      creadaEn: new Date(ahora - 20 * DIA).toISOString(),
+      ultimoUsoEn: new Date(ahora - 3 * 60 * 60 * 1000).toISOString(),
+    },
+  ]
 }
 
 reiniciarDb()

@@ -7,6 +7,7 @@ import { cn } from '@/shared/lib/cn'
 import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
+import { AvisosDeCuenta } from '@/features/privacidad/components/AvisosDeCuenta'
 import { Icono } from '@/shared/ui/Icono'
 import { navegacionPara, rutaInicial } from '../navigation'
 import { AvisoModoDemo } from './AvisoModoDemo'
@@ -129,6 +130,7 @@ export function AppLayout() {
         </nav>
 
         <main id="contenido" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+          <AvisosDeCuenta />
           <Outlet />
         </main>
       </div>

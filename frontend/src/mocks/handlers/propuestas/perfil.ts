@@ -1,12 +1,7 @@
 import { http, HttpResponse } from 'msw'
-import type {
-  ConsentimientosDto,
-  GuardarConsentimientosRequest,
-  GuardarPerfilRequest,
-  PerfilDto,
-} from '@/features/perfil/types'
+import type { GuardarPerfilRequest, PerfilDto } from '@/features/perfil/types'
 import { LIMITES_PLAN } from '@/features/perfil/schemas'
-import { buscarMeta, VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/publico/api'
+import { buscarMeta } from '@/features/publico/api'
 import { LIMITES_CORPORALES, NIVELES_ACTIVIDAD, SEXOS } from '@/features/publico/types'
 import { db, type PerfilMock } from '../../db'
 import { autenticar, latencia, leerJson, problema, respuestas } from '../../http'
@@ -29,13 +24,6 @@ export const contratosPerfil: ContratoPropuesto[] = [
     proposito: 'Crea o reemplaza el perfil. Exige el consentimiento de datos de salud.',
     roles: ['Estandar'],
     origen: 'mejoras §3 (onboarding) y §7.1 (rectificación)',
-  },
-  {
-    metodo: 'PUT',
-    ruta: '/api/privacy/consents',
-    proposito: 'Registra las versiones aceptadas y los consentimientos opcionales.',
-    roles: ['Estandar'],
-    origen: 'mejoras §3 (ConsentRecord) y §7.1',
   },
 ]
 
@@ -61,25 +49,6 @@ function perfilValido(b: Partial<GuardarPerfilRequest> | null): b is GuardarPerf
     enRango(b.minutosPorSesion, LIMITES_PLAN.minutosPorSesion, true) &&
     (b.metaSlug === null || buscarMeta(b.metaSlug) !== null) &&
     b.avisoSaludAceptado === true
-  )
-}
-
-function consentimientosValidos(
-  b: Partial<GuardarConsentimientosRequest> | null,
-  aceptadas?: ConsentimientosDto,
-): b is GuardarConsentimientosRequest {
-  // Se acepta la versión vigente de cada documento o la que el usuario ya había aceptado:
-  // cambiar un interruptor no debe obligar a aceptar documentos nuevos que no ha visto.
-  const versionOk = (enviada: unknown, vigente: string, previa: string | null | undefined) =>
-    enviada === vigente || (previa != null && enviada === previa)
-  return (
-    !!b &&
-    versionOk(b.terminosVersion, VERSION_TERMINOS, aceptadas?.terminosVersion) &&
-    versionOk(b.privacidadVersion, VERSION_PRIVACIDAD, aceptadas?.privacidadVersion) &&
-    typeof b.datosSalud === 'boolean' &&
-    typeof b.marketing === 'boolean' &&
-    typeof b.compartirCumplimiento === 'boolean' &&
-    typeof b.estadisticasAnonimas === 'boolean'
   )
 }
 
@@ -131,30 +100,5 @@ export const perfilHandlers = [
     }
     db.perfiles.set(sesion.usuario.id, perfil)
     return HttpResponse.json(aDto(sesion.usuario.nombre, perfil))
-  }),
-
-  http.put('/api/privacy/consents', async ({ request }) => {
-    await latencia()
-    const { sesion, error } = autenticar(request, ['Estandar'])
-    if (error) return error
-    const body = await leerJson<GuardarConsentimientosRequest>(request)
-    const anterior = db.consentimientos.get(sesion.usuario.id)
-    if (!consentimientosValidos(body, anterior)) return respuestas.invalida()
-    const mismasVersiones =
-      anterior?.terminosVersion === body.terminosVersion &&
-      anterior?.privacidadVersion === body.privacidadVersion
-    const consentimientos: ConsentimientosDto = {
-      terminosVersion: body.terminosVersion,
-      privacidadVersion: body.privacidadVersion,
-      // La fecha de aceptación la fija el servidor y solo cambia con una versión nueva.
-      aceptadoEn:
-        mismasVersiones && anterior?.aceptadoEn ? anterior.aceptadoEn : new Date().toISOString(),
-      datosSalud: body.datosSalud,
-      marketing: body.marketing,
-      compartirCumplimiento: body.compartirCumplimiento,
-      estadisticasAnonimas: body.estadisticasAnonimas,
-    }
-    db.consentimientos.set(sesion.usuario.id, consentimientos)
-    return HttpResponse.json(consentimientos)
   }),
 ]
