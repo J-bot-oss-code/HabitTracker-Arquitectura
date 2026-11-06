@@ -10,8 +10,10 @@ Interfaz web de HabitTracker Nexus. Cubre las piezas que el backend ya implement
 
 Las piezas que el backend aún no entrega aparecen como pantallas **Próximamente**.
 
-Mientras el frontend no se conecta al backend, usa una **API simulada (MSW)** con el mismo
-contrato que `Host/WebApi`. Al conectarlo solo cambia una variable de entorno.
+Por defecto (`npm run dev`) usa una **API simulada (MSW)** con el mismo contrato que `Host/WebApi`. Con
+`VITE_USE_MOCKS=false` llama al backend real: **Control de Acceso ya está conectado** (registro con
+consentimientos, activación, inicio de sesión, sesión con refresh token y cierre de sesión); el resto de
+pantallas sigue con la API simulada hasta que su módulo se conecte.
 
 ## Requisitos
 
@@ -69,7 +71,19 @@ Copia `.env.example` a `.env.local` (no se versiona):
 
 Todo lo que empieza por `VITE_` termina en el bundle público: nunca pongas credenciales ahí.
 
-Para usar el backend real hay que habilitar antes CORS en `Host/WebApi` (ver `AGENTS.md`).
+### Conectar con el backend real
+
+1. Levanta el backend (`dotnet run --project Host/WebApi/WebApi.csproj`, o `docker compose up --build`).
+   Su CORS ya permite `http://localhost:5173` y `http://localhost:5174` (en Docker, la variable `FRONTEND_URL`).
+2. En `frontend/.env.local`: `VITE_USE_MOCKS=false` y `VITE_API_URL=http://localhost:5246` (o `:8080` en Docker).
+3. `npm run dev` y abre `http://localhost:5173`.
+
+**Sesión.** El token de acceso (JWT, 15 minutos) vive solo en memoria. La sesión larga la sostiene el
+refresh token, que el navegador guarda en una cookie `HttpOnly` que el JavaScript no puede leer: al recargar
+la página se restaura con `POST /api/auth/refresh` y el token se renueva solo antes de vencer. Por eso las
+peticiones van con `credentials: 'include'` y el refresh lleva la cabecera `X-HabitTracker-Csrf: 1`.
+La contraseña nueva debe tener **12 caracteres o más** (letras y números) y no aparecer en filtraciones
+conocidas; el código de activación son 6 dígitos y se envía junto al correo.
 
 ## Stack
 
