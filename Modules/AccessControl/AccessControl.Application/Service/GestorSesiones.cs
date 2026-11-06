@@ -114,7 +114,8 @@ public sealed class GestorSesiones : IGestorSesiones
 
         var acceso = _jwtProvider.Generar(usuario);
         var respuesta = new UsuarioResponseDto(
-            usuario.Id, usuario.NombreCompleto, usuario.Correo.Valor, usuario.Rol.ToString(), usuario.Activo, acceso);
+            usuario.Id, usuario.NombreCompleto, usuario.Correo.Valor, usuario.Rol.ToString(), usuario.Activo, acceso,
+            BajaProgramadaPara: FechasUtc.ComoUtc(usuario.BajaProgramadaPara));
 
         return new SesionRenovada(respuesta, nuevoToken, siguiente.ExpiraEn);
     }

@@ -30,6 +30,15 @@ public interface IUsuarioRepository
     Task<int> ReservarIntentoActivacionAsync(Guid usuarioId);
     Task<IEnumerable<Usuario>> ObtenerTodosAsync();
 
+    /// <summary>Cuentas cuyo periodo de gracia de la baja ya terminó, las más antiguas primero (máximo <paramref name="maximo"/>).</summary>
+    Task<IReadOnlyList<Usuario>> ObtenerConBajaVencidaAsync(DateTime ahora, int maximo);
+
+    /// <summary>
+    /// Borra la cuenta y todo lo que depende de ella en Control de Acceso: consentimientos, sesiones y vínculos (en cascada),
+    /// el corte de sesiones y los correos en cola de ese destinatario. Idempotente: si ya no existe, no hace nada.
+    /// </summary>
+    Task EliminarDefinitivamenteAsync(Guid usuarioId, string correo);
+
     /// <summary>Cuántos administradores activos hay. Sirve para no dejar nunca al sistema sin ninguno (RF-CA-08, RF-CA-20).</summary>
     Task<int> ContarAdministradoresActivosAsync();
 

@@ -23,6 +23,17 @@ public sealed class DocumentoRepository(DocumentManagerDbContext contexto) : IDo
     public Task<Documento?> ObtenerPorIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         contexto.Documentos.FirstOrDefaultAsync(documento => documento.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<Documento>> ListarTodosDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+        await contexto.Documentos
+            .AsNoTracking()
+            .Where(documento => documento.UsuarioId == usuarioId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<int> PurgarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+        await contexto.Documentos
+            .Where(documento => documento.UsuarioId == usuarioId)
+            .ExecuteDeleteAsync(cancellationToken);
+
     public async Task<IReadOnlyList<Documento>> ListarNoEliminadosAsync(Guid? usuarioId, CancellationToken cancellationToken = default)
     {
         var consulta = contexto.Documentos.AsNoTracking().Where(documento => !documento.Eliminado);

@@ -25,6 +25,24 @@ public sealed class DocumentoService(
         [".xlsx"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     };
 
+    public async Task<int> PurgarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+    {
+        if (usuarioId == Guid.Empty)
+        {
+            throw new ArgumentException("El usuario es obligatorio.", nameof(usuarioId));
+        }
+
+        // Primero los archivos y después los registros: si falla a mitad, los registros que quedan permiten reintentar
+        // (descartar un archivo que ya no está no es un error). Al revés, quedarían archivos huérfanos sin registro.
+        var documentos = await repositorio.ListarTodosDeUsuarioAsync(usuarioId, cancellationToken);
+        foreach (var documento in documentos)
+        {
+            await almacenamiento.DescartarAsync(documento.NombreAlmacenado, cancellationToken);
+        }
+
+        return await repositorio.PurgarDeUsuarioAsync(usuarioId, cancellationToken);
+    }
+
     public async Task<DocumentoDto> SubirAsync(SubirDocumentoCommand command, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(command);

@@ -51,6 +51,16 @@ public static class ServiceExtensions
         services.AddScoped<IValidadorIdTokenGoogle, ValidadorIdTokenGoogle>();
         services.AddScoped<IServicioLoginExterno, ServicioLoginExterno>();
 
+        // Baja de cuenta (periodo de gracia, desactivación) y descarga de datos. Cada módulo de negocio participa con un
+        // adaptador del Host (IParticipanteDatosUsuario); Control de Acceso no los conoce (RD-03).
+        var opcionesPrivacidad = new OpcionesPrivacidad();
+        configuration.GetSection(OpcionesPrivacidad.Seccion).Bind(opcionesPrivacidad);
+        opcionesPrivacidad.Validar();
+        services.AddSingleton(opcionesPrivacidad);
+        services.AddScoped<IServicioPrivacidad, ServicioPrivacidad>();
+        services.AddScoped<IServicioBajaCuentas, ServicioBajaCuentas>();
+        services.AddHostedService<BajaCuentasWorker>();
+
         // Consentimiento legal versionado (Ley 172-13 / GDPR). Las versiones vigentes salen de Legal:*; una versión vacía
         // detiene el arranque.
         services.AddSingleton<IVersionesLegales>(new VersionesLegalesConfiguracion(configuration));

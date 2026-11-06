@@ -76,6 +76,10 @@ public class ConsentimientoTests
             Filas.Add(consentimiento);
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<ConsentimientoUsuario>> ListarHistorialAsync(Guid usuarioId) =>
+            Task.FromResult<IReadOnlyList<ConsentimientoUsuario>>(
+                Filas.Where(f => f.UsuarioId == usuarioId).OrderBy(f => f.ActualizadoEn).ToList());
     }
 
     private static (ConsentimientoService Servicio, RepositorioEnMemoria Repo) Crear(string terminos = "v2.1", string privacidad = "v1.4")

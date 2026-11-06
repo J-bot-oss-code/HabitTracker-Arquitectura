@@ -19,6 +19,9 @@ public interface ISolicitudPermisoRepository
 
     Task<IReadOnlyList<SolicitudPermiso>> GetAllAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Borra definitivamente las solicitudes de ese solicitante (baja de cuenta). Idempotente. Devuelve cuántas borró.</summary>
+    Task<int> EliminarPorSolicitanteAsync(string solicitante, CancellationToken cancellationToken = default);
+
     Task<bool> TienePermisoAplicadoAsync(
         string solicitante,
         string permisoSolicitado,

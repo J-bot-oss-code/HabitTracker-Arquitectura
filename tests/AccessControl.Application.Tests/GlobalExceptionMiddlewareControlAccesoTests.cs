@@ -31,6 +31,7 @@ public class GlobalExceptionMiddlewareControlAccesoTests
         { new ProveedorYaVinculadoException(), 400, "proveedor_ya_vinculado" },
         { new SinContrasenaException(), 400, "sin_contrasena" },
         { new UltimoMetodoAccesoException(), 400, "ultimo_metodo_acceso" },
+        { new ConfirmacionIncorrectaException(), 400, "confirmacion_incorrecta" },
     };
 
     private static async Task<(DefaultHttpContext Contexto, JsonElement Cuerpo, string Texto)> Ejecutar(Exception excepcion)

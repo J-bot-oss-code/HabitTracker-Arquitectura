@@ -48,7 +48,7 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
         {
             var existente = await _usuarios.GetByIdAsync(vinculo.UsuarioId)
                 ?? throw new TokenExternoInvalidoException();
-            ExigirPuedeEntrar(existente);
+            await ExigirPuedeEntrarAsync(existente);
 
             _logger.LogInformation("Inicio de sesión con Google del usuario {UsuarioId}.", existente.Id);
             return new ResultadoLoginExterno(Respuesta(existente), CuentaNueva: false);
@@ -114,6 +114,12 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
         if (usuario.EstaBloqueado())
         {
             throw new CuentaBloqueadaException();
+        }
+
+        // Quien desactivó su propia cuenta la reactiva al demostrar que es el dueño; una desactivada por un administrador no.
+        if (usuario.DesactivadaPorElUsuario)
+        {
+            usuario.ReactivarTrasDesactivacion();
         }
 
         // Una cuenta que sigue esperando su código de activación sí puede vincularse: Google acaba de verificar el correo.
@@ -208,7 +214,7 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
     }
 
     /// <summary>Las mismas reglas del inicio de sesión con contraseña para una cuenta ya vinculada (RF-CA-15, RF-CA-19, RF-CA-20).</summary>
-    private static void ExigirPuedeEntrar(Usuario usuario)
+    private async Task ExigirPuedeEntrarAsync(Usuario usuario)
     {
         if (usuario.EstaBloqueado())
         {
@@ -217,7 +223,14 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
 
         if (!usuario.Activo)
         {
-            throw usuario.PendienteDeActivacion ? new CuentaNoActivaException() : new CuentaDesactivadaException();
+            if (!usuario.DesactivadaPorElUsuario)
+            {
+                throw usuario.PendienteDeActivacion ? new CuentaNoActivaException() : new CuentaDesactivadaException();
+            }
+
+            // La propia persona la había desactivado y acaba de demostrar con Google que es el dueño: se reactiva.
+            usuario.ReactivarTrasDesactivacion();
+            await _usuarios.UpdateAsync(usuario);
         }
     }
 
@@ -234,5 +247,5 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
 
     private UsuarioResponseDto Respuesta(Usuario usuario) => new(
         usuario.Id, usuario.NombreCompleto, usuario.Correo.Valor, usuario.Rol.ToString(), usuario.Activo,
-        _jwtProvider.Generar(usuario));
+        _jwtProvider.Generar(usuario), BajaProgramadaPara: FechasUtc.ComoUtc(usuario.BajaProgramadaPara));
 }

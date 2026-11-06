@@ -62,6 +62,16 @@ public sealed class SolicitudPermisoRepository(PermissionsDbContext dbContext) :
             .OrderBy(solicitud => solicitud.FechaCreacion)
             .ToListAsync(cancellationToken);
 
+    public async Task<int> EliminarPorSolicitanteAsync(string solicitante, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
+
+        var solicitanteNormalizado = solicitante.Trim().ToUpper();
+        return await dbContext.SolicitudesPermisos
+            .Where(solicitud => solicitud.Solicitante.ToUpper() == solicitanteNormalizado)
+            .ExecuteDeleteAsync(cancellationToken);
+    }
+
     public Task<bool> TienePermisoAplicadoAsync(
         string solicitante,
         string permisoSolicitado,

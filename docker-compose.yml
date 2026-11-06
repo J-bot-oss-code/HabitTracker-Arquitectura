@@ -67,6 +67,9 @@ services:
       Cors__OrigenesPermitidos__0: ${FRONTEND_URL:-http://localhost:5173}
       # ID de cliente de Google (público por diseño, no es un secreto). Vacío = el inicio con Google responde 503.
       Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      # Baja de cuenta: días de gracia antes de borrar la cuenta y cada cuántos minutos se buscan cuentas vencidas.
+      Privacidad__DiasGraciaBaja: ${DIAS_GRACIA_BAJA:-30}
+      Privacidad__IntervaloEjecucionMinutos: ${BAJAS_INTERVALO_MINUTOS:-1440}
       Swagger__Habilitado: ${SWAGGER_HABILITADO:-false}
       # El contenedor solo escucha HTTP: no hay a dónde redirigir.
       Https__RedireccionDesactivada: "true"

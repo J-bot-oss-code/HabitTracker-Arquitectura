@@ -313,6 +313,7 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 | `vinculacion_requerida` | 409 | El correo de la cuenta de Google ya tiene una cuenta con contraseña: hay que confirmarla en `POST /api/auth/google/vincular`. |
 | `consentimiento_requerido` | 400 | Cuenta nueva con Google sin `consentimientos` en la petición. |
 | `proveedor_ya_vinculado` | 400 | Esa identidad de Google ya es de otra cuenta, o la cuenta ya tiene otra identidad de Google. |
+| `confirmacion_incorrecta` | 400 | La confirmación de la baja de cuenta con Google no sirve (token inválido o de otra cuenta). Siempre 400, nunca 401. |
 | `sin_contrasena` | 400 | La cuenta entra solo con Google y no tiene contraseña actual que confirmar (puede crear una con la recuperación). |
 | `ultimo_metodo_acceso` | 400 | Desvincular Google dejaría la cuenta sin ninguna forma de entrar. |
 | `proveedor_no_disponible` | 503 | Falta `Google:ClientId` o no se pudo consultar a Google. |
@@ -332,6 +333,7 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 | `activacion` | `activate` (GET y POST) y `resend-activation` | 30 por minuto |
 | `refresh` | `POST /api/auth/refresh` | 30 por minuto |
 | `google` | `POST /api/auth/google` y `/google/vincular` | 10 por minuto |
+| `privacidad` | `POST /api/privacy/deletion-request` y `GET /api/privacy/export` | 10 por minuto |
 
 > Dentro de Docker todos los clientes llegan con la IP de la pasarela y comparten el mismo cupo (deuda conocida, ver `docs/ESTADO-DEL-PROYECTO.md`).
 
@@ -366,6 +368,18 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 - `GET /api/auth/vinculos` devuelve `{tienePassword, vinculos: [{proveedor, vinculadoEn}]}` y `DELETE /api/auth/vinculos/google` desvincula. Solo se permite si la cuenta tiene contraseña (`ultimo_metodo_acceso` si no).
 - **Cuenta sin contraseña** (solo Google): el login con contraseña responde el `401` genérico de siempre (sin contar para el bloqueo); `cambiar-password` responde `sin_contrasena`; y la recuperación de contraseña le permite **crear** una (mismos pasos de RF-CA-09 a RF-CA-11).
 - Configuración: `Google:ClientId` (ver arriba). Para crearlo: Google Cloud Console → proyecto → Pantalla de consentimiento de OAuth (Externo, en Prueba, con tu correo como usuario de prueba) → Credenciales → ID de cliente de OAuth, **Aplicación web**, con los orígenes de JavaScript autorizados `http://localhost:5173` y `http://localhost:5174` (y el dominio de producción más adelante). No hace falta URI de redirección ni secreto de cliente.
+
+**Baja de cuenta y descarga de datos** (Ley 172-13 de la República Dominicana y GDPR: derecho de acceso, portabilidad y supresión). Son para el rol **Estandar**: un administrador que se diera de baja podría dejar al sistema sin nadie que lo administre (responde `403`). La identidad sale siempre del token.
+
+- `POST /api/privacy/deletion-request` `{modo, password}` (o `{modo, idTokenGoogle}` si la cuenta no tiene contraseña) responde `202 {modo, borradoEn}`. Dos modos:
+  - `desactivar`: la cuenta queda inactiva **por su dueño** (no es la desactivación de un administrador, RF-CA-20). Vuelve a funcionar con solo **iniciar sesión** con la clave correcta (o con Google). `borradoEn` es `null`.
+  - `eliminar`: programa el borrado definitivo para dentro del **periodo de gracia** (30 días por defecto, `Privacidad:DiasGraciaBaja`). Durante la gracia la cuenta sigue activa y el login funciona; la respuesta del login, del refresh y de Google trae `bajaProgramadaPara` para que el cliente ofrezca cancelar. Pedirlo otra vez conserva la fecha original.
+  Ambos **revocan todas las sesiones** en el momento (hay que volver a iniciar sesión). Una confirmación incorrecta es un `400` (`clave_actual_incorrecta` o `confirmacion_incorrecta`) que **cuenta para el bloqueo** de RF-CA-19, nunca un `401`: un 401 haría que el cliente cierre la sesión de quien solo se equivocó.
+- `GET /api/privacy/deletion-request` devuelve `{borradoEn}` (`404` si no hay baja programada) y `DELETE /api/privacy/deletion-request` la **cancela** (`204`; `404` si no había). Cancelar no pide la contraseña: solo conserva la cuenta.
+- **Borrado definitivo:** un proceso en segundo plano (`BajaCuentasWorker`, una vez al día) busca las cuentas cuyo plazo terminó. Para cada una borra primero los datos de **cada módulo** y, solo si todos lo lograron, la cuenta con todo lo que depende de ella (consentimientos, sesiones, vínculos de Google, corte de sesiones y correos en cola). Si algo falla, se reintenta en la siguiente pasada (todos los borrados son idempotentes). Solo se registra en el log un identificador anonimizado. **Un administrador nunca se borra solo.** Una vez borrada, el correo queda libre para registrarse de nuevo.
+  - Hábitos: sus hábitos y registros de avance (las metas, categorías y etiquetas son catálogos compartidos). Permisos: las solicitudes que hizo (no las que resolvió como aprobador). Documentos: los archivos del disco y los registros, **también los que ya estaban marcados como eliminados**. El borrado normal de un documento sigue siendo lógico (RF-DOC-04); esta purga solo ocurre al cerrar la cuenta, porque el derecho a la supresión obliga a que no quede nada.
+- `GET /api/privacy/export` descarga un JSON (`Content-Disposition: attachment`, `Cache-Control: no-store`) con todo lo que se guarda de la persona: `cuenta`, `consentimientos` (historial completo), `vinculos`, `sesiones` (con su IP) y `modulos` con una sección por módulo (`habitos`, `permisos`, `documentos`). Nunca incluye la contraseña, su hash, el código de recuperación ni los tokens. Los documentos van como metadatos; el contenido se baja por `/api/documents/{id}/download`. Si un módulo falla, la descarga falla entera: no se entrega un archivo incompleto que parezca completo. Queda auditada.
+- Estos endpoints reemplazan a `POST /api/privacy/export-request` que el frontend tenía simulado: ahora la descarga es el propio `GET`.
 
 **Recuperación de contraseña.** El código es de 6 dígitos y vence en 1 hora; se pide como máximo una vez por minuto (dentro del minuto se responde igual pero no se envía otro correo). Con 5 códigos incorrectos se invalida. Restablecerla cierra las sesiones abiertas y levanta el bloqueo.
 
@@ -459,6 +473,7 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 *   `JwtSettings:MinutosExpiracion`: (int) Vida del token de acceso en minutos (por defecto `15`; la sesión larga la sostiene el refresh token, ver «Sesiones»).
 *   `Sesion:DiasRefresh`, `Sesion:CookieSegura`, `Sesion:CookieSameSite`: (opcionales) vida del refresh token (14 días), cookie `Secure` (`true`) y `SameSite` (`Strict`; `None` si el frontend y la API están en dominios distintos).
 *   `Google:ClientId`: (String, opcional) ID de cliente de Google para "Continuar con Google" (`xxxx.apps.googleusercontent.com`). No es un secreto, pero no se versiona: `dotnet user-secrets set "Google:ClientId" "<id>" --project Host/WebApi/WebApi.csproj`, o `GOOGLE_CLIENT_ID` en el `.env` de Docker. Sin él, `POST /api/auth/google` responde `503` y el resto de la API funciona.
+*   `Privacidad:DiasGraciaBaja`, `Privacidad:IntervaloEjecucionMinutos`: (opcionales) días de gracia antes de borrar una cuenta cuya eliminación se pidió (`30`, de 0 a 365; `DIAS_GRACIA_BAJA` en Docker) y cada cuántos minutos el proceso en segundo plano busca cuentas vencidas (`1440`, una vez al día; `BAJAS_INTERVALO_MINUTOS` en Docker).
 *   `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (String) Credenciales del servidor de correo saliente, solo por variables de entorno o User Secrets.
 *   `App:BaseUrl`: (String) URL pública de la API para armar el enlace de activación del correo (ej. `http://localhost:5246`).
 

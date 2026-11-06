@@ -22,6 +22,11 @@ builder.Services.AddDocumentManagerModule(builder.Configuration);
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 
+// Datos de cada módulo en la descarga de datos y en la baja de cuenta de Control de Acceso (sin que éste los conozca).
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteHabitos>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePermisos>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteDocumentos>();
+
 // Límite de peticiones por IP en activación, login, registro y recuperación de contraseña (RD-06).
 builder.Services.AddLimitacionDePeticiones(builder.Configuration);
 

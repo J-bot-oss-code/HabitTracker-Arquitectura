@@ -106,6 +106,9 @@ public class ApplicationDbContext : DbContext
             .HasColumnName("IntentosActivacion");
         });
 
+            // El proceso de bajas busca cada día las cuentas cuyo plazo terminó.
+            entity.HasIndex(u => u.BajaProgramadaPara);
+
             entity.OwnsOne(u => u.Bloqueo);
 
             entity.OwnsOne(u => u.Recuperacion);

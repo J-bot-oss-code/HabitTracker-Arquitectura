@@ -106,9 +106,16 @@ public class UsuarioService : IUsuarioService
 
         // 4. RF-CA-15 / RF-CA-20: la cuenta debe estar activa (solo con clave correcta). El código distingue
         // "falta activarla con el código del correo" de "un administrador la desactivó".
+        // Quien desactivó su propia cuenta la reactiva al iniciar sesión (con la clave correcta); una cuenta desactivada
+        // por un administrador no se reactiva sola.
         if (!usuario.Activo)
         {
-            throw usuario.PendienteDeActivacion ? new CuentaNoActivaException() : new CuentaDesactivadaException();
+            if (!usuario.DesactivadaPorElUsuario)
+            {
+                throw usuario.PendienteDeActivacion ? new CuentaNoActivaException() : new CuentaDesactivadaException();
+            }
+
+            usuario.ReactivarTrasDesactivacion();
         }
 
         // 5. Éxito: se restablecen intentos, se persiste y se emite el JWT.
@@ -123,7 +130,8 @@ public class UsuarioService : IUsuarioService
             usuario.Correo.Valor,
             usuario.Rol.ToString(),
             usuario.Activo,
-            token
+            token,
+            BajaProgramadaPara: FechasUtc.ComoUtc(usuario.BajaProgramadaPara)
         );
     }
 

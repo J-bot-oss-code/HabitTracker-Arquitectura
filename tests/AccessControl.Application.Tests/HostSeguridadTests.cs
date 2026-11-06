@@ -138,6 +138,7 @@ public class HostSeguridadTests
     [InlineData("ActivacionPorMinuto", "0")]
     [InlineData("RefreshPorMinuto", "0")]
     [InlineData("GooglePorMinuto", "-1")]
+    [InlineData("PrivacidadPorMinuto", "0")]
     public void RD_07_UnTopeDeCeroOMenos_DetieneElArranqueEnLugarDeBloquearElEndpoint(string clave, string valor)
     {
         var servicios = new ServiceCollection().AddLimitacionDePeticiones(Config(($"RateLimit:{clave}", valor)));

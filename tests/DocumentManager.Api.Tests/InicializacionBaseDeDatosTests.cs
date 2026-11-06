@@ -196,6 +196,13 @@ public class InicializacionBaseDeDatosTests
         public Task UpdateAsync(Usuario usuario) => Task.CompletedTask;
         public Task<int> ReservarIntentoActivacionAsync(Guid usuarioId) => Task.FromResult(0);
         public Task<IEnumerable<Usuario>> ObtenerTodosAsync() => Task.FromResult<IEnumerable<Usuario>>(Guardados);
+        public Task<IReadOnlyList<Usuario>> ObtenerConBajaVencidaAsync(DateTime ahora, int maximo) =>
+            Task.FromResult<IReadOnlyList<Usuario>>([]);
+        public Task EliminarDefinitivamenteAsync(Guid usuarioId, string correo)
+        {
+            Guardados.RemoveAll(u => u.Id == usuarioId);
+            return Task.CompletedTask;
+        }
         public Task<int> ContarAdministradoresActivosAsync() =>
             Task.FromResult(Guardados.Count(u => u.Rol == Rol.Administrador && u.Activo));
     }

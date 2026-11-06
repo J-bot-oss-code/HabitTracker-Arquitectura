@@ -245,6 +245,15 @@ namespace AccessControl.Infrastructure.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("BajaProgramadaPara")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("BajaSolicitadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DesactivadaPorUsuarioEn")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
@@ -261,6 +270,8 @@ namespace AccessControl.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BajaProgramadaPara");
 
                     b.ToTable("usuarios");
                 });
