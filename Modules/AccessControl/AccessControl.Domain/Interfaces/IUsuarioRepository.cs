@@ -14,6 +14,12 @@ public interface IUsuarioRepository
     /// no puede existir sin constancia de lo que aceptó al registrarse.
     /// </summary>
     Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento);
+
+    /// <summary>
+    /// Guarda en UNA sola operación la cuenta creada con un proveedor externo, su vínculo y su consentimiento: o quedan los
+    /// tres o ninguno.
+    /// </summary>
+    Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento, LoginExterno vinculo);
     Task<bool> CorreoExistsAsync(Email correo);
     Task UpdateAsync(Usuario usuario);
     /// <summary>

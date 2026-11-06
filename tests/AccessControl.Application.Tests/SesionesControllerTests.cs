@@ -36,7 +36,7 @@ public class SesionesControllerTests
     }
 
     private AuthController Controlador(DefaultHttpContext http, OpcionesSesion? opciones = null) =>
-        new(_usuarios.Object, _blacklist.Object, _consentimientos.Object, _sesiones.Object, opciones ?? OpcionesSesion.PorDefecto)
+        new(_usuarios.Object, _blacklist.Object, _consentimientos.Object, _sesiones.Object, opciones ?? OpcionesSesion.PorDefecto, Mock.Of<IServicioLoginExterno>())
         {
             ControllerContext = new ControllerContext { HttpContext = http }
         };

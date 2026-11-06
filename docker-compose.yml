@@ -65,6 +65,8 @@ services:
       Seguridad__ContrasenasFiltradas__Habilitado: ${CONTRASENAS_FILTRADAS:-true}
       # Origen del frontend que puede llamar a la API desde el navegador (CORS). Sin comodines: un solo origen exacto.
       Cors__OrigenesPermitidos__0: ${FRONTEND_URL:-http://localhost:5173}
+      # ID de cliente de Google (público por diseño, no es un secreto). Vacío = el inicio con Google responde 503.
+      Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       Swagger__Habilitado: ${SWAGGER_HABILITADO:-false}
       # El contenedor solo escucha HTTP: no hay a dónde redirigir.
       Https__RedireccionDesactivada: "true"

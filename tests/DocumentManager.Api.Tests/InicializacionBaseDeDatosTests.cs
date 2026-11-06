@@ -191,6 +191,7 @@ public class InicializacionBaseDeDatosTests
         public Task<Usuario?> GetByCorreoAsync(Email correo) => Task.FromResult(Guardados.FirstOrDefault(u => u.Correo.Equals(correo)));
         public Task SaveAsync(Usuario usuario) { Guardados.Add(usuario); return Task.CompletedTask; }
         public Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento) { Guardados.Add(usuario); return Task.CompletedTask; }
+        public Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento, LoginExterno vinculo) { Guardados.Add(usuario); return Task.CompletedTask; }
         public Task<bool> CorreoExistsAsync(Email correo) => Task.FromResult(Guardados.Any(u => u.Correo.Equals(correo)));
         public Task UpdateAsync(Usuario usuario) => Task.CompletedTask;
         public Task<int> ReservarIntentoActivacionAsync(Guid usuarioId) => Task.FromResult(0);

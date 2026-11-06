@@ -7,7 +7,13 @@ namespace AccessControl.Domain.Entities
         public Guid Id { get; private set; }
         public string NombreCompleto { get; private set; } = null!; // se coloca private set para que solo se pueda modificar desde la clase Usuario
         public Email Correo { get; private set; } = null!;
-        public string PasswordHash { get; private set; } = null!;
+        /// <summary>Nulo en las cuentas creadas con un proveedor externo (Google): no hay contraseña que guardar.</summary>
+        public string? PasswordHash { get; private set; }
+
+        private const string PrefijoInvalidado = "INVALIDADO_";
+
+        /// <summary>La cuenta puede iniciar sesión con contraseña (no es solo de Google ni se la invalidó un administrador).</summary>
+        public bool TienePassword => !string.IsNullOrEmpty(PasswordHash) && !PasswordHash.StartsWith(PrefijoInvalidado, StringComparison.Ordinal);
         public bool Activo { get; private set; }
         public DateTime FechaCreacion { get; private set; }
         public TokenActivacion? TokenAcceso { get; private set; }
@@ -43,6 +49,18 @@ namespace AccessControl.Domain.Entities
             Activo = false;
             FechaCreacion = DateTime.UtcNow;
             Rol = rol;
+        }
+
+        /// <summary>
+        /// Cuenta creada con un proveedor externo (Google). Nace ACTIVA y sin contraseña: el proveedor ya verificó que la
+        /// persona controla el correo, que es lo mismo que prueba el código de activación en el registro con correo (RF-CA-15).
+        /// </summary>
+        public static Usuario CrearConProveedorExterno(string nombreCompleto, Email correo)
+        {
+            var usuario = new Usuario(nombreCompleto, correo, "externo");
+            usuario.PasswordHash = null;
+            usuario.Activo = true;
+            return usuario;
         }
 
         public void CambiarRol(Rol nuevoRol)
@@ -114,8 +132,14 @@ namespace AccessControl.Domain.Entities
 
         public void InvalidarPassword()
         {
+            // Una cuenta sin contraseña (solo Google) no tiene clave que invalidar: sigue sin tenerla.
+            if (PasswordHash is null)
+            {
+                return;
+            }
+
             // RF-CA-13: Asignamos un valor imposible de hashear/hacer match para invalidar la clave actual inmediatamente
-            PasswordHash = $"INVALIDADO_{Guid.NewGuid()}";
+            PasswordHash = $"{PrefijoInvalidado}{Guid.NewGuid()}";
         }
 
         public void Desactivar()        {

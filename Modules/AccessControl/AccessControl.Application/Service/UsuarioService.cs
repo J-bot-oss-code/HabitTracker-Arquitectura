@@ -74,6 +74,14 @@ public class UsuarioService : IUsuarioService
 
         _logger.LogInformation("Intento de login para el usuario {UsuarioId}.", usuario.Id);
 
+        // Cuenta creada con Google: no tiene contraseña. Se gasta el mismo tiempo y se responde igual que una clave
+        // incorrecta (no se revela que la cuenta existe ni cómo entra); no hay clave que adivinar, así que no cuenta para el bloqueo.
+        if (usuario.PasswordHash is null)
+        {
+            _passwordHasher.SimularVerificacion(request.Password);
+            throw new CredencialesInvalidasException();
+        }
+
         // 2. Se verifica la clave ANTES de revelar si la cuenta está inactiva:
         // una clave incorrecta en cuenta activa o inactiva responde 401 genérico.
         // Solo si ya está bloqueada (el atacante provocó el bloqueo) se informa el bloqueo.
@@ -342,6 +350,12 @@ public class UsuarioService : IUsuarioService
             throw new InvalidOperationException("El usuario no existe");
         }
 
+        // Cuenta de Google sin contraseña: no hay clave actual que confirmar. Puede crear una con la recuperación.
+        if (usuario.PasswordHash is null)
+        {
+            throw new SinContrasenaException();
+        }
+
         if (!_passwordHasher.Verificar(usuario.PasswordHash, actual))
         {
             // Quien tiene un token robado podría adivinar la clave actual: cada fallo cuenta para el mismo bloqueo del
@@ -408,15 +422,7 @@ public class UsuarioService : IUsuarioService
 
     private ConsentimientosRegistroDto ValidarConsentimientosDelRegistro(ConsentimientosRegistroDto? consentimientos)
     {
-        if (consentimientos is null
-            || consentimientos.Marketing is null
-            || consentimientos.TerminosVersion != _versiones.Terminos
-            || consentimientos.PrivacidadVersion != _versiones.Privacidad)
-        {
-            throw new ConsentimientoNoValidoException();
-        }
-
-        return consentimientos;
+        return AceptacionLegal.Validar(_versiones, consentimientos);
     }
 
     /// <summary>Código de 6 dígitos aleatorios (000000-999999) de un generador criptográfico.</summary>

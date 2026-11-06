@@ -14,6 +14,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<RevocacionSesion> RevocacionesSesion { get; set; } = null!;
     public DbSet<ConsentimientoUsuario> ConsentimientosUsuario { get; set; } = null!;
     public DbSet<SesionUsuario> SesionesUsuario { get; set; } = null!;
+    public DbSet<LoginExterno> LoginsExternos { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -53,6 +54,23 @@ public class ApplicationDbContext : DbContext
             entity.HasIndex(x => x.TokenHash).IsUnique();
             entity.HasIndex(x => x.UsuarioId);
             entity.HasIndex(x => x.FamiliaId);
+        });
+
+        // Vínculos con proveedores externos (Google). Lo que identifica a la persona es (Proveedor, Subject), no el correo.
+        modelBuilder.Entity<LoginExterno>(entity =>
+        {
+            entity.ToTable("LoginsExternos");
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Proveedor).IsRequired().HasMaxLength(20);
+            entity.Property(x => x.Subject).IsRequired().HasMaxLength(LoginExterno.LongitudMaximaSubject);
+
+            // Al eliminar una cuenta se eliminan también sus vínculos (baja de cuenta, fase 6).
+            entity.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.Cascade);
+
+            // Una identidad del proveedor pertenece a una sola cuenta, y una cuenta tiene una sola identidad por proveedor.
+            entity.HasIndex(x => new { x.Proveedor, x.Subject }).IsUnique();
+            entity.HasIndex(x => new { x.UsuarioId, x.Proveedor }).IsUnique();
         });
 
         modelBuilder.Entity<Usuario>(entity =>
@@ -96,8 +114,8 @@ public class ApplicationDbContext : DbContext
             .IsRequired()
             .HasMaxLength(200);
 
+            // Nulo en las cuentas creadas con Google (no tienen contraseña).
             entity.Property(e => e.PasswordHash)
-            .IsRequired()
             .HasMaxLength(200);
 
             entity.Property(e => e.Activo)

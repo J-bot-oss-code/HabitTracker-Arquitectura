@@ -45,6 +45,12 @@ public static class ServiceExtensions
         services.AddScoped<ISesionRepository, SesionRepository>();
         services.AddScoped<IGestorSesiones, GestorSesiones>();
 
+        // Inicio de sesión con Google: el navegador obtiene un ID token y la API lo valida (sin secreto de cliente ni
+        // redirecciones). Sin Google:ClientId los endpoints responden 503 y el resto de la API sigue funcionando.
+        services.AddScoped<ILoginExternoRepository, LoginExternoRepository>();
+        services.AddScoped<IValidadorIdTokenGoogle, ValidadorIdTokenGoogle>();
+        services.AddScoped<IServicioLoginExterno, ServicioLoginExterno>();
+
         // Consentimiento legal versionado (Ley 172-13 / GDPR). Las versiones vigentes salen de Legal:*; una versión vacía
         // detiene el arranque.
         services.AddSingleton<IVersionesLegales>(new VersionesLegalesConfiguracion(configuration));

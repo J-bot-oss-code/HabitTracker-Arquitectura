@@ -1,0 +1,7 @@
+# Falsos positivos de gitleaks: cada línea es el fingerprint exacto de un hallazgo (commit:archivo:regla:línea).
+# No se reescribe la historia (rompería las etiquetas de entrega); el valor ya se cambió en el código.
+
+# Contraseña ficticia "ClaveSegura-Nexus-2026" pasada a un doble de prueba (GoogleVincularRequest) junto a la palabra
+# "token" del nombre del campo. Es un valor de ejemplo de la documentación, no una credencial.
+7a7657fa2bbfc41beee671ca8d6c7acc2e451bfb:tests/AccessControl.Application.Tests/GoogleControllerTests.cs:generic-api-key:105
+7a7657fa2bbfc41beee671ca8d6c7acc2e451bfb:tests/AccessControl.Application.Tests/GoogleControllerTests.cs:generic-api-key:110

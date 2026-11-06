@@ -74,6 +74,24 @@ public class GlobalExceptionMiddleware
             _logger.LogInformation(ex, "Credenciales incorrectas.");
             await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "Credenciales incorrectas.", "Correo o contraseña incorrectos.");
         }
+        catch (ProveedorExternoNoDisponibleException ex)
+        {
+            // Falta Google:ClientId o Google no responde. Solo esta operación se rechaza; el resto de la API sigue funcionando.
+            _logger.LogWarning("Proveedor de inicio de sesión no disponible.");
+            await WriteProblemAsync(context, HttpStatusCode.ServiceUnavailable, "Servicio no disponible.", ex.Message, ex.Codigo);
+        }
+        catch (TokenExternoInvalidoException ex)
+        {
+            // Debe ir antes de UnauthorizedAccessException (es su subclase). Siempre 401, sin decir qué falló del token.
+            _logger.LogInformation("Token del proveedor externo rechazado.");
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "Credenciales incorrectas.", ex.Message, ex.Codigo);
+        }
+        catch (VinculacionRequeridaException ex)
+        {
+            // Debe ir antes de ControlAccesoException (es su clase base). 409: la cuenta existe y hay que confirmar la contraseña.
+            _logger.LogInformation("Vinculación con el proveedor externo pendiente de confirmar.");
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, "Vinculación requerida.", ex.Message, ex.Codigo);
+        }
         catch (SesionInvalidaException ex)
         {
             // Debe ir antes de UnauthorizedAccessException (es su subclase). El refresh token no sirve: siempre 401, con el código

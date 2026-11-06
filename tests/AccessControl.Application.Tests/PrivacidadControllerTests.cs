@@ -101,7 +101,7 @@ public class PrivacidadControllerTests
     }
 
     private static AuthController CrearAuth(Mock<IUsuarioService> usuarios, Mock<IConsentimientoService> consentimientos, Guid? usuarioId = null) =>
-        new(usuarios.Object, Mock.Of<ITokenBlacklist>(), consentimientos.Object, SesionesQueEmiten(), OpcionesSesion.PorDefecto) { ControllerContext = ContextoDe(usuarioId) };
+        new(usuarios.Object, Mock.Of<ITokenBlacklist>(), consentimientos.Object, SesionesQueEmiten(), OpcionesSesion.PorDefecto, Mock.Of<IServicioLoginExterno>()) { ControllerContext = ContextoDe(usuarioId) };
 
     [Theory]
     [InlineData(true)]
