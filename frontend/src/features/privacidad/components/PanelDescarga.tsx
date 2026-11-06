@@ -6,8 +6,8 @@ import { Icono } from '@/shared/ui/Icono'
 import { useToast } from '@/shared/ui/Toast'
 import { useDescargarDatos } from '../api'
 
-// Descargar mis datos (§5.5): acceso y portabilidad. El archivo se arma en el navegador con lo
-// que la API ya entrega al usuario; no hay una cola de "te avisamos por correo".
+// Descargar mis datos (§5.5): acceso y portabilidad. El servidor reúne lo que guarda de la persona y
+// aquí se baja como JSON; no hay una cola de "te avisamos por correo".
 export function PanelDescarga() {
   const descargar = useDescargarDatos()
   const { notificar } = useToast()
@@ -17,9 +17,10 @@ export function PanelDescarga() {
       <CardBody>
         <h2 className="text-lg font-bold">Descargar mis datos</h2>
         <p className="mt-1 text-sm text-atenuado">
-          Recibirás un archivo JSON con tu cuenta, tus hábitos y avances, tus solicitudes de
-          permiso, tu perfil, tu peso y medidas, y tus consentimientos. El archivo se crea en tu
-          dispositivo.
+          Recibirás un archivo JSON con tu cuenta, tu historial de consentimientos, tus cuentas
+          vinculadas y sesiones, tus hábitos y avances, tus solicitudes de permiso, los metadatos de
+          tus documentos y, si ya los tienes, tu perfil, tu peso y tus medidas. Nunca incluye tu
+          contraseña. La descarga queda registrada en la auditoría.
         </p>
         <p className="mt-2 text-sm text-atenuado">
           El archivo no está cifrado y incluye datos de salud: guárdalo en un lugar seguro.

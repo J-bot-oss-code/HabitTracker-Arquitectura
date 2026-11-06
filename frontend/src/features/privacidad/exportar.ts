@@ -1,49 +1,31 @@
-import type { MeResponse } from '@/features/auth/types'
-import type { HabitoDto } from '@/features/habits/types'
-import type { ConsentimientosDto, PerfilDto } from '@/features/perfil/types'
-import type { SolicitudPermisoDto } from '@/features/permissions/types'
+import type { PerfilDto } from '@/features/perfil/types'
 import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import { descargarArchivo } from '@/shared/lib/descarga'
 import { hoyUtcInput } from '@/shared/lib/fechas'
+import type { ExportacionServidor } from './types'
 
-// Archivo de portabilidad "Descargar mis datos". Las claves van en español y el formato lleva
-// versión para poder evolucionar sin romper a quien lo procese.
-export interface Exportacion {
+// Archivo de portabilidad "Descargar mis datos". Lo esencial lo entrega el servidor (GET /api/privacy/export:
+// cuenta, consentimientos, vínculos, sesiones y los módulos); el perfil físico, el peso y las medidas todavía no
+// existen en el backend real y se añaden solo si la API simulada los ofrece. El formato lleva versión para poder
+// evolucionar sin romper a quien lo procese.
+export interface Exportacion extends ExportacionServidor {
   formato: 'habittracker-datos'
-  version: 1
-  // Instante UTC (RD-11).
-  generadoEn: string
-  cuenta: MeResponse
-  habitos: HabitoDto[]
-  permisos: SolicitudPermisoDto[]
-  // null: el usuario aún no tiene esos datos o el servidor todavía no los ofrece.
+  version: 2
+  // null: la persona aún no tiene esos datos o el servidor todavía no los ofrece.
   perfil: PerfilDto | null
   progreso: { pesos: PesosDto | null; mediciones: MedicionDto[] | null }
-  consentimientos: ConsentimientosDto | null
 }
 
 export function armarExportacion(
-  datos: {
-    cuenta: MeResponse
-    habitos: HabitoDto[]
-    permisos: SolicitudPermisoDto[]
-    perfil: PerfilDto | null
-    pesos: PesosDto | null
-    mediciones: MedicionDto[] | null
-    consentimientos: ConsentimientosDto | null
-  },
-  ahora = new Date(),
+  servidor: ExportacionServidor,
+  extras: { perfil: PerfilDto | null; pesos: PesosDto | null; mediciones: MedicionDto[] | null },
 ): Exportacion {
   return {
     formato: 'habittracker-datos',
-    version: 1,
-    generadoEn: ahora.toISOString(),
-    cuenta: datos.cuenta,
-    habitos: datos.habitos,
-    permisos: datos.permisos,
-    perfil: datos.perfil,
-    progreso: { pesos: datos.pesos, mediciones: datos.mediciones },
-    consentimientos: datos.consentimientos,
+    version: 2,
+    ...servidor,
+    perfil: extras.perfil,
+    progreso: { pesos: extras.pesos, mediciones: extras.mediciones },
   }
 }
 

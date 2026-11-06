@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Text.RegularExpressions;
 using AccessControl.Domain.Entities;
+using AccessControl.Domain.Entities.ValueObjects;
 using AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -59,6 +60,15 @@ public class EmailSenderWorker : BackgroundService
         _logger.LogInformation("EmailSenderWorker detenido.");
     }
 
+    /// <summary>
+    /// Correos que el worker puede intentar enviar: los Pendiente y los Fallido que aún tienen intentos. Los Fallido que
+    /// agotaron sus intentos se quedan en la tabla para siempre: se excluyen en la consulta para no leerlos (ni filtrarlos
+    /// en memoria) en cada vuelta de 15 segundos. La espera entre reintentos (backoff) se decide después, en memoria.
+    /// </summary>
+    public static readonly System.Linq.Expressions.Expression<Func<CorreoEnCola, bool>> CandidatosDeEnvio =
+        c => c.Estado == EstadoCorreo.Pendiente
+          || (c.Estado == EstadoCorreo.Fallido && c.Intentos < CorreoEnCola.MaxIntentos);
+
     private async Task ProcesarColaAsync(CancellationToken stoppingToken)
     {
         using var scope = _scopeFactory.CreateScope();
@@ -67,7 +77,7 @@ public class EmailSenderWorker : BackgroundService
         var ahora = DateTime.UtcNow;
 
         var candidatos = await dbContext.CorreosEnCola
-            .Where(c => c.Estado == EstadoCorreo.Pendiente || c.Estado == EstadoCorreo.Fallido)
+            .Where(CandidatosDeEnvio)
             .ToListAsync(stoppingToken);
 
         var pendientes = candidatos.Where(c => c.PuedeReintentarse(ahora)).ToList();
@@ -97,14 +107,14 @@ public class EmailSenderWorker : BackgroundService
                 correo.MarcarEnviado();
                 await dbContext.SaveChangesAsync(stoppingToken);
 
-                _logger.LogInformation("Correo {Id} enviado a {Destino}.", correo.Id, correo.Destinatario);
+                _logger.LogInformation("Correo {Id} enviado a {Destino}.", correo.Id, Email.Enmascarar(correo.Destinatario));
             }
             catch (Exception ex)
             {
                 correo.RegistrarFallo(ex.Message);
                 await dbContext.SaveChangesAsync(stoppingToken);
 
-                _logger.LogWarning(ex, "Fallo el envío del correo {Id} a {Destino} (intento {Intentos}).", correo.Id, correo.Destinatario, correo.Intentos);
+                _logger.LogWarning(ex, "Fallo el envío del correo {Id} a {Destino} (intento {Intentos}).", correo.Id, Email.Enmascarar(correo.Destinatario), correo.Intentos);
             }
         }
     }

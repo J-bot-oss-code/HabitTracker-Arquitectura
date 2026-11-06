@@ -1,6 +1,6 @@
-
 using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
+using AccessControl.Domain.Excepciones;
 using AccessControl.Domain.Interfaces;
 using AccessControl.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -31,12 +31,6 @@ public class UsuarioRepository : IUsuarioRepository
     {
         // Implementación para obtener un usuario por ID
         return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.Id == id);
-    }
-
-    public async Task<Usuario?> GetByNameAsync(string nombreCompleto)
-    {
-        // Implementación para obtener un usuario por nombre completo
-        return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.NombreCompleto == nombreCompleto);
     }
 
     public async Task<int> ReservarIntentoActivacionAsync(Guid usuarioId)
@@ -75,21 +69,114 @@ public class UsuarioRepository : IUsuarioRepository
         }
     }
 
-    public async Task SaveAsync(Usuario usuario)
+    public Task SaveAsync(Usuario usuario)
     {
-        // Implementación para guardar un nuevo usuario en la base de datos
         _dbContext.usuarios.Add(usuario);
-        await _dbContext.SaveChangesAsync();
+        return GuardarNuevoAsync(usuario);
+    }
+
+    public Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento)
+    {
+        // Un solo SaveChanges = una sola transacción: o se guardan el usuario y su consentimiento, o ninguno.
+        _dbContext.usuarios.Add(usuario);
+        _dbContext.ConsentimientosUsuario.Add(consentimiento);
+        return GuardarNuevoAsync(usuario);
+    }
+
+    public Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento, LoginExterno vinculo)
+    {
+        // Cuenta, consentimiento y vínculo con el proveedor en una sola transacción.
+        _dbContext.usuarios.Add(usuario);
+        _dbContext.ConsentimientosUsuario.Add(consentimiento);
+        _dbContext.LoginsExternos.Add(vinculo);
+        return GuardarNuevoAsync(usuario);
+    }
+
+    private async Task GuardarNuevoAsync(Usuario usuario)
+    {
+        try
+        {
+            await _dbContext.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Dos registros simultáneos con el mismo correo: el segundo choca con el índice único (RF-CA-01).
+            // Se traduce al mismo rechazo que la comprobación previa; no importa el proveedor de base de datos.
+            // Cualquier otro fallo de la base de datos se propaga tal cual.
+            if (await ElCorreoYaExisteTrasElFalloAsync(usuario))
+            {
+                throw new CorreoYaRegistradoException();
+            }
+
+            throw;
+        }
     }
 
     public async Task UpdateAsync(Usuario usuario)
     {
-        _dbContext.usuarios.Update(usuario);
+        // Una entidad ya cargada por este contexto solo escribe las columnas que cambiaron, sin marcar todas como
+        // modificadas: así este guardado nunca toca el contador de intentos de activación que otra petición reserva con
+        // ReservarIntentoActivacionAsync (RD-06). Solo una entidad creada fuera del contexto necesita Update().
+        if (_dbContext.Entry(usuario).State == EntityState.Detached)
+        {
+            _dbContext.usuarios.Update(usuario);
+        }
+
         await _dbContext.SaveChangesAsync();
+    }
+
+    private async Task<bool> ElCorreoYaExisteTrasElFalloAsync(Usuario usuario)
+    {
+        // El intento fallido deja las entidades nuevas en el contexto: se sacan para poder consultar y para no reintentar su inserción.
+        _dbContext.Entry(usuario).State = EntityState.Detached;
+        foreach (var consentimiento in _dbContext.ChangeTracker.Entries<ConsentimientoUsuario>()
+                     .Where(e => e.State == EntityState.Added).ToList())
+        {
+            consentimiento.State = EntityState.Detached;
+        }
+
+        foreach (var vinculo in _dbContext.ChangeTracker.Entries<LoginExterno>()
+                     .Where(e => e.State == EntityState.Added).ToList())
+        {
+            vinculo.State = EntityState.Detached;
+        }
+
+        return await CorreoExistsAsync(usuario.Correo);
     }
 
     public async Task<IEnumerable<Usuario>> ObtenerTodosAsync()
     {
         return await _dbContext.usuarios.ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<Usuario>> ObtenerConBajaVencidaAsync(DateTime ahora, int maximo)
+    {
+        // Un administrador nunca se borra solo: dejaría al sistema sin quien lo administre (si alguien con la baja
+        // programada fue promovido, la baja queda ahí hasta que se cancele o se le quite el rol).
+        return await _dbContext.usuarios
+            .AsNoTracking()
+            .Where(u => u.BajaProgramadaPara != null && u.BajaProgramadaPara <= ahora && u.Rol != Rol.Administrador)
+            .OrderBy(u => u.BajaProgramadaPara)
+            .Take(maximo)
+            .ToListAsync();
+    }
+
+    public async Task EliminarDefinitivamenteAsync(Guid usuarioId, string correo)
+    {
+        // Una sola transacción: o se borra todo lo de esta cuenta en Control de Acceso o nada. Los consentimientos, las
+        // sesiones y los vínculos caen en cascada con el usuario; el corte de sesiones y los correos en cola no tienen
+        // clave foránea, así que se borran aquí.
+        await using var transaccion = await _dbContext.Database.BeginTransactionAsync();
+
+        await _dbContext.RevocacionesSesion.Where(r => r.UsuarioId == usuarioId).ExecuteDeleteAsync();
+        await _dbContext.CorreosEnCola.Where(c => c.Destinatario == correo).ExecuteDeleteAsync();
+        await _dbContext.usuarios.Where(u => u.Id == usuarioId).ExecuteDeleteAsync();
+
+        await transaccion.CommitAsync();
+    }
+
+    public async Task<int> ContarAdministradoresActivosAsync()
+    {
+        return await _dbContext.usuarios.CountAsync(u => u.Rol == Rol.Administrador && u.Activo);
     }
 }

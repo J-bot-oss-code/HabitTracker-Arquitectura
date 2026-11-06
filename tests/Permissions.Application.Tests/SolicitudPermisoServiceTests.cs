@@ -150,6 +150,33 @@ public sealed class SolicitudPermisoServiceTests
         Assert.Equal(EstadoSolicitudPermiso.Aplicada.ToString(), Assert.Single(historial).Estado);
     }
 
+    [Fact]
+    [Trait("Requirement", "RD-09")]
+    public async Task RD_09_EliminarDeSolicitante_BorraSoloLasSolicitudesDeEsaPersona()
+    {
+        var propia = new SolicitudPermiso("persona@ejemplo.com", "Acceso a reportes");
+        var ajena = new SolicitudPermiso("otra@ejemplo.com", "Acceso a reportes");
+        var repository = new InMemorySolicitudPermisoRepository([propia, ajena]);
+
+        var borradas = await CrearServicio(repository).EliminarDeSolicitanteAsync("PERSONA@ejemplo.com");
+
+        Assert.Equal(1, borradas);
+        Assert.Equal(ajena.Id, Assert.Single(repository.Solicitudes).Id);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [Trait("Requirement", "RD-07")]
+    public async Task RD_07_EliminarDeSolicitante_SinSolicitanteSeRechazaYNoBorraNada(string solicitante)
+    {
+        var repository = new InMemorySolicitudPermisoRepository([new SolicitudPermiso("persona@ejemplo.com", "Acceso a reportes")]);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => CrearServicio(repository).EliminarDeSolicitanteAsync(solicitante));
+
+        Assert.Single(repository.Solicitudes);
+    }
+
     private static SolicitudPermisoService CrearServicio(ISolicitudPermisoRepository repository) =>
         new(repository, NullLogger<SolicitudPermisoService>.Instance);
 
@@ -205,6 +232,10 @@ public sealed class SolicitudPermisoServiceTests
             AllQueryCount++;
             return Task.FromResult<IReadOnlyList<SolicitudPermiso>>(Solicitudes);
         }
+
+        public Task<int> EliminarPorSolicitanteAsync(string solicitante, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Solicitudes.RemoveAll(solicitud =>
+                string.Equals(solicitud.Solicitante, solicitante.Trim(), StringComparison.OrdinalIgnoreCase)));
 
         public Task<bool> TienePermisoAplicadoAsync(
             string solicitante,

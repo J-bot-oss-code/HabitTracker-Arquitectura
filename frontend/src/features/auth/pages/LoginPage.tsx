@@ -1,26 +1,34 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Link, useLocation } from 'react-router'
-import { esErrorHttp, mensajeDeError } from '@/shared/api/problem'
+import { codigoDeError, esErrorHttp, mensajeDeError } from '@/shared/api/problem'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { Input } from '@/shared/ui/Field'
 import { useLogin } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
+import { EntradaGoogle } from '../google/EntradaGoogle'
 import { loginSchema, type LoginForm } from '../schemas'
 
 interface EstadoNavegacion {
   mensaje?: string
 }
 
+const MENSAJES_POR_CODIGO: Record<string, string> = {
+  cuenta_no_activa: 'Tu cuenta todavía no está activada. Usa el código que te enviamos por correo.',
+  cuenta_desactivada: 'Tu cuenta fue desactivada por un administrador.',
+  cuenta_bloqueada: 'Demasiados intentos fallidos. Tu cuenta está bloqueada 15 minutos.',
+}
+
 function mensajeLogin(error: unknown): string {
   // RF-CA-03: no se revela qué dato falló.
   if (esErrorHttp(error, 401)) return 'Correo o contraseña incorrectos.'
-  // RF-CA-15 / RF-CA-19: el backend responde 400 genérico si la cuenta no está activada
-  // o está bloqueada temporalmente por intentos fallidos.
+  // RF-CA-15 / RF-CA-19 / RF-CA-20: con la clave correcta el backend dice por qué no se puede entrar.
+  const codigo = codigoDeError(error)
+  if (codigo && MENSAJES_POR_CODIGO[codigo]) return MENSAJES_POR_CODIGO[codigo]
   if (esErrorHttp(error, 400))
-    return 'No se pudo iniciar sesión. Verifica que tu cuenta esté activada; si fallaste varias veces, espera 15 minutos.'
+    return 'No se pudo iniciar sesión. Revisa tus datos e inténtalo de nuevo.'
   // Sin servicio de autenticación (API caída o ruta inexistente) el problema no es del usuario.
   if (esErrorHttp(error, 404) || error instanceof TypeError)
     return 'No se pudo contactar con el servicio de inicio de sesión. Inténtalo de nuevo en unos minutos.'
@@ -63,6 +71,13 @@ export function LoginPage() {
     >
       {mensaje && <Alert tono="info">{mensaje}</Alert>}
       {login.isError && <Alert tono="peligro">{mensajeLogin(login.error)}</Alert>}
+
+      <EntradaGoogle texto="signin_with" />
+
+      <div className="flex items-center gap-3 text-xs text-atenuado" aria-hidden="true">
+        <span className="h-px flex-1 bg-borde" />o con tu correo
+        <span className="h-px flex-1 bg-borde" />
+      </div>
 
       <form onSubmit={enviar} noValidate className="space-y-4">
         <Input

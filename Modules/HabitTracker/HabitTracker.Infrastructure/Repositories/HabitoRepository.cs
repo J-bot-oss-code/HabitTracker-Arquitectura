@@ -24,6 +24,13 @@ public sealed class HabitoRepository(HabitTrackerDbContext dbContext) : IHabitoR
         await dbContext.Habitos.AddAsync(habito, cancellationToken);
     }
 
+    public async Task<int> EliminarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+        // Los registros de avance y las filas de etiquetas caen en cascada con el hábito. Las metas, categorías y
+        // etiquetas son catálogos compartidos: no se tocan.
+        await dbContext.Habitos
+            .Where(h => h.UsuarioId == usuarioId)
+            .ExecuteDeleteAsync(cancellationToken);
+
     public async Task UpdateAsync(Habito habito, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(habito);

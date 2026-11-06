@@ -1,7 +1,9 @@
+using AccessControl.Application.DTOs;
 using AccessControl.Application.Interfaces;
 using AccessControl.Application.Service;
 using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
+using AccessControl.Domain.Excepciones;
 using AccessControl.Domain.Interfaces;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -28,7 +30,7 @@ public class ActivacionConCodigoTests
         repo.Setup(r => r.GetByCorreoAsync(It.IsAny<Email>())).ReturnsAsync(usuario);
         repo.Setup(r => r.UpdateAsync(It.IsAny<Usuario>())).Returns(Task.CompletedTask);
         repo.Setup(r => r.CorreoExistsAsync(It.IsAny<Email>())).ReturnsAsync(false);
-        repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>())).Returns(Task.CompletedTask);
+        repo.Setup(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>())).Returns(Task.CompletedTask);
 
         // Simula la reserva ATÓMICA de la base de datos: cada llamada obtiene un número distinto, aunque sea en paralelo.
         var intentos = 0;
@@ -43,7 +45,7 @@ public class ActivacionConCodigoTests
 
         var servicio = new UsuarioService(
             repo.Object, hasher.Object, cola.Object, Mock.Of<IAuditoriaService>(),
-            Mock.Of<IJwtProvider>(), Mock.Of<ITokenBlacklist>(), Mock.Of<ILogger<UsuarioService>>());
+            Mock.Of<IJwtProvider>(), GestorSesionesDePrueba.Crear(), Mock.Of<ILogger<UsuarioService>>());
         return (servicio, repo, cola);
     }
 
@@ -58,7 +60,7 @@ public class ActivacionConCodigoTests
         cola.Setup(c => c.EncolarCorreoActivacionAsync(It.IsAny<string>(), It.IsAny<string>()))
             .Callback<string, string>((_, codigo) => enviado = codigo).Returns(Task.CompletedTask);
 
-        await servicio.RegistrarUsuarioAsync(new("Persona", Correo, "ClaveSegura123"));
+        await servicio.RegistrarUsuarioAsync(new("Persona", Correo, "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false)));
 
         Assert.Matches(@"^\d{6}$", enviado);
     }
@@ -74,7 +76,7 @@ public class ActivacionConCodigoTests
 
         for (var i = 0; i < 300; i++)
         {
-            await servicio.RegistrarUsuarioAsync(new("Persona", $"p{i}@ejemplo.com", "ClaveSegura123"));
+            await servicio.RegistrarUsuarioAsync(new("Persona", $"p{i}@ejemplo.com", "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false)));
         }
 
         Assert.All(codigos, c => Assert.Matches(@"^\d{6}$", c));
@@ -105,7 +107,7 @@ public class ActivacionConCodigoTests
         var usuario = CrearUsuarioPendiente("123456");
         var (servicio, repo, _) = Crear(usuario);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "654321"));
+        await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "654321"));
 
         Assert.False(usuario.Activo);
         repo.Verify(r => r.ReservarIntentoActivacionAsync(usuario.Id), Times.Once);
@@ -123,11 +125,11 @@ public class ActivacionConCodigoTests
 
         var rafaga = Enumerable.Range(0, 100).Select(_ => Task.Run(async () =>
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "000000"));
+            await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "000000"));
         }));
         await Task.WhenAll(rafaga);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
+        await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
         Assert.False(usuario.Activo);
         repo.Verify(r => r.ReservarIntentoActivacionAsync(usuario.Id), Times.Exactly(101));
     }
@@ -142,7 +144,7 @@ public class ActivacionConCodigoTests
         foreach (var usuario in new Usuario?[] { null, activo })
         {
             var (servicio, repo, _) = Crear(usuario);
-            await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
+            await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
             repo.Verify(r => r.ReservarIntentoActivacionAsync(It.IsAny<Guid>()), Times.Never);
         }
     }
@@ -156,11 +158,11 @@ public class ActivacionConCodigoTests
 
         for (var i = 0; i < TokenActivacion.MaxIntentos; i++)
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "000000"));
+            await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "000000"));
         }
 
         // Aunque ahora acierte, el código quedó invalidado: debe pedir uno nuevo.
-        await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
+        await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
         Assert.False(usuario.Activo);
     }
 
@@ -173,7 +175,7 @@ public class ActivacionConCodigoTests
 
         for (var i = 0; i < TokenActivacion.MaxIntentos - 1; i++)
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "000000"));
+            await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "000000"));
         }
 
         await servicio.ActivarCuentaAsync(Correo, "123456");
@@ -189,7 +191,7 @@ public class ActivacionConCodigoTests
         var ana = CrearUsuarioPendiente("111111");
         var (servicio, _, _) = Crear(ana);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "222222"));
+        await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "222222"));
         Assert.False(ana.Activo);
     }
 
@@ -205,7 +207,7 @@ public class ActivacionConCodigoTests
         foreach (var usuario in new Usuario?[] { null, activo, pendiente })
         {
             var (servicio, _, _) = Crear(usuario);
-            var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "999999"));
+            var ex = await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "999999"));
             mensajes.Add(ex.Message);
         }
 
@@ -221,7 +223,7 @@ public class ActivacionConCodigoTests
         await Task.Delay(300);
         var (servicio, _, _) = Crear(usuario);
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
+        await Assert.ThrowsAsync<CodigoInvalidoException>(() => servicio.ActivarCuentaAsync(Correo, "123456"));
         Assert.False(usuario.Activo);
     }
 

@@ -9,17 +9,31 @@ import type {
   RegistroRequest,
   RestablecerPasswordRequest,
   UsuarioResponseDto,
+  ActivarRequest,
+  GoogleLoginRequest,
+  GoogleVincularRequest,
+  SesionActivaDto,
+  VinculosResponse,
 } from './types'
 
 const base = '/api/auth'
 
 export const authApi = {
   registrar: (body: RegistroRequest) => api.post<UsuarioResponseDto>(`${base}/register`, body),
-  activar: (token: string) => api.post<MensajeResponse>(`${base}/activate`, { token }),
+  activar: (body: ActivarRequest) => api.post<MensajeResponse>(`${base}/activate`, body),
   reenviarActivacion: (correo: string) =>
     api.post<MensajeResponse>(`${base}/resend-activation`, { correo }),
   login: (body: LoginRequest) => api.post<UsuarioResponseDto>(`${base}/login`, body),
   me: () => api.get<MeResponse>(`${base}/me`),
+  google: (body: GoogleLoginRequest) => api.post<UsuarioResponseDto>(`${base}/google`, body),
+  vincularGoogle: (body: GoogleVincularRequest) =>
+    api.post<UsuarioResponseDto>(`${base}/google/vincular`, body),
+  vinculos: () => api.get<VinculosResponse>(`${base}/vinculos`),
+  sesiones: () => api.get<SesionActivaDto[]>(`${base}/sesiones`),
+  cerrarSesionRemota: (id: string) =>
+    api.delete<void>(`${base}/sesiones/${encodeURIComponent(id)}`),
+  cerrarTodasLasSesiones: () => api.post<MensajeResponse>(`${base}/logout-todas`),
+  desvincularGoogle: () => api.delete<void>(`${base}/vinculos/google`),
   logout: () => api.post<MensajeResponse>(`${base}/logout`),
   recuperarPassword: (correo: string) =>
     api.post<MensajeResponse>(`${base}/recuperar-password`, { correo }),
@@ -31,10 +45,20 @@ export const authApi = {
 
 export const authKeys = {
   me: ['auth', 'me'] as const,
+  vinculos: ['auth', 'vinculos'] as const,
+  sesiones: ['auth', 'sesiones'] as const,
 }
 
 export function useMe() {
   return useQuery({ queryKey: authKeys.me, queryFn: authApi.me })
+}
+
+export function useSesiones() {
+  return useQuery({ queryKey: authKeys.sesiones, queryFn: authApi.sesiones })
+}
+
+export function useVinculos() {
+  return useQuery({ queryKey: authKeys.vinculos, queryFn: authApi.vinculos })
 }
 
 export const useLogin = () => useMutation({ mutationFn: authApi.login })

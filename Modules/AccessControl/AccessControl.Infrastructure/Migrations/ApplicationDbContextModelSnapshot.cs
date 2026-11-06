@@ -22,6 +22,55 @@ namespace AccessControl.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("AccessControl.Domain.Entities.ConsentimientoUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AceptadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("CompartirCumplimiento")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("DatosSalud")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EstadisticasAnonimas")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("Marketing")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PrivacidadVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("TerminosVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "ActualizadoEn");
+
+                    b.ToTable("ConsentimientosUsuario", (string)null);
+                });
+
             modelBuilder.Entity("AccessControl.Domain.Entities.CorreoEnCola", b =>
                 {
                     b.Property<Guid>("Id")
@@ -63,6 +112,39 @@ namespace AccessControl.Infrastructure.Migrations
                     b.ToTable("CorreosEnCola");
                 });
 
+            modelBuilder.Entity("AccessControl.Domain.Entities.LoginExterno", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Proveedor")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Subject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("VinculadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Proveedor", "Subject")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId", "Proveedor")
+                        .IsUnique();
+
+                    b.ToTable("LoginsExternos", (string)null);
+                });
+
             modelBuilder.Entity("AccessControl.Domain.Entities.RevocacionSesion", b =>
                 {
                     b.Property<Guid>("Id")
@@ -81,6 +163,59 @@ namespace AccessControl.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("RevocacionesSesion");
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.SesionUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Dispositivo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("ExpiraEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("FamiliaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("IpCreacion")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<Guid?>("ReemplazadaPorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("RevocadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("UltimoUsoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamiliaId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("SesionesUsuario", (string)null);
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.TokenRevocado", b =>
@@ -110,6 +245,15 @@ namespace AccessControl.Infrastructure.Migrations
                     b.Property<bool>("Activo")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("BajaProgramadaPara")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("BajaSolicitadaEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DesactivadaPorUsuarioEn")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("datetime2");
 
@@ -119,7 +263,6 @@ namespace AccessControl.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -128,7 +271,36 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BajaProgramadaPara");
+
                     b.ToTable("usuarios");
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.ConsentimientoUsuario", b =>
+                {
+                    b.HasOne("AccessControl.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.LoginExterno", b =>
+                {
+                    b.HasOne("AccessControl.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AccessControl.Domain.Entities.SesionUsuario", b =>
+                {
+                    b.HasOne("AccessControl.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AccessControl.Domain.Entities.Usuario", b =>
@@ -193,6 +365,10 @@ namespace AccessControl.Infrastructure.Migrations
                                 .HasColumnName("Correo");
 
                             b1.HasKey("UsuarioId");
+
+                            b1.HasIndex("Valor")
+                                .IsUnique()
+                                .HasDatabaseName("IX_usuarios_Correo");
 
                             b1.ToTable("usuarios");
 

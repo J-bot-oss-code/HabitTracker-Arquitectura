@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Cryptography;
 using System.Text;
 using AccessControl.Application.Interfaces;
@@ -41,7 +42,9 @@ public class TokenBlacklistService : ITokenBlacklist
         var ahora = DateTime.UtcNow;
         LimpiarExpirados(ahora);
 
-        _dbContext.TokensRevocados.Add(new TokenRevocado(Hash(token), ahora.AddMinutes(LeerMinutosExpiracion())));
+        // La entrada vive hasta que el token venza de verdad (su claim exp), no una cantidad fija de minutos: si la
+        // configuración cambia mientras hay tokens emitidos, un token cerrado no puede volver a servir antes de vencer.
+        _dbContext.TokensRevocados.Add(new TokenRevocado(Hash(token), VencimientoDelToken(token, ahora)));
         _dbContext.SaveChanges();
 
         _logger.LogInformation("Token invalidado y agregado a la blacklist.");
@@ -104,12 +107,30 @@ public class TokenBlacklistService : ITokenBlacklist
         _dbContext.RevocacionesSesion.Where(r => r.FechaExpiracion <= ahora).ExecuteDelete();
     }
 
+    private DateTime VencimientoDelToken(string token, DateTime ahora)
+    {
+        try
+        {
+            var vencimiento = new JwtSecurityTokenHandler().ReadJwtToken(token).ValidTo;
+            if (vencimiento > ahora)
+            {
+                return vencimiento;
+            }
+        }
+        catch (Exception ex) when (ex is ArgumentException or Microsoft.IdentityModel.Tokens.SecurityTokenException)
+        {
+            // Un token que no se puede leer no llega hasta aquí (ya pasó la autenticación); por si acaso, se usa el plazo de la configuración.
+        }
+
+        return ahora.AddMinutes(LeerMinutosExpiracion());
+    }
+
     private static string Hash(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     private int LeerMinutosExpiracion()
     {
         var minutos = _configuration.GetValue<int>($"{JwtSettings.Seccion}:MinutosExpiracion");
-        return minutos > 0 ? minutos : 60;
+        return minutos > 0 ? minutos : new JwtSettings().MinutosExpiracion;
     }
 }

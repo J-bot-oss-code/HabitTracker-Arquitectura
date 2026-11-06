@@ -64,7 +64,7 @@ export function ResetPasswordPage() {
           etiqueta="Nueva contraseña"
           type="password"
           autoComplete="new-password"
-          ayuda="Mínimo 8 caracteres, con letras y números."
+          ayuda="Mínimo 12 caracteres, con letras y números."
           error={errors.password?.message}
           {...register('password')}
         />

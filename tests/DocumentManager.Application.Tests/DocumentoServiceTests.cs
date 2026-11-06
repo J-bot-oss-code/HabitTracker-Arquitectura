@@ -402,6 +402,77 @@ public class DocumentoServiceTests
             servicio.EliminarAsync(dto.Id, Ana, esAdministrador: false));
     }
 
+    // ---------- Baja de cuenta: purga definitiva (RD-09) ----------
+
+    [Fact]
+    [Trait("Requirement", "RD-09")]
+    public async Task RD_09_Purgar_BorraLosArchivosDelDiscoYLosRegistros_TambienLosYaEliminados()
+    {
+        var (servicio, repo, almacen) = Crear();
+        var vigente = await servicio.SubirAsync(Subida(Ana, "vigente.pdf"));
+        var eliminado = await servicio.SubirAsync(Subida(Ana, "eliminado.pdf"));
+        await servicio.EliminarAsync(eliminado.Id, Ana, esAdministrador: false);   // borrado lógico (RF-DOC-04): el archivo sigue en disco
+        var ajeno = await servicio.SubirAsync(Subida(Beto, "ajeno.pdf"));
+        Assert.Equal(3, almacen.Archivos.Count);
+
+        var purgados = await servicio.PurgarDeUsuarioAsync(Ana);
+
+        Assert.Equal(2, purgados);
+        Assert.DoesNotContain(repo.Todos, d => d.UsuarioId == Ana);
+        Assert.Equal(ajeno.Id, Assert.Single(repo.Todos).Id);
+        Assert.Single(almacen.Archivos);   // solo queda el archivo de la otra persona
+        Assert.NotNull(vigente);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-09")]
+    public async Task RD_09_Purgar_ReintentarloNoFalla_LoQueYaSeBorroNoSeBuscaDeNuevo()
+    {
+        var (servicio, _, _) = Crear();
+        await servicio.SubirAsync(Subida(Ana));
+
+        Assert.Equal(1, await servicio.PurgarDeUsuarioAsync(Ana));
+        Assert.Equal(0, await servicio.PurgarDeUsuarioAsync(Ana));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-09")]
+    public async Task RD_09_Purgar_SiFaltaElArchivoDelDiscoIgualSeBorraElRegistro()
+    {
+        var (servicio, repo, almacen) = Crear();
+        await servicio.SubirAsync(Subida(Ana));
+        almacen.Archivos.Clear();   // un reintento después de borrar el archivo a mitad de una pasada anterior
+
+        Assert.Equal(1, await servicio.PurgarDeUsuarioAsync(Ana));
+        Assert.Empty(repo.Todos);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-07")]
+    public async Task RD_07_Purgar_SinUsuarioSeRechazaYNoBorraNada()
+    {
+        var (servicio, repo, _) = Crear();
+        await servicio.SubirAsync(Subida(Ana));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => servicio.PurgarDeUsuarioAsync(Guid.Empty));
+
+        Assert.Single(repo.Todos);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-DOC-04")]
+    public async Task RF_DOC_04_ElBorradoNormalNoCambia_SigueSiendoLogicoYElArchivoSeConserva()
+    {
+        var (servicio, repo, almacen) = Crear();
+        var dto = await servicio.SubirAsync(Subida(Ana));
+
+        await servicio.EliminarAsync(dto.Id, Ana, esAdministrador: false);
+
+        Assert.True(Assert.Single(repo.Todos).Eliminado);
+        Assert.Single(almacen.Archivos);
+        Assert.Equal(0, repo.Purgados);
+    }
+
     // ---------- Dobles en memoria (sin base de datos ni disco: RD-12) ----------
 
     private sealed class RepositorioEnMemoria : IDocumentoRepository
@@ -424,6 +495,18 @@ public class DocumentoServiceTests
 
         public Task<Documento?> ObtenerPorIdAsync(Guid id, CancellationToken cancellationToken = default) =>
             Task.FromResult(Todos.FirstOrDefault(d => d.Id == id));
+
+        public int Purgados { get; private set; }
+
+        public Task<IReadOnlyList<Documento>> ListarTodosDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Documento>>(Todos.Where(d => d.UsuarioId == usuarioId).ToList());
+
+        public Task<int> PurgarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+        {
+            var borrados = Todos.RemoveAll(d => d.UsuarioId == usuarioId);
+            Purgados += borrados;
+            return Task.FromResult(borrados);
+        }
 
         public Task<IReadOnlyList<Documento>> ListarNoEliminadosAsync(Guid? usuarioId, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Documento>>(

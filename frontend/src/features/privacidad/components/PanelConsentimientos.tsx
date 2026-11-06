@@ -6,6 +6,7 @@ import { INFO_LEGAL } from '@/features/publico/api'
 import { esErrorHttp, esNoDisponible, mensajeDeError } from '@/shared/api/problem'
 import { formatearFecha } from '@/shared/lib/fechas'
 import { Alert } from '@/shared/ui/Alert'
+import { Button } from '@/shared/ui/Button'
 import { Card, CardBody, EmptyState } from '@/shared/ui/Card'
 import { ConfirmarDialogo } from '@/shared/ui/ConfirmarDialogo'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
@@ -45,6 +46,18 @@ export function PanelConsentimientos() {
   const [confirmando, setConfirmando] = useState(false)
 
   const actual = consentimientos.data
+  // Aceptar las versiones vigentes de los documentos (cuando cambiaron desde la última aceptación).
+  const aceptarVigentes = () => {
+    if (!actual) return
+    guardar.mutate({
+      terminosVersion: INFO_LEGAL.terminos.version,
+      privacidadVersion: INFO_LEGAL.privacidad.version,
+      datosSalud: actual.datosSalud,
+      marketing: actual.marketing,
+      compartirCumplimiento: actual.compartirCumplimiento,
+      estadisticasAnonimas: actual.estadisticasAnonimas,
+    })
+  }
   const cambiar = (clave: Clave, valor: boolean) => {
     if (!actual) return
     // La fecha de aceptación la fija el servidor: no se reenvía. Las versiones se conservan.
@@ -93,6 +106,7 @@ export function PanelConsentimientos() {
         actual={actual}
         guardando={guardar.isPending}
         cambiar={cambiar}
+        aceptarVigentes={aceptarVigentes}
         pedirConfirmacion={() => setConfirmando(true)}
       />
     )
@@ -135,13 +149,18 @@ function Lista({
   actual,
   guardando,
   cambiar,
+  aceptarVigentes,
   pedirConfirmacion,
 }: {
   actual: ConsentimientosDto
   guardando: boolean
   cambiar: (clave: Clave, valor: boolean) => void
+  aceptarVigentes: () => void
   pedirConfirmacion: () => void
 }) {
+  const desactualizado =
+    actual.terminosVersion !== INFO_LEGAL.terminos.version ||
+    actual.privacidadVersion !== INFO_LEGAL.privacidad.version
   return (
     <>
       <div className="divide-y divide-borde">
@@ -170,10 +189,19 @@ function Lista({
             Política de privacidad {actual.privacidadVersion}
           </Link>{' '}
           el {formatearFecha(actual.aceptadoEn)}.
-          {(actual.terminosVersion !== INFO_LEGAL.terminos.version ||
-            actual.privacidadVersion !== INFO_LEGAL.privacidad.version) &&
+          {desactualizado &&
             ` Hay versiones más recientes: Términos ${INFO_LEGAL.terminos.version} y Política ${INFO_LEGAL.privacidad.version}.`}
         </p>
+      )}
+      {desactualizado && (
+        <Button
+          className="mt-3"
+          variante="secundario"
+          disabled={guardando}
+          onClick={aceptarVigentes}
+        >
+          Aceptar las versiones vigentes
+        </Button>
       )}
     </>
   )
