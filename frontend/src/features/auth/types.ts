@@ -36,6 +36,16 @@ export interface RegistroRequest {
   consentimientos: ConsentimientosRegistro
 }
 
+// GET /api/auth/sesiones: una sesión abierta en un dispositivo. `dispositivo` es el User-Agent que mandó ese navegador
+// (texto del cliente: se muestra como texto, nunca como HTML). `actual` marca la del dispositivo que consulta.
+export interface SesionActivaDto {
+  id: string
+  dispositivo: string
+  creadaEn: string
+  ultimoUsoEn: string
+  actual: boolean
+}
+
 // POST /api/auth/google: el ID token que entrega Google Identity Services. Para una cuenta nueva exige los
 // consentimientos (400 consentimiento_requerido si faltan); si el correo ya tiene una cuenta con contraseña
 // responde 409 vinculacion_requerida y hay que usar /google/vincular.

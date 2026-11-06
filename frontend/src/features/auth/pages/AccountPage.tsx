@@ -14,6 +14,7 @@ import { Input } from '@/shared/ui/Field'
 import { SelectorTemaTarjetas } from '@/shared/theme/SelectorTema'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useCambiarPassword, useMe, useVinculos } from '../api'
+import { SesionesActivas } from '../components/SesionesActivas'
 import { CuentasVinculadas } from '../google/CuentasVinculadas'
 import { cambiarPasswordSchema, type CambiarPasswordForm } from '../schemas'
 
@@ -84,6 +85,8 @@ export function AccountPage() {
         </Card>
 
         <CuentasVinculadas />
+
+        <SesionesActivas />
 
         {sinContrasena ? (
           <Card>
