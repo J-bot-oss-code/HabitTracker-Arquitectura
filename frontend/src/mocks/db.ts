@@ -10,7 +10,8 @@ import type { Rol } from '@/shared/auth/roles'
 export const PASSWORD_DEMO = 'Demo1234'
 export const META_DEMO_ID = '3f2b8c1e-6a4d-4e9b-9c7a-1d2e3f4a5b6c'
 // Códigos fijos para poder probar los flujos de correo sin servidor SMTP.
-export const TOKEN_ACTIVACION_DEMO = 'DEMO-ACTIVACION'
+// El código de activación real son 6 dígitos (ActivateRequest.Codigo).
+export const TOKEN_ACTIVACION_DEMO = '123456'
 export const CODIGO_RECUPERACION_DEMO = 'DEMO-123456'
 
 export interface UsuarioMock {
@@ -66,6 +67,8 @@ interface Db {
   solicitudes: SolicitudPermisoDto[]
   metas: Set<string>
   tokensRevocados: Set<string>
+  // Cookie HttpOnly del refresh token (una sola: el modo demo tiene un único navegador).
+  refresh: { usuarioId: string; valor: string } | null
   // Por id de usuario.
   perfiles: Map<string, PerfilMock>
   consentimientos: Map<string, ConsentimientosDto>
@@ -81,6 +84,7 @@ export const db: Db = {
   solicitudes: [],
   metas: new Set(),
   tokensRevocados: new Set(),
+  refresh: null,
   perfiles: new Map(),
   consentimientos: new Map(),
   pesos: new Map(),
@@ -238,6 +242,7 @@ export function reiniciarDb() {
 
   db.metas = new Set([META_DEMO_ID])
   db.tokensRevocados = new Set()
+  db.refresh = null
 
   // Ana y Luis ya completaron el onboarding. La cuenta sin activar y las que se registren
   // empiezan sin perfil, así que pasan por /bienvenida.

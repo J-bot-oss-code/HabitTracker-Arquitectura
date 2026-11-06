@@ -5,6 +5,9 @@ export interface ProblemDetails {
   status?: number
   detail?: string
   instance?: string
+  // Código estable de los rechazos de Control de Acceso ("cuenta_bloqueada", "sesion_invalida"...): permite
+  // distinguir el motivo sin depender del texto. Ver README › Control de Acceso: códigos de error.
+  codigo?: string
   // Solo en errores de validación del modelo ([ApiController] → 400).
   errors?: Record<string, string[]>
 }
@@ -53,6 +56,10 @@ export function mensajeDeError(
   }
   if (error instanceof TypeError) return 'No se pudo contactar con el servidor.'
   return porDefecto
+}
+
+export function codigoDeError(error: unknown): string | undefined {
+  return error instanceof ApiError ? error.problem?.codigo : undefined
 }
 
 export function esErrorHttp(error: unknown, status: number): boolean {

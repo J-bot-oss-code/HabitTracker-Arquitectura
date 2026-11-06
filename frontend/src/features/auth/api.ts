@@ -9,13 +9,14 @@ import type {
   RegistroRequest,
   RestablecerPasswordRequest,
   UsuarioResponseDto,
+  ActivarRequest,
 } from './types'
 
 const base = '/api/auth'
 
 export const authApi = {
   registrar: (body: RegistroRequest) => api.post<UsuarioResponseDto>(`${base}/register`, body),
-  activar: (token: string) => api.post<MensajeResponse>(`${base}/activate`, { token }),
+  activar: (body: ActivarRequest) => api.post<MensajeResponse>(`${base}/activate`, body),
   reenviarActivacion: (correo: string) =>
     api.post<MensajeResponse>(`${base}/resend-activation`, { correo }),
   login: (body: LoginRequest) => api.post<UsuarioResponseDto>(`${base}/login`, body),

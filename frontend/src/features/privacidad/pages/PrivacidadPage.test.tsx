@@ -21,7 +21,13 @@ describe('exportación (pura)', () => {
   it('arma el archivo con versión, instante UTC y las piezas ausentes como null', () => {
     const e = armarExportacion(
       {
-        cuenta: { id: '1', correo: 'a@b.c', rol: 'Estandar' },
+        cuenta: {
+          id: '1',
+          nombre: 'Ana',
+          correo: 'a@b.c',
+          rol: 'Estandar',
+          requiereAceptarDocumentos: false,
+        },
         habitos: [],
         permisos: [],
         perfil: null,

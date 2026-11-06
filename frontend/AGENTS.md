@@ -97,18 +97,35 @@ Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs
 
 Cada pantalla pone su título de pestaña y el foco en su encabezado (`app/layout/RaizApp.tsx`). Las rutas nuevas llevan `handle: { titulo }` en `routes.tsx`.
 
-## Backend congelado y contratos propuestos
+## Backend y contratos propuestos
 
-Hasta terminar las prácticas del maestro **no se modifica el backend** (ni CORS). Las pantallas
-que necesitan endpoints inexistentes usan contratos propuestos simulados en
-`src/mocks/handlers/propuestas/` (registro `CONTRATOS_PROPUESTOS`, verificado por
-`mocks/propuestas.test.ts`). Validaciones: idénticas al backend donde ya existen; si no, límites
-marcados como "Límite propuesto para el backend (mejora futura)". Cada necesidad se anota en
-`docs/PLAN-FRONTEND-NEXUS.md` › "Pendientes para el backend".
+El backend ya no está congelado (las prácticas terminaron) y se conecta módulo por módulo. **Control de
+Acceso está conectado** (ver abajo). Las pantallas que necesitan endpoints inexistentes siguen usando
+contratos propuestos simulados en `src/mocks/handlers/propuestas/` (registro `CONTRATOS_PROPUESTOS`,
+verificado por `mocks/propuestas.test.ts`). Validaciones: idénticas al backend donde ya existen; si no,
+límites marcados como "Límite propuesto para el backend (mejora futura)". Cada necesidad se anota en
+`docs/PLAN-FRONTEND-NEXUS.md` › "Pendientes para el backend". Cuando un módulo se conecta, sus contratos
+salen de `CONTRATOS_PROPUESTOS` y los mocks pasan a replicar los controllers reales.
 
-## Conectar con el backend real (después de las prácticas)
+## Conectar con el backend real
 
-1. Habilitar CORS en `Host/WebApi/Program.cs` para el origen del frontend. Es un cambio del
-   backend y se hace en su propia PR.
+1. CORS ya está habilitado en `Host/WebApi` (`Cors:OrigenesPermitidos`, con credenciales). Nunca comodines.
 2. Crear `frontend/.env.local` con `VITE_USE_MOCKS=false` y `VITE_API_URL=http://localhost:5246`.
 3. Ejecutar `frontend-api-contract` para confirmar que no hay diferencias.
+
+### Contrato de Control de Acceso (ya conectado)
+
+- **Sesión:** el token de acceso (15 min) solo en memoria (`shared/auth/tokenStorage.ts`); el refresh token
+  en una cookie `HttpOnly` del backend. `shared/api/http.ts` envía `credentials: 'include'` y, ante un 401
+  con token, renueva UNA vez (`shared/api/sesion.ts`, una sola renovación en curso: dos con el mismo refresh
+  token cierran la sesión) y repite la petición. `AuthProvider` restaura la sesión al cargar (si hubo una
+  antes en el navegador) y renueva el token un minuto antes de que venza.
+- **Registro:** `POST /api/auth/register` exige `consentimientos {terminosVersion, privacidadVersion,
+marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activación:** `POST
+/api/auth/activate` con `{correo, codigo}` (6 dígitos); el enlace `/activar?correo=...&codigo=...` rellena
+  el formulario pero NO activa solo. **Contraseña:** 12 a 1024 caracteres con letras y números.
+- **Errores:** los rechazos de Control de Acceso traen `codigo` en el ProblemDetails (`cuenta_no_activa`,
+  `cuenta_bloqueada`, `clave_actual_incorrecta`, `sesion_invalida`...); ver README raíz › "Control de
+  Acceso: errores, límites y CORS". Una contraseña actual incorrecta es un 400, no un 401.
+- **Pendiente de conectar:** inicio con Google, consentimientos/baja/descarga reales (ahora siguen simulados
+  en `mocks/handlers/propuestas/`), sesiones activas y vínculos.
