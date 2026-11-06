@@ -61,9 +61,8 @@ export const adminHandlers = [
       usuariosActivos30d: activos.size,
       registros7d: registros.filter((e) => dentro(e.fecha, 7)).length,
       retencion30d: antiguos.size === 0 ? null : Math.round((retenidos / antiguos.size) * 100),
-      eliminacionesEnCurso: db.solicitudesBaja.filter(
-        (s) => s.tipo === 'eliminar' && s.borradoEn !== null && Date.parse(s.borradoEn) > ahora,
-      ).length,
+      eliminacionesEnCurso: [...db.bajas.values()].filter((b) => Date.parse(b.borradoEn) > ahora)
+        .length,
       planesMasIniciados: [...porPlan.entries()]
         .map(([slug, cantidad]) => ({ slug, cantidad }))
         .sort((a, b) => b.cantidad - a.cantidad),

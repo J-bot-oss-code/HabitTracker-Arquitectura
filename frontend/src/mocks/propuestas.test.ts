@@ -4,13 +4,20 @@ import { adminUsersHandlers } from './handlers/adminUsers'
 import { authHandlers } from './handlers/auth'
 import { habitsHandlers } from './handlers/habits'
 import { permissionsHandlers } from './handlers/permissions'
+import { privacidadHandlers } from './handlers/privacidad'
 import { CONTRATOS_PROPUESTOS, propuestasHandlers } from './handlers/propuestas'
 
 // El registro de contratos propuestos es la lista de lo que el backend tendrá que implementar
 // después de las prácticas: debe coincidir exactamente con los handlers simulados.
 const firma = (h: HttpHandler) => `${String(h.info.method)} ${String(h.info.path)}`
 
-const reales = [...authHandlers, ...habitsHandlers, ...permissionsHandlers, ...adminUsersHandlers]
+const reales = [
+  ...authHandlers,
+  ...habitsHandlers,
+  ...permissionsHandlers,
+  ...adminUsersHandlers,
+  ...privacidadHandlers,
+]
 
 // MSW responde con el primer handler que coincide y las propuestas van al final: un handler
 // real con parámetros (p. ej. GET /api/permissions/:id) capturaría /api/permissions/resumen.

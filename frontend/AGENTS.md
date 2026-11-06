@@ -26,7 +26,8 @@ src/
 ```
 
 - **Dependencias:** `shared` no importa de `features` ni de `app`. Una feature solo usa de otra
-  su `api.ts`/`types.ts`.
+  su `api.ts`/`types.ts`. Única excepción: `BotonGoogle` (`features/auth/google/`), que también usa
+  el centro de privacidad para confirmar la baja de una cuenta sin contraseña.
 - **Contrato:** `features/*/types.ts` + `mocks/handlers` replican `Host/WebApi`. El backend es la
   fuente de verdad. Particularidades:
   - el login usa `email`;
@@ -136,5 +137,15 @@ marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activa
   en `RUTAS_SIN_RENOVACION`: su 401 es «contraseña incorrecta», no «token vencido». Con mocks, el botón es una
   demostración (`window.prompt`) y el «ID token» es `mock-google|sub|correo|nombre|1` (`tokenDemo.ts`): nunca
   llega al backend real.
-- **Pendiente de conectar:** consentimientos/baja/descarga reales (ahora siguen simulados en
-  `mocks/handlers/propuestas/`) y sesiones activas.
+- **Sesiones activas (conectado):** Mi cuenta › «Sesiones activas» (`features/auth/components/SesionesActivas.tsx`):
+  `GET /api/auth/sesiones`, `DELETE /api/auth/sesiones/{id}` (404 si no es tuya) y `POST /api/auth/logout-todas`.
+  «Cerrar las demás» cierra una por una; «Cerrar en todos los dispositivos» corta también este navegador.
+- **Centro de privacidad (conectado):** `/api/privacy/*`. Consentimientos (`GET/PUT /consents`, para cualquier
+  usuario autenticado); baja (`POST /deletion-request {modo: desactivar|eliminar, password | idTokenGoogle}` → 202
+  `{modo, borradoEn}`, `GET`/`DELETE` para consultar o cancelar la programada, 30 días de gracia); descarga
+  (`GET /export`, el servidor la reúne y la audita). Solo el rol Estándar (el Administrador recibe 403). Una
+  confirmación incorrecta es SIEMPRE un 400 (un 401 cerraría la sesión) y cuenta para el bloqueo; una cuenta sin
+  contraseña confirma con Google. `AvisosDeCuenta` (en `AppLayout`) muestra `requiereAceptarDocumentos` y la baja
+  programada con «Cancelar eliminación». Las cuentas desactivadas por su dueño se reactivan al iniciar sesión.
+- **Pendiente de conectar:** perfil físico, peso y medidas, métricas de administración y el resto de módulos
+  (siguen simulados en `mocks/handlers/propuestas/`).

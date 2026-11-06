@@ -43,19 +43,46 @@ export const aDto = (u: UsuarioMock, token: string | null = null): UsuarioRespon
   activo: u.activo,
   token,
   requiereAceptarDocumentos: requiereAceptarDocumentos(u.id),
-  bajaProgramadaPara: null,
+  bajaProgramadaPara: db.bajas.get(u.id)?.borradoEn ?? null,
 })
 
 // Abre la sesión como el backend: token de acceso en el cuerpo y cookie HttpOnly con el refresh token.
 function abrirSesion(usuario: UsuarioMock): string {
-  db.refresh = { usuarioId: usuario.id, valor: crypto.randomUUID() }
+  const ahora = new Date().toISOString()
+  // Renovar el refresh token conserva la misma sesión (rotación); un inicio de sesión abre una nueva.
+  let sesion =
+    db.refresh?.usuarioId === usuario.id
+      ? db.sesiones.find((s) => s.id === db.refresh?.sesionId)
+      : undefined
+  if (sesion) {
+    sesion.ultimoUsoEn = ahora
+  } else {
+    sesion = {
+      id: crypto.randomUUID(),
+      usuarioId: usuario.id,
+      dispositivo: 'Este navegador (demostración)',
+      creadaEn: ahora,
+      ultimoUsoEn: ahora,
+    }
+    db.sesiones.push(sesion)
+  }
+  db.refresh = { usuarioId: usuario.id, valor: crypto.randomUUID(), sesionId: sesion.id }
   return emitirToken(usuario)
 }
 
 // IGestorSesiones.RevocarTodasAsync: corta los accesos emitidos y el refresh token.
 function revocarSesiones(usuario: UsuarioMock) {
   usuario.sesionesValidasDesde = Date.now()
+  db.sesiones = db.sesiones.filter((s) => s.usuarioId !== usuario.id)
   if (db.refresh?.usuarioId === usuario.id) db.refresh = null
+}
+
+// Quien desactivó su propia cuenta la reactiva al demostrar que es el dueño; una desactivada por un administrador no.
+function reactivarSiLaDesactivoSuDueno(usuario: UsuarioMock) {
+  if (!usuario.activo && usuario.desactivadaPorUsuario) {
+    usuario.activo = true
+    usuario.desactivadaPorUsuario = false
+  }
 }
 
 function consentimientosValidos(
@@ -83,6 +110,7 @@ function rechazoDeEntrada(usuario: UsuarioMock) {
   if (usuario.bloqueadoHasta !== null && usuario.bloqueadoHasta > Date.now()) {
     return respuestas.codigo('cuenta_bloqueada', 'La cuenta está bloqueada temporalmente.')
   }
+  reactivarSiLaDesactivoSuDueno(usuario)
   if (!usuario.activo) {
     return usuario.tokenActivacion !== null
       ? respuestas.codigo('cuenta_no_activa', 'La cuenta todavía no está activada.')
@@ -201,6 +229,7 @@ export const authHandlers = [
     if (bloqueado()) {
       return respuestas.codigo('cuenta_bloqueada', 'La cuenta está bloqueada temporalmente.')
     }
+    reactivarSiLaDesactivoSuDueno(usuario)
     if (!usuario.activo) {
       return usuario.tokenActivacion !== null
         ? respuestas.codigo('cuenta_no_activa', 'La cuenta todavía no está activada.')
@@ -258,8 +287,54 @@ export const authHandlers = [
     const { sesion, error } = autenticar(request)
     if (error) return error
     db.tokensRevocados.add(sesion.jti)
-    if (db.refresh?.usuarioId === sesion.usuario.id) db.refresh = null
+    if (db.refresh?.usuarioId === sesion.usuario.id) {
+      db.sesiones = db.sesiones.filter((s) => s.id !== db.refresh?.sesionId)
+      db.refresh = null
+    }
     return respuestas.mensaje('Sesión cerrada.')
+  }),
+
+  // Cierra la sesión en todos los dispositivos: corta los refresh tokens y los accesos emitidos.
+  http.post('/api/auth/logout-todas', async ({ request }) => {
+    await latencia()
+    const { sesion, error } = autenticar(request)
+    if (error) return error
+    revocarSesiones(sesion.usuario)
+    return respuestas.mensaje('Se cerró la sesión en todos los dispositivos.')
+  }),
+
+  // Sesiones abiertas de la persona; `actual` marca la del dispositivo que consulta (la de la cookie).
+  http.get('/api/auth/sesiones', async ({ request }) => {
+    await latencia()
+    const { sesion, error } = autenticar(request)
+    if (error) return error
+    const actual = db.refresh?.usuarioId === sesion.usuario.id ? db.refresh.sesionId : null
+    return HttpResponse.json(
+      db.sesiones
+        .filter((s) => s.usuarioId === sesion.usuario.id)
+        .sort((a, b) => Date.parse(b.ultimoUsoEn) - Date.parse(a.ultimoUsoEn))
+        .map((s) => ({
+          id: s.id,
+          dispositivo: s.dispositivo,
+          creadaEn: s.creadaEn,
+          ultimoUsoEn: s.ultimoUsoEn,
+          actual: s.id === actual,
+        })),
+    )
+  }),
+
+  // Cierra una sesión propia. Una ajena o inexistente es un 404 (nadie toca sesiones de otra persona).
+  http.delete('/api/auth/sesiones/:id', async ({ request, params }) => {
+    await latencia()
+    const { sesion, error } = autenticar(request)
+    if (error) return error
+    const objetivo = db.sesiones.find(
+      (s) => s.id === params.id && s.usuarioId === sesion.usuario.id,
+    )
+    if (!objetivo) return respuestas.noEncontrado('La sesión no existe.')
+    db.sesiones = db.sesiones.filter((s) => s.id !== objetivo.id)
+    if (db.refresh?.sesionId === objetivo.id) db.refresh = null
+    return new HttpResponse(null, { status: 204 })
   }),
 
   ...['recuperar-password', 'forgot-password'].map((ruta) =>

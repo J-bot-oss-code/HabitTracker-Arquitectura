@@ -47,7 +47,11 @@ describe('AuthProvider: sesión con refresh token', () => {
     tokenStorage.guardar('jwt-de-la-pagina-anterior')
     tokenStorage.borrar()
     localStorage.setItem('habittracker.sesion', '1')
-    db.refresh = { usuarioId: usuarioDemo('estandar').id, valor: 'cookie' }
+    db.refresh = {
+      usuarioId: usuarioDemo('estandar').id,
+      valor: 'cookie',
+      sesionId: 'sesion-de-prueba',
+    }
 
     const { router } = renderApp('/habitos')
 
@@ -79,7 +83,7 @@ describe('AuthProvider: sesión con refresh token', () => {
   it('mientras restaura la sesión no redirige al login ni pierde la ruta pedida', async () => {
     localStorage.setItem('habittracker.sesion', '1')
     const usuario = usuarioDemo('estandar')
-    db.refresh = { usuarioId: usuario.id, valor: 'cookie' }
+    db.refresh = { usuarioId: usuario.id, valor: 'cookie', sesionId: 'sesion-de-prueba' }
     // La renovación queda en espera: así se observa el estado intermedio, cuando aún no se sabe si hay sesión.
     let liberar: () => void = () => undefined
     const espera = new Promise<void>((resolver) => (liberar = resolver))
@@ -104,7 +108,11 @@ describe('AuthProvider: sesión con refresh token', () => {
 
   it('renueva el token un poco antes de que venza y la sesión sigue abierta', async () => {
     const corto = tokenQueVenceEn('estandar', 30)
-    db.refresh = { usuarioId: usuarioDemo('estandar').id, valor: 'cookie' }
+    db.refresh = {
+      usuarioId: usuarioDemo('estandar').id,
+      valor: 'cookie',
+      sesionId: 'sesion-de-prueba',
+    }
     const renovaciones = contarRenovaciones()
     tokenStorage.guardar(corto)
 

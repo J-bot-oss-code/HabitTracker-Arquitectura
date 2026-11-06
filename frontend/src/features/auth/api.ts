@@ -12,6 +12,7 @@ import type {
   ActivarRequest,
   GoogleLoginRequest,
   GoogleVincularRequest,
+  SesionActivaDto,
   VinculosResponse,
 } from './types'
 
@@ -28,6 +29,10 @@ export const authApi = {
   vincularGoogle: (body: GoogleVincularRequest) =>
     api.post<UsuarioResponseDto>(`${base}/google/vincular`, body),
   vinculos: () => api.get<VinculosResponse>(`${base}/vinculos`),
+  sesiones: () => api.get<SesionActivaDto[]>(`${base}/sesiones`),
+  cerrarSesionRemota: (id: string) =>
+    api.delete<void>(`${base}/sesiones/${encodeURIComponent(id)}`),
+  cerrarTodasLasSesiones: () => api.post<MensajeResponse>(`${base}/logout-todas`),
   desvincularGoogle: () => api.delete<void>(`${base}/vinculos/google`),
   logout: () => api.post<MensajeResponse>(`${base}/logout`),
   recuperarPassword: (correo: string) =>
@@ -41,10 +46,15 @@ export const authApi = {
 export const authKeys = {
   me: ['auth', 'me'] as const,
   vinculos: ['auth', 'vinculos'] as const,
+  sesiones: ['auth', 'sesiones'] as const,
 }
 
 export function useMe() {
   return useQuery({ queryKey: authKeys.me, queryFn: authApi.me })
+}
+
+export function useSesiones() {
+  return useQuery({ queryKey: authKeys.sesiones, queryFn: authApi.sesiones })
 }
 
 export function useVinculos() {

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { authKeys } from '@/features/auth/api'
 import { api } from '@/shared/api/http'
 import { esErrorHttp, esNoDisponible } from '@/shared/api/problem'
 import type {
@@ -76,7 +77,10 @@ export function useGuardarConsentimientos() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: perfilApi.guardarConsentimientos,
-    onSuccess: (consentimientos) =>
-      queryClient.setQueryData(perfilKeys.consentimientos, consentimientos),
+    onSuccess: (consentimientos) => {
+      queryClient.setQueryData(perfilKeys.consentimientos, consentimientos)
+      // /me trae `requiereAceptarDocumentos`: al aceptar las versiones vigentes el aviso debe desaparecer.
+      return queryClient.invalidateQueries({ queryKey: authKeys.me })
+    },
   })
 }
