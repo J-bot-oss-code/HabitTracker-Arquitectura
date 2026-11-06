@@ -19,6 +19,7 @@ import { ConsentFieldset } from '@/shared/ui/ConsentFieldset'
 import { Input } from '@/shared/ui/Field'
 import { useRegistro } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
+import { EntradaGoogle } from '../google/EntradaGoogle'
 import { registroSchema } from '../schemas'
 
 // Datos de la cuenta (límites del backend) + consentimientos obligatorios antes de crearla.
@@ -51,6 +52,7 @@ export function RegisterPage() {
   const {
     register,
     handleSubmit,
+    getValues,
     formState: { errors },
   } = useForm<Formulario>({
     resolver: zodResolver(esquema),
@@ -130,12 +132,20 @@ export function RegisterPage() {
         </p>
       )}
 
-      <Button variante="secundario" tamano="lg" className="w-full border-dashed" disabled>
-        Continuar con Google
-        <span className="rounded-full bg-superficie-2 px-2 py-0.5 text-xs font-semibold text-atenuado">
-          Muy pronto
-        </span>
-      </Button>
+      {/* Si las casillas de los documentos ya están marcadas se envían con el token; si no, se piden después. */}
+      <EntradaGoogle
+        texto="signup_with"
+        consentimientosIniciales={() => {
+          const { terminos, privacidad, marketing } = getValues()
+          return terminos && privacidad
+            ? {
+                terminosVersion: VERSION_TERMINOS,
+                privacidadVersion: VERSION_PRIVACIDAD,
+                marketing: marketing === true,
+              }
+            : undefined
+        }}
+      />
 
       <div className="flex items-center gap-3 text-xs text-atenuado" aria-hidden="true">
         <span className="h-px flex-1 bg-borde" />o con tu correo

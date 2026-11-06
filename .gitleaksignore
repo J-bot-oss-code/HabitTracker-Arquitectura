@@ -11,3 +11,6 @@
 ba0d509d6b5cc3b085c0c4dca7e338e456e2a1ce:frontend/src/features/auditoria/pages/Admin.test.tsx:generic-api-key:112
 ba0d509d6b5cc3b085c0c4dca7e338e456e2a1ce:frontend/src/features/auth/schemas.test.ts:generic-api-key:24
 ba0d509d6b5cc3b085c0c4dca7e338e456e2a1ce:frontend/src/mocks/contratoAuth.test.ts:generic-api-key:83
+
+# Contraseña ficticia de una prueba del frontend pegada a la palabra "password" (commit c232f96). Ya no lo está en el código.
+c232f96c98dd42e3b6a1dcaae2d29d77c532f409:frontend/src/mocks/contratoGoogle.test.ts:generic-api-key:117

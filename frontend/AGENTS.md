@@ -127,5 +127,14 @@ marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activa
 - **Errores:** los rechazos de Control de Acceso traen `codigo` en el ProblemDetails (`cuenta_no_activa`,
   `cuenta_bloqueada`, `clave_actual_incorrecta`, `sesion_invalida`...); ver README raíz › "Control de
   Acceso: errores, límites y CORS". Una contraseña actual incorrecta es un 400, no un 401.
-- **Pendiente de conectar:** inicio con Google, consentimientos/baja/descarga reales (ahora siguen simulados
-  en `mocks/handlers/propuestas/`), sesiones activas y vínculos.
+- **Inicio con Google (conectado):** `features/auth/google/`. El ID token lo entrega Google Identity Services
+  (`BotonGoogleReal`, script de `accounts.google.com/gsi/client` cargado una vez en `gis.ts`) y la API lo valida.
+  `useEntradaGoogle` orquesta `POST /api/auth/google`: 200/201 abre sesión, `400 consentimiento_requerido`
+  pide los documentos y repite, `409 vinculacion_requerida` pide la contraseña (`/google/vincular`). «Cuentas
+  vinculadas» (`GET /api/auth/vinculos`, `DELETE /api/auth/vinculos/google`) vive en Mi cuenta; una cuenta sin
+  contraseña no puede desvincular Google y ve un enlace para crearla con la recuperación. `/google/vincular` está
+  en `RUTAS_SIN_RENOVACION`: su 401 es «contraseña incorrecta», no «token vencido». Con mocks, el botón es una
+  demostración (`window.prompt`) y el «ID token» es `mock-google|sub|correo|nombre|1` (`tokenDemo.ts`): nunca
+  llega al backend real.
+- **Pendiente de conectar:** consentimientos/baja/descarga reales (ahora siguen simulados en
+  `mocks/handlers/propuestas/`) y sesiones activas.

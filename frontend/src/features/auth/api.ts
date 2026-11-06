@@ -10,6 +10,9 @@ import type {
   RestablecerPasswordRequest,
   UsuarioResponseDto,
   ActivarRequest,
+  GoogleLoginRequest,
+  GoogleVincularRequest,
+  VinculosResponse,
 } from './types'
 
 const base = '/api/auth'
@@ -21,6 +24,11 @@ export const authApi = {
     api.post<MensajeResponse>(`${base}/resend-activation`, { correo }),
   login: (body: LoginRequest) => api.post<UsuarioResponseDto>(`${base}/login`, body),
   me: () => api.get<MeResponse>(`${base}/me`),
+  google: (body: GoogleLoginRequest) => api.post<UsuarioResponseDto>(`${base}/google`, body),
+  vincularGoogle: (body: GoogleVincularRequest) =>
+    api.post<UsuarioResponseDto>(`${base}/google/vincular`, body),
+  vinculos: () => api.get<VinculosResponse>(`${base}/vinculos`),
+  desvincularGoogle: () => api.delete<void>(`${base}/vinculos/google`),
   logout: () => api.post<MensajeResponse>(`${base}/logout`),
   recuperarPassword: (correo: string) =>
     api.post<MensajeResponse>(`${base}/recuperar-password`, { correo }),
@@ -32,10 +40,15 @@ export const authApi = {
 
 export const authKeys = {
   me: ['auth', 'me'] as const,
+  vinculos: ['auth', 'vinculos'] as const,
 }
 
 export function useMe() {
   return useQuery({ queryKey: authKeys.me, queryFn: authApi.me })
+}
+
+export function useVinculos() {
+  return useQuery({ queryKey: authKeys.vinculos, queryFn: authApi.vinculos })
 }
 
 export const useLogin = () => useMutation({ mutationFn: authApi.login })

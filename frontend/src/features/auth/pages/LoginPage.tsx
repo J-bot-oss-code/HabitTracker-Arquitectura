@@ -8,6 +8,7 @@ import { Button } from '@/shared/ui/Button'
 import { Input } from '@/shared/ui/Field'
 import { useLogin } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
+import { EntradaGoogle } from '../google/EntradaGoogle'
 import { loginSchema, type LoginForm } from '../schemas'
 
 interface EstadoNavegacion {
@@ -70,6 +71,13 @@ export function LoginPage() {
     >
       {mensaje && <Alert tono="info">{mensaje}</Alert>}
       {login.isError && <Alert tono="peligro">{mensajeLogin(login.error)}</Alert>}
+
+      <EntradaGoogle texto="signin_with" />
+
+      <div className="flex items-center gap-3 text-xs text-atenuado" aria-hidden="true">
+        <span className="h-px flex-1 bg-borde" />o con tu correo
+        <span className="h-px flex-1 bg-borde" />
+      </div>
 
       <form onSubmit={enviar} noValidate className="space-y-4">
         <Input

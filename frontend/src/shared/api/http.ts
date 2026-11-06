@@ -42,7 +42,12 @@ async function leerProblema(respuesta: Response): Promise<ProblemDetails | null>
 
 // Rutas de autenticación: su 401 significa "credenciales incorrectas" y no "token vencido", así que
 // no se intenta renovar la sesión ni se cierra la que haya.
-const RUTAS_SIN_RENOVACION = ['/api/auth/login', '/api/auth/google', '/api/auth/refresh']
+const RUTAS_SIN_RENOVACION = [
+  '/api/auth/login',
+  '/api/auth/google',
+  '/api/auth/google/vincular',
+  '/api/auth/refresh',
+]
 
 function hacerPeticion(metodo: Metodo, ruta: string, opciones: OpcionesHttp, token: string | null) {
   const headers: Record<string, string> = { Accept: 'application/json' }

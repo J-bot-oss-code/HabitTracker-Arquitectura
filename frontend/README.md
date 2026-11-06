@@ -63,11 +63,12 @@ Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2
 
 Copia `.env.example` a `.env.local` (no se versiona):
 
-| Variable                   | Por defecto                     | Uso                                          |
-| -------------------------- | ------------------------------- | -------------------------------------------- |
-| `VITE_USE_MOCKS`           | `true` en dev, `false` en build | `false` para llamar al backend real          |
-| `VITE_API_URL`             | `http://localhost:5246`         | URL de `Host/WebApi`                         |
-| `VITE_META_ID_POR_DEFECTO` | vacío                           | Id de meta que se propone al crear un hábito |
+| Variable                   | Por defecto                     | Uso                                                                           |
+| -------------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
+| `VITE_USE_MOCKS`           | `true` en dev, `false` en build | `false` para llamar al backend real                                           |
+| `VITE_API_URL`             | `http://localhost:5246`         | URL de `Host/WebApi`                                                          |
+| `VITE_META_ID_POR_DEFECTO` | vacío                           | Id de meta que se propone al crear un hábito                                  |
+| `VITE_GOOGLE_CLIENT_ID`    | vacío                           | ID de cliente de Google (público); el mismo que `Google:ClientId` del backend |
 
 Todo lo que empieza por `VITE_` termina en el bundle público: nunca pongas credenciales ahí.
 
@@ -77,6 +78,13 @@ Todo lo que empieza por `VITE_` termina en el bundle público: nunca pongas cred
    Su CORS ya permite `http://localhost:5173` y `http://localhost:5174` (en Docker, la variable `FRONTEND_URL`).
 2. En `frontend/.env.local`: `VITE_USE_MOCKS=false` y `VITE_API_URL=http://localhost:5246` (o `:8080` en Docker).
 3. `npm run dev` y abre `http://localhost:5173`.
+
+**Continuar con Google.** Con `VITE_GOOGLE_CLIENT_ID` el botón de Google Identity Services aparece en
+`/login` y `/registro` y en «Cuentas vinculadas» de Mi cuenta. Si el correo de Google es nuevo se piden los
+documentos legales y se crea la cuenta; si ya tiene una cuenta con contraseña se pide confirmarla para
+vincular; si ya está vinculada entra directo. Sin el ID el botón queda desactivado y con `VITE_USE_MOCKS=true`
+es un botón de demostración que pide el correo de una cuenta de Google simulada. Para crear el ID de cliente
+(origen autorizado `http://localhost:5173`), ver el README raíz › Inicio de sesión con Google.
 
 **Sesión.** El token de acceso (JWT, 15 minutos) vive solo en memoria. La sesión larga la sostiene el
 refresh token, que el navegador guarda en una cookie `HttpOnly` que el JavaScript no puede leer: al recargar

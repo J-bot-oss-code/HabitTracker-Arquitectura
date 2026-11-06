@@ -1,5 +1,6 @@
 import { http, HttpResponse } from 'msw'
 import type { UsuarioResponseDto } from '@/features/auth/types'
+import { leerTokenDemo } from '@/features/auth/google/tokenDemo'
 import { VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/publico/legal'
 import { CABECERA_CSRF } from '@/shared/api/sesion'
 import { auditar } from '../auditoria'
@@ -67,6 +68,27 @@ function consentimientosValidos(
     privacidadVersion === VERSION_PRIVACIDAD &&
     typeof marketing === 'boolean'
   )
+}
+
+const tokenExternoInvalido = () =>
+  problema(
+    401,
+    'Credenciales incorrectas.',
+    'No se pudo verificar la cuenta de Google.',
+    'token_externo_invalido',
+  )
+
+// Las mismas reglas del inicio de sesión con contraseña para una cuenta ya vinculada (RF-CA-15, 19, 20).
+function rechazoDeEntrada(usuario: UsuarioMock) {
+  if (usuario.bloqueadoHasta !== null && usuario.bloqueadoHasta > Date.now()) {
+    return respuestas.codigo('cuenta_bloqueada', 'La cuenta está bloqueada temporalmente.')
+  }
+  if (!usuario.activo) {
+    return usuario.tokenActivacion !== null
+      ? respuestas.codigo('cuenta_no_activa', 'La cuenta todavía no está activada.')
+      : respuestas.codigo('cuenta_desactivada', 'La cuenta fue desactivada por un administrador.')
+  }
+  return null
 }
 
 export const authHandlers = [
@@ -165,7 +187,10 @@ export const authHandlers = [
 
     const bloqueado = () => usuario.bloqueadoHasta !== null && usuario.bloqueadoHasta > Date.now()
 
-    if (usuario.password === null || usuario.password !== body.password) {
+    // Cuenta de Google sin contraseña: 401 genérico y sin contar para el bloqueo (no hay clave que adivinar).
+    if (usuario.password === null) return respuestas.noAutorizado()
+
+    if (usuario.password !== body.password) {
       usuario.intentosFallidos += 1
       if (usuario.intentosFallidos >= MAX_INTENTOS) usuario.bloqueadoHasta = Date.now() + BLOQUEO_MS
       return bloqueado()
@@ -287,6 +312,9 @@ export const authHandlers = [
     if (!cumplePolitica(body.nueva)) {
       return respuestas.codigo('contrasena_no_valida', 'La contraseña no cumple la política.')
     }
+    if (sesion.usuario.password === null) {
+      return respuestas.codigo('sin_contrasena', 'La cuenta no tiene contraseña.')
+    }
     // 400 y no 401/403: un 401 cerraría la sesión del cliente por un simple error de tecleo.
     if (sesion.usuario.password !== body.actual) {
       return respuestas.codigo('clave_actual_incorrecta', 'La contraseña actual no coincide.')
@@ -295,5 +323,161 @@ export const authHandlers = [
     // RF-CA-12: invalida las sesiones previas.
     revocarSesiones(sesion.usuario)
     return respuestas.mensaje('Contraseña actualizada.')
+  }),
+
+  // ---------------- Inicio con Google (el "ID token" de la demostración trae la identidad) ----------------
+
+  http.post('/api/auth/google', async ({ request }) => {
+    await latencia()
+    const body = await leerJson<{ idToken: string; consentimientos: unknown }>(request)
+    if (!body || !esTexto(body.idToken, 1, 4096)) return respuestas.invalida()
+    // Token falso, de otra aplicación o con el correo sin verificar: 401 sin decir cuál.
+    const identidad = leerTokenDemo(body.idToken)
+    if (!identidad || !identidad.correoVerificado) return tokenExternoInvalido()
+
+    // 1. Identidad ya vinculada: inicio de sesión normal, con las reglas del login.
+    const vinculado = db.usuarios.find(
+      (u) => db.vinculosGoogle.get(u.id)?.subject === identidad.sub,
+    )
+    if (vinculado) {
+      const rechazo = rechazoDeEntrada(vinculado)
+      if (rechazo) return rechazo
+      auditar({ actor: vinculado.correo, accion: 'InicioSesion', entidad: 'Sesión' })
+      return HttpResponse.json(aDto(vinculado, abrirSesion(vinculado)))
+    }
+
+    // 2. El correo ya tiene cuenta: no se vincula sola, hay que confirmar la contraseña.
+    if (buscarPorCorreo(identidad.correo)) {
+      return problema(
+        409,
+        'Vinculación requerida.',
+        'Ya existe una cuenta con este correo. Confirma tu contraseña para vincular Google.',
+        'vinculacion_requerida',
+      )
+    }
+
+    // 3. Correo nuevo: exige los documentos vigentes y crea la cuenta ya activa y sin contraseña.
+    if (body.consentimientos === undefined || body.consentimientos === null) {
+      return respuestas.codigo(
+        'consentimiento_requerido',
+        'Para crear la cuenta debes aceptar los Términos y la Política de privacidad vigentes.',
+      )
+    }
+    if (!consentimientosValidos(body.consentimientos)) {
+      return respuestas.codigo('consentimiento_no_valido', 'Falta aceptar los documentos vigentes.')
+    }
+    const nuevo: UsuarioMock = {
+      id: crypto.randomUUID(),
+      nombre: identidad.nombre || identidad.correo.split('@')[0],
+      correo: identidad.correo,
+      password: null,
+      rol: 'Estandar',
+      activo: true,
+      intentosFallidos: 0,
+      bloqueadoHasta: null,
+      tokenActivacion: null,
+      codigoRecuperacion: null,
+      sesionesValidasDesde: 0,
+    }
+    db.usuarios.push(nuevo)
+    db.vinculosGoogle.set(nuevo.id, {
+      subject: identidad.sub,
+      vinculadoEn: new Date().toISOString(),
+    })
+    db.consentimientos.set(nuevo.id, {
+      terminosVersion: body.consentimientos.terminosVersion,
+      privacidadVersion: body.consentimientos.privacidadVersion,
+      aceptadoEn: new Date().toISOString(),
+      datosSalud: false,
+      marketing: body.consentimientos.marketing,
+      compartirCumplimiento: false,
+      estadisticasAnonimas: false,
+    })
+    auditar({ actor: nuevo.correo, accion: 'Registro', entidad: 'Usuario', entidadId: nuevo.id })
+    return HttpResponse.json(aDto(nuevo, abrirSesion(nuevo)), { status: 201 })
+  }),
+
+  // Vincular Google a la cuenta con contraseña de ese correo, confirmando la contraseña (cuenta para el bloqueo).
+  http.post('/api/auth/google/vincular', async ({ request }) => {
+    await latencia()
+    const body = await leerJson<{ idToken: string; password: string }>(request)
+    if (!body || !esTexto(body.idToken, 1, 4096) || !esTexto(body.password, 1, 1024)) {
+      return respuestas.invalida()
+    }
+    const identidad = leerTokenDemo(body.idToken)
+    if (!identidad || !identidad.correoVerificado) return tokenExternoInvalido()
+
+    const usuario = buscarPorCorreo(identidad.correo)
+    // Sin cuenta con contraseña no hay nada que confirmar: mismo 401 que una clave incorrecta.
+    if (!usuario || usuario.password === null) return respuestas.noAutorizado()
+
+    if (usuario.password !== body.password) {
+      usuario.intentosFallidos += 1
+      if (usuario.intentosFallidos >= MAX_INTENTOS) usuario.bloqueadoHasta = Date.now() + BLOQUEO_MS
+      return usuario.bloqueadoHasta !== null && usuario.bloqueadoHasta > Date.now()
+        ? respuestas.codigo('cuenta_bloqueada', 'La cuenta está bloqueada temporalmente.')
+        : respuestas.noAutorizado()
+    }
+    if (usuario.bloqueadoHasta !== null && usuario.bloqueadoHasta > Date.now()) {
+      return respuestas.codigo('cuenta_bloqueada', 'La cuenta está bloqueada temporalmente.')
+    }
+    const pendiente = !usuario.activo && usuario.tokenActivacion !== null
+    if (!usuario.activo && !pendiente) {
+      return respuestas.codigo(
+        'cuenta_desactivada',
+        'La cuenta fue desactivada por un administrador.',
+      )
+    }
+
+    const otraCuenta = db.usuarios.find(
+      (u) => u.id !== usuario.id && db.vinculosGoogle.get(u.id)?.subject === identidad.sub,
+    )
+    const actual = db.vinculosGoogle.get(usuario.id)
+    if (otraCuenta || (actual && actual.subject !== identidad.sub)) {
+      return respuestas.codigo(
+        'proveedor_ya_vinculado',
+        'La identidad de Google ya está vinculada.',
+      )
+    }
+    if (!actual) {
+      db.vinculosGoogle.set(usuario.id, {
+        subject: identidad.sub,
+        vinculadoEn: new Date().toISOString(),
+      })
+    }
+    // Google acaba de verificar el correo: una cuenta que esperaba su código queda activa.
+    if (pendiente) {
+      usuario.activo = true
+      usuario.tokenActivacion = null
+    }
+    usuario.intentosFallidos = 0
+    usuario.bloqueadoHasta = null
+    return HttpResponse.json(aDto(usuario, abrirSesion(usuario)))
+  }),
+
+  http.get('/api/auth/vinculos', async ({ request }) => {
+    await latencia()
+    const { sesion, error } = autenticar(request)
+    if (error) return error
+    const vinculo = db.vinculosGoogle.get(sesion.usuario.id)
+    return HttpResponse.json({
+      tienePassword: sesion.usuario.password !== null,
+      vinculos: vinculo ? [{ proveedor: 'google', vinculadoEn: vinculo.vinculadoEn }] : [],
+    })
+  }),
+
+  // Solo se puede desvincular si la cuenta tiene contraseña: si no, quedaría sin forma de entrar.
+  http.delete('/api/auth/vinculos/:proveedor', async ({ request, params }) => {
+    await latencia()
+    const { sesion, error } = autenticar(request)
+    if (error) return error
+    if (params.proveedor !== 'google' || !db.vinculosGoogle.has(sesion.usuario.id)) {
+      return respuestas.noEncontrado('La cuenta no tiene ese proveedor vinculado.')
+    }
+    if (sesion.usuario.password === null) {
+      return respuestas.codigo('ultimo_metodo_acceso', 'Google es tu única forma de entrar.')
+    }
+    db.vinculosGoogle.delete(sesion.usuario.id)
+    return new HttpResponse(null, { status: 204 })
   }),
 ]
