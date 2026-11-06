@@ -32,7 +32,8 @@ public class TokenBlacklistMiddleware
 
             if (!string.IsNullOrWhiteSpace(token) && blacklist.EstaInvalidado(token))
             {
-                _logger.LogWarning("Token invalidado usado en {Path}.", context.Request.Path);
+                // Endpoint (plantilla de la ruta) y no la ruta cruda, que la controla quien llama (cs/log-forging).
+                _logger.LogWarning("Token invalidado usado en {Endpoint}.", context.GetEndpoint()?.DisplayName ?? "(sin ruta)");
                 await RechazarAsync(context);
                 return;
             }
@@ -41,7 +42,7 @@ public class TokenBlacklistMiddleware
 
             if (Guid.TryParse(sub, out var usuarioId) && !blacklist.SesionVigente(usuarioId, EmitidoEn(token)))
             {
-                _logger.LogWarning("Sesión revocada del usuario {UsuarioId} usada en {Path}.", usuarioId, context.Request.Path);
+                _logger.LogWarning("Sesión revocada del usuario {UsuarioId} usada en {Endpoint}.", usuarioId, context.GetEndpoint()?.DisplayName ?? "(sin ruta)");
                 await RechazarAsync(context);
                 return;
             }

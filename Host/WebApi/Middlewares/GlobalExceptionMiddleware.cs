@@ -65,7 +65,8 @@ public class GlobalExceptionMiddleware
         catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
         {
             // El cliente cerró la conexión a mitad de la petición: no es un error del servidor ni hay a quién responder.
-            _logger.LogInformation("Solicitud cancelada por el cliente en {Path}.", context.Request.Path);
+            // Se registra el endpoint (la plantilla de la ruta), no la ruta cruda: esa la controla quien llama (cs/log-forging).
+            _logger.LogInformation("Solicitud cancelada por el cliente en {Endpoint}.", context.GetEndpoint()?.DisplayName ?? "(sin ruta)");
         }
         catch (CredencialesInvalidasException ex)
         {
@@ -132,7 +133,7 @@ public class GlobalExceptionMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Excepción no manejada en {Path}.", context.Request.Path);
+            _logger.LogError(ex, "Excepción no manejada en {Endpoint}.", context.GetEndpoint()?.DisplayName ?? "(sin ruta)");
             await WriteProblemAsync(context, HttpStatusCode.InternalServerError, "Ocurrió un error inesperado.", "Ocurrió un error inesperado. Inténtelo de nuevo más tarde.");
         }
     }
