@@ -18,23 +18,32 @@ describe('exportación (pura)', () => {
     )
   })
 
-  it('arma el archivo con versión, instante UTC y las piezas ausentes como null', () => {
-    const e = armarExportacion(
-      {
-        cuenta: { id: '1', correo: 'a@b.c', rol: 'Estandar' },
-        habitos: [],
-        permisos: [],
-        perfil: null,
-        pesos: null,
-        mediciones: null,
-        consentimientos: null,
+  it('arma el archivo con lo del servidor más el perfil y el progreso (null si no existen)', () => {
+    const servidor = {
+      generadoEn: '2026-11-03T10:00:00.000Z',
+      cuenta: {
+        id: '1',
+        nombre: 'Ana',
+        correo: 'a@b.c',
+        rol: 'Estandar',
+        activo: true,
+        fechaCreacion: '2026-01-01T00:00:00.000Z',
+        tienePassword: true,
+        desactivadaPorUsuarioEn: null,
+        bajaProgramadaPara: null,
       },
-      new Date('2026-11-03T10:00:00Z'),
-    )
+      consentimientos: [],
+      vinculos: [],
+      sesiones: [],
+      modulos: { habitos: [], permisos: [], documentos: [] },
+    }
+    const e = armarExportacion(servidor, { perfil: null, pesos: null, mediciones: null })
     expect(e).toMatchObject({
       formato: 'habittracker-datos',
-      version: 1,
+      version: 2,
       generadoEn: '2026-11-03T10:00:00.000Z',
+      cuenta: { correo: 'a@b.c' },
+      modulos: { habitos: [] },
       perfil: null,
       progreso: { pesos: null, mediciones: null },
     })
@@ -64,63 +73,86 @@ describe('Centro de privacidad', () => {
   })
 
   describe('descargar mis datos', () => {
-    it('baja un JSON con los datos del usuario y deja constancia en la auditoría', async () => {
-      let blobSubido: Blob | null = null
+    function capturarDescarga() {
+      const captura = { blob: null as Blob | null, nombre: '' }
       URL.createObjectURL = (b: Blob | MediaSource) => {
-        blobSubido = b as Blob
+        captura.blob = b as Blob
         return 'blob:prueba'
       }
       URL.revokeObjectURL = () => undefined
-      let nombre = ''
       vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
         this: HTMLAnchorElement,
       ) {
-        nombre = this.download
+        captura.nombre = this.download
       })
+      return captura
+    }
+
+    it('baja el JSON que arma el servidor y la auditoría lo anota', async () => {
+      const captura = capturarDescarga()
+      const eventosAntes = db.auditoria.length
 
       const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
       await user.click(await screen.findByRole('button', { name: /Descargar mis datos/ }))
       expect(await screen.findByText('Descarga lista.')).toBeInTheDocument()
 
-      expect(nombre).toMatch(/^habittracker-mis-datos-\d{4}-\d{2}-\d{2}\.json$/)
-      const contenido = JSON.parse(await (blobSubido as unknown as Blob).text())
+      expect(captura.nombre).toMatch(/^habittracker-mis-datos-\d{4}-\d{2}-\d{2}\.json$/)
+      const contenido = JSON.parse(await (captura.blob as unknown as Blob).text())
       expect(contenido).toMatchObject({
         formato: 'habittracker-datos',
-        cuenta: { correo: 'estandar@demo.com', rol: 'Estandar' },
+        version: 2,
+        cuenta: { correo: 'estandar@demo.com', rol: 'Estandar', tienePassword: true },
         perfil: { metaSlug: 'primeros-5-km' },
-        consentimientos: { terminosVersion: 'v2.1', datosSalud: true },
       })
-      expect(contenido.habitos).toHaveLength(3)
+      expect(contenido.consentimientos).toHaveLength(1)
+      expect(contenido.consentimientos[0]).toMatchObject({
+        terminosVersion: 'v2.1',
+        datosSalud: true,
+      })
+      expect(contenido.modulos.habitos).toHaveLength(3)
+      expect(Array.isArray(contenido.modulos.permisos)).toBe(true)
       expect(contenido.progreso.pesos.registros).toHaveLength(10)
       expect(contenido.progreso.mediciones).toHaveLength(8)
       // No viaja nada de otras cuentas ni credenciales.
-      expect(JSON.stringify(contenido)).not.toMatch(/otro@demo|Demo1234|password/i)
-      const ultimo = db.auditoria.at(-1)
-      expect(ultimo).toMatchObject({ actor: 'estandar@demo.com', accion: 'DescargaDatos' })
+      expect(JSON.stringify(contenido)).not.toMatch(/otro@demo|Demo1234|"password"|passwordHash/i)
+      expect(db.auditoria).toHaveLength(eventosAntes + 1)
+      expect(db.auditoria.at(-1)).toMatchObject({
+        actor: 'estandar@demo.com',
+        accion: 'DescargaDatos',
+      })
     })
 
-    it('si falta una pieza en el servidor la descarga sigue con esa parte en null', async () => {
-      URL.createObjectURL = () => 'blob:prueba'
-      URL.revokeObjectURL = () => undefined
-      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
-      server.use(
-        http.get('/api/progress/weights', () => new HttpResponse(null, { status: 404 })),
-        http.post('/api/privacy/export-request', () => new HttpResponse(null, { status: 404 })),
-      )
+    it('si falta una pieza que el servidor aún no ofrece la descarga sigue con esa parte en null', async () => {
+      const captura = capturarDescarga()
+      server.use(http.get('/api/progress/weights', () => new HttpResponse(null, { status: 404 })))
       const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
       await user.click(await screen.findByRole('button', { name: /Descargar mis datos/ }))
       expect(await screen.findByText('Descarga lista.')).toBeInTheDocument()
+
+      const contenido = JSON.parse(await (captura.blob as unknown as Blob).text())
+      expect(contenido.progreso.pesos).toBeNull()
+      expect(contenido.modulos.habitos).toHaveLength(3)
     })
 
-    it('si falla una pieza esencial avisa en vez de entregar un archivo incompleto', async () => {
+    it('si falla la descarga del servidor avisa en vez de entregar un archivo incompleto', async () => {
       const descargas = vi
         .spyOn(HTMLAnchorElement.prototype, 'click')
         .mockImplementation(() => undefined)
-      server.use(http.get('/api/habits', () => problema(500, 'Error interno.')))
+      server.use(http.get('/api/privacy/export', () => problema(500, 'Error interno.')))
       const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
       await user.click(await screen.findByRole('button', { name: /Descargar mis datos/ }))
       expect(await screen.findByText('No se pudo preparar la descarga.')).toBeInTheDocument()
       expect(descargas).not.toHaveBeenCalled()
+    })
+
+    it('no sale del navegador nada más que la petición de la descarga', async () => {
+      capturarDescarga()
+      const eventosAntes = db.auditoria.length
+      const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
+      await user.click(await screen.findByRole('button', { name: /Descargar mis datos/ }))
+      expect(await screen.findByText('Descarga lista.')).toBeInTheDocument()
+      // El servidor ya deja la constancia al servir el archivo: no hay un aviso aparte (export-request).
+      expect(db.auditoria.slice(eventosAntes).map((e) => e.accion)).toEqual(['DescargaDatos'])
     })
   })
 
@@ -211,45 +243,154 @@ describe('Centro de privacidad', () => {
       expect(await within(dialogo).findByText('La contraseña no es correcta.')).toBeInTheDocument()
       expect(router.state.location.pathname).toBe('/ajustes/privacidad')
       expect(ana().activo).toBe(true)
-      expect(db.solicitudesBaja).toHaveLength(0)
+      expect(db.bajas.size).toBe(0)
     })
 
-    it('desactivar cierra la sesión y deja la cuenta inactiva', async () => {
+    it('desactivar cierra la sesión y deja la cuenta inactiva por su dueño', async () => {
       const { user, router } = renderApp('/ajustes/privacidad', { como: 'estandar' })
       await user.click(await screen.findByRole('button', { name: 'Desactivar' }))
       const dialogo = await screen.findByRole('dialog', { name: 'Desactivar mi cuenta' })
       await user.type(within(dialogo).getByLabelText('Tu contraseña'), 'Demo1234')
       await user.click(within(dialogo).getByRole('button', { name: 'Desactivar cuenta' }))
 
-      expect(await screen.findByText('Tu cuenta quedó desactivada.')).toBeInTheDocument()
+      expect(await screen.findByText(/Tu cuenta quedó desactivada/)).toBeInTheDocument()
       expect(router.state.location.pathname).toBe('/login')
-      expect(ana().activo).toBe(false)
-      expect(db.solicitudesBaja[0]).toMatchObject({ tipo: 'desactivar', borradoEn: null })
+      expect(ana()).toMatchObject({ activo: false, desactivadaPorUsuario: true })
+      expect(db.bajas.size).toBe(0)
       expect(db.auditoria.at(-1)).toMatchObject({
         accion: 'SolicitudBaja',
         valorNuevo: 'desactivar',
       })
     })
 
-    it('eliminar fija el borrado a 30 días (UTC) y cierra la sesión', async () => {
+    it('una cuenta desactivada por su dueño se reactiva al iniciar sesión de nuevo', async () => {
+      const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
+      await user.click(await screen.findByRole('button', { name: 'Desactivar' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Desactivar mi cuenta' })
+      await user.type(within(dialogo).getByLabelText('Tu contraseña'), 'Demo1234')
+      await user.click(within(dialogo).getByRole('button', { name: 'Desactivar cuenta' }))
+      await screen.findByRole('heading', { name: 'Iniciar sesión' })
+
+      await user.type(screen.getByLabelText('Correo'), 'estandar@demo.com')
+      await user.type(screen.getByLabelText('Contraseña'), 'Demo1234')
+      await user.click(screen.getByRole('button', { name: 'Entrar' }))
+
+      expect(
+        await screen.findByRole('heading', {
+          level: 1,
+          name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+        }),
+      ).toBeInTheDocument()
+      expect(ana()).toMatchObject({ activo: true, desactivadaPorUsuario: false })
+    })
+
+    it('eliminar fija el borrado a 30 días (UTC), cierra la sesión y dice la fecha', async () => {
       const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
       await user.click(await screen.findByRole('button', { name: 'Eliminar mi cuenta' }))
       const dialogo = await screen.findByRole('dialog', { name: 'Eliminar mi cuenta' })
       await user.type(within(dialogo).getByLabelText('Tu contraseña'), 'Demo1234')
       await user.click(within(dialogo).getByRole('button', { name: 'Eliminar mi cuenta' }))
 
-      expect(await screen.findByText(/Tus datos se borrarán en 30 días/)).toBeInTheDocument()
-      const { solicitadaEn, borradoEn } = db.solicitudesBaja[0]
-      expect(borradoEn).toMatch(/Z$/)
-      const dias = (Date.parse(borradoEn ?? '') - Date.parse(solicitadaEn)) / 86_400_000
+      expect(await screen.findByText(/se borrará el .* Si cambias de opinión/)).toBeInTheDocument()
+      const baja = db.bajas.get(ana().id)
+      expect(baja?.borradoEn).toMatch(/Z$/)
+      const dias =
+        (Date.parse(baja?.borradoEn ?? '') - Date.parse(baja?.solicitadaEn ?? '')) / 86_400_000
       expect(dias).toBeCloseTo(30, 3)
+      // Durante la gracia la cuenta sigue activa para poder cancelar.
+      expect(ana().activo).toBe(true)
+    })
+
+    it('con la eliminación programada se puede cancelar desde el aviso de toda la aplicación', async () => {
+      const ahora = Date.now()
+      db.bajas.set(ana().id, {
+        solicitadaEn: new Date(ahora).toISOString(),
+        borradoEn: new Date(ahora + 29 * 86_400_000).toISOString(),
+      })
+      const { user } = renderApp('/hoy', { como: 'estandar' })
+
+      const aviso = await screen.findByText('Tu cuenta se eliminará')
+      expect(aviso).toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Cancelar eliminación' }))
+
+      await waitFor(() =>
+        expect(screen.queryByText('Tu cuenta se eliminará')).not.toBeInTheDocument(),
+      )
+      expect(db.bajas.size).toBe(0)
+      expect(ana().activo).toBe(true)
+    })
+
+    it('en el centro de privacidad avisa de la fecha, oculta «Eliminar» y permite cancelar', async () => {
+      db.bajas.set(ana().id, {
+        solicitadaEn: new Date().toISOString(),
+        borradoEn: new Date(Date.now() + 10 * 86_400_000).toISOString(),
+      })
+      const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
+
+      expect(await screen.findByText('Eliminación programada')).toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'Eliminar mi cuenta' })).not.toBeInTheDocument()
+      await user.click(screen.getAllByRole('button', { name: 'Cancelar eliminación' })[0])
+
+      expect(await screen.findByRole('button', { name: 'Eliminar mi cuenta' })).toBeInTheDocument()
+      expect(db.bajas.size).toBe(0)
+    })
+
+    it('una cuenta sin contraseña confirma con Google en lugar de con la contraseña', async () => {
+      db.vinculosGoogle.set(ana().id, {
+        subject: 'sub-estandar@demo.com',
+        vinculadoEn: new Date().toISOString(),
+      })
+      ana().password = null
+      vi.spyOn(window, 'prompt').mockReturnValue('estandar@demo.com')
+      const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
+      await user.click(await screen.findByRole('button', { name: 'Eliminar mi cuenta' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Eliminar mi cuenta' })
+
+      expect(within(dialogo).queryByLabelText('Tu contraseña')).not.toBeInTheDocument()
+      await user.click(await within(dialogo).findByRole('button', { name: /Continuar con Google/ }))
+
+      expect(await screen.findByText(/se borrará el/)).toBeInTheDocument()
+      expect(db.bajas.has(ana().id)).toBe(true)
+    })
+
+    it('un token de Google de otra cuenta no sirve para darla de baja (400, sin cerrar la sesión)', async () => {
+      db.vinculosGoogle.set(ana().id, {
+        subject: 'sub-estandar@demo.com',
+        vinculadoEn: new Date().toISOString(),
+      })
+      ana().password = null
+      vi.spyOn(window, 'prompt').mockReturnValue('otra.persona@example.com')
+      const { user, router } = renderApp('/ajustes/privacidad', { como: 'estandar' })
+      await user.click(await screen.findByRole('button', { name: 'Desactivar' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Desactivar mi cuenta' })
+      await user.click(await within(dialogo).findByRole('button', { name: /Continuar con Google/ }))
+
+      expect(
+        await within(dialogo).findByText(/No pudimos confirmarlo con Google/),
+      ).toBeInTheDocument()
+      expect(router.state.location.pathname).toBe('/ajustes/privacidad')
+      expect(ana().activo).toBe(true)
+    })
+
+    it('tras 5 contraseñas erróneas la cuenta queda bloqueada y lo dice', async () => {
+      const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
+      await user.click(await screen.findByRole('button', { name: 'Eliminar mi cuenta' }))
+      const dialogo = await screen.findByRole('dialog', { name: 'Eliminar mi cuenta' })
+      for (let i = 0; i < 5; i++) {
+        await user.clear(within(dialogo).getByLabelText('Tu contraseña'))
+        await user.type(within(dialogo).getByLabelText('Tu contraseña'), 'incorrecta-12345')
+        await user.click(within(dialogo).getByRole('button', { name: 'Eliminar mi cuenta' }))
+        await within(dialogo).findByRole('alert')
+      }
+      expect(await within(dialogo).findByText(/bloqueada 15 minutos/)).toBeInTheDocument()
+      expect(db.bajas.size).toBe(0)
     })
   })
 
-  describe('contrato propuesto', () => {
-    const post = (ruta: string, token: string, cuerpo?: unknown) =>
+  describe('contrato simulado de la baja y la descarga', () => {
+    const llamar = (ruta: string, token: string, metodo = 'POST', cuerpo?: unknown) =>
       fetch(`${window.location.origin}${ruta}`, {
-        method: 'POST',
+        method: metodo,
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: cuerpo === undefined ? undefined : JSON.stringify(cuerpo),
       })
@@ -257,34 +398,93 @@ describe('Centro de privacidad', () => {
     it('rechaza modos y contraseñas inválidos y el rol Administrador', async () => {
       const token = iniciarSesionComo('estandar')
       expect(
-        (await post('/api/privacy/deletion-request', token, { modo: 'borrar', password: 'x' }))
-          .status,
+        (
+          await llamar('/api/privacy/deletion-request', token, 'POST', {
+            modo: 'borrar',
+            password: 'x',
+          })
+        ).status,
       ).toBe(400)
       expect(
-        (await post('/api/privacy/deletion-request', token, { modo: 'eliminar', password: '' }))
-          .status,
+        (await llamar('/api/privacy/deletion-request', token, 'POST', { password: 'x' })).status,
       ).toBe(400)
+      const admin = iniciarSesionComo('admin')
       expect(
         (
-          await post('/api/privacy/deletion-request', iniciarSesionComo('admin'), {
+          await llamar('/api/privacy/deletion-request', admin, 'POST', {
             modo: 'eliminar',
             password: 'x',
           })
         ).status,
       ).toBe(403)
-      expect((await post('/api/privacy/export-request', iniciarSesionComo('admin'))).status).toBe(
-        403,
-      )
-      expect(db.solicitudesBaja).toHaveLength(0)
+      expect((await llamar('/api/privacy/export', admin, 'GET')).status).toBe(403)
+      expect((await llamar('/api/privacy/deletion-request', admin, 'GET')).status).toBe(403)
+      expect(db.bajas.size).toBe(0)
     })
 
-    it('una contraseña errónea es un 400 (un 401 cerraría la sesión en el cliente)', async () => {
+    it('una contraseña errónea es un 400 clave_actual_incorrecta que cuenta para el bloqueo (un 401 cerraría la sesión)', async () => {
       const token = iniciarSesionComo('estandar')
-      const r = await post('/api/privacy/deletion-request', token, {
+      const r = await llamar('/api/privacy/deletion-request', token, 'POST', {
         modo: 'desactivar',
         password: 'mala1234',
       })
       expect(r.status).toBe(400)
+      expect((await r.json()).codigo).toBe('clave_actual_incorrecta')
+      expect(ana().intentosFallidos).toBe(1)
+      // Sin contraseña no cuenta como intento (no hay nada que adivinar).
+      await llamar('/api/privacy/deletion-request', token, 'POST', { modo: 'desactivar' })
+      expect(ana().intentosFallidos).toBe(1)
+    })
+
+    it('pedir la eliminación otra vez conserva la fecha original y revoca las sesiones', async () => {
+      const token = iniciarSesionComo('estandar')
+      const primera = await (
+        await llamar('/api/privacy/deletion-request', token, 'POST', {
+          modo: 'eliminar',
+          password: 'Demo1234',
+        })
+      ).json()
+      const segunda = await (
+        await llamar('/api/privacy/deletion-request', iniciarSesionComo('estandar'), 'POST', {
+          modo: 'ELIMINAR',
+          password: 'Demo1234',
+        })
+      ).json()
+
+      expect(primera.modo).toBe('eliminar')
+      expect(segunda.borradoEn).toBe(primera.borradoEn)
+      expect((await llamar('/api/auth/me', token, 'GET')).status).toBe(401)
+    })
+
+    it('GET y DELETE de la baja: fecha, cancelación y 404 sin baja', async () => {
+      const token = iniciarSesionComo('estandar')
+      expect((await llamar('/api/privacy/deletion-request', token, 'GET')).status).toBe(404)
+      expect((await llamar('/api/privacy/deletion-request', token, 'DELETE')).status).toBe(404)
+
+      await llamar('/api/privacy/deletion-request', token, 'POST', {
+        modo: 'eliminar',
+        password: 'Demo1234',
+      })
+      const nuevo = iniciarSesionComo('estandar')
+      const consulta = await (await llamar('/api/privacy/deletion-request', nuevo, 'GET')).json()
+      expect(consulta.borradoEn).toMatch(/Z$/)
+      expect((await llamar('/api/privacy/deletion-request', nuevo, 'DELETE')).status).toBe(204)
+      expect((await llamar('/api/privacy/deletion-request', nuevo, 'GET')).status).toBe(404)
+    })
+
+    it('el login de una cuenta con baja programada trae bajaProgramadaPara', async () => {
+      await llamar('/api/privacy/deletion-request', iniciarSesionComo('estandar'), 'POST', {
+        modo: 'eliminar',
+        password: 'Demo1234',
+      })
+      const login = await (
+        await fetch(`${window.location.origin}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'estandar@demo.com', password: 'Demo1234' }),
+        })
+      ).json()
+      expect(login.bajaProgramadaPara).toMatch(/Z$/)
     })
   })
 })

@@ -33,8 +33,8 @@ public class FlujosControlAccesoTests
             .Setup(r => r.CorreoExistsAsync(It.IsAny<Email>()))
             .ReturnsAsync(false);
         repositorio
-            .Setup(r => r.SaveAsync(It.IsAny<Usuario>()))
-            .Callback<Usuario>(usuario => usuarioGuardado = usuario)
+            .Setup(r => r.SaveAsync(It.IsAny<Usuario>(), It.IsAny<ConsentimientoUsuario>()))
+            .Callback<Usuario, ConsentimientoUsuario>((usuario, _) => usuarioGuardado = usuario)
             .Returns(Task.CompletedTask);
         repositorio
             .Setup(r => r.GetByCorreoAsync(It.IsAny<Email>()))
@@ -61,7 +61,7 @@ public class FlujosControlAccesoTests
 
         // Act
         var respuesta = await servicio.RegistrarUsuarioAsync(
-            new RegistroRequestDto("Persona de prueba", "persona@ejemplo.com", "ClaveSegura123"));
+            new RegistroRequestDto("Persona de prueba", "persona@ejemplo.com", "ClaveSegura123", new ConsentimientosRegistroDto("v2.1", "v1.4", false)));
 
         // Assert
         Assert.NotNull(usuarioGuardado);
@@ -100,7 +100,7 @@ public class FlujosControlAccesoTests
             .Returns(Task.CompletedTask);
 
         var hasher = new Mock<IPasswordHasher>();
-        hasher.Setup(h => h.verificar("hash-guardado", "ClaveSegura123")).Returns(true);
+        hasher.Setup(h => h.Verificar("hash-guardado", "ClaveSegura123")).Returns(true);
 
         var configuracion = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -264,7 +264,7 @@ public class FlujosControlAccesoTests
             emailQueue ?? Mock.Of<IEmailQueue>(),
             Mock.Of<IAuditoriaService>(),
             jwtProvider ?? Mock.Of<IJwtProvider>(),
-            blacklist ?? Mock.Of<ITokenBlacklist>(),
+            GestorSesionesDePrueba.Crear(blacklist),
             Mock.Of<ILogger<UsuarioService>>());
     }
 

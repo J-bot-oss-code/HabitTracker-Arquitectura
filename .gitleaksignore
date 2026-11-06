@@ -1,0 +1,16 @@
+# Falsos positivos de gitleaks: cada línea es el fingerprint exacto de un hallazgo (commit:archivo:regla:línea).
+# No se reescribe la historia (rompería las etiquetas de entrega); el valor ya se cambió en el código.
+
+# Contraseña ficticia "ClaveSegura-Nexus-2026" pasada a un doble de prueba (GoogleVincularRequest) junto a la palabra
+# "token" del nombre del campo. Es un valor de ejemplo de la documentación, no una credencial.
+7a7657fa2bbfc41beee671ca8d6c7acc2e451bfb:tests/AccessControl.Application.Tests/GoogleControllerTests.cs:generic-api-key:105
+7a7657fa2bbfc41beee671ca8d6c7acc2e451bfb:tests/AccessControl.Application.Tests/GoogleControllerTests.cs:generic-api-key:110
+
+# Contraseñas ficticias de las pruebas del frontend (política de 12 caracteres) junto a la palabra "password" en el
+# commit ba0d509. Ya no están pegadas a esa palabra en el código; no se reescribe la historia (rompería las etiquetas).
+ba0d509d6b5cc3b085c0c4dca7e338e456e2a1ce:frontend/src/features/auditoria/pages/Admin.test.tsx:generic-api-key:112
+ba0d509d6b5cc3b085c0c4dca7e338e456e2a1ce:frontend/src/features/auth/schemas.test.ts:generic-api-key:24
+ba0d509d6b5cc3b085c0c4dca7e338e456e2a1ce:frontend/src/mocks/contratoAuth.test.ts:generic-api-key:83
+
+# Contraseña ficticia de una prueba del frontend pegada a la palabra "password" (commit c232f96). Ya no lo está en el código.
+c232f96c98dd42e3b6a1dcaae2d29d77c532f409:frontend/src/mocks/contratoGoogle.test.ts:generic-api-key:117

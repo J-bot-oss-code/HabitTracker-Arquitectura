@@ -2,26 +2,29 @@ import { describe, expect, it } from 'vitest'
 import { loginSchema, passwordNuevaSchema, registroSchema } from './schemas'
 
 describe('passwordNuevaSchema (RF-CA-14)', () => {
-  it.each(['Clave1234', 'contraseña9', 'Ñandú2026'])('acepta %s', (clave) => {
+  it.each(['Clave-Segura-26', 'contraseña-larga9', 'Ñandú-Segura2026'])('acepta %s', (clave) => {
     expect(passwordNuevaSchema.safeParse(clave).success).toBe(true)
   })
 
   it.each([
-    ['menos de 8 caracteres', 'Ab1'],
-    ['sin números', 'SoloLetras'],
-    ['sin letras', '12345678'],
+    ['menos de 12 caracteres', 'Ab1'],
+    ['11 caracteres (el mínimo es 12)', 'Clave123456'],
+    ['sin números', 'SoloLetrasLargas'],
+    ['sin letras', '123456789012'],
   ])('rechaza una clave con %s', (_caso, clave) => {
     expect(passwordNuevaSchema.safeParse(clave).success).toBe(false)
   })
 })
+
+const CLAVE_VALIDA = 'Clave-Segura-2026'
 
 describe('registroSchema', () => {
   it('exige que la confirmación coincida', () => {
     const resultado = registroSchema.safeParse({
       nombre: 'Ana',
       correo: 'ana@demo.com',
-      password: 'Clave1234',
-      confirmacion: 'Clave12345',
+      password: CLAVE_VALIDA,
+      confirmacion: 'Clave-Segura-2027',
     })
     expect(resultado.success).toBe(false)
     expect(resultado.error?.issues[0].path).toEqual(['confirmacion'])

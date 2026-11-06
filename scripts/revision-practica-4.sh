@@ -8,6 +8,8 @@ TMP="${TMPDIR:-/tmp}/p4-revision"; mkdir -p "$TMP"
 # curl nativo de Windows no entiende rutas /tmp dentro de -F archivo=@ruta: se usa la ruta con formato C:/...
 TMP="$(cd "$TMP" && { pwd -W 2>/dev/null || pwd; })"
 META="5f1c0a00-0000-4000-8000-000000000002"
+# Aceptación de los documentos legales: el registro la exige (versiones vigentes v2.1 y v1.4; Legal:* las cambia).
+CONSENT='"consentimientos":{"terminosVersion":"v2.1","privacidadVersion":"v1.4","marketing":false}'
 envval() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- | tr -d '[:cntrl:]'; }
 DB_PASSWORD="$(envval DB_PASSWORD)"
 sql() { MSYS_NO_PATHCONV=1 docker compose exec -T db /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "$DB_PASSWORD" -d HabitTracker -h -1 -W -Q "SET NOCOUNT ON; $1" 2>&1 | tr -d "[:space:]"; }
@@ -45,7 +47,7 @@ leer_correo() {
 }
 login() { req POST /api/auth/login "{\"email\":\"$1\",\"password\":\"$2\"}"; TOKEN=$(campo token); [ -z "$TOKEN" ] && TOKEN=$(campo accessToken); }
 registrar_y_activar() {
-  req POST /api/auth/register "{\"nombre\":\"Prueba $1\",\"correo\":\"$1\",\"password\":\"ClaveSegura123\"}"
+  req POST /api/auth/register "{\"nombre\":\"Prueba $1\",\"correo\":\"$1\",\"password\":\"ClaveSegura-Nexus-2026\",$CONSENT}"
   check "registro $1" 201 "$STATUS"
   local tok; tok=$(leer_correo "$1" "Activa")
   [ -z "$tok" ] && { bad "el log trae el correo de activación de $1" "sin línea [CORREO EN CONSOLA]"; return; }
@@ -58,7 +60,7 @@ registrar_y_activar() {
 
 if [ "$1" = "persistencia" ]; then
   echo "=== Persistencia tras docker compose down / up ==="
-  ANA=$(cat "$TMP/ana-correo.txt"); login "$ANA" "NuevaClave123"; check "el usuario inicia sesión después de down/up" 200 "$STATUS"
+  ANA=$(cat "$TMP/ana-correo.txt"); login "$ANA" "ClaveNueva-Nexus-2026"; check "el usuario inicia sesión después de down/up" 200 "$STATUS"
   TA="$TOKEN"
   req GET /api/documents "" "$TA"; check "listado tras reiniciar" 200 "$STATUS"; has "el documento sigue en el listado" "informe.pdf"
   DOC=$(echo "$BODY" | sed -n 's/.*"id":"\([^"]*\)".*/\1/p' | head -1)
@@ -74,10 +76,10 @@ req GET /api/documents; check "sin sesión, listar documentos" 401 "$STATUS"
 echo "=== 1. Registro con activación por correo ==="
 registrar_y_activar "$ANA"
 registrar_y_activar "$BETO"
-req POST /api/auth/register "{\"nombre\":\"x\",\"correo\":\"debil$SUF@example.com\",\"password\":\"123\"}"; check "registro con clave débil se rechaza" 400 "$STATUS"
+req POST /api/auth/register "{\"nombre\":\"x\",\"correo\":\"debil$SUF@example.com\",\"password\":\"123\",$CONSENT}"; check "registro con clave débil se rechaza" 400 "$STATUS"
 echo "  -- código de activación: fuerza bruta y reenvío (Carla) --"
 CARLA="carla$SUF@example.com"
-req POST /api/auth/register "{\"nombre\":\"Carla\",\"correo\":\"$CARLA\",\"password\":\"ClaveSegura123\"}"; check "registro de Carla" 201 "$STATUS"
+req POST /api/auth/register "{\"nombre\":\"Carla\",\"correo\":\"$CARLA\",\"password\":\"ClaveSegura-Nexus-2026\",$CONSENT}"; check "registro de Carla" 201 "$STATUS"
 CC=$(leer_correo "$CARLA" "Activa")
 MALO="000000"; [ "$CC" = "000000" ] && MALO="000001"
 req POST /api/auth/activate "{\"correo\":\"$CARLA\",\"codigo\":\"$MALO\"}"; check "código incorrecto" 400 "$STATUS"
@@ -90,11 +92,11 @@ sleep 18
 DESPUES=$(docker compose logs webapi 2>&1 | grep "CORREO EN CONSOLA" | grep -c "$CARLA")
 [ "$ANTES" = "$DESPUES" ] && ok "el enfriamiento de 60 s evita un segundo correo y un contador reiniciado" || bad "enfriamiento del reenvío" "correos $ANTES -> $DESPUES"
 req POST /api/auth/activate "{\"correo\":\"$CARLA\",\"codigo\":\"abc\"}"; check "código con formato raro se rechaza sin romper nada" 400 "$STATUS"
-req POST /api/auth/login "{\"email\":\"$CARLA\",\"password\":\"ClaveSegura123\"}"; check "Carla sigue sin poder entrar (cuenta inactiva, rechazo controlado)" 400 "$STATUS"
+req POST /api/auth/login "{\"email\":\"$CARLA\",\"password\":\"ClaveSegura-Nexus-2026\"}"; check "Carla sigue sin poder entrar (cuenta inactiva, rechazo controlado)" 400 "$STATUS"
 
 echo "  -- ráfaga de 12 intentos EN PARALELO contra un código (Dora): la reserva debe ser atómica --"
 DORA="dora$SUF@example.com"
-req POST /api/auth/register "{\"nombre\":\"Dora\",\"correo\":\"$DORA\",\"password\":\"ClaveSegura123\"}"; check "registro de Dora" 201 "$STATUS"
+req POST /api/auth/register "{\"nombre\":\"Dora\",\"correo\":\"$DORA\",\"password\":\"ClaveSegura-Nexus-2026\",$CONSENT}"; check "registro de Dora" 201 "$STATUS"
 DC=$(leer_correo "$DORA" "Activa")
 MALO2="000000"; [ "$DC" = "000000" ] && MALO2="000001"
 rm -f "$TMP"/rafaga.*.txt
@@ -112,7 +114,7 @@ echo "  (de 12 peticiones: $LLEGARON llegaron al servicio, $LIMITADAS fueron lim
 req POST /api/auth/activate "{\"correo\":\"$DORA\",\"codigo\":\"$DC\"}"; check "tras la ráfaga, el código correcto ya no sirve" 400 "$STATUS"
 [ "$(sql "SELECT CAST(Activo AS int) FROM usuarios WHERE Correo = '$DORA'")" = "0" ] && ok "la cuenta de Dora sigue inactiva" || bad "la cuenta de Dora sigue inactiva" "activa"
 echo "=== 2. Inicio y cierre de sesión ==="
-login "$ANA" "ClaveSegura123"; check "login" 200 "$STATUS"; TA="$TOKEN"
+login "$ANA" "ClaveSegura-Nexus-2026"; check "login" 200 "$STATUS"; TA="$TOKEN"
 [ -n "$TA" ] && ok "se recibe un token" || bad "se recibe un token" "vacío"
 req GET /api/auth/me "" "$TA"; check "me con sesión" 200 "$STATUS"
 req POST /api/auth/logout "" "$TA"; echo "  (logout -> $STATUS)"
@@ -126,7 +128,7 @@ RL=$(for i in $(seq 1 40); do curl -s -o /dev/null -w "%{http_code}
 echo "  (40 peticiones seguidas -> $RL)"
 echo "$RL" | grep -q "429" && ok "pasado el límite por minuto la API responde 429" || bad "límite por IP" "$RL"
 echo "=== 3. Estándar contra una operación de Administrador ==="
-login "$ANA" "ClaveSegura123"; TA="$TOKEN"
+login "$ANA" "ClaveSegura-Nexus-2026"; TA="$TOKEN"
 req GET /api/admin/usuarios "" "$TA"; check "Estándar en /api/admin/usuarios" 403 "$STATUS"
 login "$ADMIN_C" "$ADMIN_P"; check "login del Administrador inicial" 200 "$STATUS"; TADMIN="$TOKEN"
 req GET /api/admin/usuarios "" "$TADMIN"; check "Administrador en /api/admin/usuarios" 200 "$STATUS"
@@ -135,11 +137,11 @@ echo "=== 4. Recuperación de contraseña ==="
 req POST /api/auth/forgot-password "{\"correo\":\"$ANA\"}"; check "forgot-password" 200 "$STATUS"
 COD=$(leer_correo "$ANA" "Recuperaci")
 [ -n "$COD" ] && ok "el log trae el código de recuperación ($COD)" || bad "el log trae el código" "vacío"
-req POST /api/auth/reset-password "{\"correo\":\"$ANA\",\"codigo\":\"$COD\",\"nuevaPassword\":\"NuevaClave123\"}"; check "reset-password" 200 "$STATUS"
-req POST /api/auth/reset-password "{\"correo\":\"$ANA\",\"codigo\":\"$COD\",\"nuevaPassword\":\"OtraClave1234\"}"; check "reutilizar el código se rechaza" 400 "$STATUS"
-login "$ANA" "NuevaClave123"; check "login con la clave nueva" 200 "$STATUS"; TA="$TOKEN"
-login "$ANA" "ClaveSegura123"; check "la clave vieja ya no sirve" 401 "$STATUS"
-login "$BETO" "ClaveSegura123"; TB="$TOKEN"
+req POST /api/auth/reset-password "{\"correo\":\"$ANA\",\"codigo\":\"$COD\",\"nuevaPassword\":\"ClaveNueva-Nexus-2026\"}"; check "reset-password" 200 "$STATUS"
+req POST /api/auth/reset-password "{\"correo\":\"$ANA\",\"codigo\":\"$COD\",\"nuevaPassword\":\"ClaveOtra-Nexus-2026\"}"; check "reutilizar el código se rechaza" 400 "$STATUS"
+login "$ANA" "ClaveNueva-Nexus-2026"; check "login con la clave nueva" 200 "$STATUS"; TA="$TOKEN"
+login "$ANA" "ClaveSegura-Nexus-2026"; check "la clave vieja ya no sirve" 401 "$STATUS"
+login "$BETO" "ClaveSegura-Nexus-2026"; TB="$TOKEN"
 
 echo "=== 5. Gestión de permisos ==="
 req POST /api/permissions '{"permisoSolicitado":"Habits.AdvancedReconfig"}' "$TA"; check "crear solicitud" 201 "$STATUS"

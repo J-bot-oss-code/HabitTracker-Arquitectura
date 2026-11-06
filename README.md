@@ -82,7 +82,7 @@ docker compose logs webapi | Select-String "CORREO"      # PowerShell
 docker compose logs webapi | grep CORREO                 # Linux / macOS
 ```
 
-- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. Ábrelo en el navegador, o envía `{"correo":"...","codigo":"123456"}` a `POST /api/auth/activate`. El código se valida siempre junto al correo; tras **5 códigos incorrectos** se invalida y hay que pedir otro con `POST /api/auth/resend-activation` (como máximo uno por minuto). Activación y reenvío admiten como máximo 30 peticiones por minuto desde una misma IP (después responden `429`).
+- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada (un escáner de correos no puede activar la cuenta ni gastar intentos), la activación ocurre al pulsar el botón. También puedes enviar `{"correo":"...","codigo":"123456"}` a `POST /api/auth/activate`. El código se valida siempre junto al correo; tras **5 códigos incorrectos** se invalida y hay que pedir otro con `POST /api/auth/resend-activation` (como máximo uno por minuto). Activación y reenvío admiten como máximo 30 peticiones por minuto desde una misma IP (después responden `429`).
 - **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
 
 Si rellenas los cuatro `SMTP_*` del `.env`, los correos se envían de verdad. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
@@ -293,6 +293,100 @@ El módulo de negocio está estructurado sobre 6 entidades que modelan la trazab
 
 **Testing:** xUnit / Moq
 
+## Control de Acceso: errores, límites y CORS
+
+Reglas del módulo que conviene conocer al probar la API (las comprueban las pruebas de `AccessControl.*.Tests`).
+
+**Códigos de error.** Los rechazos de Control de Acceso son `application/problem+json` con una extensión `codigo` estable, para distinguir el motivo sin leer el texto. Un correo o una contraseña incorrectos siguen siendo un `401` genérico que no dice cuál falló (RF-CA-03).
+
+| `codigo` | Estado | Cuándo |
+|---|---|---|
+| `cuenta_no_activa` | 400 | Clave correcta en una cuenta sin activar (RF-CA-15). Con clave incorrecta no se revela. |
+| `cuenta_desactivada` | 400 | Clave correcta en una cuenta desactivada por un administrador (RF-CA-20). |
+| `cuenta_bloqueada` | 400 | 5 intentos fallidos: bloqueo de 15 minutos (RF-CA-19). También cuenta la contraseña actual incorrecta al cambiarla. |
+| `correo_ya_registrado` | 400 | Ya existe una cuenta con ese correo (RF-CA-01). Hay un índice único en la base. |
+| `codigo_invalido` | 400 | Código de activación o recuperación incorrecto, usado, vencido o agotado. |
+| `contrasena_no_valida` | 400 | La contraseña no tiene entre 12 y 1024 caracteres con al menos una letra y un número (RF-CA-14). |
+| `contrasena_filtrada` | 400 | La contraseña aparece en filtraciones de datos conocidas. |
+| `consentimiento_no_valido` | 400 | Falta aceptar las versiones **vigentes** de los Términos y de la Política de privacidad (registro) o se envió una versión que no corresponde. |
+| `token_externo_invalido` | 401 | El ID token de Google no es válido (firma, emisor, vencimiento, otra aplicación) o Google no verificó el correo. No dice cuál. |
+| `vinculacion_requerida` | 409 | El correo de la cuenta de Google ya tiene una cuenta con contraseña: hay que confirmarla en `POST /api/auth/google/vincular`. |
+| `consentimiento_requerido` | 400 | Cuenta nueva con Google sin `consentimientos` en la petición. |
+| `proveedor_ya_vinculado` | 400 | Esa identidad de Google ya es de otra cuenta, o la cuenta ya tiene otra identidad de Google. |
+| `confirmacion_incorrecta` | 400 | La confirmación de la baja de cuenta con Google no sirve (token inválido o de otra cuenta). Siempre 400, nunca 401. |
+| `sin_contrasena` | 400 | La cuenta entra solo con Google y no tiene contraseña actual que confirmar (puede crear una con la recuperación). |
+| `ultimo_metodo_acceso` | 400 | Desvincular Google dejaría la cuenta sin ninguna forma de entrar. |
+| `proveedor_no_disponible` | 503 | Falta `Google:ClientId` o no se pudo consultar a Google. |
+| `sesion_invalida` | 401 | El refresh token falta, no existe, venció, fue revocado o ya se había usado; o su cuenta ya no está activa. El cliente debe iniciar sesión de nuevo. |
+| `csrf_requerido` | 403 | `POST /api/auth/refresh` sin la cabecera `X-HabitTracker-Csrf: 1`. |
+| `clave_actual_incorrecta` | 400 | La contraseña actual indicada al cambiarla no coincide (RF-CA-22). |
+| `ultimo_administrador` | 400 | La operación dejaría al sistema sin ningún administrador activo. |
+| `operacion_no_permitida` | 403 | Quien ejecuta no es un administrador activo (RF-CA-05, RF-CA-06). |
+
+**Límite de peticiones por IP** (después responde `429`). Se cambia en `RateLimit:*`; un valor de 0 detiene el arranque.
+
+| Política | Endpoints | Por defecto |
+|---|---|---|
+| `login` | `POST /api/auth/login` | 10 por minuto |
+| `registro` | `POST /api/auth/register` | 5 por minuto |
+| `recuperacion` | `POST /api/auth/recuperar-password` y `restablecer-password` (y sus alias) | 5 por minuto |
+| `activacion` | `activate` (GET y POST) y `resend-activation` | 30 por minuto |
+| `refresh` | `POST /api/auth/refresh` | 30 por minuto |
+| `google` | `POST /api/auth/google` y `/google/vincular` | 10 por minuto |
+| `privacidad` | `POST /api/privacy/deletion-request` y `GET /api/privacy/export` | 10 por minuto |
+
+> Dentro de Docker todos los clientes llegan con la IP de la pasarela y comparten el mismo cupo (deuda conocida, ver `docs/ESTADO-DEL-PROYECTO.md`).
+
+**Política de contraseñas** (registro, restablecimiento y cambio de contraseña; RF-CA-14 pide como mínimo 8 con letras y números, esta política es más estricta). Debe tener **12 a 1024 caracteres con al menos una letra y un número** y **no aparecer en filtraciones conocidas**. La comprobación usa la API pública *Pwned Passwords* con k-anonimato: solo viaja un prefijo de 5 caracteres del hash SHA-1, nunca la contraseña. Si la API falla o tarda más de 3 segundos, **la contraseña se permite** (una caída externa no bloquea registros). Se desactiva con `Seguridad:ContrasenasFiltradas:Habilitado=false` (`CONTRASENAS_FILTRADAS=false` en Docker) y solo comprueba el formato. Las cuentas existentes con contraseñas más cortas siguen entrando: la política solo se aplica al fijar una nueva. Un rechazo por clave filtrada no consume el código de recuperación ni cierra la sesión.
+
+> Las contraseñas de ejemplo de esta documentación y del script de revisión (`ClaveSegura-Nexus-2026`, `ClaveNueva-Nexus-2026`, `ClaveOtra-Nexus-2026`) se eligieron porque **no aparecen en filtraciones**: `ClaveSegura123` y `NuevaClave123` sí aparecen y la política las rechaza. Al probar con otras contraseñas, evita las comunes.
+
+**Consentimiento legal** (Ley 172-13 de la República Dominicana y GDPR: el consentimiento debe poder demostrarse). `POST /api/auth/register` exige `consentimientos: {terminosVersion, privacidadVersion, marketing}` con las **versiones vigentes** (`v2.1` y `v1.4`, configurables en `Legal:VersionTerminos` y `Legal:VersionPrivacidad`); sin ellas no se crea la cuenta (`consentimiento_no_valido`). El usuario y su consentimiento se guardan juntos: o quedan los dos o ninguno. Se guarda en un historial de **solo inserción** (cada cambio es una fila nueva; la vigente es la última) con la versión aceptada, el instante UTC que fija el servidor y el origen (`registro`, `google` o `actualizacion`).
+
+- `GET /api/privacy/consents` devuelve el consentimiento vigente (`404` si la cuenta nunca aceptó nada, como las anteriores a esta función).
+- `PUT /api/privacy/consents` actualiza `{terminosVersion, privacidadVersion, datosSalud, marketing, compartirCumplimiento, estadisticasAnonimas}` (los seis obligatorios). Acepta las versiones vigentes **o las que la persona ya había aceptado**: mover un interruptor no obliga a aceptar documentos nuevos que aún no ha visto. La fecha de aceptación solo se renueva cuando cambian las versiones.
+- `POST /api/auth/login` y `GET /api/auth/me` incluyen `requiereAceptarDocumentos`: `true` si la cuenta nunca aceptó o su última aceptación no es de las versiones vigentes. El inicio de sesión funciona igual: el cliente decide cuándo pedir la aceptación.
+
+**Sesiones** (RF-CA-03, RF-CA-12, RF-CA-18, RF-CA-20). El token de acceso (JWT) dura **15 minutos** y viaja en el cuerpo del login, como siempre. Para no pedir la contraseña cada 15 minutos, el login también abre una *sesión* y fija una cookie con un **refresh token** rotativo:
+
+- La cookie `habittracker_refresh` es **HttpOnly** (el JavaScript de la página no la lee, así un XSS no la roba), **Secure**, `SameSite=Strict` y solo viaja a `/api/auth` (el resto de la API nunca la recibe). En la base de datos solo se guarda el **hash SHA-256** del token (tabla `SesionesUsuario`); el valor son 32 bytes aleatorios en Base64Url. Dura 14 días sin usarse.
+- `POST /api/auth/refresh` canjea el refresh token por un token de acceso nuevo **y un refresh token nuevo**: el anterior queda revocado. Como se autentica solo con la cookie exige la cabecera `X-HabitTracker-Csrf: 1` (un formulario de otro sitio no puede enviarla y CORS impide que un script de otro origen la envíe); sin ella responde `403 csrf_requerido`.
+- **Reutilización = robo:** si llega un refresh token que ya fue canjeado, se revoca **toda la familia** de sesiones de ese inicio de sesión y hay que volver a entrar. Dos renovaciones simultáneas con el mismo token tampoco ganan las dos: gana una y la otra cierra la familia (el cliente debe serializar sus renovaciones). La cuenta desactivada, bloqueada o dada de baja no puede renovar.
+- `POST /api/auth/logout` invalida el token de acceso (RF-CA-18) y revoca el refresh token de la cookie. `POST /api/auth/logout-todas` cierra la sesión en todos los dispositivos. Ambos se autorizan con el Bearer, no con la cookie.
+- `GET /api/auth/sesiones` lista las sesiones abiertas (`id`, `dispositivo`, `creadaEn`, `ultimoUsoEn`, `actual`) y `DELETE /api/auth/sesiones/{id}` cierra una (`404` si no existe o es de otra persona). El token de acceso de una sesión cerrada así sigue sirviendo hasta que venza (máximo 15 minutos); `logout-todas` sí corta también los accesos emitidos.
+- Cambiar o restablecer la contraseña, forzar el restablecimiento, desactivar la cuenta o cambiar el rol revocan **todas** las sesiones (refresh y accesos) por un único punto: `IGestorSesiones.RevocarTodasAsync`.
+- Las sesiones vencidas hace más de 30 días se borran al iniciar otra. Detrás de un proxy (como Docker) la IP que se guarda es la de la pasarela (deuda conocida).
+- Configuración: `Sesion:DiasRefresh` (1-90), `Sesion:CookieSegura` (solo `false` en desarrollo sin HTTPS) y `Sesion:CookieSameSite` (`Strict`, `Lax` o `None`; `None` exige cookie segura y es lo que hace falta si el frontend y la API están en dominios distintos). Una configuración inválida detiene el arranque.
+
+**Inicio de sesión con Google** (RF-CA-01, RF-CA-03). Flujo de Google Identity Services: el navegador obtiene un **ID token** y lo envía a la API, que lo valida con la librería oficial (`Google.Apis.Auth`: firma con las claves públicas de Google, emisor `accounts.google.com`, vencimiento y que fue emitido para nuestra aplicación, `Google:ClientId`). No usa secreto de cliente ni redirecciones. Un correo que Google no verificó (`email_verified=false`) no sirve. La persona se identifica por el `sub` de Google, no por el correo.
+
+- `POST /api/auth/google` `{idToken, consentimientos?}` abre la misma sesión que el login (token de acceso en el cuerpo y cookie del refresh token):
+  1. **La identidad ya está vinculada:** inicia sesión (`200`) con las reglas del login (cuenta bloqueada, desactivada por un administrador).
+  2. **El correo ya tiene una cuenta con contraseña:** `409 vinculacion_requerida`, sin sesión. Nunca se vincula sola.
+  3. **Correo nuevo:** crea la cuenta (`201`), **activa** desde el principio y **sin contraseña** (RF-CA-15 se refiere al registro con correo; aquí es Google quien verifica que la persona controla el correo). Exige `consentimientos {terminosVersion, privacidadVersion, marketing}` con las versiones vigentes (sin ellos, `400 consentimiento_requerido`) y los guarda con origen `google`, junto con la cuenta y el vínculo en una sola operación.
+- `POST /api/auth/google/vincular` `{idToken, password}` vincula Google a la cuenta con contraseña de ese mismo correo. **Pide la contraseña**: sin ella, quien controlara ese correo en Google podría apoderarse de una cuenta ajena. Una clave incorrecta cuenta para el bloqueo de RF-CA-19. Si la cuenta esperaba su código de activación, se activa (Google acaba de verificar el correo).
+- `GET /api/auth/vinculos` devuelve `{tienePassword, vinculos: [{proveedor, vinculadoEn}]}` y `DELETE /api/auth/vinculos/google` desvincula. Solo se permite si la cuenta tiene contraseña (`ultimo_metodo_acceso` si no).
+- **Cuenta sin contraseña** (solo Google): el login con contraseña responde el `401` genérico de siempre (sin contar para el bloqueo); `cambiar-password` responde `sin_contrasena`; y la recuperación de contraseña le permite **crear** una (mismos pasos de RF-CA-09 a RF-CA-11).
+- Configuración: `Google:ClientId` (ver arriba). Para crearlo: Google Cloud Console → proyecto → Pantalla de consentimiento de OAuth (Externo, en Prueba, con tu correo como usuario de prueba) → Credenciales → ID de cliente de OAuth, **Aplicación web**, con los orígenes de JavaScript autorizados `http://localhost:5173` y `http://localhost:5174` (y el dominio de producción más adelante). No hace falta URI de redirección ni secreto de cliente.
+
+**Baja de cuenta y descarga de datos** (Ley 172-13 de la República Dominicana y GDPR: derecho de acceso, portabilidad y supresión). Son para el rol **Estandar**: un administrador que se diera de baja podría dejar al sistema sin nadie que lo administre (responde `403`). La identidad sale siempre del token.
+
+- `POST /api/privacy/deletion-request` `{modo, password}` (o `{modo, idTokenGoogle}` si la cuenta no tiene contraseña) responde `202 {modo, borradoEn}`. Dos modos:
+  - `desactivar`: la cuenta queda inactiva **por su dueño** (no es la desactivación de un administrador, RF-CA-20). Vuelve a funcionar con solo **iniciar sesión** con la clave correcta (o con Google). `borradoEn` es `null`.
+  - `eliminar`: programa el borrado definitivo para dentro del **periodo de gracia** (30 días por defecto, `Privacidad:DiasGraciaBaja`). Durante la gracia la cuenta sigue activa y el login funciona; la respuesta del login, del refresh y de Google trae `bajaProgramadaPara` para que el cliente ofrezca cancelar. Pedirlo otra vez conserva la fecha original.
+  Ambos **revocan todas las sesiones** en el momento (hay que volver a iniciar sesión). Una confirmación incorrecta es un `400` (`clave_actual_incorrecta` o `confirmacion_incorrecta`) que **cuenta para el bloqueo** de RF-CA-19, nunca un `401`: un 401 haría que el cliente cierre la sesión de quien solo se equivocó.
+- `GET /api/privacy/deletion-request` devuelve `{borradoEn}` (`404` si no hay baja programada) y `DELETE /api/privacy/deletion-request` la **cancela** (`204`; `404` si no había). Cancelar no pide la contraseña: solo conserva la cuenta.
+- **Borrado definitivo:** un proceso en segundo plano (`BajaCuentasWorker`, una vez al día) busca las cuentas cuyo plazo terminó. Para cada una borra primero los datos de **cada módulo** y, solo si todos lo lograron, la cuenta con todo lo que depende de ella (consentimientos, sesiones, vínculos de Google, corte de sesiones y correos en cola). Si algo falla, se reintenta en la siguiente pasada (todos los borrados son idempotentes). Solo se registra en el log un identificador anonimizado. **Un administrador nunca se borra solo.** Una vez borrada, el correo queda libre para registrarse de nuevo.
+  - Hábitos: sus hábitos y registros de avance (las metas, categorías y etiquetas son catálogos compartidos). Permisos: las solicitudes que hizo (no las que resolvió como aprobador). Documentos: los archivos del disco y los registros, **también los que ya estaban marcados como eliminados**. El borrado normal de un documento sigue siendo lógico (RF-DOC-04); esta purga solo ocurre al cerrar la cuenta, porque el derecho a la supresión obliga a que no quede nada.
+- `GET /api/privacy/export` descarga un JSON (`Content-Disposition: attachment`, `Cache-Control: no-store`) con todo lo que se guarda de la persona: `cuenta`, `consentimientos` (historial completo), `vinculos`, `sesiones` (con su IP) y `modulos` con una sección por módulo (`habitos`, `permisos`, `documentos`). Nunca incluye la contraseña, su hash, el código de recuperación ni los tokens. Los documentos van como metadatos; el contenido se baja por `/api/documents/{id}/download`. Si un módulo falla, la descarga falla entera: no se entrega un archivo incompleto que parezca completo. Queda auditada.
+- Estos endpoints reemplazan a `POST /api/privacy/export-request` que el frontend tenía simulado: ahora la descarga es el propio `GET`.
+
+**Recuperación de contraseña.** El código es de 6 dígitos y vence en 1 hora; se pide como máximo una vez por minuto (dentro del minuto se responde igual pero no se envía otro correo). Con 5 códigos incorrectos se invalida. Restablecerla cierra las sesiones abiertas y levanta el bloqueo.
+
+**Administración.** Cambiar el rol de un usuario cierra sus sesiones abiertas (el rol viaja en el JWT). No se puede quitar el rol ni desactivar al último administrador activo.
+
+**CORS.** Solo los orígenes de `Cors:OrigenesPermitidos` (en desarrollo, `http://localhost:5173` y `:5174`; en Docker, la variable `FRONTEND_URL`). Nunca comodines; sin orígenes configurados no se permite ninguno. `GET /api/auth/me` devuelve también el `nombre`.
+
 ## Integración continua (CI)
 
 Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflows de GitHub Actions. Los **checks requeridos** son `ci-ok` y `seguridad-ok`: agrupan todos los trabajos de su workflow y bloquean el merge si alguno falla. El umbral es **severidad alta y crítica**: lo que quede por debajo se reporta pero no bloquea.
@@ -376,7 +470,10 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 *   `JwtSettings:Clave`: (String) Clave secreta de al menos 32 caracteres para firmar los tokens JWT. Solo vía User Secrets: `dotnet user-secrets set "JwtSettings:Clave" "tu-clave..." --project Host/WebApi/WebApi.csproj`.
 *   `JwtSettings:Emisor`: (String) Emisor del token (ej. `HabitTrackerNexus`).
 *   `JwtSettings:Audiencia`: (String) Audiencia del token (ej. `HabitTrackerNexusApi`).
-*   `JwtSettings:MinutosExpiracion`: (int) Vida del token en minutos (ej. `60`).
+*   `JwtSettings:MinutosExpiracion`: (int) Vida del token de acceso en minutos (por defecto `15`; la sesión larga la sostiene el refresh token, ver «Sesiones»).
+*   `Sesion:DiasRefresh`, `Sesion:CookieSegura`, `Sesion:CookieSameSite`: (opcionales) vida del refresh token (14 días), cookie `Secure` (`true`) y `SameSite` (`Strict`; `None` si el frontend y la API están en dominios distintos).
+*   `Google:ClientId`: (String, opcional) ID de cliente de Google para "Continuar con Google" (`xxxx.apps.googleusercontent.com`). No es un secreto, pero no se versiona: `dotnet user-secrets set "Google:ClientId" "<id>" --project Host/WebApi/WebApi.csproj`, o `GOOGLE_CLIENT_ID` en el `.env` de Docker. Sin él, `POST /api/auth/google` responde `503` y el resto de la API funciona.
+*   `Privacidad:DiasGraciaBaja`, `Privacidad:IntervaloEjecucionMinutos`: (opcionales) días de gracia antes de borrar una cuenta cuya eliminación se pidió (`30`, de 0 a 365; `DIAS_GRACIA_BAJA` en Docker) y cada cuántos minutos el proceso en segundo plano busca cuentas vencidas (`1440`, una vez al día; `BAJAS_INTERVALO_MINUTOS` en Docker).
 *   `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (String) Credenciales del servidor de correo saliente, solo por variables de entorno o User Secrets.
 *   `App:BaseUrl`: (String) URL pública de la API para armar el enlace de activación del correo (ej. `http://localhost:5246`).
 
@@ -398,7 +495,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
 * **Inicio de sesión, claims y expiración:** ejecuta `POST /api/auth/login` con las credenciales de una cuenta activa; autoriza Swagger con el JWT recibido y ejecuta `GET /api/auth/me` para comprobar el id, correo y rol autenticados. Inspecciona localmente el payload del JWT y confirma que contiene los datos de identidad y una expiración futura (`exp`). No publiques el JWT. Ejecuta `POST /api/auth/logout`; el mismo token debe quedar invalidado y `GET /api/auth/me` debe responder `401`.
 *   **Registro y rechazo controlado:** Usa `POST /api/auth/register` con una clave menor a 8 caracteres o sin números. Recibirás un error 400 controlado.
 *   **Encolado de correos (Sin SMTP):** Si el servidor SMTP no está configurado o falla, el registro (201 Created) y la recuperación de clave terminan con éxito. Los correos quedan pendientes en la tabla/cola interna.
-*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura123"}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, `docker compose logs webapi`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
+*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026","consentimientos":{"terminosVersion":"v2.1","privacidadVersion":"v1.4","marketing":false}}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, `docker compose logs webapi`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
 
     ```sql
     SELECT TokenAcceso, Vencimiento
@@ -406,7 +503,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
     WHERE Correo = N'persona@ejemplo.com';
     ```
 
-*   **Inicio y cierre de sesión:** Inicia sesión con `POST /api/auth/login` y `{"email":"persona@ejemplo.com","password":"ClaveSegura123"}`. Guarda el JWT recibido, úsalo como `Authorization: Bearer <JWT>` para `GET /api/auth/me` y luego envíalo en `POST /api/auth/logout`. Repite `GET /api/auth/me` con el mismo token: debe responder `401 Unauthorized`.
+*   **Inicio y cierre de sesión:** Inicia sesión con `POST /api/auth/login` y `{"email":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026"}`. Guarda el JWT recibido, úsalo como `Authorization: Bearer <JWT>` para `GET /api/auth/me` y luego envíalo en `POST /api/auth/logout`. Repite `GET /api/auth/me` con el mismo token: debe responder `401 Unauthorized`.
 *   **Seguridad de enumeración (Recuperación):** Llama a `POST /api/auth/recuperar-password` con un correo falso y luego con uno registrado. Ambos reciben `200 OK` con el mismo mensaje; el servidor aplica un tiempo mínimo de respuesta para reducir diferencias de temporización.
 *   **Recuperación de contraseña paso a paso:** Envía `POST /api/auth/forgot-password` con `{"correo":"persona@ejemplo.com"}`. El endpoint responde siempre `200 OK` con un mensaje genérico. Para una cuenta existente, el código de seis caracteres se envía por correo. En un entorno local sin SMTP operativo, consulta la cola de correos de la base `AccessControl`; el cuerpo HTML de `CorreosEnCola` contiene el código:
 
@@ -417,7 +514,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
     ORDER BY FechaCreacion DESC;
     ```
 
-    Usa el código recibido en `POST /api/auth/reset-password` con `{"correo":"persona@ejemplo.com","codigo":"CODIGO_DE_SEIS_CARACTERES","nuevaPassword":"NuevaClave123"}`. La respuesta exitosa es `200 OK`; el código es de un solo uso y el cambio invalida las sesiones anteriores. Los nombres en español `POST /api/auth/recuperar-password` y `POST /api/auth/restablecer-password` son rutas equivalentes. Trata el código como una credencial temporal: consulta la cola solo en la base local de desarrollo y no copies su contenido a logs o reportes.
+    Usa el código recibido en `POST /api/auth/reset-password` con `{"correo":"persona@ejemplo.com","codigo":"CODIGO_DE_SEIS_CARACTERES","nuevaPassword":"ClaveNueva-Nexus-2026"}`. La respuesta exitosa es `200 OK`; el código es de un solo uso y el cambio invalida las sesiones anteriores. Los nombres en español `POST /api/auth/recuperar-password` y `POST /api/auth/restablecer-password` son rutas equivalentes. Trata el código como una credencial temporal: consulta la cola solo en la base local de desarrollo y no copies su contenido a logs o reportes.
 *   **Bloqueo de fuerza bruta (15 min):** Falla cinco veces seguidas en `POST /api/auth/login`; la cuenta queda bloqueada. El siguiente inicio se rechaza incluso si se usa la contrasena correcta.
 *   **Invalidación de sesión (Logout / Cambio de Rol/Clave):** Inicia sesión, guarda el JWT. Llama a `POST /api/auth/logout`. Vuelve a intentar usar el JWT en `GET /api/auth/me`; recibirás un `401 Unauthorized`.
 *   **Protección por Roles:** En la base de datos local de pruebas, promueve una cuenta activada a Administrador (`UPDATE usuarios SET Rol = 2 WHERE Correo = 'admin@ejemplo.com'`; el valor 2 corresponde a `Administrador`). Inicia sesión de nuevo con esa cuenta para obtener un JWT con el rol actualizado. Autoriza Swagger con el JWT de otra cuenta Estándar e invoca `GET /api/admin/usuarios`: debe responder `403 Forbidden`. Autoriza después con el token de Administrador y la misma operación debe responder `200 OK`. No ejecutes la actualización SQL en una base compartida o de producción.

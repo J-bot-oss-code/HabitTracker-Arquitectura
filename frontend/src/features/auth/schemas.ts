@@ -9,10 +9,11 @@ export const correoSchema = z
   .max(150, 'El correo admite como máximo 150 caracteres.')
   .email('Escribe un correo válido.')
 
-// Política de UsuarioService.ValidarFormatoClave (RF-CA-14): 8+ caracteres, letras y números.
+// Política de contraseñas del backend (PoliticaContrasena, RF-CA-14): 12 a 1024 caracteres con letras y
+// números. El servidor además rechaza contraseñas que aparecen en filtraciones conocidas (Pwned Passwords).
 export const passwordNuevaSchema = z
   .string()
-  .min(8, 'La contraseña debe tener al menos 8 caracteres.')
+  .min(12, 'La contraseña debe tener al menos 12 caracteres.')
   .max(1024, 'La contraseña es demasiado larga.')
   .regex(/\p{L}/u, 'La contraseña debe incluir al menos una letra.')
   .regex(/\d/, 'La contraseña debe incluir al menos un número.')
@@ -38,12 +39,13 @@ export const registroSchema = z
   })
   .refine(coinciden, { message: 'Las contraseñas no coinciden.', path: ['confirmacion'] })
 
+// El código de activación del correo son 6 dígitos (ActivateRequest.Codigo) y va junto al correo.
 export const activarSchema = z.object({
-  token: z
+  correo: correoSchema,
+  codigo: z
     .string()
     .trim()
-    .min(1, 'Pega el código de activación.')
-    .max(256, 'El código no es válido.'),
+    .regex(/^\d{6}$/, 'El código tiene 6 dígitos.'),
 })
 
 export const soloCorreoSchema = z.object({ correo: correoSchema })

@@ -8,9 +8,20 @@ public interface IUsuarioRepository
     Task<Usuario?> GetByIdAsync(Guid id);
     Task<Usuario?> GetByCorreoAsync(Email correo);
     Task SaveAsync(Usuario usuario);
+
+    /// <summary>
+    /// Guarda el usuario y su consentimiento inicial en UNA sola operación: o quedan los dos o no queda ninguno. Una cuenta
+    /// no puede existir sin constancia de lo que aceptó al registrarse.
+    /// </summary>
+    Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento);
+
+    /// <summary>
+    /// Guarda en UNA sola operación la cuenta creada con un proveedor externo, su vínculo y su consentimiento: o quedan los
+    /// tres o ninguno.
+    /// </summary>
+    Task SaveAsync(Usuario usuario, ConsentimientoUsuario consentimiento, LoginExterno vinculo);
     Task<bool> CorreoExistsAsync(Email correo);
     Task UpdateAsync(Usuario usuario);
-    Task<Usuario?> GetByNameAsync(string nombreCompleto);
     /// <summary>
     /// Reserva de forma ATÓMICA un intento de activación y devuelve el total de intentos tras reservarlo
     /// (0 si la cuenta no tiene un código pendiente). Debe ser una sola sentencia en la base de datos: con
@@ -18,5 +29,17 @@ public interface IUsuarioRepository
     /// </summary>
     Task<int> ReservarIntentoActivacionAsync(Guid usuarioId);
     Task<IEnumerable<Usuario>> ObtenerTodosAsync();
+
+    /// <summary>Cuentas cuyo periodo de gracia de la baja ya terminó, las más antiguas primero (máximo <paramref name="maximo"/>).</summary>
+    Task<IReadOnlyList<Usuario>> ObtenerConBajaVencidaAsync(DateTime ahora, int maximo);
+
+    /// <summary>
+    /// Borra la cuenta y todo lo que depende de ella en Control de Acceso: consentimientos, sesiones y vínculos (en cascada),
+    /// el corte de sesiones y los correos en cola de ese destinatario. Idempotente: si ya no existe, no hace nada.
+    /// </summary>
+    Task EliminarDefinitivamenteAsync(Guid usuarioId, string correo);
+
+    /// <summary>Cuántos administradores activos hay. Sirve para no dejar nunca al sistema sin ninguno (RF-CA-08, RF-CA-20).</summary>
+    Task<int> ContarAdministradoresActivosAsync();
 
 }

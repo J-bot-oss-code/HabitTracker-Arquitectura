@@ -43,7 +43,7 @@ function esTransicionValida(
   return false
 }
 
-function aDto(h: HabitoMock): HabitoDto {
+export function aDto(h: HabitoMock): HabitoDto {
   return {
     id: h.id,
     nombre: h.nombre,

@@ -14,11 +14,13 @@ paths = [
 ]
 
 [[allowlists]]
-description = "Contraseña de DEMOSTRACIÓN de los ejemplos de curl del README (cuenta ficticia persona@ejemplo.com)"
+description = "Contraseñas de DEMOSTRACIÓN de los ejemplos de curl del README (cuenta ficticia persona@ejemplo.com); ninguna aparece en filtraciones conocidas"
 condition = "AND"
 paths = [
   '''^README\.md$''',
 ]
 regexes = [
   '''ClaveSegura123''',
+  '''ClaveSegura-Nexus-2026''',
+  '''ClaveNueva-Nexus-2026''',
 ]

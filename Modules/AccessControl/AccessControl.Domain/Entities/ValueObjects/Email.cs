@@ -26,6 +26,26 @@ public sealed class Email
         Valor = normalizado.ToLowerInvariant();
     }
 
+    /// <summary>Correo apto para escribir en un log: "persona@ejemplo.com" se muestra como "p***@ejemplo.com".</summary>
+    public string Enmascarado() => Enmascarar(Valor);
+
+    /// <summary>
+    /// Enmascara un correo sin necesidad de validarlo (sirve también para texto que aún no pasó por el objeto de valor).
+    /// Un correo es un dato personal: los logs no deben guardarlo completo (RD-08).
+    /// </summary>
+    public static string Enmascarar(string? correo)
+    {
+        if (string.IsNullOrWhiteSpace(correo))
+        {
+            return "***";
+        }
+
+        var arroba = correo.IndexOf('@');
+        return arroba <= 0
+            ? "***"
+            : $"{correo[0]}***{correo[arroba..]}";
+    }
+
     public static implicit operator string(Email email) => email.Valor;
 
     public override bool Equals(object? obj) => obj is Email other && Valor == other.Valor;

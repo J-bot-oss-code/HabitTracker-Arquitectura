@@ -86,13 +86,6 @@ public class TokenBlacklistMiddleware
                 return new DateTimeOffset(utcTicks, TimeSpan.Zero);
             }
 
-            // Compatibilidad con tokens emitidos antes de introducir ticks UTC.
-            var issuedAtMilliseconds = jwt.Claims.FirstOrDefault(c => c.Type == "session_issued_at_ms")?.Value;
-            if (long.TryParse(issuedAtMilliseconds, NumberStyles.Integer, CultureInfo.InvariantCulture, out var unixMilliseconds))
-            {
-                return DateTimeOffset.FromUnixTimeMilliseconds(unixMilliseconds);
-            }
-
             return new DateTimeOffset(jwt.IssuedAt, TimeSpan.Zero);
         }
         catch

@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using AccessControl.Application.DTOs;
@@ -35,7 +34,7 @@ public class AdminUsuariosController : ControllerBase
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CambiarRol(Guid id, [FromBody] CambiarRolRequest request)
     {
-        await _usuarioService.cambiarRolAsync(id, request.NuevoRol, ObtenerAdminId());
+        await _usuarioService.CambiarRolAsync(id, request.NuevoRol, ObtenerAdminId());
         return Ok(new { mensaje = "Rol actualizado correctamente." });
     }
 

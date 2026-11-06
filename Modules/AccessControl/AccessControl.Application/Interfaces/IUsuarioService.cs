@@ -6,7 +6,7 @@ namespace AccessControl.Application.Interfaces
     {
         Task<UsuarioResponseDto> RegistrarUsuarioAsync(RegistroRequestDto request);
         Task<UsuarioResponseDto> AutenticarUsuarioAsync(LoginRequestDto request);
-        Task cambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId);
+        Task CambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId);
         Task IniciarRecuperacionAsync(string correo);
 
         Task ActivarCuentaAsync(string correo, string codigo);

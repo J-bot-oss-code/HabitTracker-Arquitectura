@@ -13,4 +13,11 @@ public interface IDocumentoService
     Task<ArchivoDescargaDto> DescargarAsync(Guid id, Guid usuarioId, bool esAdministrador, CancellationToken cancellationToken = default);
 
     Task EliminarAsync(Guid id, Guid usuarioId, bool esAdministrador, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Baja de cuenta: borra definitivamente los archivos del disco y los registros de TODOS los documentos del usuario,
+    /// también los que ya estaban marcados como eliminados. No cambia el borrado lógico de RF-DOC-04 para el uso normal.
+    /// Idempotente. Devuelve cuántos documentos borró.
+    /// </summary>
+    Task<int> PurgarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 }

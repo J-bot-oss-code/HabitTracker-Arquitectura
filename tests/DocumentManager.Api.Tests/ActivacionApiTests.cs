@@ -44,25 +44,29 @@ public class ActivacionApiTests
 
     [Fact]
     [Trait("Requirement", "RD-07")]
-    public void RD_07_ActivateGet_ExigeElMismoFormatoDeCodigoQueElPost()
+    public void RD_07_ActivateGet_NoRecibeDatosDeLaUrl_ElCorreoYElCodigoSoloLosProcesaElPostValidado()
     {
-        var parametro = typeof(AuthController).GetMethod(nameof(AuthController.ActivateGet))!
-            .GetParameters().Single(p => p.Name == "codigo");
+        // El GET solo entrega una página: no tiene parámetros, así que nada de la URL llega al servidor ni cambia el estado.
+        // La activación real es el POST (ActivateRequest), que sí valida el correo y el código de 6 dígitos.
+        Assert.Empty(typeof(AuthController).GetMethod(nameof(AuthController.ActivateGet))!.GetParameters());
 
-        var validador = parametro.GetCustomAttributes<RegularExpressionAttribute>().Single();
-
-        Assert.True(validador.IsValid("123456"));
-        Assert.False(validador.IsValid("12345"));
-        Assert.False(validador.IsValid("abcdef"));
+        var correo = typeof(ActivateRequest).GetConstructors()[0].GetParameters().Single(p => p.Name == "Correo");
+        Assert.NotNull(correo.GetCustomAttribute<EmailAddressAttribute>());
     }
 
-    [Fact]
-    [Trait("Requirement", "RD-07")]
-    public void RD_07_ActivacionPorGet_TambienExigeElCorreoConFormatoValido()
+    [Theory]
+    [InlineData(nameof(AuthController.Login), "login")]
+    [InlineData(nameof(AuthController.Register), "registro")]
+    [InlineData(nameof(AuthController.RecuperarPassword), "recuperacion")]
+    [InlineData(nameof(AuthController.RestablecerPassword), "recuperacion")]
+    [Trait("Requirement", "RD-06")]
+    public void RD_06_LoginRegistroYRecuperacion_TienenLimiteDePeticionesPorIp(string accion, string politica)
     {
-        var parametro = typeof(AuthController).GetMethod(nameof(AuthController.ActivateGet))!
-            .GetParameters().Single(p => p.Name == "correo");
+        // Sin este límite cualquiera podía bloquear la cuenta de otra persona (RF-CA-19), crear cuentas en masa o probar
+        // códigos de recuperación sin fin.
+        var limite = typeof(AuthController).GetMethod(accion)!.GetCustomAttribute<EnableRateLimitingAttribute>();
 
-        Assert.NotNull(parametro.GetCustomAttribute<EmailAddressAttribute>());
+        Assert.NotNull(limite);
+        Assert.Equal(politica, limite.PolicyName);
     }
 }

@@ -14,6 +14,12 @@ public interface ISolicitudPermisoService
 
     Task RechazarAsync(RechazarSolicitudCommand command, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Borra definitivamente las solicitudes que esa persona hizo (baja de cuenta). Las que resolvió como aprobador no se
+    /// tocan: son decisiones de administración sobre otras personas.
+    /// </summary>
+    Task<int> EliminarDeSolicitanteAsync(string solicitante, CancellationToken cancellationToken = default);
+
     Task<bool> TienePermisoEfectivoAsync(
         string solicitante,
         string permisoSolicitado,

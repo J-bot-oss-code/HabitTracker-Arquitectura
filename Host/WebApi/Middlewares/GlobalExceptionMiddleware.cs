@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using AccessControl.Domain.Excepciones;
 using DocumentManager.Application.Exceptions;
 using HabitTracker.Application.Exceptions;
 using Microsoft.AspNetCore.Mvc;
@@ -66,6 +67,51 @@ public class GlobalExceptionMiddleware
             // El cliente cerró la conexión a mitad de la petición: no es un error del servidor ni hay a quién responder.
             _logger.LogInformation("Solicitud cancelada por el cliente en {Path}.", context.Request.Path);
         }
+        catch (CredencialesInvalidasException ex)
+        {
+            // Debe ir antes de UnauthorizedAccessException (es su subclase). En el inicio de sesión no hay usuario
+            // autenticado, así que siempre es 401 y el texto no dice si falló el correo o la contraseña (RF-CA-03).
+            _logger.LogInformation(ex, "Credenciales incorrectas.");
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "Credenciales incorrectas.", "Correo o contraseña incorrectos.");
+        }
+        catch (ProveedorExternoNoDisponibleException ex)
+        {
+            // Falta Google:ClientId o Google no responde. Solo esta operación se rechaza; el resto de la API sigue funcionando.
+            _logger.LogWarning("Proveedor de inicio de sesión no disponible.");
+            await WriteProblemAsync(context, HttpStatusCode.ServiceUnavailable, "Servicio no disponible.", ex.Message, ex.Codigo);
+        }
+        catch (TokenExternoInvalidoException ex)
+        {
+            // Debe ir antes de UnauthorizedAccessException (es su subclase). Siempre 401, sin decir qué falló del token.
+            _logger.LogInformation("Token del proveedor externo rechazado.");
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "Credenciales incorrectas.", ex.Message, ex.Codigo);
+        }
+        catch (VinculacionRequeridaException ex)
+        {
+            // Debe ir antes de ControlAccesoException (es su clase base). 409: la cuenta existe y hay que confirmar la contraseña.
+            _logger.LogInformation("Vinculación con el proveedor externo pendiente de confirmar.");
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, "Vinculación requerida.", ex.Message, ex.Codigo);
+        }
+        catch (SesionInvalidaException ex)
+        {
+            // Debe ir antes de UnauthorizedAccessException (es su subclase). El refresh token no sirve: siempre 401, con el código
+            // que le dice al cliente que debe iniciar sesión de nuevo.
+            _logger.LogInformation("Refresh token rechazado.");
+            await WriteProblemAsync(context, HttpStatusCode.Unauthorized, "Sesión inválida.", ex.Message, ex.Codigo);
+        }
+        catch (OperacionNoPermitidaException ex)
+        {
+            // Debe ir antes de ControlAccesoException e InvalidOperationException (son sus clases base).
+            _logger.LogInformation(ex, "Operación no permitida por el rol del ejecutor.");
+            await WriteProblemAsync(context, HttpStatusCode.Forbidden, "No autorizado.", ex.Message, ex.Codigo);
+        }
+        catch (ControlAccesoException ex)
+        {
+            // Reglas de Control de Acceso con código estable ("cuenta_no_activa", "cuenta_bloqueada"...): el cliente
+            // distingue el motivo (RF-CA-15) sin que el mensaje revele datos internos (RD-08).
+            _logger.LogInformation(ex, "Operación de Control de Acceso rechazada: {Codigo}.", ex.Codigo);
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, "La operación no pudo completarse.", ex.Message, ex.Codigo);
+        }
         catch (ArgumentException ex)
         {
             _logger.LogInformation(ex, "Solicitud rechazada por datos no válidos.");
@@ -91,7 +137,7 @@ public class GlobalExceptionMiddleware
         }
     }
 
-    private static async Task WriteProblemAsync(HttpContext context, HttpStatusCode status, string title, string detail)
+    private static async Task WriteProblemAsync(HttpContext context, HttpStatusCode status, string title, string detail, string? codigo = null)
     {
         var problem = new ProblemDetails
         {
@@ -100,6 +146,11 @@ public class GlobalExceptionMiddleware
             Detail = detail,
             Instance = context.TraceIdentifier
         };
+
+        if (codigo is not null)
+        {
+            problem.Extensions["codigo"] = codigo;
+        }
 
         context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = (int)status;

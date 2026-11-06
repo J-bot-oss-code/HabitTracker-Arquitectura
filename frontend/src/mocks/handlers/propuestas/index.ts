@@ -2,7 +2,6 @@ import type { HttpHandler } from 'msw'
 import type { Rol } from '@/shared/auth/roles'
 import { adminHandlers, contratosAdmin } from './admin'
 import { contratosPerfil, perfilHandlers } from './perfil'
-import { contratosPrivacidad, privacidadHandlers } from './privacidad'
 import { contratosProgreso, progresoHandlers } from './progreso'
 
 // Contratos propuestos: endpoints que Host/WebApi todavía NO tiene y que el frontend necesita
@@ -39,8 +38,6 @@ const modulos: ModuloPropuesto[] = [
   { contratos: contratosPerfil, handlers: perfilHandlers },
   // Paso 5: peso y medidas.
   { contratos: contratosProgreso, handlers: progresoHandlers },
-  // Paso 6: Centro de privacidad.
-  { contratos: contratosPrivacidad, handlers: privacidadHandlers },
   // Paso 7: métricas anónimas y auditoría del administrador.
   { contratos: contratosAdmin, handlers: adminHandlers },
 ]

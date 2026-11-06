@@ -53,6 +53,17 @@ public sealed class HabitoService(
         return habito.Id;
     }
 
+    /// <summary>
+    /// Borra definitivamente todos los hábitos del usuario y sus registros de avance (baja de cuenta). Idempotente.
+    /// </summary>
+    public async Task<int> EliminarDatosDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+    {
+        if (usuarioId == Guid.Empty)
+            throw new UnauthorizedAccessException("Identidad de usuario inválida.");
+
+        return await habitoRepository.EliminarDeUsuarioAsync(usuarioId, cancellationToken);
+    }
+
     public async Task<IReadOnlyList<HabitoDto>> ConsultarHabitosAsync(
         Guid usuarioActualId,
         CancellationToken cancellationToken = default)
