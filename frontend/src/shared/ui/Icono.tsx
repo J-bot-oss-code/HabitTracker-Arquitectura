@@ -99,6 +99,19 @@ const trazos = {
   ),
   rayo: <path d="m13 3-7 10.5h5L10 21l8-11.5h-5.5L13 3Z" />,
   circulo: <circle cx="12" cy="12" r="7.5" />,
+  dispositivos: (
+    <>
+      <rect x="3.5" y="5" width="17" height="11" rx="1.5" />
+      <path d="M9 20h6M12 16v4" />
+    </>
+  ),
+  ajustes: (
+    <>
+      <path d="M4 7h9m4 0h3M4 17h3m4 0h9" />
+      <circle cx="15" cy="7" r="2" />
+      <circle cx="9" cy="17" r="2" />
+    </>
+  ),
   ojo: (
     <>
       <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" />

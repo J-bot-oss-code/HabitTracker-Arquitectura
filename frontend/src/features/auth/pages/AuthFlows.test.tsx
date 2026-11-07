@@ -247,9 +247,8 @@ describe('flujos de cuenta', () => {
   })
 
   it('cambiar la contraseña cierra la sesión (RF-CA-12)', async () => {
-    const { user, router } = renderApp('/cuenta', { como: 'estandar' })
-    expect(await screen.findByText('estandar@demo.com', { selector: 'dd' })).toBeInTheDocument()
-    await user.type(screen.getByLabelText('Contraseña actual'), 'Demo1234')
+    const { user, router } = renderApp('/ajustes/seguridad', { como: 'estandar' })
+    await user.type(await screen.findByLabelText('Contraseña actual'), 'Demo1234')
     await user.type(screen.getByLabelText('Nueva contraseña'), CLAVE_OTRA)
     await user.type(screen.getByLabelText('Confirmar nueva contraseña'), CLAVE_OTRA)
     await user.click(screen.getByRole('button', { name: 'Actualizar contraseña' }))

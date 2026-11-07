@@ -109,6 +109,19 @@ export const restablecerSchema = z
   })
   .refine(coinciden, { message: 'Las contraseñas no coinciden.', path: ['confirmacion'] })
 
+// Primera contraseña de una cuenta que solo entra con Google: el correo es el de la sesión.
+export const crearPasswordSchema = z
+  .object({
+    codigo: z
+      .string()
+      .trim()
+      .min(1, 'El código es obligatorio.')
+      .max(64, 'El código no es válido.'),
+    password: passwordNuevaSchema,
+    confirmacion: z.string(),
+  })
+  .refine(coinciden, { message: 'Las contraseñas no coinciden.', path: ['confirmacion'] })
+
 export const cambiarPasswordSchema = z
   .object({
     actual: z.string().min(1, 'Escribe tu contraseña actual.').max(1024),
@@ -127,3 +140,4 @@ export type ActivarForm = z.infer<typeof activarSchema>
 export type SoloCorreoForm = z.infer<typeof soloCorreoSchema>
 export type RestablecerForm = z.infer<typeof restablecerSchema>
 export type CambiarPasswordForm = z.infer<typeof cambiarPasswordSchema>
+export type CrearPasswordForm = z.infer<typeof crearPasswordSchema>

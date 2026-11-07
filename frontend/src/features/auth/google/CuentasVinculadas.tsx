@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useAuth } from '@/shared/auth/AuthContext'
@@ -97,8 +98,11 @@ export function CuentasVinculadas() {
                 </Button>
                 {!vinculos.data.tienePassword && (
                   <p className="text-sm text-atenuado">
-                    Google es tu única forma de entrar. Crea primero una contraseña desde «Recuperar
-                    contraseña» en la pantalla de inicio de sesión.
+                    Google es tu única forma de entrar. Para desvincularla,{' '}
+                    <Link to="/ajustes/seguridad" className="font-semibold text-acento underline">
+                      crea primero una contraseña
+                    </Link>
+                    .
                   </p>
                 )}
               </div>
@@ -114,13 +118,18 @@ export function CuentasVinculadas() {
                 }}
               />
             ) : (
-              <BotonGoogle
-                texto="continue_with"
-                alCredencial={(token) => {
-                  setAviso(null)
-                  setIdToken(token)
-                }}
-              />
+              <div className="max-w-sm space-y-2">
+                <p className="text-sm text-texto-2">
+                  Vincula tu cuenta de Google para entrar con un clic.
+                </p>
+                <BotonGoogle
+                  texto="continue_with"
+                  alCredencial={(token) => {
+                    setAviso(null)
+                    setIdToken(token)
+                  }}
+                />
+              </div>
             )}
 
             {vincular.isError && <Alert tono="peligro">{mensajeGoogle(vincular.error)}</Alert>}

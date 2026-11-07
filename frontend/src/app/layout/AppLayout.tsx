@@ -113,11 +113,13 @@ export function AppLayout() {
           <div className="flex shrink-0 items-center gap-2">
             <SelectorTemaMenu />
             <Link
-              to="/cuenta"
-              aria-label="Mi cuenta"
+              to="/ajustes/cuenta"
+              title="Configuración de la cuenta"
               className="flex min-h-11 min-w-11 items-center justify-center gap-2.5 rounded-lg border border-borde-fuerte bg-superficie px-2.5 hover:border-acento md:px-3"
             >
               <Icono nombre="cuenta" />
+              {/* En móvil solo se ve el icono; desde md, el correo y el rol nombran el enlace (WCAG 2.5.3). */}
+              <span className="sr-only md:hidden">Configuración de la cuenta</span>
               <span className="hidden text-left leading-tight md:block">
                 <span className="block text-sm font-semibold">{usuario.correo}</span>
                 <span className="rotulo block">{etiquetaRol[usuario.rol]}</span>

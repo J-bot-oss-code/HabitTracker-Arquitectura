@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Link, type RouteObject } from 'react-router'
+import { Link, Navigate, type RouteObject } from 'react-router'
 import { ActivatePage } from '@/features/auth/pages/ActivatePage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
@@ -12,6 +12,7 @@ import { useAuth } from '@/shared/auth/AuthContext'
 import { EmptyState } from '@/shared/ui/Card'
 import { ErrorRuta } from './ErrorRuta'
 import { RequierePerfil, RequireAuth, SoloInvitados } from './guards'
+import { AjustesLayout } from './ajustes/AjustesLayout'
 import { AppLayout } from './layout/AppLayout'
 import { AuthLayout } from './layout/AuthLayout'
 import { PublicLayout } from './layout/PublicLayout'
@@ -57,7 +58,16 @@ const paginas = {
   ),
   legal: perezosa(() => import('@/features/publico/pages/LegalPage'), 'LegalPage'),
   bienvenida: perezosa(() => import('@/features/perfil/pages/OnboardingPage'), 'OnboardingPage'),
-  cuenta: perezosa(() => import('@/features/auth/pages/AccountPage'), 'AccountPage'),
+  ajustesCuenta: perezosa(() => import('./ajustes/CuentaAjustesPage'), 'CuentaAjustesPage'),
+  ajustesSeguridad: perezosa(
+    () => import('@/features/auth/pages/AjustesCuentaPages'),
+    'AjustesSeguridadPage',
+  ),
+  ajustesInicioSesion: perezosa(
+    () => import('@/features/auth/pages/AjustesCuentaPages'),
+    'AjustesInicioSesionPage',
+  ),
+  apariencia: perezosa(() => import('./ajustes/AparienciaPage'), 'AparienciaPage'),
   privacidad: perezosa(
     () => import('@/features/privacidad/pages/PrivacidadPage'),
     'PrivacidadPage',
@@ -155,17 +165,63 @@ export const rutas: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          { path: 'cuenta', handle: { titulo: 'Mi cuenta' }, ...paginas.cuenta },
+          // Antes «Mi cuenta»: el enlace viejo sigue funcionando.
+          { path: 'cuenta', element: <Navigate to="/ajustes/cuenta" replace /> },
+          {
+            path: 'ajustes',
+            handle: { seccion: 'Configuración' },
+            element: <AjustesLayout />,
+            children: [
+              { index: true, element: <Navigate to="/ajustes/cuenta" replace /> },
+              {
+                path: 'cuenta',
+                handle: {
+                  titulo: 'Cuenta',
+                  descripcion: 'Tus datos en HabitTracker.',
+                },
+                ...paginas.ajustesCuenta,
+              },
+              {
+                path: 'seguridad',
+                handle: {
+                  titulo: 'Contraseña y seguridad',
+                  descripcion: 'Tu contraseña y cómo proteger tu cuenta.',
+                },
+                ...paginas.ajustesSeguridad,
+              },
+              {
+                path: 'inicio-sesion',
+                handle: {
+                  titulo: 'Inicio de sesión',
+                  descripcion: 'Con qué entras a tu cuenta y en qué dispositivos está abierta.',
+                },
+                ...paginas.ajustesInicioSesion,
+              },
+              {
+                path: 'apariencia',
+                handle: { titulo: 'Apariencia', descripcion: 'Elige cómo se ve la aplicación.' },
+                ...paginas.apariencia,
+              },
+              {
+                element: <RequireAuth roles={['Estandar']} />,
+                children: [
+                  // Descargar, decidir y retirarse no deben exigir dar más datos primero.
+                  {
+                    path: 'privacidad',
+                    handle: {
+                      titulo: 'Privacidad y datos',
+                      descripcion: 'Descarga tus datos, decide qué compartes o retírate.',
+                    },
+                    ...paginas.privacidad,
+                  },
+                ],
+              },
+            ],
+          },
           { path: 'permisos/:id', handle: { titulo: 'Solicitud de permiso' }, ...paginas.permiso },
           {
             element: <RequireAuth roles={['Estandar']} />,
             children: [
-              // Descargar, decidir y retirarse no deben exigir dar más datos primero.
-              {
-                path: 'ajustes/privacidad',
-                handle: { titulo: 'Privacidad y datos' },
-                ...paginas.privacidad,
-              },
               {
                 element: <RequierePerfil />,
                 children: [

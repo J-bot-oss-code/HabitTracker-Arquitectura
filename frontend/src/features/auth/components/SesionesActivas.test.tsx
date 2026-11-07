@@ -23,13 +23,13 @@ function abrirSesionActual() {
 }
 
 async function abrirPanel() {
-  const vista = renderApp('/cuenta', { como: 'estandar' })
+  const vista = renderApp('/ajustes/inicio-sesion', { como: 'estandar' })
   const titulo = await screen.findByRole('heading', { name: 'Sesiones activas' })
   const tarjeta = titulo.closest('div')?.parentElement as HTMLElement
   return { ...vista, tarjeta }
 }
 
-describe('Sesiones activas (Mi cuenta)', () => {
+describe('Sesiones activas (Configuración › Inicio de sesión)', () => {
   it('lista los dispositivos y marca el de este navegador', async () => {
     abrirSesionActual()
     await abrirPanel()

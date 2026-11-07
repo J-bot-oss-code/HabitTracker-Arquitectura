@@ -1,6 +1,6 @@
 import { screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { db } from '@/mocks/db'
+import { CODIGO_RECUPERACION_DEMO, db } from '@/mocks/db'
 import { emitirToken } from '@/mocks/http'
 import { renderApp } from '@/test/render'
 import { tokenStorage } from '@/shared/auth/tokenStorage'
@@ -12,6 +12,8 @@ function cuentaDeGoogle(correo: string | null) {
 }
 
 const BOTON = 'Continuar con Google (demostración)'
+// Política del backend: 12+ caracteres con letras y números.
+const CLAVE_CREADA = 'Primera-Clave-2026'
 
 beforeEach(() => vi.restoreAllMocks())
 afterEach(() => vi.restoreAllMocks())
@@ -176,10 +178,10 @@ describe('Continuar con Google en el registro', () => {
   })
 })
 
-describe('Cuentas vinculadas en Mi cuenta', () => {
+describe('Cuentas vinculadas en Configuración › Inicio de sesión', () => {
   it('vincula Google confirmando la contraseña y lo muestra como vinculado', async () => {
     cuentaDeGoogle('estandar@demo.com')
-    const { user } = renderApp('/cuenta', { como: 'estandar' })
+    const { user } = renderApp('/ajustes/inicio-sesion', { como: 'estandar' })
 
     expect(await screen.findByText('No vinculada')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: BOTON }))
@@ -195,7 +197,7 @@ describe('Cuentas vinculadas en Mi cuenta', () => {
 
   it('una contraseña incorrecta al vincular no vincula ni cierra la sesión', async () => {
     cuentaDeGoogle('estandar@demo.com')
-    const { user, router } = renderApp('/cuenta', { como: 'estandar' })
+    const { user, router } = renderApp('/ajustes/inicio-sesion', { como: 'estandar' })
     await user.click(await screen.findByRole('button', { name: BOTON }))
     const formulario = (await screen.findByRole('button', { name: 'Vincular Google' })).closest(
       'form',
@@ -205,7 +207,7 @@ describe('Cuentas vinculadas en Mi cuenta', () => {
 
     expect(await screen.findByText(/La contraseña es incorrecta/)).toBeInTheDocument()
     expect(db.vinculosGoogle.size).toBe(0)
-    expect(router.state.location.pathname).toBe('/cuenta')
+    expect(router.state.location.pathname).toBe('/ajustes/inicio-sesion')
     expect(tokenStorage.leer()).not.toBeNull()
   })
 
@@ -215,7 +217,7 @@ describe('Cuentas vinculadas en Mi cuenta', () => {
       subject: 'sub-estandar@demo.com',
       vinculadoEn: new Date().toISOString(),
     })
-    const { user } = renderApp('/cuenta', { como: 'estandar' })
+    const { user } = renderApp('/ajustes/inicio-sesion', { como: 'estandar' })
 
     await user.click(await screen.findByRole('button', { name: 'Desvincular Google' }))
     await user.click(
@@ -247,24 +249,39 @@ describe('Cuentas vinculadas en Mi cuenta', () => {
       vinculadoEn: new Date().toISOString(),
     })
     tokenStorage.guardar(emitirToken(usuario))
-    renderApp('/cuenta')
+    const { user } = renderApp('/ajustes/inicio-sesion')
 
     expect(await screen.findByText('Sin contraseña')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Desvincular Google' })).toBeDisabled()
     expect(screen.getByText(/Google es tu única forma de entrar/)).toBeInTheDocument()
-    // No hay formulario para cambiar una contraseña que no existe: se ofrece crearla con la recuperación.
+
+    // El aviso lleva a la sección donde se crea (antes mandaba a cerrar sesión).
+    await user.click(screen.getByRole('link', { name: 'crea primero una contraseña' }))
+    expect(
+      await screen.findByRole('heading', { level: 2, name: 'Crear una contraseña' }),
+    ).toBeInTheDocument()
+    // No hay formulario para cambiar una contraseña que no existe.
     expect(screen.queryByLabelText('Contraseña actual')).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Crear una contraseña' })).toHaveAttribute(
-      'href',
-      '/recuperar',
-    )
+
+    // Se crea sin salir de la sesión: código al correo de la cuenta y la clave nueva.
+    await user.click(screen.getByRole('button', { name: 'Enviarme un código' }))
+    expect(
+      await screen.findByText(/Te enviamos un código a solo.google@example.com/),
+    ).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Código'), CODIGO_RECUPERACION_DEMO)
+    await user.type(screen.getByLabelText('Nueva contraseña'), CLAVE_CREADA)
+    await user.type(screen.getByLabelText('Confirmar contraseña'), CLAVE_CREADA)
+    await user.click(screen.getByRole('button', { name: 'Crear contraseña' }))
+
+    expect(await screen.findByText(/Contraseña creada/)).toBeInTheDocument()
+    expect(usuario.password).toBe(CLAVE_CREADA)
   })
 
   it('una cuenta con contraseña sigue viendo el formulario de cambio de contraseña', async () => {
-    renderApp('/cuenta', { como: 'estandar' })
+    renderApp('/ajustes/seguridad', { como: 'estandar' })
 
     expect(await screen.findByLabelText('Contraseña actual')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Crear una contraseña' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'Crear una contraseña' })).not.toBeInTheDocument()
   })
 })
 
