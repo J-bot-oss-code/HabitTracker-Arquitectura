@@ -297,6 +297,22 @@
   animation: aparecer 220ms ease-out both;
 }
 
+@keyframes deslizar-panel {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Entrada del menú lateral (botón de tres líneas). Utilidad para usarla con lg:. */
+@utility anim-panel {
+  animation: deslizar-panel 180ms ease-out both;
+}
+
 /* Barrido del esqueleto de carga: es un estado temporal, no decoración. */
 .esqueleto {
   background: linear-gradient(

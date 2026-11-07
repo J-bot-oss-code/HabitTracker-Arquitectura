@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router'
 import { useCerrarSesion } from '@/features/auth/api'
 import { useAuth } from '@/shared/auth/AuthContext'
@@ -18,6 +18,18 @@ export function AppLayout() {
   const { salir, saliendo } = useCerrarSesion()
   const { pathname } = useLocation()
   const nav = useRef<HTMLElement>(null)
+  const botonMenu = useRef<HTMLButtonElement>(null)
+  const navId = useId()
+  // Desde lg el menú vive en un panel lateral que abre el botón de tres líneas; en móvil es la
+  // barra inferior y este estado no la afecta (todas sus clases llevan el prefijo lg:).
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  const [rutaDelMenu, setRutaDelMenu] = useState(pathname)
+
+  // Al navegar se cierra el panel (ajuste de estado durante el render, sin efecto en cascada).
+  if (rutaDelMenu !== pathname) {
+    setRutaDelMenu(pathname)
+    setMenuAbierto(false)
+  }
 
   // En móvil la barra inferior se desplaza: el ítem activo se mantiene a la vista.
   useEffect(() => {
@@ -25,6 +37,41 @@ export function AppLayout() {
       ?.querySelector<HTMLElement>('[aria-current="page"]')
       ?.scrollIntoView?.({ inline: 'center', block: 'nearest' })
   }, [pathname])
+
+  const cerrarMenu = () => {
+    setMenuAbierto(false)
+    botonMenu.current?.focus()
+  }
+
+  // Panel abierto: el foco entra en la página actual del menú; Escape lo cierra y devuelve el
+  // foco al botón. Si el foco sale del panel (Tab o clic fuera), se cierra. Mientras está abierto
+  // la página de fondo no se desplaza y queda inerte (ver <main inert>), como bajo cualquier velo.
+  useEffect(() => {
+    if (!menuAbierto) return
+    const desbordeAnterior = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const panel = nav.current
+    const actual = panel?.querySelector<HTMLElement>('[aria-current="page"]')
+    ;(actual ?? panel?.querySelector<HTMLElement>('a'))?.focus()
+    const alPresionar = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setMenuAbierto(false)
+      botonMenu.current?.focus()
+    }
+    const alSalirElFoco = (e: FocusEvent) => {
+      const destino = e.relatedTarget as Node | null
+      if (destino && !panel?.contains(destino) && destino !== botonMenu.current) {
+        setMenuAbierto(false)
+      }
+    }
+    document.addEventListener('keydown', alPresionar)
+    panel?.addEventListener('focusout', alSalirElFoco)
+    return () => {
+      document.body.style.overflow = desbordeAnterior
+      document.removeEventListener('keydown', alPresionar)
+      panel?.removeEventListener('focusout', alSalirElFoco)
+    }
+  }, [menuAbierto])
 
   if (!usuario) return null
   const items = navegacionPara(usuario.rol)
@@ -40,8 +87,19 @@ export function AppLayout() {
       <AvisoModoDemo />
 
       <header data-no-imprimir className="sticky top-0 z-40 border-b border-borde bg-superficie">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-2 px-4 sm:gap-3 sm:px-6">
+        <div className="mx-auto flex h-16 max-w-[88rem] items-center 2xl:max-w-[min(112rem,92vw)] justify-between gap-2 px-4 sm:gap-3 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-2.5">
+            <button
+              ref={botonMenu}
+              type="button"
+              onClick={() => setMenuAbierto((v) => !v)}
+              aria-expanded={menuAbierto}
+              aria-controls={navId}
+              className="hidden min-h-11 shrink-0 items-center gap-2 rounded-lg border border-borde-fuerte px-3 text-sm font-semibold text-texto-2 hover:border-acento hover:text-texto lg:inline-flex"
+            >
+              <Icono nombre="menu" />
+              Menú
+            </button>
             <Link
               to={rutaInicial(usuario.rol)}
               aria-label="Inicio"
@@ -82,17 +140,40 @@ export function AppLayout() {
         </div>
       </header>
 
-      <div className="mx-auto flex w-full max-w-7xl flex-1 gap-8 px-4 pb-24 pt-6 sm:px-6 lg:pb-8">
-        {/* Un solo <nav>: barra inferior desplazable en móvil y barra lateral desde lg. */}
+      {/* Velo del panel lateral (solo desde lg): un clic fuera lo cierra. */}
+      {menuAbierto && (
+        <div
+          aria-hidden="true"
+          onClick={cerrarMenu}
+          className="anim-aparecer fixed inset-0 z-50 hidden bg-velo lg:block"
+        />
+      )}
+
+      <div className="mx-auto w-full max-w-[88rem] flex-1 px-4 2xl:max-w-[min(112rem,92vw)] pb-24 pt-6 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">
+        {/* Un solo <nav>: barra inferior desplazable en móvil y panel lateral desde lg. */}
         <nav
           ref={nav}
+          id={navId}
           data-no-imprimir
           aria-label="Principal"
           className={cn(
             'fixed inset-x-0 bottom-0 z-40 flex gap-1 overflow-x-auto border-t border-borde-fuerte bg-superficie px-2 py-1.5',
-            'lg:sticky lg:top-24 lg:bottom-auto lg:z-auto lg:h-fit lg:w-60 lg:shrink-0 lg:flex-col lg:overflow-visible lg:rounded-2xl lg:border lg:border-borde lg:bg-superficie lg:p-2',
+            'lg:inset-x-auto lg:bottom-0 lg:left-0 lg:top-0 lg:z-50 lg:w-72 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:border-r lg:border-t-0 lg:px-3 lg:pb-4 lg:pt-0 lg:shadow-flotante',
+            menuAbierto ? 'lg:anim-panel lg:flex' : 'lg:hidden',
           )}
         >
+          {/* Cabecera del panel (solo desde lg): la marca y el botón para cerrarlo. */}
+          <div className="mb-2 hidden h-16 shrink-0 items-center justify-between border-b border-borde px-1 lg:flex">
+            <Marca forzarTexto />
+            <button
+              type="button"
+              onClick={cerrarMenu}
+              aria-label="Cerrar menú"
+              className="grid size-11 place-items-center rounded-lg text-atenuado hover:bg-hover hover:text-texto"
+            >
+              <Icono nombre="cerrar" />
+            </button>
+          </div>
           {items.map((item) => (
             <NavLink
               key={item.a}
@@ -129,7 +210,12 @@ export function AppLayout() {
           ))}
         </nav>
 
-        <main id="contenido" tabIndex={-1} className="min-w-0 flex-1 outline-none">
+        <main
+          id="contenido"
+          tabIndex={-1}
+          inert={menuAbierto}
+          className="min-w-0 flex-1 outline-none"
+        >
           <AvisosDeCuenta />
           <Outlet />
         </main>
