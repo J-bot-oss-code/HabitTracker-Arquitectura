@@ -22,3 +22,13 @@
 - **Dependabot (desde el 04-11-2026):** PR semanales hacia `develop`. Las menores y parches van agrupadas; los saltos mayores llegan sueltos. `typescript` 7 se ignora: `typescript-eslint` declara el peer `typescript <6.1.0` y `npm ci` falla con ERESOLVE (retomar cuando lo soporte).
 - **Escaneo semanal de Trivy:** puede bloquear por parches de Ubuntu publicados después del último cambio (CVE-2026-109518 de `apt`, 05-11-2026). El `Dockerfile` ejecuta `apt-get upgrade` en la etapa final como solución; por eso la imagen no es reproducible bit a bit.
 - **Pendiente:** descripción automática de las PR (Qué cambia / Por qué / Cómo probarlo / Qué NO incluye), el CD (el destino previsto es Vercel, que no hospeda .NET de forma nativa), el Dockerfile del frontend y la conexión frontend↔backend. Deuda anotada: `frontend/AGENTS.md` aún dice "backend congelado" y `.github/PULL_REQUEST_TEMPLATE.md` (§6.5) sigue siendo una PR rellenada.
+
+## Rulesets separados para main y develop (07-11-2026)
+
+- **Problema:** con un solo ruleset para las dos ramas y «rama al día con la base» activado, la PR `develop → main` quedaba siempre *out-of-date*. Cada promoción crea en `main` un commit de merge que `develop` no tiene, y «Update branch» no puede empujar a `develop` porque esta exige PR. Por eso se usaban ramas `promocion/*`.
+- **Cambio (lo aplicó el dueño del repositorio con `gh api`):**
+  - «Rama develop protegida (al día con la base)», id 26631403: solo `develop`, con *strict*;
+  - «Rama main protegida (solo promociones desde develop)», id 26776658: solo `main`, **sin** *strict*, con las mismas reglas (PR, `ci-ok`, `seguridad-ok`, CodeQL, sin borrado ni force-push).
+  - Es seguro porque `main` solo recibe promociones de `develop`, que ya pasaron todos los checks allí.
+- **Validador de commits:** `scripts/ci/verificar-commits.sh` omite los commits ya publicados en `origin/main`. Hacía falta porque al sincronizar `main → develop` entraba el commit antiguo `69a85a5` («eliminar .mds redundantes», del 28-10), que no cumple el formato y no se puede reescribir. Los commits nuevos se validan igual; lo cubren 3 casos nuevos de `pruebas-verificar-commits.sh` con un repositorio temporal.
+- **Promover desde ahora:** PR `develop → main` directa (skill `flujo-pr`). Tras cada promoción, `main` lleva un commit de merge más que `develop`, sin cambios de archivos; ya no bloquea nada.

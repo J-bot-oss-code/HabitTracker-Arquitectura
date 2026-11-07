@@ -42,6 +42,16 @@ base="$1"
 head="$2"
 fallos=0
 
+# Los commits que ya están en la rama publicada (main) no se vuelven a validar: no se pueden reescribir y ya se
+# aceptaron en su día. Pasa al sincronizar main → develop (main tiene commits antiguos, anteriores a esta regla).
+# Todo commit nuevo de la PR se sigue validando igual. VERIFICAR_COMMITS_RAMA_PUBLICADA permite otra ref (pruebas).
+publicada="${VERIFICAR_COMMITS_RAMA_PUBLICADA:-refs/remotes/origin/main}"
+excluir=()
+if git rev-parse --verify -q "$publicada^{commit}" > /dev/null; then
+  excluir=(--not "$publicada")
+  echo "Se omiten los commits ya publicados en $publicada."
+fi
+
 while IFS=$'\t' read -r sha correo asunto; do
   if [[ "$correo" == *"dependabot[bot]"* ]]; then
     echo "omitido (Dependabot): ${sha:0:7}"
@@ -53,7 +63,7 @@ while IFS=$'\t' read -r sha correo asunto; do
     echo "::error title=Commit ${sha:0:7}::$motivo — '$asunto'"
     fallos=$((fallos + 1))
   fi
-done < <(git log --no-merges --format='%H%x09%ae%x09%s' "$base..$head")
+done < <(git log --no-merges --format='%H%x09%ae%x09%s' "$base..$head" "${excluir[@]}")
 
 if [ "$fallos" -ne 0 ]; then
   echo "$fallos commit(s) no cumplen el formato de AGENTS.md"
