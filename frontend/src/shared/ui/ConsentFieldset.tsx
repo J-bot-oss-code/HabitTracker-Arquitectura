@@ -30,7 +30,7 @@ export function ConsentFieldset({
   const enlace = 'font-semibold text-acento underline underline-offset-2 hover:text-acento-fuerte'
   return (
     <fieldset className="space-y-1 rounded-xl border border-borde p-4">
-      <legend className="px-1 text-sm font-semibold">Consentimientos</legend>
+      <legend className="rotulo px-1">Consentimientos</legend>
       <Casilla error={errores.terminos} {...terminos}>
         Acepto los{' '}
         <Link to={rutas.terminos} target="_blank" rel="noopener noreferrer" className={enlace}>

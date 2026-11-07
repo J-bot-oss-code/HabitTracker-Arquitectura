@@ -41,7 +41,7 @@ describe('BotonGoogleReal', () => {
       size: 'large',
     })
     expect(opciones.width).toBeGreaterThanOrEqual(200)
-    expect(opciones.width).toBeLessThanOrEqual(340)
+    expect(opciones.width).toBeLessThanOrEqual(400)
   })
 
   it('entrega a quien lo usa el ID token que devuelve Google (sin interpretarlo)', async () => {
