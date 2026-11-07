@@ -31,7 +31,11 @@ function FormularioCorreo({
     handleSubmit,
     getValues,
     formState: { errors },
-  } = useForm<SoloCorreoForm>({ resolver: zodResolver(soloCorreoSchema) })
+  } = useForm<SoloCorreoForm>({
+    resolver: zodResolver(soloCorreoSchema),
+    mode: 'onTouched',
+    defaultValues: { correo: '' },
+  })
 
   return (
     <AuthCard
@@ -63,7 +67,9 @@ function FormularioCorreo({
             <Input
               etiqueta="Correo"
               type="email"
+              inputMode="email"
               autoComplete="email"
+              placeholder="tu@correo.com"
               error={errors.correo?.message}
               {...register('correo')}
             />

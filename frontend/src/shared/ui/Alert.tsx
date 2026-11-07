@@ -23,11 +23,16 @@ export function Alert({
   titulo,
   children,
   className,
+  alCerrar,
+  etiquetaCerrar,
 }: {
   tono?: Tono
   titulo?: string
   children?: ReactNode
   className?: string
+  // Con él aparece una X para descartar el aviso (quien lo usa decide si recordarlo).
+  alCerrar?: () => void
+  etiquetaCerrar?: string
 }) {
   return (
     <div
@@ -42,10 +47,21 @@ export function Alert({
         nombre={tonos[tono].icono}
         className={cn('mt-0.5 size-5 shrink-0', colorIcono[tono])}
       />
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         {titulo && <p className="font-semibold">{titulo}</p>}
         {children && <div className={titulo ? 'mt-1' : undefined}>{children}</div>}
       </div>
+      {alCerrar && (
+        <button
+          type="button"
+          onClick={alCerrar}
+          aria-label={etiquetaCerrar ?? (titulo ? `Cerrar aviso: ${titulo}` : 'Cerrar aviso')}
+          data-cerrar-aviso
+          className="-my-2.5 -mr-2.5 grid size-11 shrink-0 place-items-center rounded-lg text-atenuado hover:bg-hover hover:text-texto"
+        >
+          <Icono nombre="cerrar" className="size-4" />
+        </button>
+      )}
     </div>
   )
 }

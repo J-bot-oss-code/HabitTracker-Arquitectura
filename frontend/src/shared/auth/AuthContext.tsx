@@ -44,6 +44,18 @@ function sesionEnMemoria(): UsuarioSesion | null {
   return usuario
 }
 
+// Lo que la app recuerda en esta pestaña (p. ej. avisos descartados) es de la cuenta que la usaba:
+// al cerrar sesión se borra para que otra cuenta en el mismo navegador no lo herede.
+function borrarEstadoDePestana() {
+  try {
+    for (const clave of Object.keys(sessionStorage)) {
+      if (clave.startsWith('habittracker.')) sessionStorage.removeItem(clave)
+    }
+  } catch {
+    // Sin acceso al almacenamiento no hay nada que borrar.
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const [usuario, setUsuario] = useState<UsuarioSesion | null>(sesionEnMemoria)
@@ -55,6 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const cerrarSesion = useCallback(
     (opciones: OpcionesCierre = {}) => {
       tokenStorage.borrar()
+      borrarEstadoDePestana()
       queryClient.clear()
       setCierre(opciones)
       setUsuario(null)

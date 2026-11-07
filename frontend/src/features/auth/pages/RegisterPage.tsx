@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useRef } from 'react'
-import { useForm } from 'react-hook-form'
+import { useEffect, useId, useRef } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useLocation, useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { consentimientoSchema, guardarRegistroPendiente } from '@/features/perfil/api'
@@ -16,11 +16,13 @@ import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { claseBoton } from '@/shared/ui/claseBoton'
 import { ConsentFieldset } from '@/shared/ui/ConsentFieldset'
-import { Input } from '@/shared/ui/Field'
+import { Input, PasswordInput } from '@/shared/ui/Field'
 import { useRegistro } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
 import { EntradaGoogle } from '../google/EntradaGoogle'
-import { registroSchema } from '../schemas'
+import { RequisitosClave } from '../components/RequisitosClave'
+import { correoSchema, nombreCompletoSchema, passwordNuevaSchema, registroSchema } from '../schemas'
+import { cumple, estadoConfirmacion } from '../validacionEnVivo'
 
 // Datos de la cuenta (límites del backend) + consentimientos obligatorios antes de crearla.
 const esquema = z.intersection(registroSchema, consentimientoSchema)
@@ -53,11 +55,28 @@ export function RegisterPage() {
     register,
     handleSubmit,
     getValues,
+    control,
     formState: { errors },
   } = useForm<Formulario>({
     resolver: zodResolver(esquema),
-    defaultValues: { terminos: false, privacidad: false, marketing: false },
+    // Errores al salir del campo y, desde ahí, en cada tecla: no se regaña antes de terminar.
+    mode: 'onTouched',
+    defaultValues: {
+      nombre: '',
+      correo: '',
+      password: '',
+      confirmacion: '',
+      terminos: false,
+      privacidad: false,
+      marketing: false,
+    },
   })
+  const [nombre, correo, password, confirmacion] = useWatch({
+    control,
+    name: ['nombre', 'correo', 'password', 'confirmacion'],
+  })
+  const idRequisitos = useId()
+  const confirmada = estadoConfirmacion(password, confirmacion)
 
   // El error aparece junto al botón: se lleva a la vista y recibe el foco.
   useEffect(() => {
@@ -153,34 +172,49 @@ export function RegisterPage() {
       </div>
 
       <form onSubmit={enviar} noValidate className="space-y-4">
-        <Input
-          etiqueta="Nombre completo"
-          autoComplete="name"
-          error={errors.nombre?.message}
-          {...register('nombre')}
-        />
-        <Input
-          etiqueta="Correo"
-          type="email"
-          autoComplete="email"
-          error={errors.correo?.message}
-          {...register('correo')}
-        />
-        <Input
-          etiqueta="Contraseña"
-          type="password"
-          autoComplete="new-password"
-          ayuda="Mínimo 12 caracteres, con letras y números."
-          error={errors.password?.message}
-          {...register('password')}
-        />
-        <Input
-          etiqueta="Confirmar contraseña"
-          type="password"
-          autoComplete="new-password"
-          error={errors.confirmacion?.message}
-          {...register('confirmacion')}
-        />
+        <fieldset className="min-w-0 space-y-4">
+          <legend className="rotulo float-left w-full">Tus datos</legend>
+          <Input
+            etiqueta="Nombre completo"
+            autoComplete="name"
+            placeholder="Ej.: Ana Pérez"
+            ayuda="Tu nombre y tu apellido."
+            valido={cumple(nombreCompletoSchema, nombre)}
+            error={errors.nombre?.message}
+            {...register('nombre')}
+          />
+          <Input
+            etiqueta="Correo"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="tu@correo.com"
+            valido={cumple(correoSchema, correo)}
+            error={errors.correo?.message}
+            {...register('correo')}
+          />
+        </fieldset>
+        <fieldset className="min-w-0 space-y-4 border-t border-borde pt-5">
+          <legend className="rotulo float-left w-full">Tu contraseña</legend>
+          <PasswordInput
+            etiqueta="Contraseña"
+            autoComplete="new-password"
+            descritoPor={idRequisitos}
+            valido={cumple(passwordNuevaSchema, password)}
+            error={errors.password?.message}
+            {...register('password')}
+          />
+          <RequisitosClave id={idRequisitos} clave={password ?? ''} />
+          <PasswordInput
+            etiqueta="Confirmar contraseña"
+            autoComplete="new-password"
+            valido={confirmada.valido}
+            ayuda={confirmada.ayuda}
+            ayudaEnVivo
+            error={errors.confirmacion?.message}
+            {...register('confirmacion')}
+          />
+        </fieldset>
         <ConsentFieldset
           rutas={RUTAS_LEGALES}
           versionTerminos={VERSION_TERMINOS}

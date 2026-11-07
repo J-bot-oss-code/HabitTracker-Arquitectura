@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { mensajeDeError } from '@/shared/api/problem'
@@ -56,7 +57,11 @@ export function SesionesActivas() {
         <h2 className="text-lg font-bold">Sesiones activas</h2>
         <p className="mt-1 text-sm text-atenuado">
           Los dispositivos donde tu cuenta tiene la sesión abierta. Si no reconoces alguno, ciérralo
-          y cambia tu contraseña.
+          y{' '}
+          <Link to="/ajustes/seguridad" className="font-semibold text-acento underline">
+            cambia tu contraseña
+          </Link>
+          .
         </p>
 
         {sesiones.isPending ? (

@@ -20,6 +20,8 @@ afterEach(() => {
   server.resetHandlers()
   reiniciarDb()
   tokenStorage.borrar()
+  // Avisos descartados y otras preferencias de la pestaña no pasan de una prueba a otra.
+  sessionStorage.clear()
 })
 
 afterAll(() => server.close())

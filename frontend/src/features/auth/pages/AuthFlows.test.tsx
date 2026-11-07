@@ -85,9 +85,51 @@ describe('flujos de cuenta', () => {
     expect(db.usuarios.some((u) => u.correo === 'sin@demo.com')).toBe(false)
   })
 
+  it('el registro guía mientras se escribe: requisitos de la clave, nombre, correo y confirmación', async () => {
+    const { user } = renderApp('/registro')
+    const requisito = (texto: string) => screen.getByText(texto).closest('li')
+
+    // La lista se marca a medida que se escribe la contraseña.
+    expect(screen.getByText('0 de 3')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Contraseña'), 'abc')
+    expect(requisito('Al menos una letra')).toHaveTextContent('(cumplido)')
+    expect(requisito('Al menos un número')).toHaveTextContent('(pendiente)')
+    await user.type(screen.getByLabelText('Contraseña'), '1-Segura-26')
+    expect(screen.getByText('3 de 3')).toBeInTheDocument()
+    expect(screen.getByLabelText('Contraseña')).toHaveAccessibleDescription(
+      /Tu contraseña necesita/,
+    )
+
+    // Los errores aparecen al salir del campo, no en la primera tecla.
+    await user.type(screen.getByLabelText('Nombre completo'), 'Ana')
+    expect(screen.queryByText('Escribe tu nombre y tu apellido.')).not.toBeInTheDocument()
+    await user.tab()
+    expect(await screen.findByText('Escribe tu nombre y tu apellido.')).toBeInTheDocument()
+    // Desde ahí se corrige en vivo.
+    await user.type(screen.getByLabelText('Nombre completo'), ' Pérez')
+    expect(screen.queryByText('Escribe tu nombre y tu apellido.')).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Correo'), 'ana@')
+    await user.tab()
+    expect(await screen.findByText('Escribe un correo válido.')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Correo'), 'demo.com')
+    expect(screen.queryByText('Escribe un correo válido.')).not.toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Confirmar contraseña'), 'abc')
+    expect(screen.getByText('Aún no coincide con la contraseña.')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Confirmar contraseña'), '1-Segura-26')
+    expect(screen.getByText('Las contraseñas coinciden.')).toBeInTheDocument()
+
+    // El ojo muestra lo escrito sin enviar el formulario.
+    const [ojo] = screen.getAllByRole('button', { name: 'Mostrar contraseña' })
+    await user.click(ojo)
+    expect(screen.getByLabelText('Contraseña')).toHaveAttribute('type', 'text')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
   it('rechaza registrar un correo existente con un mensaje genérico', async () => {
     const { user } = renderApp('/registro')
-    await user.type(screen.getByLabelText('Nombre completo'), 'Duplicado')
+    await user.type(screen.getByLabelText('Nombre completo'), 'Persona Duplicada')
     await user.type(screen.getByLabelText('Correo'), 'estandar@demo.com')
     await user.type(screen.getByLabelText('Contraseña'), CLAVE)
     await user.type(screen.getByLabelText('Confirmar contraseña'), CLAVE)
@@ -205,9 +247,8 @@ describe('flujos de cuenta', () => {
   })
 
   it('cambiar la contraseña cierra la sesión (RF-CA-12)', async () => {
-    const { user, router } = renderApp('/cuenta', { como: 'estandar' })
-    expect(await screen.findByText('estandar@demo.com', { selector: 'dd' })).toBeInTheDocument()
-    await user.type(screen.getByLabelText('Contraseña actual'), 'Demo1234')
+    const { user, router } = renderApp('/ajustes/seguridad', { como: 'estandar' })
+    await user.type(await screen.findByLabelText('Contraseña actual'), 'Demo1234')
     await user.type(screen.getByLabelText('Nueva contraseña'), CLAVE_OTRA)
     await user.type(screen.getByLabelText('Confirmar nueva contraseña'), CLAVE_OTRA)
     await user.click(screen.getByRole('button', { name: 'Actualizar contraseña' }))

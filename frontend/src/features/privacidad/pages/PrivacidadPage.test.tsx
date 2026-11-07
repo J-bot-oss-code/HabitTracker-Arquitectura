@@ -59,12 +59,17 @@ describe('Centro de privacidad', () => {
     expect(screen.getByRole('heading', { name: 'Descargar mis datos' })).toBeInTheDocument()
     expect(await screen.findByRole('heading', { name: 'Consentimientos' })).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Retirarme de la plataforma' })).toBeInTheDocument()
+    // Vive en Configuración: el menú principal marca Configuración y el de secciones, Privacidad.
     const menu = screen.getByRole('navigation', { name: 'Principal' })
-    expect(within(menu).getByRole('link', { name: 'Privacidad' })).toHaveAttribute(
+    expect(within(menu).getByRole('link', { name: 'Configuración' })).toHaveAttribute(
       'aria-current',
       'page',
     )
-    expect(screen.getByRole('link', { name: /Volver a Hoy/ })).toHaveAttribute('href', '/hoy')
+    const secciones = screen.getByRole('navigation', { name: 'Secciones de configuración' })
+    expect(within(secciones).getByRole('link', { name: 'Privacidad y datos' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
   })
 
   it('el Administrador no accede', async () => {
