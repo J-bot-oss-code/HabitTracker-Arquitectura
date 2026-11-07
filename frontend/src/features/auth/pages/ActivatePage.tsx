@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
@@ -7,7 +7,8 @@ import { claseBoton } from '@/shared/ui/claseBoton'
 import { Input } from '@/shared/ui/Field'
 import { useActivar } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
-import { activarSchema, type ActivarForm } from '../schemas'
+import { activarSchema, correoSchema, type ActivarForm } from '../schemas'
+import { cumple } from '../validacionEnVivo'
 
 // El código de 6 dígitos no es único entre usuarios: se activa siempre con el correo. Si llega desde el
 // enlace (?correo=...&codigo=...) se rellena, pero NO se activa solo: un clic en el botón. Así un escáner
@@ -19,11 +20,14 @@ export function ActivatePage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<ActivarForm>({
     resolver: zodResolver(activarSchema),
+    mode: 'onTouched',
     defaultValues: { correo: params.get('correo') ?? '', codigo: params.get('codigo') ?? '' },
   })
+  const [correo, codigo] = useWatch({ control, name: ['correo', 'codigo'] })
 
   if (activar.isSuccess) {
     return (
@@ -57,7 +61,9 @@ export function ActivatePage() {
         <Input
           etiqueta="Correo"
           type="email"
+          inputMode="email"
           autoComplete="email"
+          valido={cumple(correoSchema, correo)}
           error={errors.correo?.message}
           {...register('correo')}
         />
@@ -66,6 +72,8 @@ export function ActivatePage() {
           inputMode="numeric"
           autoComplete="one-time-code"
           maxLength={6}
+          ayuda={`${(codigo ?? '').replace(/\D/g, '').length} de 6 dígitos`}
+          valido={cumple(activarSchema.shape.codigo, codigo)}
           error={errors.codigo?.message}
           {...register('codigo')}
         />

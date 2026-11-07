@@ -55,7 +55,7 @@ Recorrido sugerido:
 
 ## Apariencia y temas
 
-Diseño sobrio según la especificación `docs/mejoras/diseno-ui-web-movil.md`: fondo gris claro, tarjetas blancas con borde sutil, un solo acento índigo, cifras KPI grandes y progreso visible. Tres temas — **Sistema** (por defecto), **Claro** y **Oscuro** — que se eligen desde el icono de la cabecera o en **Mi cuenta → Apariencia**. La elección se guarda en el navegador y se aplica antes del primer pintado.
+Diseño sobrio según la especificación `docs/mejoras/diseno-ui-web-movil.md`: fondo gris claro, tarjetas blancas con borde sutil, un solo acento índigo, cifras KPI grandes y progreso visible. Tres temas — **Sistema** (por defecto), **Claro** y **Oscuro** — que se eligen desde el icono de la cabecera o en **Configuración → Apariencia**. La elección se guarda en el navegador y se aplica antes del primer pintado.
 
 Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2.2 AA (lo verifica `npm test`). Las fuentes (Plus Jakarta Sans e Inter) se empaquetan con la app: no hay peticiones a CDN externas.
 
@@ -80,7 +80,7 @@ Todo lo que empieza por `VITE_` termina en el bundle público: nunca pongas cred
 3. `npm run dev` y abre `http://localhost:5173`.
 
 **Continuar con Google.** Con `VITE_GOOGLE_CLIENT_ID` el botón de Google Identity Services aparece en
-`/login` y `/registro` y en «Cuentas vinculadas» de Mi cuenta. Si el correo de Google es nuevo se piden los
+`/login` y `/registro` y en «Cuentas vinculadas» de Configuración › Inicio de sesión. Si el correo de Google es nuevo se piden los
 documentos legales y se crea la cuenta; si ya tiene una cuenta con contraseña se pide confirmarla para
 vincular; si ya está vinculada entra directo. Sin el ID el botón queda desactivado y con `VITE_USE_MOCKS=true`
 es un botón de demostración que pide el correo de una cuenta de Google simulada. Para crear el ID de cliente

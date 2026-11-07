@@ -5,7 +5,7 @@ import { codigoDeError, esErrorHttp, mensajeDeError } from '@/shared/api/problem
 import { useAuth } from '@/shared/auth/AuthContext'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
-import { Input } from '@/shared/ui/Field'
+import { Input, PasswordInput } from '@/shared/ui/Field'
 import { useLogin } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
 import { EntradaGoogle } from '../google/EntradaGoogle'
@@ -45,7 +45,11 @@ export function LoginPage() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) })
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onTouched',
+    defaultValues: { email: '', password: '' },
+  })
 
   // Con la sesión abierta, SoloInvitados redirige a la ruta pedida o a la inicial del rol.
   const enviar = handleSubmit((datos) =>
@@ -83,13 +87,14 @@ export function LoginPage() {
         <Input
           etiqueta="Correo"
           type="email"
+          inputMode="email"
           autoComplete="email"
+          placeholder="tu@correo.com"
           error={errors.email?.message}
           {...register('email')}
         />
-        <Input
+        <PasswordInput
           etiqueta="Contraseña"
-          type="password"
           autoComplete="current-password"
           error={errors.password?.message}
           {...register('password')}

@@ -17,7 +17,6 @@ export const NAVEGACION: ItemNavegacion[] = [
   { a: '/hoy', etiqueta: 'Hoy', icono: 'rayo', roles: ['Estandar'] },
   { a: '/habitos', etiqueta: 'Mis hábitos', icono: 'habitos', roles: ['Estandar'] },
   { a: '/progreso', etiqueta: 'Progreso', icono: 'trofeo', roles: ['Estandar'] },
-  { a: '/ajustes/privacidad', etiqueta: 'Privacidad', icono: 'candado', roles: ['Estandar'] },
   { a: '/permisos', etiqueta: 'Mis permisos', icono: 'permisos', roles: ['Estandar'] },
   { a: '/admin', etiqueta: 'Resumen', icono: 'reportes', roles: ['Administrador'], fin: true },
   { a: '/admin/permisos', etiqueta: 'Solicitudes', icono: 'permisos', roles: ['Administrador'] },
@@ -51,7 +50,67 @@ export const NAVEGACION: ItemNavegacion[] = [
     roles: ['Administrador'],
     proximamente: true,
   },
+  // Cuenta, apariencia, inicio de sesión, seguridad y privacidad viven juntas en Configuración (siempre al final).
+  {
+    a: '/ajustes',
+    etiqueta: 'Configuración',
+    icono: 'ajustes',
+    roles: ['Estandar', 'Administrador'],
+  },
 ]
+
+// Secciones de Configuración (app/ajustes/AjustesLayout). Privacidad y datos es solo del Estándar:
+// el Administrador recibe 403 en /api/privacy (y la ruta lo comprueba con RequireAuth).
+export interface SeccionAjustes {
+  a: string
+  etiqueta: string
+  icono: NombreIcono
+  roles: Rol[]
+  // Texto de la tarjeta de acceso rápido (Configuración › Cuenta, en móvil).
+  descripcion: string
+}
+
+export const SECCIONES_AJUSTES: SeccionAjustes[] = [
+  {
+    a: '/ajustes/cuenta',
+    etiqueta: 'Cuenta',
+    icono: 'cuenta',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Tu correo y tu rol.',
+  },
+  {
+    a: '/ajustes/seguridad',
+    etiqueta: 'Contraseña y seguridad',
+    icono: 'candado',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Cambia tu contraseña o crea una si entras con Google.',
+  },
+  {
+    a: '/ajustes/inicio-sesion',
+    etiqueta: 'Inicio de sesión',
+    icono: 'dispositivos',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Google vinculado y dispositivos con la sesión abierta.',
+  },
+  {
+    a: '/ajustes/privacidad',
+    etiqueta: 'Privacidad y datos',
+    icono: 'permisos',
+    roles: ['Estandar'],
+    descripcion: 'Descarga tus datos, revisa los consentimientos o retírate.',
+  },
+  {
+    a: '/ajustes/apariencia',
+    etiqueta: 'Apariencia',
+    icono: 'tema',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Tema claro, oscuro o el de tu dispositivo.',
+  },
+]
+
+export function seccionesAjustesPara(rol: Rol) {
+  return SECCIONES_AJUSTES.filter((s) => s.roles.includes(rol))
+}
 
 export function navegacionPara(rol: Rol): ItemNavegacion[] {
   return NAVEGACION.filter((item) => item.roles.includes(rol))
