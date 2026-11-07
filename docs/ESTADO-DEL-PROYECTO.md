@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 05-11-2026, al activar la protección de ramas y de etiquetas del CI (§12). Antes, el 04-11-2026, al montar la integración continua. Ese mismo día, al cerrar la Práctica 4 (PR #40 y #41 → `develop`, PR #42 → `main`, etiqueta `practica-4`). Antes: 28-10-2026, Práctica 3 integrada en `main` (PR #32 → `develop`, PR #33 → `main`).
+> Última actualización: 06-11-2026, tras la ronda de pruebas manuales del frontend contra el backend real (menú de tres líneas, validación en vivo del acceso y botón para ver la contraseña). Antes: 05-11-2026, al activar la protección de ramas y de etiquetas del CI (§12). Antes, el 04-11-2026, al montar la integración continua. Ese mismo día, al cerrar la Práctica 4 (PR #40 y #41 → `develop`, PR #42 → `main`, etiqueta `practica-4`). Antes: 28-10-2026, Práctica 3 integrada en `main` (PR #32 → `develop`, PR #33 → `main`).
 > Lee este archivo al iniciar una sesión. Las reglas de trabajo están en `AGENTS.md` y la guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -52,6 +52,9 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
   `ConnectionStrings__AccessControl=Server=.\SQLEXPRESS;Database=<BD_PRUEBA>;Trusted_Connection=True;TrustServerCertificate=True` y `SMTP_HOST=` vacío. Los correos quedan en `CorreosEnCola`.
 - La API corre en `http://localhost:5246` y Swagger en `/swagger`. Para promover a Administrador: `UPDATE usuarios SET Rol = 2 WHERE Correo = ...` y volver a iniciar sesión.
 - Plan de prueba manual verificado (83/83): `docs/plan-prueba-swagger-practica-3.md`.
+- Con `dotnet run`, la API lee el SMTP (`SMTP_HOST/PORT/USER/PASS`) de los User Secrets de `Host/WebApi`. El `.env` de la raíz solo lo usa `docker compose`: si cambias la clave de aplicación de Gmail, actualiza los dos.
+- Tras traer cambios del backend, aplica las migraciones pendientes de cada contexto (`dotnet ef migrations list ... --context <Ctx>`). Sin ellas la API responde 500 (p. ej. «Invalid column name 'BajaProgramadaPara'» en la recuperación de contraseña).
+- Para probar el frontend contra la API local sin tocar `frontend/.env.local`: `VITE_API_URL=http://localhost:5246 npx vite --port 5174` (5174 está en el CORS y en los orígenes de Google).
 
 ## 5. Decisiones y correcciones relevantes
 
