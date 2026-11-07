@@ -119,6 +119,8 @@ Tipografía: Plus Jakarta Sans 600–800 (títulos y cifras) e Inter (cuerpo), a
 - Ancho del contenido: el contenedor pasa de 1200 px (§2) a 88rem (1408 px) y, desde `2xl`, a `min(112rem, 92vw)`, para que al alejar el zoom del navegador la página no quede en una columna estrecha.
 - Sin `scroll-behavior: smooth` global: animaba cada vuelta arriba de `ScrollRestoration` y se sentía como retraso al desplazarse o cambiar el zoom.
 - Acceso: validación en vivo (modo `onTouched`: el error aparece al salir del campo y desde ahí se corrige en cada tecla), lista de requisitos de la contraseña generada desde `REQUISITOS_CLAVE` (la misma fuente que el esquema zod) con la nota de filtraciones de §5.2, y botón del ojo (`PasswordInput`) en todos los campos de contraseña. En Iniciar sesión y Recuperar no se marca el correo en verde: se leería como «cuenta reconocida» (RF-CA-09).
+- Configuración (`/ajustes`): sustituye a «Mi cuenta» y al menú propio de Privacidad. Menú de secciones a la izquierda desde `lg` y en pestañas en móvil, donde Cuenta muestra además una tarjeta por sección (§6.5). «Crear una contraseña» para cuentas solo de Google ocurre dentro de la sesión (código al correo + `restablecer-password`), porque `/recuperar` es solo para invitados. Mejora pendiente: que las tarjetas muestren estado («Google: no vinculada · 3 sesiones»).
+- Avisos de cuenta: se cierran con una X y quedan descartados en la pestaña (`sessionStorage`); vuelven en la próxima sesión porque el servidor los sigue pidiendo, y al cerrar sesión se olvidan.
 - Nombre y apellido: el registro exige al menos dos palabras con letras. Es más estricto que el backend (1 a 200 caracteres) a propósito; ver «Pendientes para el backend».
 
 ## Pendientes para el backend (mejoras futuras)
