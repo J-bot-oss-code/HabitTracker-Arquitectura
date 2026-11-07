@@ -44,5 +44,47 @@ esperar falla "implementa el login [RF-CA-01]"
 esperar falla "Update README.md"
 esperar falla "fix: corrige el cálculo [RF-CA-01] y algo más"
 
+# --- Rango de commits: los ya publicados en main se omiten, los nuevos se validan ---
+# Repositorio temporal: main tiene un commit antiguo fuera de formato; develop lo trae con un merge (sincronización).
+esperar_rango() {
+  local esperado="$1" descripcion="$2" base="$3" cabeza="$4" resultado
+  total=$((total + 1))
+  if (cd "$repo" && VERIFICAR_COMMITS_RAMA_PUBLICADA=refs/heads/main bash "$validador" "$base" "$cabeza") > /dev/null 2>&1; then
+    resultado="ok"
+  else
+    resultado="falla"
+  fi
+  if [ "$resultado" = "$esperado" ]; then
+    superadas=$((superadas + 1))
+  else
+    echo "FALLA: se esperaba '$esperado' y fue '$resultado' para el rango: $descripcion"
+  fi
+}
+
+repo="$(mktemp -d)"
+trap 'rm -rf "$repo"' EXIT
+(
+  cd "$repo" || exit 1
+  git init -q -b main
+  git config user.email "prueba@ejemplo.com"
+  git config user.name "Prueba"
+  git commit -q --allow-empty -m "docs: base del repositorio [RD-12]"
+  git branch develop
+  git commit -q --allow-empty -m "eliminar archivos redundantes"   # antiguo, fuera de formato, ya publicado en main
+  git switch -q -c sincronizar develop
+  git merge -q --no-ff main -m "Merge main en develop"
+  git switch -q -c nueva-mal sincronizar
+  git commit -q --allow-empty -m "add login"                        # nuevo y fuera de formato
+)
+
+esperar_rango ok    "sincronizar main en develop (solo trae commits ya publicados)" develop sincronizar
+esperar_rango falla "un commit nuevo fuera de formato sigue fallando"               develop nueva-mal
+total=$((total + 1))
+if (cd "$repo" && VERIFICAR_COMMITS_RAMA_PUBLICADA=refs/heads/no-existe bash "$validador" develop sincronizar) > /dev/null 2>&1; then
+  echo "FALLA: sin rama publicada, el commit antiguo fuera de formato debe fallar"
+else
+  superadas=$((superadas + 1))
+fi
+
 echo "$superadas/$total pruebas superadas"
 [ "$superadas" -eq "$total" ]
