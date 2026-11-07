@@ -2,13 +2,19 @@
 
 .NET 10 modular monolith (Clean Architecture). Single host `Host/WebApi` + modules under `Modules/`.
 
-**Al iniciar una sesión, leer `docs/ESTADO-DEL-PROYECTO.md`**: estado por módulo, tags de entrega, decisiones, deuda técnica, entorno local y próximos pasos. Actualizarlo al cerrar cada entrega.
+**Al iniciar una sesión, usar la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/SKILL.md`). Es un mapa corto del repositorio (módulos, endpoints, puertos, pruebas, frontend, requisitos RF/RD, recetas y principios de producto) que evita leer el repo entero o los PDF. Después, `docs/ESTADO-DEL-PROYECTO.md` (estado actual, ≤120 líneas). La historia por fases está en `docs/historial/` y solo se lee bajo demanda.
+
+Al cerrar cada entrega:
+- actualizar el ESTADO;
+- regenerar el inventario (`bash scripts/contexto/generar-inventario.sh`);
+- ajustar la referencia afectada de la skill;
+- comprobar con `bash scripts/ci/verificar-contexto.sh`, que también corre en el CI.
 
 ## Solution / projects
 
 - Solution is `HabitTrackerSystem.slnx` (new XML format, not `.sln`).
-- Each module has `<Module>.Domain` ← `<Module>.Application` ← `<Module>.Infrastructure`, wired in `Host/WebApi/Extensions/ServiceExtensions.cs`.
-- Implemented modules: `AccessControl` (Práctica 1), `Permissions` (Práctica 2), `HabitTracker` (Práctica 3). `Auditing`, `DocumentManager`, `Notifications`, `Reports` are empty skeletons.
+- Each module has `<Module>.Domain` ← `<Module>.Application` ← `<Module>.Infrastructure`. Wiring: AccessControl in `Host/WebApi/Extensions/ServiceExtensions.cs`, HabitTracker in `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs`, Permissions and DocumentManager in their own `Infrastructure/DependencyInjection/`.
+- Implemented modules: `AccessControl` (Práctica 1, extended by Control de Acceso v2), `Permissions` (Práctica 2), `HabitTracker` (Práctica 3; v2 plan in `docs/plan-habittracker-v2.md`), `DocumentManager` (Práctica 4). `Auditing`, `Notifications`, `Reports` are empty skeletons.
 - Each module owns its DbContext/migrations (SQL Server); no cross-module table access — modules talk through Application interfaces (e.g. HabitTracker `IPermisoService` → `PermisoServiceAdapter`).
 - All projects: `net10.0`, `Nullable enable`, `ImplicitUsings enable`. Requires .NET 10 SDK.
 
