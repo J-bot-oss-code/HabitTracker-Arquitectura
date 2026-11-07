@@ -27,7 +27,8 @@ public sealed class SolicitudPermisoService(
 
         await repository.AddAsync(solicitud, cancellationToken);
 
-        logger.LogInformation("Solicitud de permiso {SolicitudId} creada por {Solicitante}.", solicitud.Id, solicitud.Solicitante);
+        // Sin el correo de la persona en el log (cs/exposure-of-sensitive-information); la solicitud queda identificada por su Id.
+        logger.LogInformation("Solicitud de permiso {SolicitudId} creada.", solicitud.Id);
 
         return solicitud.Id;
     }
@@ -109,7 +110,7 @@ public sealed class SolicitudPermisoService(
 
         await repository.UpdateAsync(solicitud, cancellationToken);
 
-        logger.LogInformation("Solicitud {SolicitudId} aprobada por {Aprobador}.", solicitud.Id, command.Aprobador);
+        logger.LogInformation("Solicitud {SolicitudId} aprobada.", solicitud.Id);
     }
 
     public async Task RechazarAsync(RechazarSolicitudCommand command, CancellationToken cancellationToken = default)
@@ -132,7 +133,7 @@ public sealed class SolicitudPermisoService(
 
         await repository.UpdateAsync(solicitud, cancellationToken);
 
-        logger.LogInformation("Solicitud {SolicitudId} rechazada por {Aprobador}.", solicitud.Id, command.Aprobador);
+        logger.LogInformation("Solicitud {SolicitudId} rechazada.", solicitud.Id);
     }
 
     public Task<bool> TienePermisoEfectivoAsync(
@@ -179,7 +180,7 @@ public sealed class SolicitudPermisoService(
             identidad,
             soloPendientes: false,
             cancellationToken);
-        logger.LogInformation("Historial protegido consultado por {Solicitante}.", identidad);
+        logger.LogInformation("Historial protegido consultado.");
         return historial.Select(ToDto).ToList();
     }
 
