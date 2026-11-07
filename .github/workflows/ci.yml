@@ -106,11 +106,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: ShellCheck de los scripts del CI
-        run: shellcheck scripts/ci/*.sh
+        run: shellcheck scripts/ci/*.sh scripts/contexto/*.sh
       - name: Pruebas del validador de commits
         run: bash scripts/ci/pruebas-verificar-commits.sh
       - name: Reglas RD verificables (RD-03, RD-05, RD-08, RD-10, RD-11)
         run: bash scripts/ci/verificar-reglas-rd.sh
+      - name: Skill de contexto al día (rutas citadas, inventario y tamaño del ESTADO)
+        run: bash scripts/ci/verificar-contexto.sh
       - name: Formato de los commits de la PR
         if: github.event_name == 'pull_request'
         env:
