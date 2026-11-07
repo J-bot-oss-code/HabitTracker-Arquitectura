@@ -61,8 +61,8 @@ describe('lógica de temas', () => {
 })
 
 describe('selector de tema', () => {
-  it('desde Mi cuenta cambia el tema y lo recuerda', async () => {
-    const { user } = renderApp('/cuenta', { como: 'estandar' })
+  it('desde Configuración › Apariencia cambia el tema y lo recuerda', async () => {
+    const { user } = renderApp('/ajustes/apariencia', { como: 'estandar' })
     await user.click(await screen.findByRole('radio', { name: /Oscuro/ }))
 
     expect(document.documentElement.dataset.theme).toBe('oscuro')
@@ -92,7 +92,7 @@ describe('selector de tema', () => {
 
   it('con "Sistema" reacciona al cambio del dispositivo en vivo', async () => {
     const dispositivo = simularPreferenciaOscura(false)
-    renderApp('/cuenta', { como: 'estandar' })
+    renderApp('/ajustes/apariencia', { como: 'estandar' })
     await screen.findByRole('radio', { name: /Sistema/ })
     expect(document.documentElement.dataset.theme).toBe('claro')
 

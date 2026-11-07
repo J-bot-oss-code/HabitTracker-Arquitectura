@@ -1,12 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useId } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
-import { Input } from '@/shared/ui/Field'
+import { Input, PasswordInput } from '@/shared/ui/Field'
 import { useRestablecerPassword } from '../api'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
-import { restablecerSchema, type RestablecerForm } from '../schemas'
+import { RequisitosClave } from '../components/RequisitosClave'
+import {
+  correoSchema,
+  passwordNuevaSchema,
+  restablecerSchema,
+  type RestablecerForm,
+} from '../schemas'
+import { cumple, estadoConfirmacion } from '../validacionEnVivo'
 
 export function ResetPasswordPage() {
   const [params] = useSearchParams()
@@ -16,11 +24,24 @@ export function ResetPasswordPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<RestablecerForm>({
     resolver: zodResolver(restablecerSchema),
-    defaultValues: { correo: params.get('correo') ?? '' },
+    mode: 'onTouched',
+    defaultValues: {
+      correo: params.get('correo') ?? '',
+      codigo: '',
+      password: '',
+      confirmacion: '',
+    },
   })
+  const [correo, password, confirmacion] = useWatch({
+    control,
+    name: ['correo', 'password', 'confirmacion'],
+  })
+  const idRequisitos = useId()
+  const confirmada = estadoConfirmacion(password, confirmacion)
 
   const enviar = handleSubmit((d) =>
     restablecer.mutate(
@@ -50,28 +71,34 @@ export function ResetPasswordPage() {
         <Input
           etiqueta="Correo"
           type="email"
+          inputMode="email"
           autoComplete="email"
+          valido={cumple(correoSchema, correo)}
           error={errors.correo?.message}
           {...register('correo')}
         />
         <Input
           etiqueta="Código"
           autoComplete="one-time-code"
+          ayuda="Lo encuentras en el correo de recuperación."
           error={errors.codigo?.message}
           {...register('codigo')}
         />
-        <Input
+        <PasswordInput
           etiqueta="Nueva contraseña"
-          type="password"
           autoComplete="new-password"
-          ayuda="Mínimo 12 caracteres, con letras y números."
+          descritoPor={idRequisitos}
+          valido={cumple(passwordNuevaSchema, password)}
           error={errors.password?.message}
           {...register('password')}
         />
-        <Input
+        <RequisitosClave id={idRequisitos} clave={password ?? ''} />
+        <PasswordInput
           etiqueta="Confirmar contraseña"
-          type="password"
           autoComplete="new-password"
+          valido={confirmada.valido}
+          ayuda={confirmada.ayuda}
+          ayudaEnVivo
           error={errors.confirmacion?.message}
           {...register('confirmacion')}
         />

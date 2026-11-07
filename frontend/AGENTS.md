@@ -93,7 +93,8 @@ Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs
 
 - Públicas: landing `/`, `/metas`, `/calculadoras` y `/legal/:documento`.
 - Alta: `/registro` con consentimientos y `/bienvenida` (onboarding).
-- Estándar: `/hoy` (inicio), `/progreso` y `/ajustes/privacidad`.
+- Estándar: `/hoy` (inicio) y `/progreso`.
+- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
 - Administrador: `/admin` (inicio) y `/admin/auditoria`.
 
 Cada pantalla pone su título de pestaña y el foco en su encabezado (`app/layout/RaizApp.tsx`). Las rutas nuevas llevan `handle: { titulo }` en `routes.tsx`.
@@ -132,12 +133,12 @@ marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activa
   (`BotonGoogleReal`, script de `accounts.google.com/gsi/client` cargado una vez en `gis.ts`) y la API lo valida.
   `useEntradaGoogle` orquesta `POST /api/auth/google`: 200/201 abre sesión, `400 consentimiento_requerido`
   pide los documentos y repite, `409 vinculacion_requerida` pide la contraseña (`/google/vincular`). «Cuentas
-  vinculadas» (`GET /api/auth/vinculos`, `DELETE /api/auth/vinculos/google`) vive en Mi cuenta; una cuenta sin
+  vinculadas» (`GET /api/auth/vinculos`, `DELETE /api/auth/vinculos/google`) vive en Configuración › Inicio de sesión; una cuenta sin
   contraseña no puede desvincular Google y ve un enlace para crearla con la recuperación. `/google/vincular` está
   en `RUTAS_SIN_RENOVACION`: su 401 es «contraseña incorrecta», no «token vencido». Con mocks, el botón es una
   demostración (`window.prompt`) y el «ID token» es `mock-google|sub|correo|nombre|1` (`tokenDemo.ts`): nunca
   llega al backend real.
-- **Sesiones activas (conectado):** Mi cuenta › «Sesiones activas» (`features/auth/components/SesionesActivas.tsx`):
+- **Sesiones activas (conectado):** Configuración › Inicio de sesión › «Sesiones activas» (`features/auth/components/SesionesActivas.tsx`):
   `GET /api/auth/sesiones`, `DELETE /api/auth/sesiones/{id}` (404 si no es tuya) y `POST /api/auth/logout-todas`.
   «Cerrar las demás» cierra una por una; «Cerrar en todos los dispositivos» corta también este navegador.
 - **Centro de privacidad (conectado):** `/api/privacy/*`. Consentimientos (`GET/PUT /consents`, para cualquier

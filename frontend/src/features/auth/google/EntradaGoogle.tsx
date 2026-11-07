@@ -6,7 +6,7 @@ import { RUTAS_LEGALES, VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { ConsentFieldset } from '@/shared/ui/ConsentFieldset'
-import { Input } from '@/shared/ui/Field'
+import { PasswordInput } from '@/shared/ui/Field'
 import type { ConsentimientosRegistro } from '../types'
 import { BotonGoogle, type TextoBotonGoogle } from './BotonGoogle'
 import { useEntradaGoogle } from './useEntradaGoogle'
@@ -95,9 +95,8 @@ export function FormularioClave({
   return (
     <form noValidate className="space-y-4" onSubmit={handleSubmit((d) => alEnviar(d.password))}>
       <Alert tono="info">{titulo}</Alert>
-      <Input
+      <PasswordInput
         etiqueta="Contraseña"
-        type="password"
         autoComplete="current-password"
         error={errors.password?.message}
         {...register('password')}

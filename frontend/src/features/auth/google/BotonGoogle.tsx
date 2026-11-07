@@ -15,7 +15,8 @@ interface PropiedadesBoton {
 }
 
 const ANCHO_MIN = 200
-const ANCHO_MAX = 340
+// Google Identity Services admite hasta 400 px: así el botón ocupa el ancho de los campos.
+const ANCHO_MAX = 400
 
 // El botón de Google lo dibuja Google (así cumple su marca y el flujo es el oficial). Se ajusta al ancho
 // disponible, porque GIS exige un ancho en píxeles.
