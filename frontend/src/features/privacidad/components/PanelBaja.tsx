@@ -10,7 +10,7 @@ import { formatearFecha } from '@/shared/lib/fechas'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { Card, CardBody } from '@/shared/ui/Card'
-import { Input } from '@/shared/ui/Field'
+import { PasswordInput } from '@/shared/ui/Field'
 import { Modal } from '@/shared/ui/Modal'
 import { useToast } from '@/shared/ui/Toast'
 import { useBajaProgramada, useCancelarBaja, useSolicitarBaja } from '../api'
@@ -165,9 +165,8 @@ function ModalBaja({ modo, alCerrar }: { modo: ModoBaja; alCerrar: () => void })
             />
           </div>
         ) : (
-          <Input
+          <PasswordInput
             etiqueta="Tu contraseña"
-            type="password"
             autoComplete="current-password"
             error={errors.password?.message}
             {...register('password')}
