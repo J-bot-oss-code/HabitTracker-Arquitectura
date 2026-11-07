@@ -78,4 +78,69 @@ describe('avisos de cuenta (en toda la aplicación)', () => {
     expect(screen.queryByText('Actualizamos nuestros documentos')).toBeNull()
     expect(screen.queryByText('Tu cuenta se eliminará')).toBeNull()
   })
+
+  it('la X cierra el aviso y no vuelve a salir en esta pestaña', async () => {
+    db.consentimientos.set(ana().id, {
+      ...db.consentimientos.get(ana().id)!,
+      terminosVersion: 'v1.0',
+    })
+    const { user } = renderApp('/hoy', { como: 'estandar' })
+    expect(await screen.findByText('Actualizamos nuestros documentos')).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole('button', { name: 'Cerrar aviso: Actualizamos nuestros documentos' }),
+    )
+    expect(screen.queryByText('Actualizamos nuestros documentos')).toBeNull()
+    expect(JSON.parse(sessionStorage.getItem('habittracker.avisos-descartados') ?? '[]')).toEqual([
+      'documentos',
+    ])
+    // El foco no cae en <body>: pasa al título de la página.
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('heading', { level: 1 })),
+    )
+
+    // Al navegar a otra pantalla sigue cerrado.
+    await user.click(screen.getByRole('link', { name: 'Mis hábitos' }))
+    await screen.findByRole('heading', { level: 1, name: 'Mis hábitos' })
+    expect(screen.queryByText('Actualizamos nuestros documentos')).toBeNull()
+  })
+
+  it('un almacenamiento manipulado no rompe los avisos', async () => {
+    sessionStorage.setItem('habittracker.avisos-descartados', '{"no":"es una lista"}')
+    db.consentimientos.set(ana().id, {
+      ...db.consentimientos.get(ana().id)!,
+      terminosVersion: 'v1.0',
+    })
+    renderApp('/hoy', { como: 'estandar' })
+    expect(await screen.findByText('Actualizamos nuestros documentos')).toBeInTheDocument()
+  })
+
+  it('al cerrar sesión se olvida lo descartado: otra cuenta del navegador vuelve a ver el aviso', async () => {
+    sessionStorage.setItem('habittracker.avisos-descartados', '["documentos"]')
+    db.consentimientos.set(ana().id, {
+      ...db.consentimientos.get(ana().id)!,
+      terminosVersion: 'v1.0',
+    })
+    const { user } = renderApp('/hoy', { como: 'estandar' })
+    await screen.findByRole('heading', {
+      level: 1,
+      name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+    })
+    expect(screen.queryByText('Actualizamos nuestros documentos')).toBeNull()
+
+    await user.click(screen.getByRole('button', { name: 'Cerrar sesión' }))
+    expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
+    expect(sessionStorage.getItem('habittracker.avisos-descartados')).toBeNull()
+  })
+
+  it('en Privacidad y datos el aviso no enlaza a la misma página', async () => {
+    db.consentimientos.set(ana().id, {
+      ...db.consentimientos.get(ana().id)!,
+      terminosVersion: 'v1.0',
+    })
+    renderApp('/ajustes/privacidad', { como: 'estandar' })
+    expect(await screen.findByText('Actualizamos nuestros documentos')).toBeInTheDocument()
+    expect(screen.getByText(/Los encuentras abajo, en Consentimientos/)).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Ir a Privacidad y datos' })).toBeNull()
+  })
 })
