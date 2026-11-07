@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useId } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { Link } from 'react-router'
 import { codigoDeError, mensajeDeError } from '@/shared/api/problem'
 import { useAuth } from '@/shared/auth/AuthContext'
@@ -10,13 +11,15 @@ import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { Card, CardBody, PageHeader } from '@/shared/ui/Card'
 import { claseEnlace } from '@/shared/ui/AuthCard'
-import { Input } from '@/shared/ui/Field'
+import { PasswordInput } from '@/shared/ui/Field'
 import { SelectorTemaTarjetas } from '@/shared/theme/SelectorTema'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useCambiarPassword, useMe, useVinculos } from '../api'
 import { SesionesActivas } from '../components/SesionesActivas'
 import { CuentasVinculadas } from '../google/CuentasVinculadas'
-import { cambiarPasswordSchema, type CambiarPasswordForm } from '../schemas'
+import { RequisitosClave } from '../components/RequisitosClave'
+import { cambiarPasswordSchema, passwordNuevaSchema, type CambiarPasswordForm } from '../schemas'
+import { cumple, estadoConfirmacion } from '../validacionEnVivo'
 
 export function AccountPage() {
   const me = useMe()
@@ -29,8 +32,19 @@ export function AccountPage() {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
-  } = useForm<CambiarPasswordForm>({ resolver: zodResolver(cambiarPasswordSchema) })
+  } = useForm<CambiarPasswordForm>({
+    resolver: zodResolver(cambiarPasswordSchema),
+    mode: 'onTouched',
+    defaultValues: { actual: '', password: '', confirmacion: '' },
+  })
+  const [actual, password, confirmacion] = useWatch({
+    control,
+    name: ['actual', 'password', 'confirmacion'],
+  })
+  const idRequisitos = useId()
+  const confirmada = estadoConfirmacion(password, confirmacion)
 
   // RF-CA-12: cambiar la clave invalida las sesiones previas, incluida la actual.
   const enviar = handleSubmit((d) =>
@@ -116,25 +130,27 @@ export function AccountPage() {
                 </Alert>
               )}
               <form onSubmit={enviar} noValidate className="mt-4 grid gap-4 sm:max-w-md">
-                <Input
+                <PasswordInput
                   etiqueta="Contraseña actual"
-                  type="password"
                   autoComplete="current-password"
                   error={errors.actual?.message}
                   {...register('actual')}
                 />
-                <Input
+                <PasswordInput
                   etiqueta="Nueva contraseña"
-                  type="password"
                   autoComplete="new-password"
-                  ayuda="Mínimo 12 caracteres, con letras y números."
+                  descritoPor={idRequisitos}
+                  valido={cumple(passwordNuevaSchema, password) && password !== actual}
                   error={errors.password?.message}
                   {...register('password')}
                 />
-                <Input
+                <RequisitosClave id={idRequisitos} clave={password ?? ''} />
+                <PasswordInput
                   etiqueta="Confirmar nueva contraseña"
-                  type="password"
                   autoComplete="new-password"
+                  valido={confirmada.valido}
+                  ayuda={confirmada.ayuda}
+                  ayudaEnVivo
                   error={errors.confirmacion?.message}
                   {...register('confirmacion')}
                 />

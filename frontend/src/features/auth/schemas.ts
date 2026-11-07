@@ -11,12 +11,62 @@ export const correoSchema = z
 
 // Política de contraseñas del backend (PoliticaContrasena, RF-CA-14): 12 a 1024 caracteres con letras y
 // números. El servidor además rechaza contraseñas que aparecen en filtraciones conocidas (Pwned Passwords).
-export const passwordNuevaSchema = z
+// Única fuente de los requisitos: el esquema y la lista que ve el usuario mientras escribe salen de aquí.
+export const LONGITUD_MINIMA_CLAVE = 12
+const LONGITUD_MAXIMA_CLAVE = 1024
+
+export interface RequisitoClave {
+  id: 'longitud' | 'letra' | 'numero'
+  texto: string
+  error: string
+  cumple: (clave: string) => boolean
+}
+
+export const REQUISITOS_CLAVE: readonly RequisitoClave[] = [
+  {
+    id: 'longitud',
+    texto: `Al menos ${LONGITUD_MINIMA_CLAVE} caracteres`,
+    error: `La contraseña debe tener al menos ${LONGITUD_MINIMA_CLAVE} caracteres.`,
+    cumple: (clave) => clave.length >= LONGITUD_MINIMA_CLAVE,
+  },
+  {
+    id: 'letra',
+    texto: 'Al menos una letra',
+    error: 'La contraseña debe incluir al menos una letra.',
+    cumple: (clave) => /\p{L}/u.test(clave),
+  },
+  {
+    id: 'numero',
+    texto: 'Al menos un número',
+    error: 'La contraseña debe incluir al menos un número.',
+    cumple: (clave) => /\p{Nd}/u.test(clave),
+  },
+]
+
+export const passwordNuevaSchema = REQUISITOS_CLAVE.reduce(
+  (esquema, r) => esquema.refine(r.cumple, r.error),
+  z.string().max(LONGITUD_MAXIMA_CLAVE, 'La contraseña es demasiado larga.'),
+)
+
+// Nombre y apellido: el backend solo exige 1 a 200 caracteres; el producto pide además nombre y
+// apellido (al menos dos palabras con letras). Es más estricto que el servidor a propósito y está
+// anotado en docs/PLAN-FRONTEND-NEXUS.md › Pendientes para el backend. Se admiten tildes, ñ,
+// apóstrofos, guiones y puntos (O'Neill, 't Hooft, Pérez-Gil, Ma. José, Ana P.).
+const PALABRA_NOMBRE = /^['’]?\p{L}[\p{L}\p{M}'’.-]*$/u
+
+export const nombreCompletoSchema = z
   .string()
-  .min(12, 'La contraseña debe tener al menos 12 caracteres.')
-  .max(1024, 'La contraseña es demasiado larga.')
-  .regex(/\p{L}/u, 'La contraseña debe incluir al menos una letra.')
-  .regex(/\d/, 'La contraseña debe incluir al menos un número.')
+  .trim()
+  .min(1, 'El nombre es obligatorio.')
+  .max(200, 'El nombre admite como máximo 200 caracteres.')
+  .refine(
+    (nombre) => nombre.split(/\s+/).every((p) => PALABRA_NOMBRE.test(p)),
+    'Usa solo letras, espacios, apóstrofos, guiones o puntos.',
+  )
+  .refine(
+    (nombre) => nombre.split(/\s+/).filter((p) => /\p{L}/u.test(p)).length >= 2,
+    'Escribe tu nombre y tu apellido.',
+  )
 
 const coinciden = <T extends { password: string; confirmacion: string }>(datos: T) =>
   datos.password === datos.confirmacion
@@ -28,11 +78,7 @@ export const loginSchema = z.object({
 
 export const registroSchema = z
   .object({
-    nombre: z
-      .string()
-      .trim()
-      .min(1, 'El nombre es obligatorio.')
-      .max(200, 'El nombre admite como máximo 200 caracteres.'),
+    nombre: nombreCompletoSchema,
     correo: correoSchema,
     password: passwordNuevaSchema,
     confirmacion: z.string(),
