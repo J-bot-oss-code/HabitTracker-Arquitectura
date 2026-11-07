@@ -1,19 +1,21 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 06-11-2026, tras la ronda de pruebas manuales del frontend contra el backend real (menú de tres líneas, validación en vivo del acceso, botón para ver la contraseña, Configuración en `/ajustes` y avisos que se cierran con una X). Antes: 05-11-2026, al activar la protección de ramas y de etiquetas del CI (§12). Antes, el 04-11-2026, al montar la integración continua. Ese mismo día, al cerrar la Práctica 4 (PR #40 y #41 → `develop`, PR #42 → `main`, etiqueta `practica-4`). Antes: 28-10-2026, Práctica 3 integrada en `main` (PR #32 → `develop`, PR #33 → `main`).
-> Lee este archivo al iniciar una sesión. Las reglas de trabajo están en `AGENTS.md` y la guía de uso y evaluación en `README.md`.
+> Última actualización: 07-11-2026, Fase 0 del plan HabitTracker v2 (skill de contexto y ESTADO compacto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
+> **Al iniciar una sesión, usa la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/`): rutas, contratos, recetas y requisitos sin leer el repositorio entero. Reglas de trabajo en `AGENTS.md`; guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
 
-HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un solo host (`Host/WebApi`) y 7 módulos en `Modules/`. Cada módulo tiene `Domain ← Application ← Infrastructure` y su propio `DbContext`. Los tres contextos implementados comparten la cadena `ConnectionStrings:AccessControl` (SQL Server).
+HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tiene un solo host (`Host/WebApi`) y 7 módulos en `Modules/`, cada uno con `Domain ← Application ← Infrastructure` y su propio `DbContext`. Los cuatro contextos implementados comparten la cadena `ConnectionStrings:AccessControl` (SQL Server). El frontend React vive en `frontend/`.
 
-| Módulo | Estado | Entrega |
+| Módulo | Estado | Historia |
 |---|---|---|
-| AccessControl (Control de Acceso) | Completo: registro + activación por correo, JWT, logout con blacklist, bloqueo 15 min, roles `Estandar`/`Administrador`, recuperación de contraseña, cola de correos en BD, administración de usuarios | Práctica 1 |
-| Permissions (Gestión de Permisos) | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`, autoresolución prohibida, acción protegida por permiso aplicado | Asignación 2 / Práctica 2 |
-| HabitTracker (módulo de negocio) | Completo para la P3: `Planificado → Activo ⇄ Pausado → Completado` (terminal), 5 endpoints en `api/habits`, reconfiguración con permiso `Habits.AdvancedReconfig` | Práctica 3 |
-| DocumentManager (Manejador de documentos) | Completo para la P4: subir, listar, consultar, descargar y eliminar de forma lógica (RF-DOC-01 a 05), volumen con nombre, 5 endpoints en `api/documents` | Práctica 4 |
-| Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | Pendiente |
+| AccessControl | Completo: registro + activación con código, JWT de 15 min + refresh en cookie, Google, bloqueo, contraseñas reforzadas, consentimientos, baja y descarga de datos, administración y cola de correos | `docs/historial/control-acceso-v2.md` |
+| Permissions | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada` | P2 |
+| HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`), 5 endpoints en `api/habits` y `plan-del-dia` con el clima. **En evolución:** plan v2 | `docs/plan-habittracker-v2.md` |
+| DocumentManager | Completo para la P4 (RF-DOC-01 a 05) | `docs/historial/practica-4.md` |
+| Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | — |
+| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios y privacidad. Perfil, peso, medidas y métricas siguen como contratos propuestos | `docs/historial/frontend.md` |
+| CI | `ci-ok` y `seguridad-ok` obligatorios en `develop` y `main` | `docs/historial/ci.md` |
 
 ## 2. Tags de entrega (no mover ni reescribir)
 
@@ -22,252 +24,81 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture: un 
 | `asignacion-1` | `0056600` | |
 | `practica-1` | `171d0fd` | |
 | `asignacion-2` | `6433209` | |
-| `practica-2` | `86f7e0a` | 39 pruebas. Defectos `practica-2-defecto-1..6`, hijos directos. |
-| `practica-3` | `318daab` | 106 pruebas. Defectos `practica-3-defecto-1..4` (`485a0a1`, `dcd2bea`, `f1d3335`, `f802c65`), hijos directos. |
-| `practica-4` | `0403df5` | 347 pruebas. Contenedor, documentos, API externa y activación con código de 6 dígitos (ver §11). Creado el 04-11-2026 sobre `main` tras verificarlo desde un clon limpio (92 + 4 comprobaciones). |
+| `practica-2` | `86f7e0a` | Defectos `practica-2-defecto-1..6`, hijos directos |
+| `practica-3` | `318daab` | Defectos `practica-3-defecto-1..4` (`485a0a1`, `dcd2bea`, `f1d3335`, `f802c65`), hijos directos |
+| `practica-4` | `0403df5` | Contenedor, documentos, API externa y activación con código |
 
-- Los tags de la Práctica 3 se rehicieron el 28-10 (antes de entregar) para incluir dos correcciones (ver §5). Quien tenga clones antiguos debe ejecutar `git fetch --tags --force`.
-- Cada commit de defecto cambia un solo archivo de producción y su mensaje indica archivo y línea. La tabla con la prueba que detecta cada defecto está en `README.md` › `## Defectos — Práctica 2/3`.
-- Para la entrega en Moodle: URL del repositorio + nombre del tag base.
+- Un ruleset de GitHub impide actualizar, borrar o mover `practica-*` y `asignacion-*`. Crear tags nuevos sigue permitido.
+- Los tags de la P3 se rehicieron el 28-10 (antes de entregar). Quien tenga clones antiguos debe ejecutar `git fetch --tags --force`.
+- Cada commit de defecto cambia un solo archivo de producción. La tabla de defectos y pruebas está en `README.md` › `## Defectos — Práctica 2/3`.
+- Para entregar en Moodle: URL del repositorio + nombre del tag base.
 
 ## 3. Pruebas
 
-`dotnet test` ejecuta 106 pruebas sin levantar la API ni usar una BD externa:
-
-| Proyecto | Pruebas |
-|---|---|
-| HabitTracker.Domain.Tests | 43 |
-| HabitTracker.Application.Tests | 21 (con dobles en memoria) |
-| HabitTracker.Integration.Tests | 3: 1 de integración real con Permisos + 2 de persistencia de avances, con EF Core/SQLite |
-| Permissions.Domain / Application / Infrastructure | 18 / 6 / 3 |
-| AccessControl.Application.Tests | 12 |
-
-`tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
+- **Backend:** `dotnet test` ejecuta **841** pruebas (medido el 07-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Frontend:** `cd frontend && npm test` ejecuta **623** pruebas en 49 archivos (medido el 07-11-2026) sin backend (MSW).
+- `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
 ## 4. Entorno local
 
-- SQL Express `.\SQLEXPRESS`, base `HabitTracker` (desarrollo) y base aislada `HabitTracker_PruebaP3` (prueba E2E; se puede borrar).
-- Secrets (User Secrets de `Host/WebApi`): `JwtSettings:Clave` y `SMTP_HOST/PORT/USER/PASS`, que son **reales**. La cadena de conexión está en `appsettings.json` (Windows Auth, sin contraseña).
-- Para probar sin tocar la base de desarrollo ni enviar correos:
-  `ConnectionStrings__AccessControl=Server=.\SQLEXPRESS;Database=<BD_PRUEBA>;Trusted_Connection=True;TrustServerCertificate=True` y `SMTP_HOST=` vacío. Los correos quedan en `CorreosEnCola`.
-- La API corre en `http://localhost:5246` y Swagger en `/swagger`. Para promover a Administrador: `UPDATE usuarios SET Rol = 2 WHERE Correo = ...` y volver a iniciar sesión.
-- Plan de prueba manual verificado (83/83): `docs/plan-prueba-swagger-practica-3.md`.
-- Con `dotnet run`, la API lee el SMTP (`SMTP_HOST/PORT/USER/PASS`) de los User Secrets de `Host/WebApi`. El `.env` de la raíz solo lo usa `docker compose`: si cambias la clave de aplicación de Gmail, actualiza los dos.
-- Tras traer cambios del backend, aplica las migraciones pendientes de cada contexto (`dotnet ef migrations list ... --context <Ctx>`). Sin ellas la API responde 500 (p. ej. «Invalid column name 'BajaProgramadaPara'» en la recuperación de contraseña).
-- Para probar el frontend contra la API local sin tocar `frontend/.env.local`: `VITE_API_URL=http://localhost:5246 npx vite --port 5174` (5174 está en el CORS y en los orígenes de Google).
+- SQL Express `.\SQLEXPRESS`, base `HabitTracker` (desarrollo). Las bases `*_Prueba*` son desechables.
+- **User Secrets** de `Host/WebApi`: `JwtSettings:Clave` y `SMTP_HOST/PORT/USER/PASS` (son **reales**). La cadena de conexión está en `appsettings.json` (autenticación de Windows, sin contraseña). El `.env` de la raíz solo lo usa `docker compose`: si cambias la clave de aplicación de Gmail, actualiza los dos.
+- **Probar sin tocar la base de desarrollo ni enviar correos:** `ConnectionStrings__AccessControl=Server=.\SQLEXPRESS;Database=<BD_PRUEBA>;Trusted_Connection=True;TrustServerCertificate=True` y `SMTP_HOST=` vacío. Los correos quedan en `CorreosEnCola`.
+- **API:** `http://localhost:5246` y Swagger en `/swagger`. Para promover a Administrador: `UPDATE usuarios SET Rol = 2 WHERE Correo = ...` y volver a iniciar sesión.
+- **Frontend contra la API local:** `VITE_API_URL=http://localhost:5246 npx vite --port 5174` (el puerto 5174 está en el CORS y en los orígenes de Google).
+- **Docker:** `copy .env.example .env` + `docker compose up --build` → `http://localhost:8080`. Con `CORREO_MODO=consola` y `SMTP_HOST` vacío, los correos salen en `docker compose logs webapi`.
+- Tras traer cambios del backend, aplica las migraciones pendientes de cada contexto (`dotnet ef migrations list ... --context <Ctx>`). Sin ellas la API responde 500.
 
-## 5. Decisiones y correcciones relevantes
+## 5. Decisiones vigentes
 
-- **`RegistroDiario.Id` con `ValueGeneratedNever`** (migración vacía `RegistroDiarioIdAsignadoPorDominio`). El dominio asigna el Id. Sin esto, EF trataba el avance nuevo como existente (`UPDATE` en vez de `INSERT`) y la API respondía 500. Aplica a cualquier entidad hija nueva con Id asignado en el constructor.
-- **`JsonStringEnumConverter`** en `Program.cs`: los enums viajan como texto (`"Diaria"`, `"Activo"`) y también se aceptan números.
-- **Middleware de excepciones:** `UnauthorizedAccessException` → 403 si el usuario está autenticado y 401 si no. `InvalidOperationException` → 400. `ArgumentException` → 400. Los mensajes al cliente son genéricos (RD-08).
-- **Transiciones** en un solo punto: `TransicionesHabito.EsTransicionValida` y `TransicionesSolicitudPermiso`. `Habito.Completar` no duplica la validación de la meta.
-- **Reconfigurar** inicia un ciclo nuevo (`FechaInicioCiclo`) y conserva el historial; se rechaza si el hábito está `Completado`.
+- **`ValueGeneratedNever`** en toda entidad hija con Id asignado por el dominio (como `RegistroDiario.Id`). Sin esto, EF emite UPDATE en vez de INSERT y la API responde 500.
+- **Enums como texto** (`JsonStringEnumConverter`); también se aceptan números.
+- **Errores:** `ProblemDetails` con mensaje genérico (RD-08) y una extensión `codigo` estable en Control de Acceso (tabla en el README). `UnauthorizedAccessException` responde 403 con sesión y 401 sin ella.
+- **Transiciones en un solo punto:** `TransicionesHabito.EsTransicionValida` y `TransicionesSolicitudPermiso`. Reconfigurar un hábito inicia un ciclo nuevo y conserva el historial.
+- **Módulos conectados por puertos:** la interfaz vive en el `Application` de quien la usa y la implementa un adaptador en `Host/WebApi/Adapters/` (`PermisoServiceAdapter`, `IParticipanteDatosUsuario` para la baja y la descarga). Ningún módulo lee tablas de otro.
+- **Plan HabitTracker v2** (07-11-2026):
+  - Básico y Regular se distinguen por su estructura.
+  - Los planes no aptos se muestran y se bloquean (`plan_no_apto`).
+  - Cifrado en reposo con Data Protection.
+  - Principios P1–P8.
+  - El piloto (Fase 6) decide las Fases 7–9.
 
 ## 6. Deuda técnica conocida
 
-1. `HabitsController` y `PermissionsController` deciden el 404 buscando `"no existe"` en el mensaje (`EsNoEncontrado`). Es frágil: conviene una excepción de dominio específica.
-2. `HabitsController` depende de la clase concreta `HabitoService` y no de una interfaz (RD-01).
-3. `RegistrarAvance` acepta fechas futuras.
-4. Las fechas leídas de SQL vuelven con `DateTimeKind.Unspecified`, y la API devuelve `fechaInicioCiclo` y `fecha` sin `Z`.
-5. `.github/PULL_REQUEST_TEMPLATE.md` contiene una PR ya rellenada en lugar de una plantilla vacía con las 4 secciones.
-6. El README mezcla secciones de las prácticas 1–3: se podría reorganizar por pieza.
+1. `HabitsController` y `PermissionsController` deciden el 404 buscando `"no existe"` en el mensaje (`EsNoEncontrado`). *(Fase 1 del plan v2.)*
+2. `HabitsController` depende de la clase concreta `HabitoService` y no de una interfaz (RD-01). *(Fase 1.)*
+3. `RegistrarAvance` acepta fechas futuras. *(Fase 1.)*
+4. Las fechas leídas de SQL vuelven con `DateTimeKind.Unspecified`, y la API devuelve `fechaInicioCiclo` y `fecha` sin `Z`. *(Fase 1.)*
+5. El FK Hábito→Meta es `Cascade`: borrar una Meta borra sus hábitos. *(Fase 1.)*
+6. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
+7. Dentro de Docker, `RemoteIpAddress` es la IP de la pasarela, así que todos los clientes comparten el cupo del limitador de peticiones (hasta configurar `ForwardedHeaders` con `KnownProxies`).
+8. `webapi` no tiene healthcheck. *(Fase 6.)*
+9. `.github/PULL_REQUEST_TEMPLATE.md` contiene una PR rellenada en lugar de una plantilla con las 4 secciones.
+10. `PlanDelDiaTests` vive en `DocumentManager.Api.Tests` por comodidad. *(Fase 1.)*
 
 ## 7. Flujo de trabajo
 
-- Commits en español con los RF/RD (`feat: ... [RF-NEG-02]`) y revisión RD-01..RD-12 antes de cada commit (ver `AGENTS.md`).
-- Ramas: trabajo en `feature/...`, `fix/...` o `docs/...`; PR hacia `develop`; luego PR `develop → main` (`Promover a main — ...`). Cuerpo de PR en 4 secciones: Qué cambia, Por qué, Cómo probarlo, Qué NO incluye. Nunca push directo a `main` ni a `develop`. Las PRs las fusiona el usuario.
-- El usuario tiene la skill `flujo-pr` (a nivel de usuario, en `~/.claude/skills/flujo-pr`) con este flujo.
+- **Commits** en español con IDs RF/RD **de 2 dígitos** (`feat: ... [RF-NEG-02, RD-07]`) y revisión RD-01..RD-12 antes de cada commit (ver `AGENTS.md`).
+- **Ramas:** `feature/`, `fix/`, `docs/`, `refactor/` o `chore/` → PR a `develop` → PR `develop → main` (`Promover a main — ...`).
+  - El cuerpo de la PR lleva 4 secciones: Qué cambia, Por qué, Cómo probarlo y Qué NO incluye (skill `flujo-pr`).
+  - `develop` y `main` rechazan el push directo. Si se trabajó en `develop` local: `git push origin develop:feature/...` (sin `-u`).
+  - Las PR las fusiona el usuario.
 - La bitácora de cada práctica (`docs/bitacora-*.md`) registra las solicitudes reales al agente, sus errores y las correcciones.
+- **Al cerrar cada entrega:** actualiza este archivo (≤120 líneas), mueve el detalle de la fase a `docs/historial/`, regenera el inventario de la skill (`bash scripts/contexto/generar-inventario.sh`) y comprueba con `bash scripts/ci/verificar-contexto.sh`.
 
 ## 8. Problemas de entorno conocidos
 
-- **Rutas largas en Windows:** con más de 260 caracteres, SQLite no carga `e_sqlite3` y las pruebas de persistencia fallan. Hay que clonar o copiar el repo en una ruta corta.
-- **`sqlcmd`:** no admite `-W` junto con `-y`, ni `-h` con `-y 0`. Con `-W`, las columnas largas (p. ej. `CorreosEnCola.Cuerpo`) se truncan; extraer el fragmento necesario con `SUBSTRING(... CHARINDEX(...))`.
-- **Git Bash + curl:** los acentos dentro de JSON pueden llegar mal codificados; usar ASCII en los datos de prueba.
+- **Rutas largas en Windows:** con más de 260 caracteres, SQLite no carga `e_sqlite3` y las pruebas de persistencia fallan. Clona el repo en una ruta corta.
+- **`sqlcmd`:** no admite `-W` junto con `-y`, ni `-h` con `-y 0`. Con `-W` se truncan las columnas largas; usa `SUBSTRING(... CHARINDEX(...))`.
+- **Git Bash + curl:** los acentos dentro de JSON pueden llegar mal codificados; usa ASCII en los datos de prueba. Con `docker exec` y rutas absolutas, antepón `MSYS_NO_PATHCONV=1`.
+- **CRLF:** con `core.autocrlf=true`, `npm run format:check` falla en local, pero en el CI pasa. `.gitattributes` fuerza LF en los `.sh`.
+- **PDF de requisitos:** no se renderizan. Usa el resumen de la skill (`referencias/requisitos.md`) o `pdftotext -raw -enc UTF-8`.
 
-## 9. Próximos pasos posibles
+## 9. Próximos pasos
 
-- Módulo de negocio: RF-NEG-07, RF-NEG-08 y RF-NEG-10 (fuera del alcance de la P3).
-- Piezas del Core pendientes: Notificaciones, Auditoría, Reportes y Manejador de Documentos (ver `docs/WORKFLOW_STATUS.md`).
-- Atender la deuda técnica de §6.
-
-## 10. Frontend (monorepo)
-
-> Añadido el 30-10-2026 en la rama `feature/frontend-base`. No modifica el backend: los tags de entrega y los archivos de `Host/`, `Modules/` y `tests/` quedan intactos.
-
-- Ubicación: `frontend/`. Stack: React 19, Vite 8, TypeScript estricto, React Router 7, TanStack Query 5, react-hook-form + zod, Tailwind 4, MSW 2 y Vitest + Testing Library. Guía: `frontend/README.md`. Reglas: `frontend/AGENTS.md`.
-- Pantallas funcionales (lo que ya entrega el backend):
-  - Control de acceso: registro, activación, login, logout, recuperación, restablecimiento y cambio de contraseña.
-  - Hábitos: lista con filtros, creación, transiciones, avance, historial y reconfiguración con permiso.
-  - Permisos: solicitud y bandeja del Administrador con aprobación y rechazo.
-  - Administración de usuarios.
-- Pantallas "Próximamente" con sus RF: Documentos, Notificaciones, Cola de correos, Reportes y Auditoría, que incluyen RF-NEG-07/08/10 (`frontend/src/features/coming-soon/piezas.ts`).
-- Datos: API simulada con MSW (`frontend/src/mocks`) que replica el contrato y las reglas de `Host/WebApi`. Para conectar el backend real: `VITE_USE_MOCKS=false` más **CORS en `Program.cs`**, que hoy no está configurado. Este último es un cambio del backend pendiente.
-- Pruebas: `cd frontend && npm test` ejecuta 222 pruebas (unitarias, flujos de UI por rol y contrato de la API simulada) sin backend.
-- Modo demo sin Service Worker (30-10-2026): en el navegador, la API simulada se resuelve dentro de la página (`frontend/src/mocks/fetchSimulado.ts` envuelve `fetch` con los handlers de MSW). Así, el login demo funciona en modo privado, tras una recarga forzada y en navegadores que bloquean los service workers. Un recorrido E2E en Edge real cubre 26 flujos de los dos roles.
-- Agentes del frontend en `.claude/agents/frontend-*.md`: architect, api-contract, ui-builder, test-writer y reviewer. El flujo está en `frontend/AGENTS.md`.
-- Contrato observado al construirlo:
-  - `GET /api/permissions` usa `soloPendientes=true` por defecto;
-  - el login usa `email` y el resto de endpoints `correo`;
-  - el rol llega en el claim URI largo;
-  - no existe `GET /api/habits/{id}` ni un listado de metas, así que el `metaId` se escribe a mano.
-- Rediseño 2026 (30-10-2026): identidad deportiva-futurista con tokens semánticos y cinco temas (Sistema, Claro, Oscuro, Cálido, Estadio) guardados en el navegador. Componentes nuevos en `shared/ui`: anillo de progreso, estadísticas tipo marcador, mini barras, filtros segmentados y diálogo de confirmación. Métricas de presentación (racha, avance por día) en `features/habits/estados.ts`; la regla de completar sigue siendo del servidor.
-- Calidad del diseño: `frontend-design-critic` revisa cada cambio (2 rondas sobre el rediseño; sin bloqueantes ni altas al cierre). Las pruebas de contraste (`shared/theme/contraste.test.ts`) exigen WCAG 2.2 AA en todos los temas. Navegación apta para 360 px y acciones de alto impacto con confirmación.
-- Seguridad: `ciberseguridad-pentester` y el plugin `claude-security` están reservados para ejecutarse al final, antes de integrar con el backend.
-- Deuda del frontend: `npm audit` (completo) marca un aviso moderado de `minimatch` en las herramientas de lint (solo desarrollo, 0 en producción); se resolverá al actualizar ESLint.
-
-### 10.1 Frontend de producción (rama `feature/frontend-nexus`)
-
-> Añadido el 03-11-2026. Sigue sin modificar el backend (`Host/`, `Modules/`, `tests/` intactos): el backend no se toca hasta terminar las prácticas del maestro, y después se adaptará a este frontend.
-
-- **Plan y bitácora:** `frontend/docs/PLAN-FRONTEND-NEXUS.md` (checklist por paso, equivalencia de tokens, desviaciones de la especificación y la tabla **"Pendientes para el backend"**, que es la base del documento ORD y del README que se redactarán al terminar las prácticas). La especificación es `docs/mejoras/diseno-ui-web-movil.md`; el banco de propuestas, `docs/mejoras/mejoras-y-funcionalidades.md`.
-- **Identidad:** sustituye al rediseño deportivo-futurista de §10 por la especificación sobria (acento índigo, Plus Jakarta Sans, sin degradados ni brillos) y reduce los temas a **Sistema, Claro y Oscuro**. El contraste WCAG 2.2 AA de cada tema y de los niveles del mapa de constancia lo vigila `shared/theme/contraste.test.ts`.
-- **Pantallas nuevas:** landing pública con catálogo de metas y calculadora de calorías; registro con consentimiento legal; onboarding; panel **Hoy** (inicio del Estándar); **Progreso** (peso, medidas, constancia, récords y logros); **Centro de privacidad** (descarga de datos, consentimientos y baja); **Resumen** y **Auditoría** del Administrador.
-- **Contratos propuestos (sin backend):** perfil, consentimientos, peso, medidas, exportación y baja, métricas y auditoría. Están simulados en `src/mocks/handlers/propuestas/` y registrados en `CONTRATOS_PROPUESTOS` (una prueba exige que coincidan). Con el backend real (404 sin cuerpo) esas pantallas muestran "llegará pronto" en lugar de fallar (`esNoDisponible`). Todo lo demás (hábitos, permisos, usuarios, login) usa los endpoints reales.
-- **Pruebas:** `cd frontend && npm test` ejecuta 452 pruebas sin backend (Vitest limitado a 4 trabajadores para que la suite sea estable). El backend sigue en 106.
-- **Revisión:** cada paso pasó por `frontend-reviewer` y, en rondas, por `frontend-design-critic`; la última ronda midió en Edge real que no hay desborde horizontal a 360 px.
-- **Commits del trabajo:** `9101919` (docs), `c2b6c4c` (identidad), `fbba9bd` (pública), `aa80c85` (alta), `9eec324` (Hoy), `289f08f` (Progreso), `b2562e5` (privacidad) y `62f411a` (administración).
-- **Pendiente:** el recorrido manual a 360 px y 1280 px con `npm run dev`; la auditoría de seguridad con `ciberseguridad-pentester` (sigue reservada para antes de integrar con el backend); la edición del perfil (rectificación), reaceptar versiones nuevas de los documentos y una vista de tarjetas de la auditoría en móvil.
-
-## 11. Práctica 4 — contenedor, documentos y API externa
-
-> Añadido el 04-11-2026. Detalle de la revisión: `docs/revision-practica-4.md`; guion de prueba: `docs/plan-prueba-practica-4.md`; bitácora: `docs/bitacora-practica-4.md`.
-
-- **Arranque:** `copy .env.example .env` + `docker compose up --build` → `http://localhost:8080` (Swagger en `/swagger`). Servicios `db` (SQL Server 2022, sin puerto publicado) y `webapi`. Volúmenes con nombre `documentos-archivos` (archivos) y `sqlserver-datos` (base). Con `BaseDeDatos__MigrarAlIniciar=true` la API migra los cuatro contextos al arrancar (`Host/WebApi/Extensions/InicializacionBaseDeDatos.cs`) y siembra el Administrador (`ADMIN_CORREO`/`ADMIN_CLAVE`, mínimo 12 caracteres) y la Meta de demostración `5f1c0a00-0000-4000-8000-000000000002`.
-- **Documentos:** `Modules/DocumentManager/*` (tabla `Documentos`, migración `AgregarTablaDocumentos`). El tamaño y el tipo MIME los calcula el servidor (tope de 10 MB, lista blanca de extensiones); el archivo se guarda con un GUID. Las excepciones del módulo (`DocumentoNoEncontradoException` → 404, `ArchivoInvalidoException` → 400) y las del clima (503/404) se traducen en `GlobalExceptionMiddleware`.
-- **API externa:** OpenWeatherMap (`OPENWEATHER_API_KEY`) alimenta `GET /api/habits/plan-del-dia` (rol Estándar); la lógica está en `RecomendadorClima` y `PlanDelDiaService`. Sin clave o con la API caída → 503 controlado.
-- **Correo en el contenedor:** `CORREO_MODO=consola` con `SMTP_HOST` vacío escribe una línea `[CORREO EN CONSOLA]` con el enlace/código en el log (`docker compose logs webapi`).
-- **Pruebas:** 347 (nuevos proyectos `DocumentManager.Domain/Application/Infrastructure/Api.Tests`). Script de revisión: `scripts/revision-practica-4.sh` (95 comprobaciones + 4 de persistencia contra el contenedor).
-- **Activación de cuenta con código de 6 dígitos:** `POST /api/auth/activate` recibe `{correo, codigo}` (también `GET /api/auth/activate?correo=&codigo=`). El código sale de `RandomNumberGenerator`, vence en 24 h y se invalida a los 5 intentos; el intento se reserva con `UsuarioRepository.ReservarIntentoActivacionAsync` (`UPDATE ... OUTPUT`, atómico) y el reenvío espera 60 s. Columna `usuarios.IntentosActivacion` (nullable; migración `AgregarIntentosActivacion`). Limitador por IP: política `activacion`, 30/min (`RateLimit:ActivacionPorMinuto`). Los tokens de 32 caracteres anteriores ya no activan.
-- **Deuda nueva:** el limitador por IP está en memoria (una réplica) y, **dentro de Docker, `RemoteIpAddress` es la IP de la pasarela**, así que todos los clientes comparten un único cubo de 30/min (hasta configurar `ForwardedHeaders` con `KnownProxies` explícitos detrás de un proxy real); el registro del limitador solo se verifica en ejecución (script de revisión), no con una prueba de unidad; el enlace GET de activación tiene efecto de estado (un escáner de correos podría consumir un intento); `Usuario.Correo` sin índice único (siembra no apta para varias réplicas); sin caché del clima (cuota gratuita compartida); `webapi` sin healthcheck; la imagen se compila con `COPY . .` (sin caché de restore por `.csproj`); `PlanDelDiaTests` vive en `DocumentManager.Api.Tests` por comodidad.
-- **Entorno de Docker:** la primera construcción tarda varios minutos (SQL Server ~2.3 GB). En Git Bash anteponer `MSYS_NO_PATHCONV=1` a `docker exec` con rutas absolutas.
-
-## 12. Integración continua (CI)
-
-> Añadido el 04-11-2026 en la rama `feature/ci-integracion-continua`. Tras la Práctica 4 se levantó la congelación del backend: se puede modificar siempre que no se muevan los tags de entrega ni se rompan los RF/RD. Descripción para el lector en `README.md` › `## Integración continua (CI)`.
-
-- **Workflows:** `.github/workflows/ci.yml` (backend, frontend, reglas del repositorio, agrupados en `ci-ok`) y `.github/workflows/seguridad.yml` (CodeQL de C#, JS/TS y Actions, gitleaks, revisión de dependencias, Trivy sobre el `Dockerfile` y la imagen, actionlint y zizmor, agrupados en `seguridad-ok`). Se ejecutan en PR y push a `develop` y `main`; `seguridad.yml` también cada lunes. Todas las acciones van fijadas por SHA, con permisos mínimos y `persist-credentials: false`. gitleaks, Trivy y actionlint se instalan con el binario oficial y su SHA-256 (`scripts/ci/instalar-herramienta.sh`), sin acciones de terceros.
-- **Umbral:** bloquean las severidades **alta y crítica**. Media y baja solo se reportan. El formato de commits (`tipo: descripción en español [RF-XX-NN, RD-NN]`) es bloqueante en las PR y omite los merges y los commits de Dependabot.
-- **Compilación estricta:** `Directory.Build.props` activa NuGetAudit (NU1903 y NU1904 rompen el build) y `analizadores-seguridad.globalconfig` convierte en error las 94 reglas de seguridad de los analizadores de .NET (CA2xxx, CA3xxx, CA5xxx), salvo en los proyectos `.Tests`. Las reglas se enumeran por ID porque la severidad por categoría **no** activa las que vienen apagadas (se comprobó con `MD5.Create()`). Al subir de SDK hay que regenerar la lista desde `analysislevelsecurity_<versión>_all.globalconfig` del SDK.
-- **Reglas RD automáticas** (`scripts/ci/verificar-reglas-rd.sh`): RD-03 (capas y Core→negocio), RD-05 (MD5/SHA1), RD-08 (`StackTrace`, `ex.ToString()`), RD-10 (archivos de secretos, `JwtSettings:Clave` y contraseñas en `appsettings`) y RD-11 (`DateTime.Now`/`Today`, sin mirar `tests/`, donde se usa a propósito para probar el rechazo de fechas locales). Las pruebas del validador de commits (`pruebas-verificar-commits.sh`, 20 casos) cubren RD-12.
-- **Línea base medida antes de añadir el CI:** backend 347 pruebas en verde, 0 avisos y 0 errores de compilación; frontend 452 pruebas, lint, tipos, build y `npm audit signatures` en verde, y `npm audit` con 7 avisos **moderados** (herramientas de lint, no bloquean). `npm ci --ignore-scripts` basta para compilar y probar, por eso el CI lo usa.
-- **Triaje de hallazgos:**
-  - Analizadores de seguridad de .NET: 0 hallazgos en el código actual.
-  - Trivy sobre el `Dockerfile`: 0 configuraciones inseguras altas o críticas. Sobre la imagen (`aspnet:10.0`, Ubuntu 24.04, runtime 10.0.14): 0 vulnerabilidades.
-  - gitleaks sobre los 210 commits de todas las ramas: 7 coincidencias, todas la misma contraseña de demostración `ClaveSegura123` de los ejemplos de `curl` del README (cuenta ficticia `persona@ejemplo.com`). Falso positivo; se acota en `.gitleaks.toml` por valor y archivo exactos, no por carpeta.
-  - CodeQL: pendiente de la primera ejecución en GitHub; no se puede probar en local.
-- **Windows y saltos de línea:** el índice de Git guarda LF, pero con `core.autocrlf=true` el árbol de trabajo queda en CRLF y `npm run format:check` falla en local (205 archivos); en el CI pasa. `.gitattributes` fuerza LF en los `.sh`, o `bash` falla con `$'\r'`.
-- **Ajustes de GitHub (activos desde el 05-11-2026):** Default setup de CodeQL sin configurar; Dependency graph (necesario para la revisión de dependencias), Secret scanning y Push protection activados; **Dependabot security updates desactivado** (abriría PR directo a `main` y saltaría el flujo `develop → main`). Dos rulesets, sin actores con bypass:
-  - **"Ramas protegidas (main y develop)":** sin borrado ni force-push, PR obligatoria (0 aprobaciones: un solo desarrollador), checks `ci-ok` y `seguridad-ok` con la rama al día, y *code scanning* de CodeQL en "High or higher". Ya no se puede fusionar con un check en rojo ni hacer push directo.
-  - **"Etiquetas de entrega":** `practica-*` y `asignacion-*` (los 16 tags de §2) no se pueden actualizar, borrar ni mover con force-push. Crear tags nuevos sigue permitido.
-  - El ruleset antiguo "Proteccion de main" (id 26568693) está desactivado y sin ramas objetivo; quedó sin efecto y se puede borrar.
-- **Dependabot (desde el 04-11-2026):** PR semanales hacia `develop`. Las menores y parches van agrupadas; los saltos mayores llegan sueltos. `typescript` 7 se ignora: `typescript-eslint` declara el peer `typescript <6.1.0` y `npm ci` falla con ERESOLVE (retomar cuando lo soporte).
-- **Escaneo semanal de Trivy:** puede bloquear por parches de Ubuntu publicados después del último cambio (CVE-2026-109518 de `apt`, 05-11-2026). El `Dockerfile` ejecuta `apt-get upgrade` en la etapa final como solución; por eso la imagen no es reproducible bit a bit.
-- **Pendiente:** descripción automática de las PR (Qué cambia / Por qué / Cómo probarlo / Qué NO incluye), el CD (el destino previsto es Vercel, que no hospeda .NET de forma nativa), el Dockerfile del frontend y la conexión frontend↔backend. Deuda anotada: `frontend/AGENTS.md` aún dice "backend congelado" y `.github/PULL_REQUEST_TEMPLATE.md` (§6.5) sigue siendo una PR rellenada.
-
-## 13. Control de Acceso v2
-
-> Plan: correcciones y endurecimiento, política de contraseñas, consentimiento legal, sesiones con refresh token, inicio con Google, baja y descarga de datos, y conexión con el frontend. Se entrega por fases, cada una en su rama y su PR. Con el backend ya modificable (ver §12) y sin mover los tags de entrega.
-
-### Fase 1: correcciones y endurecimiento (`fix/control-acceso-endurecimiento`, 05-11-2026)
-
-- **Códigos de error estables** (`AccessControl.Domain/Excepciones`): `cuenta_no_activa`, `cuenta_desactivada`, `cuenta_bloqueada`, `correo_ya_registrado`, `codigo_invalido`, `clave_actual_incorrecta`, `ultimo_administrador` (400) y `operacion_no_permitida` (403), como extensión `codigo` del `ProblemDetails`. Tabla en el README. Cumple RF-CA-15 (el login dice que la cuenta no está activa, solo con la clave correcta).
-- **Login sin enumeración por tiempo:** con un correo inexistente se gasta el mismo tiempo que una verificación bcrypt real (`IPasswordHasher.SimularVerificacion`).
-- **Integridad:** índice único `IX_usuarios_Correo` (migración `AgregarIndiceUnicoCorreo`, que se detiene con un mensaje claro si la base ya tiene correos repetidos) y traducción de la violación en `UsuarioRepository.SaveAsync`.
-- **Límites de peticiones por IP:** `login` 10/min, `registro` 5/min, `recuperacion` 5/min y `activacion` 30/min, en `RateLimit:*` y validados al arrancar.
-- **Recuperación de contraseña:** código de 6 dígitos con el generador criptográfico de la activación, comparación en tiempo constante, enfriamiento de 60 s entre solicitudes, correo normalizado y bloqueo levantado al restablecer.
-- **Administración:** cambiar el rol cierra las sesiones del usuario; no se puede quitar el rol ni desactivar al último administrador activo; `cambiar estado` y `forzar restablecimiento` verifican en el servidor que el ejecutor es un administrador activo.
-- **Activación por GET sin efectos:** `GET /api/auth/activate` entrega una página fija con un botón que hace el POST (sin reflejar datos de la URL, con `Cache-Control: no-store` y una CSP con nonce).
-- **CORS** restringido a `Cors:OrigenesPermitidos` (`FRONTEND_URL` en Docker); **JWT** con una sola validación al arrancar, claim `name` (`GET /me` devuelve `nombre`) y la lista negra guarda el token hasta su `exp` real; el worker de correo no relee los agotados; los logs registran el identificador del usuario o del correo en cola y **no el correo** (CodeQL marcó con severidad error el correo de la petición en el log, incluso enmascarado; el worker conserva el destinatario enmascarado porque sale de la base y no de la petición, y la línea `[CORREO EN CONSOLA]` del modo consola se conserva completa).
-- **Limpieza:** código muerto, DTO sin uso, `AddMemoryCache`, nombres (`Verificar`, `CambiarRolAsync`) y DTO en PascalCase (el JSON no cambia).
-- **Medido:** 436 pruebas del backend en verde (antes 347), 0 avisos con los analizadores de seguridad como error y 0 alertas de CodeQL en la PR (la primera ejecución dio 9 por los correos en logs; se corrigieron en el código, no se descartaron). Pruebas de integración nuevas en `AccessControl.Infrastructure.Tests` (EF Core sobre SQLite). Contra la API real en Docker (proyecto aislado): `scripts/revision-practica-4.sh` da **92 de 92** y las 43 comprobaciones manuales de la fase dan **43 de 43** (códigos de error, GET sin efectos, CORS, enfriamiento de recuperación, último administrador, 429 en login, registro y recuperación).
-- **Diferencias con el plan, a propósito:**
-  - El login conserva el campo `email` (README, plan de pruebas y el script de revisión lo usan); solo se unificó el nombre en C#.
-  - `PermissionsControllerTests` sigue en `AccessControl.Application.Tests`: moverla exige añadir Moq y el host a otro proyecto de pruebas; se hará al tocar el módulo Permissions.
-  - `UsuarioRepository.UpdateAsync` ya no marca todas las columnas como modificadas en una entidad rastreada. La "escritura obsoleta" de `IntentosActivacion` que apuntó la exploración **no se pudo reproducir** (el código anterior tampoco la pisaba en la prueba); el cambio es defensivo y queda cubierto por una prueba de regresión.
-- **Deuda que cierra de §11:** el enlace GET de activación con efecto de estado y `Usuario.Correo` sin índice único. Sigue pendiente el cupo compartido del limitador dentro de Docker (todos los clientes llegan con la IP de la pasarela y comparten el cupo; con login a 10 por minuto es más fácil agotarlo) y el healthcheck de `webapi`.
-### Fase 2: contraseñas reforzadas (`feature/control-acceso-politica-contrasenas`, 05-11-2026)
-
-- **`PoliticaContrasena`** (`AccessControl.Application/Service`) es la única definición: 12 a 1024 caracteres con letra y número. Se aplica al registro, al restablecimiento y al cambio de contraseña; responde `contrasena_no_valida`. Es más estricta que RF-CA-14 (8 con letras y números), así que toda clave nueva válida también cumple el mínimo del PDF; las cuentas con claves antiguas siguen entrando. El mínimo ya no está duplicado en las anotaciones de los DTO.
-- **Filtraciones:** `IVerificadorContrasenasFiltradas` y su implementación `VerificadorHaveIBeenPwned` (Pwned Passwords, k-anonimato: solo viaja un prefijo de 5 caracteres del SHA-1; `Add-Padding`; 3 s de tiempo de espera). **Si la API falla se permite la clave** (fail-open, con aviso en el log). Responde `contrasena_filtrada`. Se apaga con `Seguridad:ContrasenasFiltradas:Habilitado=false` (`CONTRASENAS_FILTRADAS` en Docker).
-- **Orden de comprobaciones:** el formato va primero (antes de la base de datos y de cualquier llamada externa); la consulta de filtraciones va al final, solo si el correo es nuevo (registro), si el código es correcto (restablecer; una clave filtrada **no consume** el código) o si la contraseña actual es correcta (cambio).
-- **Excepción documentada de RD-05:** SHA-1 es obligatorio en el protocolo de Pwned Passwords (calcula una clave de consulta, no protege ninguna contraseña almacenada; esas usan bcrypt). `scripts/ci/verificar-reglas-rd.sh` excluye **solo ese archivo** y la supresión de CA5350 es local, con justificación; un `SHA1` en cualquier otro archivo sigue fallando (comprobado).
-- **Hallazgo importante:** `ClaveSegura123` (2 veces) y `NuevaClave123` (187 veces) aparecen en filtraciones, así que la política rechaza los ejemplos que usaban el README y `scripts/revision-practica-4.sh`. Se cambiaron por `ClaveSegura-Nexus-2026`, `ClaveNueva-Nexus-2026` y `ClaveOtra-Nexus-2026` (ninguna aparece) y se amplió la excepción **precisa** de `.gitleaks.toml` (valor y archivo exactos). **Pendiente de la Fase 7:** el frontend aún valida 8 caracteres y sus mocks y pruebas usan `ClaveSegura123`; se ajustan al conectarlo con el backend real.
-- **Medido:** 482 pruebas del backend (antes 436). Mutación: sin la consulta de filtraciones fallan 4 pruebas. Contra la API real en Docker y la red real: `scripts/revision-practica-4.sh` da **92 de 92** y las 27 comprobaciones de la fase dan **27 de 27** (formato, `password1234` y `ClaveSegura123` rechazadas con su código, los rechazos no crean cuentas, una clave rechazada no cierra la sesión ni consume el código de recuperación).
-
-### Fase 3: consentimiento legal (`feature/control-acceso-consentimiento`, 05-11-2026)
-
-- **Historial de solo inserción** (`ConsentimientoUsuario`, tabla `ConsentimientosUsuario`, migración `AgregarConsentimientos`): cada cambio es una fila nueva y la vigente es la última. Guarda la versión de los Términos y de la Privacidad, los cuatro consentimientos (`datosSalud`, `marketing`, `compartirCumplimiento`, `estadisticasAnonimas`), `AceptadoEn` (cuándo se aceptaron esas versiones; se conserva al mover un interruptor), `ActualizadoEn` (lo escribe el servidor, UTC) y el origen (`registro`, `google`, `actualizacion`). Clave foránea con borrado en cascada (lo usará la baja de cuenta de la fase 6) e índice `(UsuarioId, ActualizadoEn)`.
-- **Versiones vigentes** `v2.1` y `v1.4` (las del frontend), configurables con `Legal:VersionTerminos` y `Legal:VersionPrivacidad`; una versión vacía o de más de 20 caracteres detiene el arranque.
-- **Registro:** `POST /api/auth/register` exige `consentimientos {terminosVersion, privacidadVersion, marketing}` con las versiones vigentes; sin ellas, `consentimiento_no_valido` y no se crea la cuenta. Se valida antes de tocar la base de datos. El usuario y su consentimiento se guardan **en una sola operación** (`IUsuarioRepository.SaveAsync(usuario, consentimiento)`): un correo duplicado no deja un consentimiento huérfano.
-- **Endpoints** `GET` y `PUT /api/privacy/consents` (`PrivacidadController`, cualquier usuario autenticado; la identidad sale del token). El PUT acepta las versiones vigentes o las que la persona ya había aceptado, exige los seis campos (no se asume "falso") y devuelve `aceptadoEn` en UTC con `Z`. `GET` responde 404 si la cuenta nunca aceptó nada.
-- **Re-aceptación:** el login y `GET /me` incluyen `requiereAceptarDocumentos` (`true` si nunca aceptó o su última aceptación no es de las versiones vigentes). El login no se bloquea: el cliente decide cuándo pedirla. Las cuentas anteriores a esta función (por ejemplo el administrador sembrado) no tienen consentimiento y reciben `true` hasta que acepten.
-- **Cambio de contrato (el frontend lo adopta en la Fase 7):** el registro ahora exige `consentimientos`. El frontend ya los recuerda en `registroPendiente` y los envía en el onboarding; con el backend real deberá mandarlos en el propio registro. Se actualizaron el README y `scripts/revision-practica-4.sh`.
-- **Medido:** 540 pruebas del backend (antes 482). Mutación: sin la validación de versiones o sin conservar la fecha de aceptación fallan 10 pruebas. Contra la API real en Docker y SQL Server real: `scripts/revision-practica-4.sh` da **92 de 92** y las 37 comprobaciones de la fase dan **37 de 37** (registro con y sin consentimiento, filas en `ConsentimientosUsuario`, historial de 2 filas, `aceptadoEn` conservado, cuenta sin consentimiento con `requiereAceptarDocumentos=true` y 404, correo duplicado sin consentimiento huérfano).
-- **Decisión:** los endpoints no se limitan a `Estandar` (el contrato propuesto decía solo Estandar) para que un administrador también pueda aceptar los documentos y no quede en un callejón sin salida al recibir `requiereAceptarDocumentos=true`.
-
-- **Para quien tenga una base anterior:** la migración nueva falla con un mensaje claro si hay correos duplicados. Revisar con `SELECT Correo, COUNT(*) FROM usuarios GROUP BY Correo HAVING COUNT(*) > 1` antes de `dotnet ef database update`.
-
-### Fase 4: sesiones modernas (`feature/control-acceso-sesiones`, 05-11-2026)
-
-- **Token de acceso de 15 minutos** (`JwtSettings:MinutosExpiracion`, antes 60) más un **refresh token rotativo** en una cookie `habittracker_refresh` (HttpOnly, Secure, `SameSite` configurable, `Path=/api/auth`). Solo se guarda el hash SHA-256 del token, en la tabla `SesionesUsuario` (migración `AgregarSesionesUsuario`: clave foránea en cascada con el usuario, índice único por `TokenHash`, índices por `UsuarioId` y `FamiliaId`).
-- **Dominio y repositorio:** `SesionUsuario` (familia, hash, vigencia, revocación, `ReemplazadaPorId`, dispositivo limpio de caracteres de control y truncado a 200, IP truncada a 45) e `ISesionRepository`. La rotación es **atómica**: `RotarAsync` guarda la sesión nueva y revoca la actual con un único `UPDATE ... WHERE RevocadaEn IS NULL` dentro de una transacción; el perdedor de una carrera hace rollback y no deja filas huérfanas.
-- **`IGestorSesiones` / `GestorSesiones`** (Application) es el **único punto** que abre, renueva y revoca sesiones (RD-04): `IniciarAsync`, `RenovarAsync`, `CerrarAsync`, `RevocarTodasAsync`, `ListarAsync`, `RevocarAsync`. `UsuarioService` ya no toca la lista negra: el cambio de contraseña, el restablecimiento, el forzado, la desactivación y el cambio de rol llaman a `RevocarTodasAsync` (corta refresh tokens y los accesos emitidos).
-- **Endpoints** (`AuthController`): `POST /refresh` (anónimo, cookie + cabecera `X-HabitTracker-Csrf: 1`, límite `refresh` de 30/min), `POST /logout` (ahora también revoca el refresh y borra la cookie), `POST /logout-todas`, `GET /sesiones` (marca la `actual` por el hash de la cookie) y `DELETE /sesiones/{id}` (404 si es de otra persona). Código nuevo `sesion_invalida` (401, también cuando la petición trae un Bearer válido) y `csrf_requerido` (403).
-- **Reutilización = robo:** un refresh token ya canjeado revoca toda la familia. La cuenta desactivada, bloqueada o dada de baja no renueva.
-- **Medido:** 621 pruebas del backend (antes 540: dominio y opciones, gestor, controlador con la cookie y la cabecera, repositorio con SQLite incluida la carrera de rotación). Mutación: 9 reglas rotas a propósito (sin detectar la reutilización, sin cortar los accesos, cerrar sin comprobar el dueño, sin CSRF, cookie sin HttpOnly, rotación sin exigir sesión sin revocar, cuenta desactivada que renueva, lista sin filtrar por usuario, revocar una sesión ajena) y todas hacen fallar al menos una prueba. Contra la API real en Docker y SQL Server real: `scripts/revision-practica-4.sh` da **92 de 92** y las comprobaciones de la fase dan **76 de 77** a la primera (el fallo era mi consulta, que contaba sesiones ya vencidas de pasos anteriores) y la carrera repetida con la consulta corregida **5 de 5**: cookie con sus atributos, 15 minutos reales de vida del acceso, hash en la base y no el token, CSRF, rotación, reutilización, sesiones ajenas, logout, logout-todas, cambio de contraseña, rol, desactivación, vencimiento, 1 de 6 renovaciones simultáneas gana, limpieza de 30 días, 429 en la 31 y CORS con credenciales.
-- **Decisiones:** (1) solo `refresh` exige la cabecera anti-CSRF: es el único que se autentica con la cookie; `logout`, `logout-todas` y las sesiones se autorizan con el Bearer, que un atacante no puede adjuntar, y así el contrato de RF-CA-18 no cambia. (2) La vigencia es deslizante (cada renovación empieza los 14 días de nuevo); no hay tope absoluto. (3) Cerrar una sola sesión ajena no corta su acceso ya emitido (máximo 15 minutos); solo `logout-todas` y los eventos de seguridad cortan los accesos.
-- **Deuda y efecto en el frontend (Fase 7):** el frontend aún guarda el token en `sessionStorage` y no renueva: con el backend real la sesión expirará a los 15 minutos hasta que use `credentials: 'include'`, la cabecera `X-HabitTracker-Csrf` y serialice las renovaciones. `Sesion:CookieSameSite=None` será necesario si el frontend (Vercel) y la API quedan en dominios distintos. La IP guardada tras el proxy de Docker es la de la pasarela.
-
-### Fase 5: inicio de sesión con Google (`feature/control-acceso-google`, 05-11-2026)
-
-- **Flujo:** Google Identity Services entrega un ID token al navegador y `POST /api/auth/google` lo valida (`Google.Apis.Auth` 1.78.0, solo en Infrastructure): firma, emisor, vencimiento y audiencia `Google:ClientId`. Sin secreto de cliente ni redirecciones. `IValidadorIdTokenGoogle` (Application) se implementa en `ValidadorIdTokenGoogle` (Infrastructure); sin `Google:ClientId` o sin red hacia Google, los endpoints responden `503 proveedor_no_disponible` y el resto de la API sigue funcionando.
-- **Dominio y datos** (migración `AgregarLoginsExternos`): `LoginExterno(UsuarioId, Proveedor, Subject, VinculadoEn)` con índices únicos `(Proveedor, Subject)` y `(UsuarioId, Proveedor)` y cascada con el usuario; `Usuario.PasswordHash` pasa a ser **opcional** (`TienePassword`), con la fábrica `Usuario.CrearConProveedorExterno` (nace activo y sin contraseña). `InvalidarPassword` no inventa un valor en una cuenta sin contraseña.
-- **`ServicioLoginExterno`:** (1) identidad vinculada → login con las reglas de bloqueada, desactivada y pendiente; (2) el correo ya tiene cuenta → `409 vinculacion_requerida`; (3) correo nuevo → cuenta + consentimiento (origen `google`) + vínculo en **una sola operación** (`IUsuarioRepository.SaveAsync(usuario, consentimiento, vinculo)`), exigiendo las versiones vigentes (`consentimiento_requerido` / `consentimiento_no_valido`). La regla de aceptación de los documentos se extrajo a `AceptacionLegal` y la comparten el registro y Google.
-- **Endpoints** (`AuthController`): `POST /google` (200 o 201), `POST /google/vincular` (pide la contraseña; cuenta para el bloqueo de RF-CA-19; activa una cuenta pendiente), `GET /vinculos` y `DELETE /vinculos/google` (solo si la cuenta tiene contraseña: `ultimo_metodo_acceso`). Ambos de entrada comparten el límite `google` (10/min). La sesión y la cookie del refresh token son las de la Fase 4.
-- **Cuenta sin contraseña:** el login con contraseña responde el 401 genérico gastando el mismo tiempo y sin contar para el bloqueo; `cambiar-password` responde `sin_contrasena`; la recuperación de contraseña le permite crear la primera.
-- **Medido:** 715 pruebas del backend (antes 621): servicio de login externo, cuentas sin contraseña, controlador, validador con la librería simulada y repositorios con SQLite. Mutación: 11 reglas rotas a propósito (correo no verificado, vincular sin contraseña, vinculación automática, desvincular el último método, cuenta nueva sin consentimientos, cuenta bloqueada que entra, sin audiencia, cuenta de Google inactiva, login sin proteger la cuenta sin contraseña, cambio de contraseña sin rechazar, sin índice único) y todas hacen fallar al menos una prueba. Contra la API real en Docker y SQL Server real: `scripts/revision-practica-4.sh` da **92 de 92**; sin `Google:ClientId` **10 de 10** (503 controlado, login normal intacto) y con un ID de cliente de prueba **50 de 50**: la librería consulta las claves reales de Google y rechaza tokens falsos con 401, entradas inválidas, cuenta sin contraseña simulada en SQL Server (`PasswordHash` nulo), `sin_contrasena`, `ultimo_metodo_acceso`, 6 logins sin bloquear, creación de la primera contraseña por recuperación, desvincular, índices únicos y cascada en la base, el token no aparece en los logs y 429 en la petición 11.
-- **No probado de extremo a extremo con una cuenta real de Google:** un ID token válido solo lo emite el navegador con el Client ID real. Los caminos de alta, vinculación e inicio con un token válido están cubiertos con el validador simulado y los repositorios reales; la prueba con Google de verdad se hace al conectar el frontend (Fase 7).
-- **Decisiones:** (1) una cuenta bloqueada por intentos de contraseña tampoco entra con Google, para ser coherente con RF-CA-19. (2) Un correo con cuenta nunca se vincula sin confirmar la contraseña; decir `vinculacion_requerida` no filtra datos porque quien llega hasta ahí controla ese correo en Google. (3) `DELETE /vinculos/{proveedor}` solo acepta `google`. (4) Hoy `LoginExterno` solo admite `google`; añadir Apple o Microsoft exige ampliar la lista de proveedores válidos.
-- **Para el frontend (Fase 7):** `VITE_GOOGLE_CLIENT_ID` en `frontend/.env.local` (el mismo ID de cliente, público), script de Google Identity Services, enviar `credential` como `idToken`, y manejar `409 vinculacion_requerida` (pedir la contraseña y llamar a `/google/vincular`) y `400 consentimiento_requerido` (mostrar los documentos y repetir con `consentimientos`).
-
-### Fase 6: baja de cuenta y descarga de datos (`feature/control-acceso-baja-y-datos`, 05-11-2026)
-
-- **Estado de la cuenta** (`Usuario`, migración `AgregarBajaCuenta`): `DesactivadaPorUsuarioEn`, `BajaSolicitadaEn` y `BajaProgramadaPara` (con índice). `SolicitarDesactivacion` deja la cuenta inactiva **por su dueño** (distinta de la desactivación de un administrador, RF-CA-20): un inicio de sesión correcto (contraseña o Google) la reactiva; la de un administrador no. `ProgramarBaja(ahora, dias)` fija la fecha de borrado (no se mueve si se pide otra vez) y `CancelarBaja()` la quita. Durante la gracia la cuenta sigue activa y el login, el refresh y Google devuelven `bajaProgramadaPara`.
-- **`IServicioPrivacidad` / `ServicioPrivacidad`** (Application): `SolicitarBajaAsync`, `CancelarBajaAsync`, `ObtenerBajaProgramadaAsync` y `ExportarAsync`. La confirmación usa la contraseña o, si la cuenta no tiene, un ID token de Google **vinculado a esa misma cuenta**. Un error es siempre un **400** (`clave_actual_incorrecta` o el nuevo `confirmacion_incorrecta`) y cuenta para el bloqueo de RF-CA-19; nunca un 401, que cerraría la sesión del cliente. Revoca todas las sesiones por `IGestorSesiones`. Los administradores quedan fuera (también en el servicio).
-- **Endpoints** (`PrivacidadController`, rol Estandar, límite `privacidad` de 10/min): `POST /api/privacy/deletion-request` (202 `{modo, borradoEn}`), `GET` y `DELETE /api/privacy/deletion-request` y `GET /api/privacy/export` (JSON adjunto, `Cache-Control: no-store`, auditado, sin contraseña, hash ni tokens; la IP de las sesiones sí va porque es un dato personal). Reemplaza al `POST /export-request` que el frontend simulaba.
-- **Sin romper RD-03:** `IParticipanteDatosUsuario` (`Seccion`, `ExportarAsync`, `EliminarAsync`) la define Control de Acceso y la implementan tres **adaptadores del Host** (`ParticipanteHabitos`, `ParticipantePermisos`, `ParticipanteDocumentos`) que llaman a un método nuevo del servicio de Application de su módulo: `HabitoService.EliminarDatosDeUsuarioAsync`, `ISolicitudPermisoService.EliminarDeSolicitanteAsync` y `IDocumentoService.PurgarDeUsuarioAsync`. Ningún módulo lee tablas ajenas. Los borrados son inmediatos (`ExecuteDelete`), con cascada para registros de avance y etiquetas, e idempotentes.
-- **`ServicioBajaCuentas` + `BajaCuentasWorker`:** una vez al día (`Privacidad:IntervaloEjecucionMinutos`, 1440) busca las cuentas con el plazo vencido (lote de 50, **nunca un administrador**), borra los datos de cada módulo y, solo si todos lo lograron, la cuenta con consentimientos, sesiones, vínculos (cascada), corte de sesiones y correos en cola (`UsuarioRepository.EliminarDefinitivamenteAsync`, en una transacción). Si algo falla se reintenta en la siguiente pasada. El log solo lleva un identificador anonimizado (12 caracteres del SHA-256 del id).
-- **Documentos:** la baja purga también los registros y archivos de los documentos ya marcados como eliminados (el derecho a la supresión obliga a que no quede nada). El borrado normal sigue siendo lógico (RF-DOC-04); hay una prueba que lo fija.
-- **Medido:** 841 pruebas del backend (antes 715): dominio, servicios de privacidad y de baja, controlador, adaptadores, repositorios de Control de Acceso y los tres borrados de módulo contra SQLite (incluida la cascada y el aislamiento entre personas). Mutación: 16 reglas rotas a propósito (baja sin confirmar, error que no cuenta para el bloqueo, administrador que se da de baja, sesiones sin cortar, token de Google de otra cuenta, token falso que responde 401, cuenta borrada antes que sus datos, administrador borrado solo, correos en cola que quedan, fecha que se mueve, login que reactiva la cuenta desactivada por un administrador, archivos sin borrar del disco y los tres borrados sin filtrar por persona, más el rol) y todas hacen fallar al menos una prueba. Contra la API real en Docker y SQL Server real (con `BAJAS_INTERVALO_MINUTOS=1`): `scripts/revision-practica-4.sh` da **92 de 92** y las comprobaciones de la fase dan **95 de 95 (la primera corrida dio 76 de 95: los 19 fallos eran de mi script, que superaba el límite de 10 peticiones por minuto del endpoint, y una expectativa mía equivocada; no del código)**: descarga con las tres secciones, baja con confirmación, bloqueo por intentos, desactivar y reactivar al iniciar sesión, eliminar con 30 días de gracia, cancelar, borrado real por el proceso en segundo plano (hábitos, permisos, documentos y archivo del disco, sesiones, consentimientos y correos), el administrador que no se borra, cuenta de Google sin contraseña y 429 en la petición 11.
-- **Decisiones:** (1) la contraseña ausente no cuenta como intento fallido; una equivocada sí. (2) `eliminar` no desactiva la cuenta: durante la gracia el login funciona para poder cancelar (el mock del frontend la desactivaba). (3) Desactivar y eliminar revocan todas las sesiones al pedirse. (4) Cancelar no pide contraseña. (5) Las solicitudes de permiso que la persona resolvió como aprobadora no se tocan: son decisiones de administración sobre otras personas. (6) Un correo borrado puede volver a registrarse.
-- **Deuda:** el log de auditoría sigue en `IAuditoriaService` (módulo Auditing pendiente). La descarga guarda solo metadatos de documentos. Quien tenga una base anterior: la migración solo agrega columnas anulables.
-- **Para el frontend (Fase 7):** `POST /api/privacy/deletion-request` con `modo` y `password` (o `idTokenGoogle`), manejar `bajaProgramadaPara` en login/refresh/Google y ofrecer cancelar (`DELETE`), y la descarga con `GET /api/privacy/export` (el `POST /export-request` simulado desaparece).
-
-### Fase 7a: el frontend se conecta a Control de Acceso (`feature/frontend-conexion-control-acceso`, 06-11-2026)
-
-La Fase 7 se entrega en partes. Esta (7a) conecta el **contrato y la sesión**; el botón de Google, las cuentas vinculadas, las sesiones activas y los centros de privacidad reales (consentimientos, baja y descarga) van en PRs siguientes.
-
-- **Sesión:** el token de acceso (15 min) pasa de `sessionStorage` a **memoria** (`tokenStorage`); la sesión larga la sostiene la cookie `HttpOnly` del refresh token. `shared/api/http.ts` envía `credentials: 'include'` y, ante un 401 con token, renueva **una sola vez** y repite la petición (`shared/api/sesion.ts`: una renovación en curso compartida, porque dos con el mismo refresh token cierran la sesión; lleva `X-HabitTracker-Csrf: 1`). `AuthProvider` restaura la sesión al cargar si hubo una antes en el navegador (marca no sensible en `localStorage`), renueva el token un minuto antes de vencer y las rutas protegidas esperan mientras decide (`iniciando`) en vez de mandar al login.
-- **Contrato:** registro con `consentimientos` (versiones vigentes), activación con `{correo, codigo}` de 6 dígitos (el enlace `/activar?correo=&codigo=` rellena pero **no activa solo**), contraseña de 12+ caracteres, cambio de contraseña con `clave_actual_incorrecta` como 400 (no 401), mensajes de login por `codigo` (`cuenta_no_activa`, `cuenta_desactivada`, `cuenta_bloqueada`), tipos con `requiereAceptarDocumentos`, `bajaProgramadaPara` y `nombre` en `/me`.
-- **API simulada (MSW):** replica el backend real: consentimientos obligatorios en el registro, activación por correo y código, códigos de error, 15 minutos de acceso, `POST /api/auth/refresh` con cookie simulada, rotación y revocación (logout, cambio de contraseña, cuenta desactivada) y 403 `csrf_requerido` sin la cabecera.
-- **Medido:** 507 pruebas del frontend (antes 452; lint, tipos y build limpios). Mutación: 13 reglas rotas a propósito (sin cabecera CSRF, sin cookie, renovaciones sin compartir, token en `sessionStorage`, login que intenta renovar, 401 sin repetir la petición, sin credenciales, sin restaurar la sesión, sin renovar antes de vencer, registro sin consentimientos, política de 8, activación sin correo, guard sin espera) y todas hacen fallar al menos una prueba (la del guard se reforzó tras detectarla sin cobertura). **Prueba real en navegador** (Edge headless con `puppeteer-core`, frontend con `VITE_USE_MOCKS=false` contra el backend en Docker y SQL Server reales): **23 de 23**: registro con consentimientos, activación con correo y código, inicio de sesión, cookie `HttpOnly` / `SameSite=Strict` / `Path=/api/auth` que JavaScript no puede leer, ningún JWT en `sessionStorage` ni `localStorage`, recarga que restaura la sesión con `POST /api/auth/refresh` y rota la cookie, una página pública sin ninguna petición de renovación, cierre de sesión que borra la cookie y rechazo de 11 caracteres antes de enviar. La primera corrida dio 21 de 23 por un error mío del script (tomó la respuesta del preflight `OPTIONS`).
-- **Limitación conocida:** tras iniciar sesión con el backend real, `/api/profile` aún no existe (módulo de negocio): `RequierePerfil` lleva al onboarding y guardar el perfil falla hasta que ese módulo se conecte.
-
-### Fase 7b: botón «Continuar con Google» en el frontend (`feature/frontend-google`, 06-11-2026)
-
-- **Botón:** `features/auth/google/`. Google Identity Services dibuja el botón (`BotonGoogleReal`; script cargado una sola vez, con reintento si falla, y aviso si un bloqueador lo impide) y entrega el ID token, que se envía a `POST /api/auth/google`. Sin `VITE_GOOGLE_CLIENT_ID` queda desactivado con una explicación; con mocks es un botón de demostración (`window.prompt`) cuyo «token» nunca llega al backend real.
-- **Flujo (`useEntradaGoogle`):** 200/201 abre la sesión; `400 consentimiento_requerido` muestra los documentos y repite; `409 vinculacion_requerida` pide la contraseña (`/google/vincular`, que cuenta para el bloqueo); errores con mensajes por `codigo` (`token_externo_invalido`, `proveedor_no_disponible`, cuenta bloqueada o desactivada). En el registro las casillas ya marcadas viajan con el token.
-- **Configuración › Inicio de sesión › Cuentas vinculadas:** ver, vincular (con la contraseña) y desvincular Google. Una cuenta sin contraseña no puede desvincularlo y, en Contraseña y seguridad crea la primera sin salir de la sesión: pide un código al correo de la cuenta y lo usa con `restablecer-password` (`sin_contrasena`). `/google/vincular` se excluye de la renovación automática del token: su 401 es «contraseña incorrecta» y no debe cerrar la sesión.
-- **API simulada:** `POST /google`, `/google/vincular`, `GET /vinculos` y `DELETE /vinculos/google` con las mismas reglas que el backend; login de una cuenta sin contraseña con 401 genérico.
-- **Medido:** 563 pruebas del frontend (antes 507). Mutación: 12 reglas rotas a propósito (sin pedir documentos, sin pedir la contraseña, casillas del registro que no viajan, vincular que renueva y cierra la sesión, desvincular sin contraseña, cambio de contraseña visible sin contraseña, sin ventana emergente, token sin entregar, 401 sin explicar y tres reglas del simulado) y todas hacen fallar al menos una prueba. **Prueba real en navegador** (Edge headless, script de Google sustituido por un doble, frontend contra el backend en Docker y SQL Server reales): **23 de 23**. Con `Google:ClientId`: el botón se dibuja en español, el token falso (JWT sin firma de Google) lo rechaza el backend con 401 `token_externo_invalido`, la pantalla lo explica y no se abre sesión ni cookie; sin `Google:ClientId`: 503 con aviso y el acceso con correo intacto; en el registro viajan los consentimientos marcados.
-- **No probado de extremo a extremo con una cuenta real de Google:** un ID token válido solo lo emite Google con tu ID de cliente. El camino feliz (alta, vinculación e inicio) está cubierto con el simulado y con el backend validado con tokens simulados; la prueba real la hace el usuario en el navegador con su cuenta de prueba.
-
-### Fase 7c: sesiones activas y centro de privacidad reales en el frontend (`feature/frontend-privacidad-sesiones`, 06-11-2026)
-
-- **Sesiones activas** (Configuración › Inicio de sesión): lista de dispositivos con la marca «Este dispositivo», cerrar una, «Cerrar las demás» y «Cerrar en todos los dispositivos» (con confirmación; corta también este navegador y lo explica en el login). El nombre del dispositivo, que manda el navegador, se muestra siempre como texto.
-- **Centro de privacidad real:** consentimientos, baja y descarga hablan con `/api/privacy/*`. La descarga es el JSON que arma el servidor (cuenta, consentimientos, vínculos, sesiones y los módulos) más, si existen, perfil y progreso; el servidor deja la constancia en la auditoría. La baja pide la contraseña (o Google en una cuenta sin contraseña), distingue desactivar de eliminar (30 días de gracia), permite cancelar la programada y cierra la sesión diciendo la fecha del borrado.
-- **Avisos en toda la aplicación** (`AvisosDeCuenta`, rol Estándar): documentos legales con versión nueva (`requiereAceptarDocumentos`, sin bloquear nada) y eliminación programada con «Cancelar eliminación». «Aceptar las versiones vigentes» en Privacidad y datos refresca `/me` y quita el aviso.
-- **API simulada:** los handlers de privacidad dejaron de ser «contratos propuestos» y replican el backend (admin 403, 400 `clave_actual_incorrecta` con bloqueo, fecha original al repetir la eliminación, reactivación al iniciar sesión, sesiones propias con 404 para las ajenas).
-- **Medido:** 587 pruebas del frontend (antes 563). Mutación: 17 reglas rotas a propósito (sin Google en cuentas sin contraseña, «Eliminar» visible con baja programada, cerrar la sesión actual desde su fila, «Cerrar las demás» que cierra la actual, cerrar todas sin cerrar este navegador, avisos al Administrador, aviso de documentos que nunca sale, aceptar sin refrescar `/me`, baja sin comprobar la contraseña, fecha de eliminación que se mueve, baja del Administrador, desactivación sin marcar al dueño, baja sin revocar sesiones, descarga sin auditar, cerrar sesiones ajenas, cuenta desactivada que no se reactiva, descarga que ignora al servidor) y todas hacen fallar al menos una prueba; dos sobrevivieron al primer intento (avisos al Administrador y descarga sin constancia, por aserciones que se cumplían con datos de la semilla o antes de que respondiera `/me`) y se reforzaron. **Prueba real en navegador** (Edge headless, frontend sin mocks contra el backend en Docker y SQL Server reales): **43 de 43**. Dos navegadores con la misma cuenta ven 2 sesiones con su dispositivo y una sola marcada como actual; cerrar la otra la deja sin sesión al recargar; la descarga trae cuenta, consentimientos, vínculos, sesiones y módulos sin contraseña ni hash; una contraseña errónea en la baja es un 400 `clave_actual_incorrecta` que no cierra la sesión; eliminar responde 202 con el borrado a 30 días, el login durante la gracia ofrece «Cancelar eliminación» y tras cancelar el GET da 404; desactivar y volver a entrar reactiva la cuenta; «Cerrar en todos los dispositivos» no deja restaurar ninguna sesión.
+- **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
+  - Fase 0 (esta) → Fase 1, cimientos y deuda §6.1–6.5 → Fases 2–5, el corte vertical;
+  - Fase 6, producción, métricas y piloto;
+  - las Fases 7–9 dependen del informe del piloto.
+- **Pendiente de decidir antes de la Fase 6:** dónde se hospeda el piloto. El CD está pendiente y Vercel no hospeda .NET.
+- **Después del módulo de negocio:** Permisos, Documentos, Notificaciones (bandeja interna y RF-NOT-06/07), Reportes (RF-NEG-08) y Auditoría.
