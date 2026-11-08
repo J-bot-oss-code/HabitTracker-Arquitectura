@@ -52,6 +52,10 @@ services:
       # Los archivos de los documentos se guardan en el volumen montado más abajo.
       Documentos__RutaAlmacenamiento: /app/data/documentos
 
+      # Claves de Data Protection que cifran el cuestionario de salud. Si se pierden, esos datos no se pueden leer:
+      # van en su propio volumen. Respáldalas APARTE de la base de datos: un respaldo con las dos juntas anula el cifrado.
+      DATAPROTECTION_KEYS_PATH: /app/data/claves
+
       CORREO_MODO: ${CORREO_MODO:-}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-}
@@ -76,7 +80,10 @@ services:
     volumes:
       # Volumen con nombre para los archivos de documentos, FUERA de la imagen (RF-DOC-05).
       - documentos-archivos:/app/data/documentos
+      # Claves de cifrado de los datos de salud, fuera de la imagen (RD-09).
+      - dataprotection-claves:/app/data/claves
 
 volumes:
   sqlserver-datos:
   documentos-archivos:
+  dataprotection-claves:

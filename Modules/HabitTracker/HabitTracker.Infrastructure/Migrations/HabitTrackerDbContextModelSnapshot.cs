@@ -205,6 +205,163 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.ToTable("RegistrosDiarios");
                 });
 
+            modelBuilder.Entity("HabitTracker.Domain.Perfil.PerfilUsuario", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Actividad")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("ActualizadoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("AlturaCm")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<bool>("AvisoSaludAceptado")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("DiasPorSemana")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("Edad")
+                        .HasColumnType("int");
+
+                    b.Property<TimeOnly?>("HoraDespertar")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly?>("HoraDormir")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly?>("HoraEntradaTrabajo")
+                        .HasColumnType("time");
+
+                    b.Property<TimeOnly?>("HoraSalidaTrabajo")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("InicioPlan")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MetaSlug")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int?>("MinutosPorSesion")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("ObjetivoPesoKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<string>("PerfilLaboral")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<decimal?>("PesoKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<string>("Sexo")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("ZonaHoraria")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.HasKey("UsuarioId");
+
+                    b.ToTable("PerfilesUsuario", (string)null);
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Progreso.MedicionCorporal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<string>("Zona")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Zona", "Fecha");
+
+                    b.ToTable("MedicionesCorporales", (string)null);
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Progreso.RegistroPeso", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("PesoKg")
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Fecha");
+
+                    b.ToTable("RegistrosPeso", (string)null);
+                });
+
+            modelBuilder.Entity("HabitTracker.Infrastructure.Persistence.Configuraciones.CuestionarioSaludFila", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CondicionesCifrado")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("CondicionesRespondidoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ObjetivosCifrado")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("ObjetivosRespondidoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("SeguridadCifrado")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime?>("SeguridadRespondidoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int");
+
+                    b.HasKey("UsuarioId");
+
+                    b.ToTable("CuestionariosSalud", (string)null);
+                });
+
             modelBuilder.Entity("EtiquetaHabito", b =>
                 {
                     b.HasOne("HabitTracker.Domain.Entities.Etiqueta", null)

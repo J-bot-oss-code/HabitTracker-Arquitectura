@@ -22,8 +22,15 @@ builder.Services.AddDocumentManagerModule(builder.Configuration);
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 
+// Adaptador de IConsentimientoSalud para HabitTracker (consentimiento datosSalud de Control de Acceso).
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.IConsentimientoSalud, ConsentimientoSaludAdapter>();
+
+// Cifrado en reposo de los datos de salud: claves persistentes en DATAPROTECTION_KEYS_PATH (obligatorio fuera de Development).
+builder.Services.AddProteccionDeDatos(builder.Configuration, builder.Environment);
+
 // Datos de cada módulo en la descarga de datos y en la baja de cuenta de Control de Acceso (sin que éste los conozca).
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteHabitos>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePerfilSalud>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePermisos>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteDocumentos>();
 
