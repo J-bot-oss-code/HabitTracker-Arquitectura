@@ -1,7 +1,7 @@
 // RD-11: todas las fechas viajan y se muestran en UTC, igual que en el backend.
 
-// El backend devuelve algunas fechas leídas de SQL sin "Z" (deuda técnica §6.4).
-// Se interpretan como UTC para no desplazarlas según la zona del navegador.
+// Desde HabitTracker v2 el backend devuelve todas las fechas con "Z". Una fecha sin zona (datos antiguos
+// o de otro cliente) se interpreta igualmente como UTC para no desplazarla según la zona del navegador.
 export function parsearFechaUtc(iso: string): Date {
   const tieneZona = /([zZ]|[+-]\d{2}:?\d{2})$/.test(iso)
   return new Date(tieneZona ? iso : `${iso}Z`)

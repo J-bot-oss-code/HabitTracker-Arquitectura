@@ -63,12 +63,11 @@ Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2
 
 Copia `.env.example` a `.env.local` (no se versiona):
 
-| Variable                   | Por defecto                     | Uso                                                                           |
-| -------------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
-| `VITE_USE_MOCKS`           | `true` en dev, `false` en build | `false` para llamar al backend real                                           |
-| `VITE_API_URL`             | `http://localhost:5246`         | URL de `Host/WebApi`                                                          |
-| `VITE_META_ID_POR_DEFECTO` | vacío                           | Id de meta que se propone al crear un hábito                                  |
-| `VITE_GOOGLE_CLIENT_ID`    | vacío                           | ID de cliente de Google (público); el mismo que `Google:ClientId` del backend |
+| Variable                | Por defecto                     | Uso                                                                           |
+| ----------------------- | ------------------------------- | ----------------------------------------------------------------------------- |
+| `VITE_USE_MOCKS`        | `true` en dev, `false` en build | `false` para llamar al backend real                                           |
+| `VITE_API_URL`          | `http://localhost:5246`         | URL de `Host/WebApi`                                                          |
+| `VITE_GOOGLE_CLIENT_ID` | vacío                           | ID de cliente de Google (público); el mismo que `Google:ClientId` del backend |
 
 Todo lo que empieza por `VITE_` termina en el bundle público: nunca pongas credenciales ahí.
 

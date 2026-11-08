@@ -1,5 +1,6 @@
 using HabitTracker.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HabitTracker.Infrastructure.Persistence;
 
@@ -18,48 +19,30 @@ public class HabitTrackerDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.Entity<Habito>()
-            .Property(h => h.Estado)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Habito>()
-            .Property(h => h.Periodicidad)
-            .HasConversion<string>();
-
-        modelBuilder.Entity<Habito>()
-            .Property(h => h.FechaInicioCiclo)
-            .HasColumnType("datetime2");
-
-        modelBuilder.Entity<Habito>()
-            .HasMany(h => h.Registros)
-            .WithOne(r => r.Habito)
-            .HasForeignKey(r => r.HabitoId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Habito>()
-            .HasOne(h => h.Meta)
-            .WithMany(m => m.Habitos)
-            .HasForeignKey(h => h.MetaId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<Habito>()
-            .HasMany(h => h.Etiquetas)
-            .WithMany(e => e.Habitos);
-
-        modelBuilder.Entity<RegistroDiario>()
-            .Property(r => r.Fecha)
-            .HasColumnType("datetime2");
-
-        // El dominio asigna el Id al crear el registro; sin esto EF trata un avance
-        // nuevo con Id ya asignado como existente y emite UPDATE en lugar de INSERT.
-        modelBuilder.Entity<RegistroDiario>()
-            .Property(r => r.Id)
-            .ValueGeneratedNever();
-
-        modelBuilder.Entity<Meta>()
-            .HasOne(m => m.Categoria)
-            .WithMany(c => c.Metas)
-            .HasForeignKey(m => m.CategoriaId)
-            .OnDelete(DeleteBehavior.Cascade);
+        // Una clase IEntityTypeConfiguration por entidad, en Persistence/Configuraciones (RD-01).
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(HabitTrackerDbContext).Assembly);
     }
+
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        base.ConfigureConventions(configurationBuilder);
+
+        // RD-11: el módulo guarda todas las fechas en UTC. SQL Server (datetime2) no guarda el Kind y las devuelve como
+        // Unspecified, así que la API las serializaba sin "Z". Este conversor las marca como UTC al leerlas.
+        configurationBuilder.Properties<DateTime>()
+            .HaveConversion<FechaUtcConverter>()
+            .HaveColumnType("datetime2");
+        configurationBuilder.Properties<DateTime?>()
+            .HaveConversion<FechaUtcNullableConverter>()
+            .HaveColumnType("datetime2");
+    }
+
+    // Al escribir, una fecha Local se pasa a UTC (las del dominio ya llegan en UTC); al leer, se marca como UTC.
+    private sealed class FechaUtcConverter() : ValueConverter<DateTime, DateTime>(
+        fecha => fecha.Kind == DateTimeKind.Local ? fecha.ToUniversalTime() : fecha,
+        fecha => DateTime.SpecifyKind(fecha, DateTimeKind.Utc));
+
+    private sealed class FechaUtcNullableConverter() : ValueConverter<DateTime?, DateTime?>(
+        fecha => fecha.HasValue && fecha.Value.Kind == DateTimeKind.Local ? fecha.Value.ToUniversalTime() : fecha,
+        fecha => fecha.HasValue ? DateTime.SpecifyKind(fecha.Value, DateTimeKind.Utc) : fecha);
 }

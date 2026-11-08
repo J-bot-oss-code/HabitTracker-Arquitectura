@@ -2,6 +2,7 @@ using HabitTracker.Application.DTOs;
 using HabitTracker.Application.Interfaces;
 using HabitTracker.Application.Services;
 using HabitTracker.Domain.Entities;
+using HabitTracker.Domain.Excepciones;
 
 namespace HabitTracker.Application.Tests;
 
@@ -225,8 +226,11 @@ public class HabitoServiceTests
 
         // Assert
         Assert.NotNull(excepcion);
-        Assert.IsType<InvalidOperationException>(excepcion);
-        Assert.Contains("no existe", excepcion.Message, StringComparison.OrdinalIgnoreCase);
+        // Desde HabitTracker v2 el "no existe" es una excepción propia con código estable (404 en la API), no un texto
+        // que el controller tenga que buscar en el mensaje.
+        var noEncontrado = Assert.IsType<RecursoNoEncontradoException>(excepcion);
+        Assert.Equal(RecursoNoEncontradoException.HabitoNoEncontrado, noEncontrado.Codigo);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
     }
 
     [Fact]
@@ -543,5 +547,148 @@ public class HabitoServiceTests
         Assert.IsType<ArgumentException>(excepcion);
         Assert.Contains("meta", excepcion.Message, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_CrearHabito_SinMeta_CreaHabitoSuelto()
+    {
+        // Arrange
+        var repository = new InMemoryHabitoRepository();
+        var unitOfWork = new InMemoryUnitOfWork();
+        var service = new HabitoService(repository, unitOfWork, new FakePermisoService(), new InMemoryMetaRepository());
+        var command = new CrearHabitoCommand("Beber agua", Periodicidad.Diaria, 8, "vasos");
+
+        // Act
+        var id = await service.CrearHabitoAsync(command, propietario);
+
+        // Assert
+        var habito = await repository.GetByIdAsync(id);
+        Assert.NotNull(habito);
+        Assert.Null(habito.MetaId);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    [Trait("Requirement", "RD-07")]
+    public async Task RF_NEG_02_CrearHabito_MetaInexistente_RechazaConCodigoYNoGuarda()
+    {
+        // Arrange
+        var unitOfWork = new InMemoryUnitOfWork();
+        var service = new HabitoService(new InMemoryHabitoRepository(), unitOfWork, new FakePermisoService(), new MetaRepositorySinMetas());
+        var command = new CrearHabitoCommand("Leer", Periodicidad.Diaria, 20, "paginas", Guid.NewGuid());
+
+        // Act
+        var excepcion = await Record.ExceptionAsync(() => service.CrearHabitoAsync(command, propietario));
+
+        // Assert
+        var regla = Assert.IsType<ReglaNegocioException>(excepcion);
+        Assert.Equal(ReglaNegocioException.MetaNoEncontrada, regla.Codigo);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    [Trait("Requirement", "RD-07")]
+    public async Task RF_NEG_02_RegistrarAvance_FechaFutura_RechazaConCodigoYNoGuarda()
+    {
+        // Arrange
+        var ahora = new DateTime(2026, 11, 7, 15, 0, 0, DateTimeKind.Utc);
+        var repository = new InMemoryHabitoRepository();
+        var unitOfWork = new InMemoryUnitOfWork();
+        var service = new HabitoService(repository, unitOfWork, new FakePermisoService(), new InMemoryMetaRepository(), new RelojFijo(ahora));
+        var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
+
+        // Act
+        var excepcion = await Record.ExceptionAsync(() =>
+            service.RegistrarAvanceAsync(habito.Id, 5, ahora.AddDays(1), propietario));
+
+        // Assert
+        var regla = Assert.IsType<ReglaNegocioException>(excepcion);
+        Assert.Equal(ReglaNegocioException.FechaFutura, regla.Codigo);
+        Assert.Empty(habito.Registros);
+        Assert.Equal(0, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [Trait("Requirement", "RF-NEG-02")]
+    [Trait("Requirement", "RD-11")]
+    public async Task RF_NEG_02_RegistrarAvance_DentroDeLaToleranciaDelReloj_Acepta(int minutosAdelanto)
+    {
+        // Arrange: un reloj de cliente unos minutos adelantado no es una fecha futura.
+        var ahora = new DateTime(2026, 11, 7, 15, 0, 0, DateTimeKind.Utc);
+        var repository = new InMemoryHabitoRepository();
+        var unitOfWork = new InMemoryUnitOfWork();
+        var service = new HabitoService(repository, unitOfWork, new FakePermisoService(), new InMemoryMetaRepository(), new RelojFijo(ahora));
+        var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
+
+        // Act
+        await service.RegistrarAvanceAsync(habito.Id, 5, ahora.AddMinutes(minutosAdelanto), propietario);
+
+        // Assert
+        Assert.Single(habito.Registros);
+        Assert.Equal(1, unitOfWork.SaveChangesCallCount);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_ObtenerHabito_Propio_DevuelveSusDatos()
+    {
+        // Arrange
+        var repository = new InMemoryHabitoRepository();
+        var service = new HabitoService(repository, new InMemoryUnitOfWork(), new FakePermisoService(), new InMemoryMetaRepository());
+        var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
+
+        // Act
+        var dto = await service.ObtenerHabitoAsync(habito.Id, propietario);
+
+        // Assert
+        Assert.Equal(habito.Id, dto.Id);
+        Assert.Equal(EstadoHabito.Activo, dto.Estado);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-06")]
+    [Trait("Requirement", "RD-06")]
+    public async Task RD_06_ObtenerHabito_Ajeno_Rechaza()
+    {
+        // Arrange
+        var repository = new InMemoryHabitoRepository();
+        var service = new HabitoService(repository, new InMemoryUnitOfWork(), new FakePermisoService(), new InMemoryMetaRepository());
+        var habito = CrearHabitoEnEstado(repository, propietario, EstadoHabito.Activo);
+
+        // Act
+        var excepcion = await Record.ExceptionAsync(() => service.ObtenerHabitoAsync(habito.Id, noPropietario));
+
+        // Assert
+        Assert.IsType<UnauthorizedAccessException>(excepcion);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_ObtenerHabito_Inexistente_RechazaConCodigo()
+    {
+        // Arrange
+        var service = new HabitoService(new InMemoryHabitoRepository(), new InMemoryUnitOfWork(), new FakePermisoService(), new InMemoryMetaRepository());
+
+        // Act
+        var excepcion = await Record.ExceptionAsync(() => service.ObtenerHabitoAsync(Guid.NewGuid(), propietario));
+
+        // Assert
+        var noEncontrado = Assert.IsType<RecursoNoEncontradoException>(excepcion);
+        Assert.Equal(RecursoNoEncontradoException.HabitoNoEncontrado, noEncontrado.Codigo);
+    }
+
+    private sealed class MetaRepositorySinMetas : IMetaRepository
+    {
+        public Task<bool> ExistsAsync(Guid metaId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+    }
+
+    private sealed class RelojFijo(DateTime ahoraUtc) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(ahoraUtc, TimeSpan.Zero);
     }
 }
