@@ -13,11 +13,11 @@
 | P1 | Primer valor en menos de 2 minutos | Un plan Básico se empieza en 3 toques y sin cuestionario de salud; los datos sensibles se piden solo cuando un plan los necesita |
 | P2 | Diseñar desde la jornada laboral | `perfilLaboral` es la puerta de entrada; la primera recomendación es "Mi día de trabajo saludable" |
 | P3 | Fallar es normal y nada castiga | Versión mínima, racha tolerante (un día sin registro no la corta, dos seguidos sí), modo suave, pausa justificada y ajuste del plan |
-| P4 | Motivar la conducta, nunca el cuerpo | Se premian la constancia y el regreso; nunca el peso, las medidas, las calorías ni la comparación |
+| P4 | Motivar la conducta, nunca el cuerpo | Se premian la constancia y el regreso; nunca el peso, las medidas ni las calorías. La única comparación es el Muro de logros voluntario (Fase 10): alias, constancia, top 10 mensual, cohorte ≥5 |
 | P5 | El correo es un canal de acción | Cada correo permite hacer algo (marcar en un clic) y se espacia si la persona se aleja (3, 7 y 21 días) |
 | P6 | Medir sin datos de salud | Métricas agregadas de adherencia, sin identificadores y con nulo para cohortes de menos de 5 |
 | P7 | Contenido local | Calor, guagua, comida dominicana, turnos reales y personas sin gimnasio |
-| P8 | Corte vertical antes que ancho | Catálogo pequeño y bueno → producción → piloto; las Fases 7–9 dependen del informe del piloto (docs/piloto.md, Fase 6) |
+| P8 | Corte vertical antes que ancho | Catálogo pequeño y bueno → producción → piloto; las Fases 7–10 dependen del informe del piloto (docs/piloto.md, Fase 6) |
 
 ## Decisiones fijas
 
@@ -36,7 +36,7 @@
 - **Logros** simbólicos, por conducta y felicitados una sola vez: primer hábito, primera semana, 7/21/30 días, regreso, mitad del plan y plan completado.
 - **Prohibido** (con prueba):
   - mensajes o logros ligados a peso, kg, IMC, calorías, dieta o apariencia;
-  - rankings, puntos competitivos, comparaciones y premios externos o en dinero;
+  - rankings por peso o cuerpo, puntos competitivos, premios externos o en dinero, y comparaciones fuera del Muro de logros voluntario;
   - textos de culpa ("perdiste tu racha", "fallaste") y el rojo cuando se falla un día.
 - **Prueba de contenido:** ningún mensaje contiene peso, kg, calorías, dieta, gordo, perdiste, fallaste ni culpa (comparando sin acentos ni mayúsculas).
 

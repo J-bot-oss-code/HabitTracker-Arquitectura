@@ -277,7 +277,32 @@ El módulo de negocio está estructurado sobre 6 entidades que modelan la trazab
 | **`Etiqueta`** | Etiqueta descriptiva y visual que clasifica hábitos por características (ej. urgente, preferido). | Asociada a muchos `Habitos`. |
 | **`Recompensa`** | Sistema de puntos canjeables por el cumplimiento de metas, incentivando la constancia. | Pertenece a una `Meta`. |
 
-**Flujo de relaciones:** `Categoria` → `Meta` → `Habito` → `RegistroDiario`, con `Etiqueta` y `Recompensa` como referencias transversales a `Habito` y `Meta` respectivamente.
+**Flujo de relaciones:** `Categoria` → `Meta` → `Habito` → `RegistroDiario`, con `Etiqueta` y `Recompensa` como referencias transversales a `Habito` y `Meta` respectivamente. Desde HabitTracker v2 la meta de un hábito es opcional.
+
+**Perfil y salud (HabitTracker v2, Fase 2).** Cada persona tiene, como mucho, una fila de cada:
+- **`PerfilUsuario`** (nivel 1 obligatorio: perfil laboral, zona horaria IANA y aviso de salud; el resto es opcional).
+- **`CuestionarioSalud`** (tres bloques: objetivos, revisión de seguridad y condiciones o alergias). Cada bloque se guarda **cifrado** con ASP.NET Core Data Protection.
+- **`RegistroPeso`** y **`MedicionCorporal`**, uno por día UTC (y por zona, en las medidas).
+
+Las reglas de salud viven en un solo punto, `EvaluadorSalud`. Traduce las respuestas en restricciones y avisos, nunca en diagnósticos.
+
+| Endpoint (rol `Estandar`) | Qué hace |
+|---|---|
+| `GET/PUT /api/profile` | Perfil. `404 perfil_no_encontrado` antes del onboarding. Con peso o altura exige el consentimiento `datosSalud`. |
+| `GET /api/profile/health` | Bloques del cuestionario con su evaluación (nivel de precaución, restricciones, alérgenos y completitud). |
+| `PUT /api/profile/health/objetivos`, `/seguridad`, `/condiciones` | Guarda un bloque. En las condiciones, «Ninguna» no se combina con otras opciones. |
+| `GET/POST /api/progress/weights` | Peso, uno por día. `objetivoKg`: si se omite, se conserva; con `null`, se quita. El último peso pasa al perfil. |
+| `GET/POST /api/progress/measurements` | Cintura y pecho 40–250 cm, brazo 10–100 cm y grasa 3–60 %. |
+
+Para guardar el cuestionario, el peso o las medidas hace falta el consentimiento `datosSalud` (`409 consentimiento_salud_requerido`). Para guardar el nivel 1 del perfil no.
+
+La descarga de datos añade la sección `perfilYSalud`, con el cuestionario descifrado para su dueño, y la baja de cuenta borra todo.
+
+**Claves de cifrado:** se guardan en `DATAPROTECTION_KEYS_PATH`, que en Docker es el volumen `dataprotection-claves`. Fuera de Development esa ruta es obligatoria y la API no arranca sin ella. **Respalda ese volumen, pero en un sitio distinto del respaldo de la base de datos.** Si se pierden las claves, los cuestionarios no se pueden leer. Si las claves y la base se filtran juntas, el cifrado no protege nada. En esta fase las claves se guardan sin proteger dentro de su volumen; protegerlas con un certificado (`ProtectKeysWithCertificate`) queda para la Fase 6.
+
+Solo se cifra el cuestionario. Peso, altura y medidas se guardan sin cifrar porque hacen falta para ordenar y graficar en el servidor; solo los ve su dueño (RD-06).
+
+Si la persona retira el consentimiento `datosSalud`, sus datos no se borran y los sigue viendo, pero la evaluación deja de usarlos (`usaDatosDeSalud: false`). Un bloque que no se pueda descifrar, por ejemplo porque se perdieron las claves, se trata como no respondido: la persona lo vuelve a responder, sin recibir un 500.
 
 ## 💻 Stack Tecnológico
 
@@ -322,6 +347,17 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 | `clave_actual_incorrecta` | 400 | La contraseña actual indicada al cambiarla no coincide (RF-CA-22). |
 | `ultimo_administrador` | 400 | La operación dejaría al sistema sin ningún administrador activo. |
 | `operacion_no_permitida` | 403 | Quien ejecuta no es un administrador activo (RF-CA-05, RF-CA-06). |
+
+**Módulo de negocio (HabitTracker):**
+
+| `codigo` | Estado | Cuándo |
+|---|---|---|
+| `habito_no_encontrado` | 404 | El hábito no existe. Uno ajeno responde `403`. |
+| `perfil_no_encontrado` | 404 | La persona aún no completó el onboarding. |
+| `fecha_futura` | 400 | Un avance, un peso o una medida con fecha futura (más de 5 minutos de adelanto). |
+| `meta_no_encontrada` | 400 | El `metaId` indicado al crear un hábito no existe. |
+| `perfil_requerido` | 400 | Se quiso fijar un peso objetivo sin tener perfil. |
+| `consentimiento_salud_requerido` | 409 | Guardar un dato de salud (cuestionario, peso, medidas, o el perfil con peso o altura) sin el consentimiento `datosSalud`. |
 
 **Límite de peticiones por IP** (después responde `429`). Se cambia en `RateLimit:*`; un valor de 0 detiene el arranque.
 

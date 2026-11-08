@@ -29,6 +29,13 @@
 4. **Datos por usuario:** inclúyelos en la exportación y en el borrado (`Host/WebApi/Adapters/ParticipanteHabitos.cs` y su servicio). Prueba de aislamiento entre dos personas con SQLite.
 5. **Prueba de persistencia** con SQLite en memoria: modelo `tests/HabitTracker.Integration.Tests/HabitoPersistenciaTests.cs`.
 
+## Dato sensible (de salud o personal)
+
+1. **Consentimiento:** guardarlo exige el consentimiento `datosSalud` con `Guardas.ExigirConsentimientoAsync` (`Modules/HabitTracker/HabitTracker.Application/Services/PerfilSaludServices.cs`). Si falta, la respuesta es `409 consentimiento_salud_requerido`.
+2. **Cifrado en reposo:** con `ICifradorDatos` y un propósito propio (`Tipo.Bloque.vN`). El repositorio guarda una fila de persistencia con el texto cifrado (modelo: `Modules/HabitTracker/HabitTracker.Infrastructure/Repositories/PerfilSaludRepositories.cs`). El dominio no sabe nada del cifrado y nunca se filtra por esa columna en SQL.
+3. **Descarga y baja:** el dato entra en la descarga (descifrado para su dueño) y en la baja, a través de `IDatosPerfilSaludService` o de su propio participante.
+4. **Pruebas:** la columna cruda de SQLite no contiene el texto en claro, la ida y vuelta funciona, y otras claves u otro propósito no descifran (modelo: `tests/HabitTracker.Integration.Tests/PerfilSaludPersistenciaTests.cs`).
+
 ## Puerto entre módulos
 
 1. La interfaz vive en el `Application` del módulo que la **necesita** (por ejemplo `HabitTracker.Application/Interfaces/IPermisoService.cs`).

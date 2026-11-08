@@ -3,6 +3,7 @@ using HabitTracker.Application.Services;
 using HabitTracker.Infrastructure.DependencyInjection;
 using HabitTracker.Infrastructure.Persistence;
 using HabitTracker.Infrastructure.Repositories;
+using HabitTracker.Infrastructure.Seguridad;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -29,6 +30,17 @@ public static class HabitTrackerModuleExtensions
         services.AddScoped<IUnitOfWork, HabitTrackerUnitOfWork>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<IHabitoService, HabitoService>();
+
+        // Perfil, cuestionario de salud (cifrado con Data Protection) y progreso corporal (Fase 2 de HabitTracker v2).
+        // El consentimiento lo resuelve un adaptador del Host (IConsentimientoSalud), registrado en Program.cs.
+        services.AddScoped<ICifradorDatos, CifradorDataProtection>();
+        services.AddScoped<IPerfilUsuarioRepository, PerfilUsuarioRepository>();
+        services.AddScoped<ICuestionarioSaludRepository, CuestionarioSaludRepository>();
+        services.AddScoped<IProgresoCorporalRepository, ProgresoCorporalRepository>();
+        services.AddScoped<IPerfilService, PerfilService>();
+        services.AddScoped<ICuestionarioSaludService, CuestionarioSaludService>();
+        services.AddScoped<IProgresoCorporalService, ProgresoCorporalService>();
+        services.AddScoped<IDatosPerfilSaludService, DatosPerfilSaludService>();
 
         // Plan del día: usa la API externa de clima (la clave llega por la variable OPENWEATHER_API_KEY).
         services.AddScoped<IPlanDelDiaService, PlanDelDiaService>();
