@@ -37,6 +37,11 @@ Cada fase, pantalla y correo se juzga con una pregunta: *¿esto ayuda a que esta
    - motivación y recompensas;
    - fases renumeradas;
    - piloto como puerta de decisión.
+6. **Muro de logros (08-11-2026):** el usuario pidió un top de las personas que han logrado metas, como motivación. Para no romper P4 ni la privacidad entra como **Fase 10 ⚑**, con estas condiciones:
+   - es voluntario (consentimiento `compartirCumplimiento`);
+   - usa un alias, nunca el nombre ni el correo;
+   - solo cuenta constancia y planes completados, nunca peso ni nombres de planes;
+   - es un top 10 mensual, sin posiciones bajas.
 
 ## Reglas que se respetan en todas las fases
 
@@ -65,7 +70,7 @@ Cada fase, pantalla y correo se juzga con una pregunta: *¿esto ayuda a que esta
 | P1 | **Primer valor en menos de 2 minutos.** Un Básico se empieza en 3 toques y sin cuestionario de salud. Los datos sensibles se piden justo cuando un plan los necesita. | Fase 2: el onboarding de nivel 1 no exige edad, peso ni cuestionario, y un Básico no devuelve 409. Fase 6: el E2E cuenta 3 toques desde el onboarding hasta el plan empezado. |
 | P2 | **Diseñar desde la jornada laboral.** `perfilLaboral` es la puerta de entrada y la primera recomendación es "Mi día de trabajo saludable". | Fase 3: cada perfil laboral tiene su variante y es el primer resultado sin cuestionario. |
 | P3 | **Fallar es normal y nada castiga.** Versión mínima, racha tolerante, modo suave, pausa justificada y ajuste del plan. | Fase 4: pruebas de `CalculadoraProgreso` y `SugeridorAjuste`. Prueba de contenido sin palabras de culpa. |
-| P4 | **Motivar la conducta, nunca el cuerpo.** | Fase 4: `CalculadoraLogros` no recibe peso ni medidas (prueba por reflexión). Prueba de contenido de los mensajes. |
+| P4 | **Motivar la conducta, nunca el cuerpo.** La única comparación entre personas permitida es el Muro de logros voluntario de la Fase 10 (constancia, alias, top 10 mensual). | Fase 4: `CalculadoraLogros` no recibe peso ni medidas (prueba por reflexión). Prueba de contenido de los mensajes. Fase 10: el muro no expone salud, planes ni a quien no lo activó. |
 | P5 | **El correo es un canal de acción, no de ruido.** | Fase 5: check-in en un clic y `CalculadoraCadencia` (3/7/21 días, nunca reactiva). |
 | P6 | **Medir sin datos de salud.** | Fase 6: las métricas no leen tablas de salud, no devuelven IDs y una cohorte menor de 5 da nulo. |
 | P7 | **Contenido local** (calor, guagua, comida dominicana, turnos reales, sin gimnasio). | Prueba de contenido (topes de hidratación, aviso médico, anclas cerradas) y revisión humana de cada plan nuevo (Fase 7). |
@@ -91,6 +96,7 @@ Cada fase, pantalla y correo se juzga con una pregunta: *¿esto ayuda a que esta
 | 7 ⚑ | `feature/habittracker-catalogo-ampliado` · `feature/frontend-catalogo-ampliado` | Catálogo hasta ~35 planes | 6 (informe), `RecomendadorPlanes` y `ReglasSeguridadPlanes` (3) |
 | 8 ⚑ | `feature/habittracker-planes-propios` · `feature/frontend-planes-propios` | Planes personalizados con sugerencias | 6 (informe), 3 y 4 |
 | 9 ⚑ | `feature/habittracker-notas` · `feature/frontend-notas` | Notas, apuntes y recordatorios | 6 (informe), `ICifradorDatos` (2) y `ProgramacionEnvio` (5) |
+| 10 ⚑ | `feature/habittracker-muro-logros` · `feature/frontend-muro-logros` | Muro de logros: top voluntario de constancia | 6 (informe), `CalculadoraProgreso` y `LogroUsuario` (4), regla de cohorte mínima (6) |
 
 ⚑ = **condicionada al piloto**. Cada fase posterior a la 6 repite, para sus endpoints nuevos, su parte de la lista de producción: límites de peticiones, auditoría, índices, mutación y ampliación del E2E.
 
@@ -368,7 +374,7 @@ Se mantienen los del plan anterior:
 
 **Prohibido**, con prueba que lo verifique:
 - recompensas o mensajes ligados a peso, medidas, IMC, calorías o apariencia;
-- rankings, puntos competitivos, comparaciones o premios externos;
+- rankings por peso, cuerpo o calorías, puntos competitivos, premios externos o en dinero, y cualquier comparación fuera del Muro de logros voluntario de la Fase 10;
 - rachas con castigo y textos de culpa.
 
 ---
@@ -575,8 +581,8 @@ Los umbrales son hipótesis: el informe del piloto los ajusta o los descarta.
 ### Piloto (hito de decisión)
 
 - 10 a 20 personas (oficina, remoto, turno nocturno y trabajo físico) durante 3 a 4 semanas, con **consentimiento informado**.
-- Entrevistas de 15 min en las semanas 2 y 4: qué las hizo volver, qué las hizo dejarlo y qué les sobró.
-- Entregable `docs/piloto.md`: guía de entrevistas, plantilla de resultados, formulario de consentimiento informado e informe de métricas y hallazgos con **la decisión sobre las Fases 7–9**.
+- Entrevistas de 15 min en las semanas 2 y 4: qué las hizo volver, qué las hizo dejarlo y qué les sobró. Además se pregunta si un top voluntario de constancia (Fase 10) las motivaría o las presionaría.
+- Entregable `docs/piloto.md`: guía de entrevistas, plantilla de resultados, formulario de consentimiento informado e informe de métricas y hallazgos con **la decisión sobre las Fases 7–10**.
 - Requiere un entorno desplegado y accesible: ver Riesgos, punto 7.
 
 ### Pruebas y terminado
@@ -650,6 +656,64 @@ Los umbrales son hipótesis: el informe del piloto los ajusta o los descarta.
 
 **Terminado:** límites, auditoría, índices y ampliación del E2E (nota con una tarjeta rechazada).
 
+## Fase 10 ⚑ — Muro de logros (top voluntario de constancia)
+
+**Condicionada al piloto** (se pregunta en las entrevistas). Si el usuario lo prefiere, se puede adelantar justo después de la Fase 5 para probarlo dentro del piloto, porque solo depende de la Fase 4. Si se adelanta, conviene medir el regreso tras una recaída de quienes participan frente a quienes no.
+
+**Por qué así:** un top motiva a quien va arriba y desanima a quien va abajo. Además, si muestra el plan que sigue cada persona, revela datos de salud (Ley 172-13). Se diseña para que cuente la **constancia**, nunca el cuerpo (P4), y para que nadie aparezca sin quererlo.
+
+### Dominio
+
+- **`ParticipacionMuro`** (clave `UsuarioId`): `Participa` (falso por defecto), `Alias`, `ActivadoEn` y `RetiradoEn`.
+- **`ValidadorAlias`** (puro):
+  - 3 a 20 caracteres, letras, números, espacios y guiones;
+  - no puede contener el correo ni el nombre de la persona;
+  - una lista cerrada de palabras ofensivas o de salud (por ejemplo «gordo» o «diabetes») lo rechaza con 400 `alias_no_valido`.
+- **`CalculadoraMuro`** (pura) recibe solo los resúmenes de `CalculadoraProgreso` y `LogroUsuario` de quienes participan. Su firma no acepta ningún tipo de salud, plan o cuerpo, y lo comprueba una prueba por reflexión. Devuelve dos tops del **mes en curso**:
+  - «Más días de constancia» (racha tolerante, completos y mínimos);
+  - «Planes completados».
+- **Reglas de la clasificación:**
+  - **solo un top 10**, sin la posición de quien no entra;
+  - empate por orden de llegada;
+  - se reinicia cada mes, así quien empieza tarde tiene opción;
+  - con **menos de 5 participantes** no se muestra el muro (misma regla de cohorte que P6).
+
+### Privacidad y seguridad
+
+- **Para participar** hacen falta las dos cosas: el consentimiento `compartirCumplimiento` (ya existe en Control de Acceso, por un puerto como el de la Fase 2) y la casilla «Quiero aparecer en el muro».
+- **Al salir del muro o retirar el consentimiento,** la persona desaparece al instante. La baja de cuenta borra su participación (`ParticipanteHabitos`).
+- **El muro solo muestra** alias, cifra e insignia. Nunca nombre, correo, foto, plan, área, peso ni medidas.
+- **Moderación:** el Administrador puede ocultar un alias (`POST /api/admin/wall/{id}/hide`, auditado). Un alias oculto vuelve a pedir uno nuevo.
+- **Anti-trampas:**
+  - solo cuentan los avances de días pasados o del día actual (`fecha_futura` ya los bloquea);
+  - el check-in por correo ya es idempotente;
+  - hay un tope de un día cumplido por día.
+
+### Endpoints (Estandar)
+
+- `GET /api/community/wall`: los dos tops, cacheados 10 min; responde vacío con `motivo: "pocos_participantes"` si hay menos de 5.
+- `GET/PUT /api/community/participation` `{participa, alias}`.
+- `GET /api/community/wall/me`: «tu mes en números» y si estás en el top. Nunca dice en qué posición estás si no entras.
+
+**Migración:** `AgregarMuroLogros` (tabla `ParticipacionesMuro`, con índice único por `Alias`).
+
+### Frontend (b)
+
+- Pantalla **Muro de logros**: dos tarjetas de top 10 con alias e insignias, y un texto positivo («Cada día cuenta, también la versión mínima»).
+- Sin rojo ni flechas de bajada. Sin la posición de quien no está en el top.
+- Configuración › Privacidad: casilla para aparecer y alias, explicando qué se muestra y qué no.
+- Invitación suave al cumplir el primer logro de 7 días, nunca en el onboarding.
+
+### Pruebas
+
+- **Privacidad:** quien no participa o retiró el consentimiento nunca aparece. La respuesta no trae ningún campo de salud, plan ni identificador. Una cohorte de menos de 5 deja el muro vacío.
+- **Por reflexión:** `CalculadoraMuro` no recibe tipos de salud.
+- **Alias:** inválidos, repetidos o que contienen el correo.
+- **Clasificación:** solo 10 posiciones, empates, reinicio mensual y moderación auditada.
+- **Mutaciones:** mostrar a quien no participa, quitar la cohorte mínima e incluir el nombre del plan.
+
+**Terminado:** límites de peticiones, auditoría de la moderación, índices, ampliación del E2E (activar el muro y verlo con 5 personas) y un texto revisado contra la lista de lo prohibido.
+
 ---
 
 ## Contenido local y guía de estilo (Fases 3, 4, 5 y 7; se copia a `referencias/producto.md`)
@@ -714,6 +778,8 @@ Los umbrales son hipótesis: el informe del piloto los ajusta o los descarta.
    **Sin verificar:** si `HabitTracker.Infrastructure` ya tiene acceso a `Microsoft.AspNetCore.DataProtection(.Extensions)`. Si no, se añade la `FrameworkReference` o el paquete en la Fase 2.
 10. **Fase 1 frente a la revisión:** se movieron `PlanUsuarioId` y `Descripcion` de la Fase 1 a la 4, por la misma regla YAGNI que la revisión aplica a la versión mínima y al ancla. Si prefieres dejarlos en la 1, no cambia nada más.
 
+11. **Muro de logros (Fase 10):** va en contra de la regla original «sin rankings». Se incluye con las salvaguardas de su sección, pero si el piloto muestra que presiona o desanima, se descarta. Decisión tuya: dejarlo condicionado al piloto (recomendado) o adelantarlo tras la Fase 5 para probarlo en el piloto.
+
 ## Orden de recorte si hay que acortar el alcance
 
 Nunca se recortan:
@@ -723,14 +789,15 @@ Nunca se recortan:
 
 En orden, de lo primero a lo último que se recorta:
 
-1. **Fase 9** (notas) al backlog.
-2. **Fase 8** (planes propios); si se hace, solo "desde una plantilla".
-3. **Fase 7** (catálogo ampliado), limitada a lo que pidió el piloto.
-4. En la Fase 4: "tu mes en números", `TipExtra` con la celebración semanal y "Extender" (se queda el modo suave).
-5. En la Fase 5:
+1. **Fase 10** (muro de logros) al backlog, si el piloto dice que presiona más de lo que motiva.
+2. **Fase 9** (notas) al backlog.
+3. **Fase 8** (planes propios); si se hace, solo "desde una plantilla".
+4. **Fase 7** (catálogo ampliado), limitada a lo que pidió el piloto.
+5. En la Fase 4: "tu mes en números", `TipExtra` con la celebración semanal y "Extender" (se queda el modo suave).
+6. En la Fase 5:
    - el resumen semanal y el aviso "¿retomamos?" tras una pausa;
    - de la cadencia adaptativa queda solo el corte a los 21 días;
    - el check-in en un clic **no se recorta**, porque es el corazón de P5.
-6. En la Fase 2: las medidas corporales (se quedan el peso y el cuestionario).
-7. En la Fase 3: los Regulares bajan de 6 a 3 (perder grasa sostenible, reducir estrés y dormir mejor). Las 3 variantes de "Mi día" no se tocan.
-8. En la Fase 6: el E2E 2 pasa a una prueba de API. El piloto se mantiene, aunque sea con 10 personas.
+7. En la Fase 2: las medidas corporales (se quedan el peso y el cuestionario).
+8. En la Fase 3: los Regulares bajan de 6 a 3 (perder grasa sostenible, reducir estrés y dormir mejor). Las 3 variantes de "Mi día" no se tocan.
+9. En la Fase 6: el E2E 2 pasa a una prueba de API. El piloto se mantiene, aunque sea con 10 personas.

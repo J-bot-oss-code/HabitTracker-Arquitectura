@@ -28,7 +28,7 @@ RUN apt-get update \
 # Carpeta de los archivos de documentos. En docker-compose.yml se monta aquí un VOLUMEN CON NOMBRE:
 # lo que se guarda en esta ruta vive fuera de la imagen y sobrevive a destruir el contenedor (RF-DOC-05).
 # Se crea con dueño "app" para que el volumen nuevo herede ese dueño y el proceso pueda escribir.
-RUN mkdir -p /app/data/documentos && chown -R app:app /app/data
+RUN mkdir -p /app/data/documentos /app/data/claves && chown -R app:app /app/data
 
 COPY --from=build /app/publish .
 

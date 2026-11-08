@@ -121,6 +121,12 @@ public class GlobalExceptionMiddleware
             _logger.LogInformation("Recurso del módulo de negocio no encontrado: {Codigo}.", ex.Codigo);
             await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", ex.Message, ex.Codigo);
         }
+        catch (ConsentimientoSaludRequeridoException ex)
+        {
+            // Debe ir antes de HabitTrackerException (es su subclase). 409: el cliente pide el consentimiento y repite.
+            _logger.LogInformation("Dato de salud rechazado por falta de consentimiento.");
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, "Falta el consentimiento.", ex.Message, ex.Codigo);
+        }
         catch (HabitTrackerException ex)
         {
             // Reglas del módulo de negocio con código estable ("fecha_futura", "meta_no_encontrada"...). El mensaje lo

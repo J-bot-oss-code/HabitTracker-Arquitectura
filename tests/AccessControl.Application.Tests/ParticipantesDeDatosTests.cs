@@ -1,3 +1,4 @@
+using AccessControl.Application.DTOs;
 using DocumentManager.Application.DTOs;
 using DocumentManager.Application.Interfaces;
 using HabitTracker.Application.DTOs;
@@ -132,8 +133,46 @@ public class ParticipantesDeDatosTests
             Habitos().Adaptador.Seccion,
             new ParticipantePermisos(Mock.Of<ISolicitudPermisoService>()).Seccion,
             new ParticipanteDocumentos(Mock.Of<IDocumentoService>()).Seccion,
+            new ParticipantePerfilSalud(Mock.Of<IDatosPerfilSaludService>()).Seccion,
         };
 
         Assert.Equal(secciones.Length, secciones.Distinct().Count());
+    }
+
+    // ---------------- Perfil y salud (HabitTracker v2, Fase 2) ----------------
+
+    [Fact]
+    public async Task RD_03_ElPerfilYLaSaludSeEliminanPorElIdentificadorDelUsuario()
+    {
+        var servicio = new Mock<IDatosPerfilSaludService>();
+        var adaptador = new ParticipantePerfilSalud(servicio.Object);
+
+        await adaptador.EliminarAsync(UsuarioId, Correo);
+
+        Assert.Equal("perfilYSalud", adaptador.Seccion);
+        servicio.Verify(s => s.EliminarAsync(UsuarioId, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public async Task RD_03_ElConsentimientoDeSaludSaleDeControlDeAcceso(bool datosSalud, bool esperado)
+    {
+        var consentimientos = new Mock<AccessControl.Application.Interfaces.IConsentimientoService>();
+        consentimientos.Setup(c => c.ObtenerAsync(UsuarioId))
+            .ReturnsAsync(new ConsentimientosDto("v2.1", "v1.4", DateTime.UtcNow, datosSalud, false, false, false));
+
+        var tiene = await new ConsentimientoSaludAdapter(consentimientos.Object).TieneConsentimientoDatosSaludAsync(UsuarioId);
+
+        Assert.Equal(esperado, tiene);
+    }
+
+    [Fact]
+    public async Task RD_03_UnaCuentaSinConsentimientosGuardados_NoConsienteDatosDeSalud()
+    {
+        var consentimientos = new Mock<AccessControl.Application.Interfaces.IConsentimientoService>();
+        consentimientos.Setup(c => c.ObtenerAsync(UsuarioId)).ReturnsAsync((ConsentimientosDto?)null);
+
+        Assert.False(await new ConsentimientoSaludAdapter(consentimientos.Object).TieneConsentimientoDatosSaludAsync(UsuarioId));
     }
 }

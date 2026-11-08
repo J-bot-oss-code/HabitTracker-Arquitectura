@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 08-11-2026, Fase 1 del plan HabitTracker v2 (cimientos y deuda técnica del módulo de negocio). Antes: 07-11-2026, Fase 0 (skill de contexto y ESTADO compacto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
+> Última actualización: 08-11-2026, Fase 2a del plan HabitTracker v2 (backend de perfil, salud cifrada y progreso corporal). Antes, ese mismo día, la Fase 1 (cimientos), y el 07-11-2026 la Fase 0 (skill de contexto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
 > **Al iniciar una sesión, usa la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/`): rutas, contratos, recetas y requisitos sin leer el repositorio entero. Reglas de trabajo en `AGENTS.md`; guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -11,10 +11,10 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 |---|---|---|
 | AccessControl | Completo: registro + activación con código, JWT de 15 min + refresh en cookie, Google, bloqueo, contraseñas reforzadas, consentimientos, baja y descarga de datos, administración y cola de correos | `docs/historial/control-acceso-v2.md` |
 | Permissions | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada` | P2 |
-| HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`), 6 endpoints en `api/habits` (incluido `GET /{id}`), meta opcional, errores con `codigo` y `plan-del-dia` con el clima. **En evolución:** plan v2, Fase 1 hecha | `docs/historial/habittracker-v2.md` |
+| HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`, 6 endpoints en `api/habits`), perfil en dos niveles, cuestionario de salud cifrado y progreso corporal (`api/profile`, `api/progress`), y `plan-del-dia`. **En evolución:** plan v2, Fases 0, 1 y 2a hechas | `docs/historial/habittracker-v2.md` |
 | DocumentManager | Completo para la P4 (RF-DOC-01 a 05) | `docs/historial/practica-4.md` |
 | Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | — |
-| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios y privacidad. Perfil, peso, medidas y métricas siguen como contratos propuestos | `docs/historial/frontend.md` |
+| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios y privacidad. Perfil, peso y medidas ya tienen backend real, pero el frontend aún usa sus mocks (Fase 2b). Las métricas siguen como contrato propuesto | `docs/historial/frontend.md` |
 | CI | `ci-ok` y `seguridad-ok` obligatorios en `develop` y `main` | `docs/historial/ci.md` |
 
 ## 2. Tags de entrega (no mover ni reescribir)
@@ -35,7 +35,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **863** pruebas (medido el 08-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Backend:** `dotnet test` ejecuta **946** pruebas (medido el 08-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
 - **Frontend:** `cd frontend && npm test` ejecuta **634** pruebas en 49 archivos (medido el 08-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
@@ -46,7 +46,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 - **Probar sin tocar la base de desarrollo ni enviar correos:** `ConnectionStrings__AccessControl=Server=.\SQLEXPRESS;Database=<BD_PRUEBA>;Trusted_Connection=True;TrustServerCertificate=True` y `SMTP_HOST=` vacío. Los correos quedan en `CorreosEnCola`.
 - **API:** `http://localhost:5246` y Swagger en `/swagger`. Para promover a Administrador: `UPDATE usuarios SET Rol = 2 WHERE Correo = ...` y volver a iniciar sesión.
 - **Frontend contra la API local:** `VITE_API_URL=http://localhost:5246 npx vite --port 5174` (el puerto 5174 está en el CORS y en los orígenes de Google).
-- **Docker:** `copy .env.example .env` + `docker compose up --build` → `http://localhost:8080`. Con `CORREO_MODO=consola` y `SMTP_HOST` vacío, los correos salen en `docker compose logs webapi`.
+- **Docker:** `copy .env.example .env` + `docker compose up --build` → `http://localhost:8080`. Con `CORREO_MODO=consola` y `SMTP_HOST` vacío, los correos salen en `docker compose logs webapi`. Las claves de cifrado de los datos de salud van en el volumen `dataprotection-claves`: respáldalo con la base.
 - Tras traer cambios del backend, aplica las migraciones pendientes de cada contexto (`dotnet ef migrations list ... --context <Ctx>`). Sin ellas la API responde 500.
 
 ## 5. Decisiones vigentes
@@ -92,7 +92,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 9. Próximos pasos
 
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
-  - Fases 0 y 1 hechas → Fases 2–5, el corte vertical (siguiente: Fase 2, perfil, salud justo a tiempo y progreso corporal);
+  - Fases 0, 1 y 2a (backend) hechas → Fase 2b (frontend: onboarding de 3 toques, «Tu salud», Perfil y salud, Progreso conectado) → Fases 3–5, el corte vertical;
   - Fase 6, producción, métricas y piloto;
   - las Fases 7–9 dependen del informe del piloto.
 - **Pendiente de decidir antes de la Fase 6:** dónde se hospeda el piloto. El CD está pendiente y Vercel no hospeda .NET.
