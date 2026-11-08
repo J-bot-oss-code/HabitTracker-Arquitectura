@@ -548,10 +548,10 @@ Cada operación se puede provocar y verificar por separado. Requieren JWT válid
 
 | ID | Funcionalidad y ruta | Comportamiento |
 |---|---|---|
-| RF-NEG-02.1 | Crear hábito — `POST /api/habits` | Crea para el usuario autenticado un hábito con nombre, periodicidad, cantidad objetivo y unidad. Nace en `Planificado`. Requiere `MetaId` válido. |
-| RF-NEG-02.2 | Consultar mis hábitos — `GET /api/habits` | Devuelve únicamente hábitos del usuario autenticado. |
+| RF-NEG-02.1 | Crear hábito — `POST /api/habits` | Crea para el usuario autenticado un hábito con nombre, periodicidad, cantidad objetivo y unidad. Nace en `Planificado`. `metaId` es opcional (HabitTracker v2); si viene, debe existir (400 `meta_no_encontrada`). |
+| RF-NEG-02.2 | Consultar mis hábitos — `GET /api/habits` y `GET /api/habits/{id}` | Devuelve únicamente hábitos del usuario autenticado. Uno inexistente es `404` con `codigo` `habito_no_encontrado`; uno ajeno, `403`. Las fechas viajan en UTC con `Z`. |
 | RF-NEG-02.3 | Cambiar estado — `POST /api/habits/{id}/transition` | Acepta solo las transiciones de la tabla y las condiciones de propietario/objetivo. |
-| RF-NEG-02.4 | Registrar avance diario — `POST /api/habits/{id}/progress` | Registra una cantidad positiva en la unidad configurada. Solo el propietario y solo si está `Activo`. |
+| RF-NEG-02.4 | Registrar avance diario — `POST /api/habits/{id}/progress` | Registra una cantidad positiva en la unidad configurada. Solo el propietario y solo si está `Activo`. Una fecha futura (más de 5 minutos de adelanto) es `400` `fecha_futura`. |
 | RF-NEG-02.5 | Reconfigurar/resetear — `POST /api/habits/{id}/advanced-reconfig` | Cambia periodicidad, cantidad objetivo o unidad. Requiere permiso aplicado `Habits.AdvancedReconfig`. |
 
 ### Guía de verificación (Swagger o cURL, RF-NEG-02 a RF-NEG-06)

@@ -29,7 +29,8 @@ export interface CrearHabitoRequest {
   periodicidad: Periodicidad
   cantidadObjetivo: number
   unidad: string
-  metaId: string
+  // Opcional: un hábito puede ir sin meta del catálogo (HabitTracker v2, Fase 1).
+  metaId?: string
 }
 
 export interface TransicionHabitoRequest {

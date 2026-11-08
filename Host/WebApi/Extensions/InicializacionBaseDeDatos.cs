@@ -23,8 +23,8 @@ namespace WebApi.Extensions;
 public static class InicializacionBaseDeDatos
 {
     /// <summary>
-    /// Id fijo y público de la Meta de demostración. Crear un hábito exige un metaId y todavía no existe un
-    /// endpoint que liste metas; con un Id conocido el README puede indicar qué enviar.
+    /// Id fijo y público de la Meta de demostración. Desde HabitTracker v2 la meta de un hábito es opcional; este Id
+    /// conocido sigue sirviendo para los ejemplos del README y para probar un hábito con meta.
     /// </summary>
     public static readonly Guid MetaDemostracionId = new("5f1c0a00-0000-4000-8000-000000000002");
 

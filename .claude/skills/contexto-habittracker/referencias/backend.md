@@ -8,7 +8,7 @@
 |---|---|---|---|
 | AccessControl | Completo (registro, activación por código, JWT 15 min + refresh en cookie, Google, bloqueo, consentimientos, baja y exportación, administración, cola de correos) | `ApplicationDbContext` | `Host/WebApi/Extensions/ServiceExtensions.cs` |
 | Permissions | Completo (`Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`) | `PermissionsDbContext` | `Modules/Permissions/Permissions.Infrastructure/DependencyInjection/` |
-| HabitTracker (negocio) | Hábitos + `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
+| HabitTracker (negocio) | Hábitos (meta opcional, errores con código) + `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
 | DocumentManager | Completo (RF-DOC-01..05) | `DocumentManagerDbContext` | su `DependencyInjection/` en Infrastructure |
 | Auditing, Notifications, Reports | Solo `.csproj` vacíos | — | — |
 
@@ -24,16 +24,16 @@
   - `Entities/TransicionesHabito.cs`: único punto de la máquina. Prohibidas explícitas: Planificado→Completado, Pausado→Completado, salir de Completado.
   - `Meta`, `Categoria`, `Recompensa` y `Etiqueta`: clases de datos con setters públicos (cumplen RF-NEG-01). `Meta` es un catálogo compartido y no tiene endpoint.
   - `Servicios/RecomendadorClima.cs`: puro.
-  - No hay excepciones de dominio propias ni value objects.
+  - `Excepciones/HabitTrackerException.cs`: base con `Codigo`; `RecursoNoEncontradoException` (404, `habito_no_encontrado`) y `ReglaNegocioException` (400, `fecha_futura`, `meta_no_encontrada`). Las transiciones prohibidas siguen siendo `InvalidOperationException` (400 genérico) para no tocar las suites de la P3.
+  - `Habito.MetaId` es opcional (`Guid?`).
 - **Application** (`Modules/HabitTracker/HabitTracker.Application/`):
-  - `Services/HabitoService.cs`: clase concreta **sin interfaz** (deuda). Valida y lanza `ArgumentException`, `InvalidOperationException("El hábito no existe.")` y `UnauthorizedAccessException`.
+  - `Services/HabitoService.cs` implementa `Interfaces/IHabitoService.cs`. Recibe un `TimeProvider` opcional (rechazo de fechas futuras con `ToleranciaReloj` de 5 min, en el servicio y no en el dominio: las pruebas de la P3 registran fechas futuras a propósito para probar los límites del cálculo).
   - `Services/PlanDelDiaService.cs` (`IPlanDelDiaService`) con el puerto `Interfaces/IServicioClima.cs`.
   - Puertos: `IHabitoRepository`, `IMetaRepository` (solo `ExistsAsync`), `IUnitOfWork` e `IPermisoService` (→ Permissions).
   - `Exceptions/ClimaExceptions.cs`: las únicas excepciones propias del módulo (503 y 404).
 - **Infrastructure** (`Modules/HabitTracker/HabitTracker.Infrastructure/`):
-  - `Persistence/HabitTrackerDbContext.cs`: configuración en línea, sin `IEntityTypeConfiguration`. Enums como texto, `datetime2`, cascada Hábito→Registros y **Hábito→Meta** (borrar una Meta borra sus hábitos), todo `nvarchar(max)`.
+  - `Persistence/HabitTrackerDbContext.cs`: `ApplyConfigurationsFromAssembly` con una clase `IEntityTypeConfiguration` por entidad en `Persistence/Configuraciones/`, y `ConfigureConventions` que guarda todo `DateTime` como `datetime2` y lo lee con `Kind=Utc` (la API devuelve `Z`). Hábito→Registros en cascada, **Hábito→Meta en `SetNull`**, textos con `HasMaxLength` y decimales `HasPrecision(18, 2)`.
   - `RegistroDiario.Id` tiene `ValueGeneratedNever()`: **toda entidad hija nueva que se añada por una colección de navegación con Id asignado en el constructor lo necesita**, o EF emite UPDATE en vez de INSERT.
-  - Las fechas leídas vuelven con `Kind=Unspecified`, y la API las devuelve sin `Z` (deuda).
   - `Clima/OpenWeatherServicioClima.cs` y `DependencyInjection/ClimaExtensions.cs`.
   - No referencia `Microsoft.Extensions.Hosting.Abstractions`: un worker nuevo necesita el paquete.
 
@@ -55,7 +55,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 | `Exception` | 500 |
 
 - `WriteProblemAsync` añade `Instance = TraceIdentifier` y `extensions.codigo` solo si se pasa un código. Patrón a copiar: `Modules/AccessControl/AccessControl.Domain/Excepciones/ControlAccesoException.cs`.
-- HabitTracker no tiene códigos todavía. `HabitsController` decide el 404 buscando `"no existe"` en el mensaje (`EsNoEncontrado`, deuda).
+- HabitTracker: `RecursoNoEncontradoException` (404) y `HabitTrackerException` (400) van justo después de `ControlAccesoException`, antes de `ArgumentException` e `InvalidOperationException`. `PermissionsController` aún decide su 404 buscando `"no existe"` en el mensaje (`EsNoEncontrado`, deuda).
 
 ## Puertos entre módulos (adaptadores en `Host/WebApi/Adapters/`)
 
@@ -92,8 +92,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 ## Pruebas
 
 - **Proyectos:** `tests/<Módulo>.<Capa>.Tests`. HabitTracker tiene `Domain`, `Application` (dobles a mano, **sin Moq**) e `Integration` (EF Core sobre SQLite).
-  - No hay pruebas de `HabitsController`.
-  - `tests/DocumentManager.Api.Tests/PlanDelDiaTests.cs` prueba el controller del clima.
+  - `tests/HabitTracker.Api.Tests` prueba los controllers (`HabitsControllerTests`, `PlanDelDiaTests`) y el middleware sobre un `DefaultHttpContext`.
 - **Nombres:** `RF_NEG_02_CrearHabito_NombreVacio_Rechaza` con `[Trait("Requirement", "RF-NEG-02")]`, comentarios `// Arrange // Act // Assert`, `Record.ExceptionAsync` + `Assert.IsType<>` y `Assert.Equal(0, unitOfWork.SaveChangesCallCount)`.
 - **Dobles:** clases privadas anidadas (`InMemoryHabitoRepository`, `InMemoryUnitOfWork`, `FakePermisoService`). Un estado se fuerza por reflexión (`HabitoTests.cs`).
 - **SQLite:** `PrepararBaseAsync` en `tests/HabitTracker.Integration.Tests/HabitoPersistenciaTests.cs` abre `Data Source=:memory:` y llama a `EnsureCreatedAsync()` (no a las migraciones). Cada operación usa un `HabitTrackerDbContext` nuevo.

@@ -45,11 +45,13 @@ namespace HabitTracker.Infrastructure.Migrations
 
                     b.Property<string>("Descripcion")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -64,11 +66,13 @@ namespace HabitTracker.Infrastructure.Migrations
 
                     b.Property<string>("ColorHex")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -82,6 +86,7 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("CantidadObjetivo")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Estado")
@@ -91,12 +96,13 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<DateTime>("FechaInicioCiclo")
                         .HasColumnType("datetime2");
 
-                    b.Property<Guid>("MetaId")
+                    b.Property<Guid?>("MetaId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Periodicidad")
                         .IsRequired()
@@ -104,7 +110,8 @@ namespace HabitTracker.Infrastructure.Migrations
 
                     b.Property<string>("Unidad")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uniqueidentifier");
@@ -112,6 +119,8 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("MetaId");
+
+                    b.HasIndex("UsuarioId");
 
                     b.ToTable("Habitos");
                 });
@@ -127,14 +136,16 @@ namespace HabitTracker.Infrastructure.Migrations
 
                     b.Property<string>("EstadoActual")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("FechaLimite")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Titulo")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
 
@@ -154,7 +165,8 @@ namespace HabitTracker.Infrastructure.Migrations
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<int>("Puntos")
                         .HasColumnType("int");
@@ -172,6 +184,7 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal>("Cantidad")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("Fecha")
@@ -182,7 +195,8 @@ namespace HabitTracker.Infrastructure.Migrations
 
                     b.Property<string>("Unidad")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
 
@@ -211,8 +225,7 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.HasOne("HabitTracker.Domain.Entities.Meta", "Meta")
                         .WithMany("Habitos")
                         .HasForeignKey("MetaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Meta");
                 });

@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 07-11-2026, Fase 0 del plan HabitTracker v2 (skill de contexto y ESTADO compacto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
+> Última actualización: 08-11-2026, Fase 1 del plan HabitTracker v2 (cimientos y deuda técnica del módulo de negocio). Antes: 07-11-2026, Fase 0 (skill de contexto y ESTADO compacto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
 > **Al iniciar una sesión, usa la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/`): rutas, contratos, recetas y requisitos sin leer el repositorio entero. Reglas de trabajo en `AGENTS.md`; guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -11,7 +11,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 |---|---|---|
 | AccessControl | Completo: registro + activación con código, JWT de 15 min + refresh en cookie, Google, bloqueo, contraseñas reforzadas, consentimientos, baja y descarga de datos, administración y cola de correos | `docs/historial/control-acceso-v2.md` |
 | Permissions | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada` | P2 |
-| HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`), 5 endpoints en `api/habits` y `plan-del-dia` con el clima. **En evolución:** plan v2 | `docs/plan-habittracker-v2.md` |
+| HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`), 6 endpoints en `api/habits` (incluido `GET /{id}`), meta opcional, errores con `codigo` y `plan-del-dia` con el clima. **En evolución:** plan v2, Fase 1 hecha | `docs/historial/habittracker-v2.md` |
 | DocumentManager | Completo para la P4 (RF-DOC-01 a 05) | `docs/historial/practica-4.md` |
 | Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | — |
 | Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios y privacidad. Perfil, peso, medidas y métricas siguen como contratos propuestos | `docs/historial/frontend.md` |
@@ -35,8 +35,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **841** pruebas (medido el 07-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
-- **Frontend:** `cd frontend && npm test` ejecuta **623** pruebas en 49 archivos (medido el 07-11-2026) sin backend (MSW).
+- **Backend:** `dotnet test` ejecuta **863** pruebas (medido el 08-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Frontend:** `cd frontend && npm test` ejecuta **634** pruebas en 49 archivos (medido el 08-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
 ## 4. Entorno local
@@ -53,7 +53,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 - **`ValueGeneratedNever`** en toda entidad hija con Id asignado por el dominio (como `RegistroDiario.Id`). Sin esto, EF emite UPDATE en vez de INSERT y la API responde 500.
 - **Enums como texto** (`JsonStringEnumConverter`); también se aceptan números.
-- **Errores:** `ProblemDetails` con mensaje genérico (RD-08) y una extensión `codigo` estable en Control de Acceso (tabla en el README). `UnauthorizedAccessException` responde 403 con sesión y 401 sin ella.
+- **Errores:** `ProblemDetails` con mensaje genérico (RD-08) y una extensión `codigo` estable en Control de Acceso (tabla en el README) y en HabitTracker (`habito_no_encontrado` 404, `fecha_futura` y `meta_no_encontrada` 400). Las transiciones prohibidas del hábito siguen siendo un 400 genérico, para no tocar las suites de la P3. `UnauthorizedAccessException` responde 403 con sesión y 401 sin ella.
 - **Transiciones en un solo punto:** `TransicionesHabito.EsTransicionValida` y `TransicionesSolicitudPermiso`. Reconfigurar un hábito inicia un ciclo nuevo y conserva el historial.
 - **Módulos conectados por puertos:** la interfaz vive en el `Application` de quien la usa y la implementa un adaptador en `Host/WebApi/Adapters/` (`PermisoServiceAdapter`, `IParticipanteDatosUsuario` para la baja y la descarga). Ningún módulo lee tablas de otro.
 - **Plan HabitTracker v2** (07-11-2026):
@@ -65,16 +65,11 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 6. Deuda técnica conocida
 
-1. `HabitsController` y `PermissionsController` deciden el 404 buscando `"no existe"` en el mensaje (`EsNoEncontrado`). *(Fase 1 del plan v2.)*
-2. `HabitsController` depende de la clase concreta `HabitoService` y no de una interfaz (RD-01). *(Fase 1.)*
-3. `RegistrarAvance` acepta fechas futuras. *(Fase 1.)*
-4. Las fechas leídas de SQL vuelven con `DateTimeKind.Unspecified`, y la API devuelve `fechaInicioCiclo` y `fecha` sin `Z`. *(Fase 1.)*
-5. El FK Hábito→Meta es `Cascade`: borrar una Meta borra sus hábitos. *(Fase 1.)*
-6. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
-7. Dentro de Docker, `RemoteIpAddress` es la IP de la pasarela, así que todos los clientes comparten el cupo del limitador de peticiones (hasta configurar `ForwardedHeaders` con `KnownProxies`).
-8. `webapi` no tiene healthcheck. *(Fase 6.)*
-9. `.github/PULL_REQUEST_TEMPLATE.md` contiene una PR rellenada en lugar de una plantilla con las 4 secciones.
-10. `PlanDelDiaTests` vive en `DocumentManager.Api.Tests` por comodidad. *(Fase 1.)*
+1. `PermissionsController` decide el 404 buscando `"no existe"` en el mensaje (`EsNoEncontrado`). En HabitTracker ya se resolvió con `RecursoNoEncontradoException`; queda para cuando se trabaje el módulo de Permisos.
+2. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
+3. Dentro de Docker, `RemoteIpAddress` es la IP de la pasarela, así que todos los clientes comparten el cupo del limitador de peticiones (hasta configurar `ForwardedHeaders` con `KnownProxies`).
+4. `webapi` no tiene healthcheck. *(Fase 6.)*
+5. `.github/PULL_REQUEST_TEMPLATE.md` contiene una PR rellenada en lugar de una plantilla con las 4 secciones.
 
 ## 7. Flujo de trabajo
 
@@ -97,7 +92,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 9. Próximos pasos
 
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
-  - Fase 0 (esta) → Fase 1, cimientos y deuda §6.1–6.5 → Fases 2–5, el corte vertical;
+  - Fases 0 y 1 hechas → Fases 2–5, el corte vertical (siguiente: Fase 2, perfil, salud justo a tiempo y progreso corporal);
   - Fase 6, producción, métricas y piloto;
   - las Fases 7–9 dependen del informe del piloto.
 - **Pendiente de decidir antes de la Fase 6:** dónde se hospeda el piloto. El CD está pendiente y Vercel no hospeda .NET.

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using WebApi.Controllers;
 using WebApi.Middlewares;
 
-namespace DocumentManager.Api.Tests;
+namespace HabitTracker.Api.Tests;
 
 /// <summary>Pruebas del endpoint de plan del día (API externa de clima) y de cómo se rechazan sus fallos.</summary>
 public class PlanDelDiaTests

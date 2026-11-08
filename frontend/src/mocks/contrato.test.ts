@@ -44,12 +44,84 @@ describe('contrato de la API simulada', () => {
     expect((await llamar('/api/habits', { token: iniciarSesionComo('admin') })).status).toBe(403)
   })
 
-  it('los enums viajan como texto y las fechas de hábitos sin "Z"', async () => {
+  it('los enums viajan como texto y las fechas de hábitos en UTC con "Z"', async () => {
     const r = await llamar('/api/habits', { token: iniciarSesionComo('estandar') })
     const [habito] = await r.json()
     expect(habito.periodicidad).toBe('Diaria')
     expect(habito.estado).toBe('Activo')
-    expect(habito.fechaInicioCiclo).not.toMatch(/Z$/)
+    expect(habito.fechaInicioCiclo).toMatch(/Z$/)
+  })
+
+  it('GET /api/habits/{id} devuelve el hábito propio', async () => {
+    const r = await llamar(`/api/habits/${LEER}`, { token: iniciarSesionComo('estandar') })
+    expect(r.status).toBe(200)
+    expect((await r.json()).id).toBe(LEER)
+  })
+
+  it('GET /api/habits/{id} de otra persona es 403 con ProblemDetails', async () => {
+    const r = await llamar(`/api/habits/${LEER}`, { token: iniciarSesionComo('otro') })
+    expect(r.status).toBe(403)
+    expect((await r.json()).title).toBe('No autorizado.')
+  })
+
+  it('GET /api/habits/{id} con un id que no es GUID es 404 sin cuerpo (ruta {id:guid})', async () => {
+    const r = await llamar('/api/habits/no-es-guid', { token: iniciarSesionComo('estandar') })
+    expect(r.status).toBe(404)
+    expect(await r.text()).toBe('')
+  })
+
+  it('un avance con unos minutos de adelanto (reloj del cliente) se acepta', async () => {
+    const enDosMinutos = new Date(Date.now() + 2 * 60 * 1000).toISOString()
+    const r = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token: iniciarSesionComo('estandar'),
+      body: { cantidad: 1, fechaUtc: enDosMinutos },
+    })
+    expect(r.status).toBe(204)
+  })
+
+  it('un hábito inexistente es 404 con ProblemDetails y código habito_no_encontrado', async () => {
+    const r = await llamar('/api/habits/00000000-0000-4000-8000-000000000999', {
+      token: iniciarSesionComo('estandar'),
+    })
+    expect(r.status).toBe(404)
+    expect((await r.json()).codigo).toBe('habito_no_encontrado')
+  })
+
+  it('crear un hábito sin meta es válido', async () => {
+    const r = await llamar('/api/habits', {
+      metodo: 'POST',
+      token: iniciarSesionComo('estandar'),
+      body: { nombre: 'Beber agua', periodicidad: 'Diaria', cantidadObjetivo: 8, unidad: 'vasos' },
+    })
+    expect(r.status).toBe(201)
+  })
+
+  it('una meta que no existe es 400 meta_no_encontrada', async () => {
+    const r = await llamar('/api/habits', {
+      metodo: 'POST',
+      token: iniciarSesionComo('estandar'),
+      body: {
+        nombre: 'Leer',
+        periodicidad: 'Diaria',
+        cantidadObjetivo: 8,
+        unidad: 'páginas',
+        metaId: '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d',
+      },
+    })
+    expect(r.status).toBe(400)
+    expect((await r.json()).codigo).toBe('meta_no_encontrada')
+  })
+
+  it('un avance con fecha futura es 400 fecha_futura', async () => {
+    const manana = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+    const r = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token: iniciarSesionComo('estandar'),
+      body: { cantidad: 1, fechaUtc: manana },
+    })
+    expect(r.status).toBe(400)
+    expect((await r.json()).codigo).toBe('fecha_futura')
   })
 
   it('Planificado → Completado está prohibido', async () => {

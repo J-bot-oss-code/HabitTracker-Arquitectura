@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { mensajeDeError } from '@/shared/api/problem'
-import { env } from '@/shared/config/env'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { Input, Select } from '@/shared/ui/Field'
@@ -17,7 +16,7 @@ export function CrearHabitoForm({ alCrear }: { alCrear: (id: string) => void }) 
     formState: { errors },
   } = useForm<Datos>({
     resolver: zodResolver(crearHabitoSchema),
-    defaultValues: { periodicidad: 'Diaria', metaId: env.metaIdPorDefecto },
+    defaultValues: { periodicidad: 'Diaria' },
   })
 
   const enviar = handleSubmit((datos) =>
@@ -63,13 +62,6 @@ export function CrearHabitoForm({ alCrear }: { alCrear: (id: string) => void }) 
           {...register('unidad')}
         />
       </div>
-      <Input
-        etiqueta="Meta"
-        placeholder="Identificador de la meta"
-        ayuda="Pega el identificador de una meta existente."
-        error={errors.metaId?.message}
-        {...register('metaId')}
-      />
       <div className="flex justify-end">
         <Button type="submit" cargando={crear.isPending}>
           Crear hábito

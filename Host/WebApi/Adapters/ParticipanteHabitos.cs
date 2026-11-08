@@ -1,5 +1,5 @@
 using AccessControl.Application.Interfaces;
-using HabitTracker.Application.Services;
+using HabitTracker.Application.Interfaces;
 
 namespace WebApi.Adapters;
 
@@ -7,7 +7,7 @@ namespace WebApi.Adapters;
 /// Hábitos y registros de avance en la descarga de datos y en la baja de cuenta. Es código de composición del Host: llama al
 /// servicio de Application de HabitTracker; Control de Acceso no conoce a este módulo (RD-03).
 /// </summary>
-public sealed class ParticipanteHabitos(HabitoService servicio) : IParticipanteDatosUsuario
+public sealed class ParticipanteHabitos(IHabitoService servicio) : IParticipanteDatosUsuario
 {
     public string Seccion => "habitos";
 

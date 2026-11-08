@@ -46,7 +46,7 @@ export interface HabitoMock {
   cantidadObjetivo: number
   unidad: string
   estado: EstadoHabito
-  metaId: string
+  metaId?: string
   fechaInicioCiclo: string
   registros: RegistroMock[]
 }

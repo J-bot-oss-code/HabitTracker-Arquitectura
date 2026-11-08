@@ -3,6 +3,7 @@ using System.Text.Json;
 using AccessControl.Domain.Excepciones;
 using DocumentManager.Application.Exceptions;
 using HabitTracker.Application.Exceptions;
+using HabitTracker.Domain.Excepciones;
 using Microsoft.AspNetCore.Mvc;
 
 namespace WebApi.Middlewares;
@@ -111,6 +112,20 @@ public class GlobalExceptionMiddleware
             // Reglas de Control de Acceso con código estable ("cuenta_no_activa", "cuenta_bloqueada"...): el cliente
             // distingue el motivo (RF-CA-15) sin que el mensaje revele datos internos (RD-08).
             _logger.LogInformation(ex, "Operación de Control de Acceso rechazada: {Codigo}.", ex.Codigo);
+            await WriteProblemAsync(context, HttpStatusCode.BadRequest, "La operación no pudo completarse.", ex.Message, ex.Codigo);
+        }
+        catch (RecursoNoEncontradoException ex)
+        {
+            // Debe ir antes de HabitTrackerException e InvalidOperationException (son sus clases base). Siempre con cuerpo:
+            // el frontend toma un 404 vacío como "endpoint inexistente" (esNoDisponible).
+            _logger.LogInformation("Recurso del módulo de negocio no encontrado: {Codigo}.", ex.Codigo);
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", ex.Message, ex.Codigo);
+        }
+        catch (HabitTrackerException ex)
+        {
+            // Reglas del módulo de negocio con código estable ("fecha_futura", "meta_no_encontrada"...). El mensaje lo
+            // escribe el propio módulo y no lleva datos internos (RD-08).
+            _logger.LogInformation("Operación del módulo de negocio rechazada: {Codigo}.", ex.Codigo);
             await WriteProblemAsync(context, HttpStatusCode.BadRequest, "La operación no pudo completarse.", ex.Message, ex.Codigo);
         }
         catch (ArgumentException ex)
