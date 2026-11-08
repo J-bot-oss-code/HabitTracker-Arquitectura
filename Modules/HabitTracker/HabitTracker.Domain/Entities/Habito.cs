@@ -10,8 +10,9 @@ public class Habito
     public string Unidad { get; private set; } = string.Empty;
     public EstadoHabito Estado { get; private set; }
 
-    public Guid MetaId { get; private set; }
-    public Meta Meta { get; private set; } = null!;
+    /// <summary>Meta del catálogo a la que pertenece (opcional desde HabitTracker v2: un hábito puede ir suelto).</summary>
+    public Guid? MetaId { get; private set; }
+    public Meta? Meta { get; private set; }
 
     public ICollection<RegistroDiario> Registros { get; private set; } = new List<RegistroDiario>();
     public ICollection<Etiqueta> Etiquetas { get; private set; } = new List<Etiqueta>();
@@ -20,7 +21,7 @@ public class Habito
     private Habito() { } // Constructor privado para EF Core
 
     public Habito(Guid usuarioId, string nombre, Periodicidad periodicidad,
-                  decimal cantidadObjetivo, string unidad, Guid metaId)
+                  decimal cantidadObjetivo, string unidad, Guid? metaId = null)
     {
         if (string.IsNullOrWhiteSpace(nombre))
             throw new ArgumentException("El nombre no puede estar vacío.", nameof(nombre));

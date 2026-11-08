@@ -1,6 +1,7 @@
 using HabitTracker.Application.DTOs;
 using HabitTracker.Application.Interfaces;
 using HabitTracker.Domain.Entities;
+using HabitTracker.Domain.Excepciones;
 
 namespace HabitTracker.Application.Services;
 
@@ -8,8 +9,17 @@ public sealed class HabitoService(
     IHabitoRepository habitoRepository,
     IUnitOfWork unitOfWork,
     IPermisoService permisoService,
-    IMetaRepository metaRepository)
+    IMetaRepository metaRepository,
+    TimeProvider? reloj = null) : IHabitoService
 {
+    /// <summary>
+    /// Margen para relojes de cliente un poco adelantados: un avance de "ahora" que llega con unos segundos de adelanto no
+    /// debe rechazarse. Más allá de esto, la fecha es futura.
+    /// </summary>
+    public static readonly TimeSpan ToleranciaReloj = TimeSpan.FromMinutes(5);
+
+    private readonly TimeProvider _reloj = reloj ?? TimeProvider.System;
+
     public async Task<Guid> CrearHabitoAsync(
         CrearHabitoCommand command,
         Guid usuarioActualId,
@@ -29,15 +39,18 @@ public sealed class HabitoService(
         if (command.CantidadObjetivo <= 0)
             throw new ArgumentException("La cantidad objetivo debe ser positiva.", nameof(command.CantidadObjetivo));
 
-        if (command.MetaId == Guid.Empty)
-            throw new ArgumentException("El identificador de meta es obligatorio.", nameof(command.MetaId));
-
-        var metaExiste = await metaRepository.ExistsAsync(command.MetaId, cancellationToken);
-        if (!metaExiste)
-            throw new ArgumentException("La meta indicada no existe.", nameof(command.MetaId));
-
         if (!Enum.IsDefined(typeof(Periodicidad), command.Periodicidad))
             throw new ArgumentException($"La periodicidad '{command.Periodicidad}' no es válida.", nameof(command.Periodicidad));
+
+        // La meta es opcional. Si viene, no puede ser el GUID vacío y debe existir en el catálogo.
+        if (command.MetaId is { } metaId)
+        {
+            if (metaId == Guid.Empty)
+                throw new ArgumentException("El identificador de meta no es válido.", nameof(command.MetaId));
+
+            if (!await metaRepository.ExistsAsync(metaId, cancellationToken))
+                throw new ReglaNegocioException(ReglaNegocioException.MetaNoEncontrada, "La meta indicada no existe.");
+        }
 
         var habito = new Habito(
             usuarioActualId,
@@ -76,6 +89,18 @@ public sealed class HabitoService(
         return habitos
             .Select(MapToDto)
             .ToList();
+    }
+
+    public async Task<HabitoDto> ObtenerHabitoAsync(
+        Guid habitoId,
+        Guid usuarioActualId,
+        CancellationToken cancellationToken = default)
+    {
+        if (usuarioActualId == Guid.Empty)
+            throw new UnauthorizedAccessException("Identidad de usuario inválida.");
+
+        var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
+        return MapToDto(habito);
     }
 
     public async Task CambiarEstadoAsync(
@@ -122,6 +147,10 @@ public sealed class HabitoService(
 
         if (fechaUtc.Kind != DateTimeKind.Utc)
             throw new ArgumentException("La fecha debe ser UTC.", nameof(fechaUtc));
+
+        // RD-07: la fecha la manda el cliente; no se acepta un avance de un día que todavía no llegó.
+        if (fechaUtc > _reloj.GetUtcNow().UtcDateTime + ToleranciaReloj)
+            throw new ReglaNegocioException(ReglaNegocioException.FechaFutura, "La fecha del avance no puede ser futura.");
 
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
         habito.RegistrarAvance(usuarioActualId, cantidad, fechaUtc);
@@ -175,7 +204,7 @@ public sealed class HabitoService(
         CancellationToken cancellationToken)
     {
         var habito = await habitoRepository.GetByIdAsync(habitoId, cancellationToken)
-            ?? throw new InvalidOperationException("El hábito no existe.");
+            ?? throw new RecursoNoEncontradoException(RecursoNoEncontradoException.HabitoNoEncontrado, "El hábito no existe.");
 
         if (habito.UsuarioId != usuarioActualId)
             throw new UnauthorizedAccessException("El usuario no es el propietario del hábito.");
