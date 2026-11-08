@@ -11,7 +11,6 @@ export const env = {
   useMocks: import.meta.env.PROD
     ? import.meta.env.VITE_USE_MOCKS === 'true'
     : import.meta.env.VITE_USE_MOCKS !== 'false',
-  metaIdPorDefecto: raw.VITE_META_ID_POR_DEFECTO ?? '',
   // ID de cliente de Google (público por diseño, no es un secreto). Vacío = el botón de Google no se puede usar.
   googleClientId: (raw.VITE_GOOGLE_CLIENT_ID ?? '').trim(),
 } as const

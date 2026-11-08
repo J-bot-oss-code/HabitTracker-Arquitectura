@@ -26,7 +26,6 @@ export const crearHabitoSchema = z.object({
   periodicidad,
   cantidadObjetivo: cantidad('La cantidad objetivo'),
   unidad,
-  metaId: z.string().trim().pipe(z.guid('El identificador de meta no es válido.')),
 })
 
 export const registrarAvanceSchema = z.object({
@@ -34,7 +33,7 @@ export const registrarAvanceSchema = z.object({
   fecha: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Elige una fecha.')
-    // El backend aún acepta fechas futuras (deuda técnica §6.3); la interfaz no las ofrece.
+    // El backend también las rechaza (400 fecha_futura); la interfaz ni siquiera las ofrece.
     .refine((f) => f <= hoyUtcInput(), 'No puedes registrar avances en fechas futuras.'),
 })
 

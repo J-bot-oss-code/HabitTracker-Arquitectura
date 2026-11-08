@@ -34,7 +34,7 @@ src/
   - los enums viajan como texto;
   - el rol llega en el claim URI largo;
   - `soloPendientes` vale `true` por defecto;
-  - las fechas de hábitos vienen sin `Z`;
+  - las fechas de hábitos vienen en UTC con `Z` (desde HabitTracker v2; `parsearFechaUtc` acepta también fechas sin zona);
   - `api/habits` es solo para `Estandar`.
 
 ## Reglas

@@ -37,6 +37,9 @@ export const respuestas = {
   noAutenticado: () => new HttpResponse(null, { status: 401 }),
   noAutorizado: () => problema(401, 'No autorizado.', 'Credenciales incorrectas.'),
   prohibido: () => new HttpResponse(null, { status: 403 }),
+  // UnauthorizedAccessException del servicio (recurso de otra persona): el middleware responde 403 CON cuerpo.
+  // El 403 sin cuerpo de `prohibido` es el del rol (JwtBearer).
+  ajeno: () => problema(403, 'No autorizado.', 'No se pudo autorizar la solicitud.'),
   noEncontrado: (detail: string) => problema(404, 'No encontrado.', detail),
   mensaje: (mensaje: string) => HttpResponse.json({ mensaje }),
 }
@@ -135,6 +138,3 @@ export const esCorreo = (v: unknown): v is string =>
 // PoliticaContrasena.ValidarFormato (RF-CA-14): 12 a 1024 caracteres con letras y números.
 export const cumplePolitica = (v: unknown): v is string =>
   typeof v === 'string' && v.length >= 12 && v.length <= 1024 && /\p{L}/u.test(v) && /\d/.test(v)
-
-// Las fechas de HabitTracker se leen de SQL sin Kind UTC y salen sin "Z" (deuda §6.4).
-export const comoFechaSql = (iso: string) => iso.replace(/Z$/, '')

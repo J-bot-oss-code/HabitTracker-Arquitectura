@@ -8,7 +8,6 @@ describe('crearHabitoSchema', () => {
     periodicidad: 'Diaria',
     cantidadObjetivo: 20,
     unidad: 'páginas',
-    metaId: '3f2b8c1e-6a4d-4e9b-9c7a-1d2e3f4a5b6c',
   }
 
   it('acepta un hábito válido', () => {
@@ -22,7 +21,6 @@ describe('crearHabitoSchema', () => {
     ['objetivo cero', { cantidadObjetivo: 0 }],
     ['objetivo no numérico', { cantidadObjetivo: Number.NaN }],
     ['unidad de más de 50 caracteres', { unidad: 'u'.repeat(51) }],
-    ['metaId que no es GUID', { metaId: 'meta-1' }],
   ])('rechaza %s', (_caso, cambio) => {
     expect(crearHabitoSchema.safeParse({ ...valido, ...cambio }).success).toBe(false)
   })
