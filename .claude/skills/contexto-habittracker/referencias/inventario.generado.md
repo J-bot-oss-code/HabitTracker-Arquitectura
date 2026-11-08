@@ -38,6 +38,7 @@
 | DocumentsController | DELETE | `/api/documents/{id:guid}` | autenticado |
 | HabitsController | POST | `/api/habits` | rol Estandar |
 | HabitsController | GET | `/api/habits` | rol Estandar |
+| HabitsController | GET | `/api/habits/{id:guid}` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/transition` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/progress` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/advanced-reconfig` | rol Estandar |
@@ -60,7 +61,7 @@
 
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
 ## Proyectos de prueba (backend)
@@ -69,24 +70,25 @@
 |---|---|---|---|
 | AccessControl.Application.Tests | 27 | 268 | 40 |
 | AccessControl.Infrastructure.Tests | 8 | 62 | 7 |
-| DocumentManager.Api.Tests | 5 | 36 | 7 |
+| DocumentManager.Api.Tests | 4 | 31 | 6 |
 | DocumentManager.Application.Tests | 1 | 30 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Application.Tests | 2 | 29 | 2 |
+| HabitTracker.Api.Tests | 2 | 12 | 2 |
+| HabitTracker.Application.Tests | 2 | 35 | 3 |
 | HabitTracker.Domain.Tests | 5 | 44 | 3 |
-| HabitTracker.Integration.Tests | 4 | 16 | 4 |
+| HabitTracker.Integration.Tests | 5 | 21 | 4 |
 | Permissions.Application.Tests | 1 | 7 | 1 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 2 | 6 | 1 |
-| **Total** | | **543** | **73** |
+| **Total** | | **561** | **75** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 ## Adaptadores del Host (puertos entre módulos)
 
 - `ParticipanteDocumentos.cs`: `class ParticipanteDocumentos(IDocumentoService servicio) : IParticipanteDatosUsuario`
-- `ParticipanteHabitos.cs`: `class ParticipanteHabitos(HabitoService servicio) : IParticipanteDatosUsuario`
+- `ParticipanteHabitos.cs`: `class ParticipanteHabitos(IHabitoService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePermisos.cs`: `class ParticipantePermisos(ISolicitudPermisoService servicio) : IParticipanteDatosUsuario`
 - `PermisoServiceAdapter.cs`: `class PermisoServiceAdapter(ISolicitudPermisoService solicitudPermisoService) : IPermisoService`
 

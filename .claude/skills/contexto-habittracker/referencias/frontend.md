@@ -9,8 +9,7 @@
 - Variables (`src/shared/config/env.ts`):
   - `VITE_USE_MOCKS`: `false` para usar el backend real;
   - `VITE_API_URL`;
-  - `VITE_GOOGLE_CLIENT_ID`;
-  - `VITE_META_ID_POR_DEFECTO`: el GUID de la Meta de demostración.
+  - `VITE_GOOGLE_CLIENT_ID`.
 - Contra la API local sin tocar `.env.local`: `VITE_API_URL=http://localhost:5246 npx vite --port 5174`. El puerto 5174 está en el CORS y en los orígenes de Google.
 
 ## Estructura
@@ -21,7 +20,7 @@
   - `mensajeDeError` traduce `ProblemDetails.codigo` a un mensaje;
   - `esNoDisponible` toma un 405 o un **404 sin cuerpo** como "endpoint inexistente" y muestra "llegará pronto". Por eso un 404 real del backend siempre lleva `ProblemDetails`.
 - `src/shared/auth/tokenStorage.ts` guarda el token de acceso **en memoria**; la sesión larga la sostiene la cookie HttpOnly.
-- `src/shared/lib/fechas.ts`: fechas UTC. Las fechas de los hábitos llegan sin `Z` (deuda del backend).
+- `src/shared/lib/fechas.ts`: fechas UTC. Las de los hábitos llegan con `Z`; `parsearFechaUtc` acepta también fechas sin zona.
 - `src/app/guards.tsx`: `RequierePerfil` lleva a `/bienvenida` si `GET /api/profile` responde 404 **con** ProblemDetails. Envuelve `/hoy`, `/progreso`, `/habitos` y `/permisos`.
 - `src/app/navigation.ts` define las secciones de Configuración (`/ajustes`: Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos, Apariencia). No hay sección de Notificaciones ni de Perfil todavía.
 
@@ -29,7 +28,7 @@
 
 | Feature | Qué hay | Backend |
 |---|---|---|
-| `habits` | Lista, crear (pide un GUID de meta a mano), transiciones, avance, reconfigurar, **Hoy** (`hoy.ts`) y métricas de racha y logros calculadas en el navegador (`estados.ts`, `progreso.ts`) | Real: `/api/habits` |
+| `habits` | Lista, crear (sin meta), detalle (`GET /api/habits/{id}`), transiciones, avance, reconfigurar, **Hoy** (`hoy.ts`) y métricas de racha y logros calculadas en el navegador (`estados.ts`, `progreso.ts`) | Real: `/api/habits` |
 | `perfil` | Onboarding `/bienvenida` (edad, sexo, altura, peso, actividad, días, minutos, `metaSlug`, aviso de salud) | **Propuesto**: `/api/profile` |
 | `progreso` | Peso, medidas, constancia, récords y logros | **Propuesto**: `/api/progress/weights` y `/measurements` |
 | `publico` | Landing, catálogo **estático** de 6 metas (`catalogo.ts`, `slug` estable), calculadora de calorías y textos legales (`legal.ts`: términos `v2.1` y privacidad `v1.4`) | Ninguno |
