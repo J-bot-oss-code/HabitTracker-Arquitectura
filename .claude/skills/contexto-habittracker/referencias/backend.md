@@ -8,7 +8,7 @@
 |---|---|---|---|
 | AccessControl | Completo (registro, activación por código, JWT 15 min + refresh en cookie, Google, bloqueo, consentimientos, baja y exportación, administración, cola de correos) | `ApplicationDbContext` | `Host/WebApi/Extensions/ServiceExtensions.cs` |
 | Permissions | Completo (`Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`) | `PermissionsDbContext` | `Modules/Permissions/Permissions.Infrastructure/DependencyInjection/` |
-| HabitTracker (negocio) | Hábitos (meta opcional, errores con código) + `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
+| HabitTracker (negocio) | Hábitos (meta opcional, errores con código), perfil en dos niveles, cuestionario de salud **cifrado**, peso y medidas, y `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
 | DocumentManager | Completo (RF-DOC-01..05) | `DocumentManagerDbContext` | su `DependencyInjection/` en Infrastructure |
 | Auditing, Notifications, Reports | Solo `.csproj` vacíos | — | — |
 
@@ -26,16 +26,20 @@
   - `Servicios/RecomendadorClima.cs`: puro.
   - `Excepciones/HabitTrackerException.cs`: base con `Codigo`; `RecursoNoEncontradoException` (404, `habito_no_encontrado`) y `ReglaNegocioException` (400, `fecha_futura`, `meta_no_encontrada`). Las transiciones prohibidas siguen siendo `InvalidOperationException` (400 genérico) para no tocar las suites de la P3.
   - `Habito.MetaId` es opcional (`Guid?`).
+  - `Perfil/PerfilUsuario.cs` (nivel 1: jornada, zona IANA y aviso; el resto, opcional), `Salud/CuestionarioSalud.cs` (3 bloques) y `Salud/EvaluadorSalud.cs`, **la única definición de las reglas de salud**: restricciones y `BloquesFaltantesPara`. `Progreso/ProgresoCorporal.cs` contiene peso y medidas, uno por día UTC.
+  - `ConsentimientoSaludRequeridoException` → 409 `consentimiento_salud_requerido`. Control de Acceso tiene otra `ConsentimientoRequeridoException`: no hay que confundirlas.
 - **Application** (`Modules/HabitTracker/HabitTracker.Application/`):
   - `Services/HabitoService.cs` implementa `Interfaces/IHabitoService.cs`. Recibe un `TimeProvider` opcional (rechazo de fechas futuras con `ToleranciaReloj` de 5 min, en el servicio y no en el dominio: las pruebas de la P3 registran fechas futuras a propósito para probar los límites del cálculo).
   - `Services/PlanDelDiaService.cs` (`IPlanDelDiaService`) con el puerto `Interfaces/IServicioClima.cs`.
-  - Puertos: `IHabitoRepository`, `IMetaRepository` (solo `ExistsAsync`), `IUnitOfWork` e `IPermisoService` (→ Permissions).
+  - Puertos: `IHabitoRepository`, `IMetaRepository` (solo `ExistsAsync`), `IUnitOfWork`, `IPermisoService` (→ Permissions), `IConsentimientoSalud` (→ consentimientos de Control de Acceso) e `ICifradorDatos` (`Interfaces/IPerfilSaludPuertos.cs`).
+  - `Services/PerfilSaludServices.cs`: `IPerfilService`, `ICuestionarioSaludService`, `IProgresoCorporalService` e `IDatosPerfilSaludService` (exportar y borrar).
   - `Exceptions/ClimaExceptions.cs`: las únicas excepciones propias del módulo (503 y 404).
 - **Infrastructure** (`Modules/HabitTracker/HabitTracker.Infrastructure/`):
   - `Persistence/HabitTrackerDbContext.cs`: `ApplyConfigurationsFromAssembly` con una clase `IEntityTypeConfiguration` por entidad en `Persistence/Configuraciones/`, y `ConfigureConventions` que guarda todo `DateTime` como `datetime2` y lo lee con `Kind=Utc` (la API devuelve `Z`). Hábito→Registros en cascada, **Hábito→Meta en `SetNull`**, textos con `HasMaxLength` y decimales `HasPrecision(18, 2)`.
   - `RegistroDiario.Id` tiene `ValueGeneratedNever()`: **toda entidad hija nueva que se añada por una colección de navegación con Id asignado en el constructor lo necesita**, o EF emite UPDATE en vez de INSERT.
   - `Clima/OpenWeatherServicioClima.cs` y `DependencyInjection/ClimaExtensions.cs`.
-  - No referencia `Microsoft.Extensions.Hosting.Abstractions`: un worker nuevo necesita el paquete.
+  - Tiene `FrameworkReference Microsoft.AspNetCore.App` (Data Protection; también trae `Hosting.Abstractions` y `Configuration`, así que no hay que añadirlos como paquete: NU1510).
+  - `Seguridad/CifradorDataProtection.cs` y `Repositories/PerfilSaludRepositories.cs`: el cuestionario se guarda en `CuestionarioSaludFila`, con cada bloque como JSON cifrado y un propósito por bloque.
 
 ## Errores → HTTP (`Host/WebApi/Middlewares/GlobalExceptionMiddleware.cs`)
 
@@ -49,6 +53,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 | `CredencialesInvalidasException` | 401 |
 | `ProveedorExternoNoDisponibleException`, `TokenExternoInvalidoException`, `VinculacionRequeridaException`, `SesionInvalidaException`, `OperacionNoPermitidaException` | 503, 401, 409, 401 y 403, todas con `codigo` |
 | `ControlAccesoException` (base, hereda de `InvalidOperationException`) | 400 + `codigo` |
+| `ConsentimientoSaludRequeridoException` / `RecursoNoEncontradoException` / `HabitTrackerException` (HabitTracker) | 409 / 404 / 400, todas con `codigo` |
 | `ArgumentException` | 400 genérico |
 | `UnauthorizedAccessException` | 403 con sesión, 401 sin ella |
 | `InvalidOperationException` | 400 genérico |
@@ -60,7 +65,8 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 ## Puertos entre módulos (adaptadores en `Host/WebApi/Adapters/`)
 
 - **Puerto del negocio implementado en el Host:** `IPermisoService` (HabitTracker.Application) → `PermisoServiceAdapter` → `ISolicitudPermisoService` (Permissions).
-- **Puerto del Core implementado en el Host:** `IParticipanteDatosUsuario` (`Modules/AccessControl/AccessControl.Application/Interfaces/IParticipanteDatosUsuario.cs`, con `Seccion`, `ExportarAsync` y `EliminarAsync` idempotente). Lo implementan `ParticipanteHabitos`, `ParticipantePermisos` y `ParticipanteDocumentos`, y lo usan la descarga de datos y la baja de cuenta. **Todo dato nuevo por usuario debe entrar aquí** (exportar y borrar).
+- **Consentimiento de salud:** `IConsentimientoSalud` (HabitTracker) → `Host/WebApi/Adapters/ConsentimientoSaludAdapter.cs` → `IConsentimientoService`. Una cuenta sin consentimientos equivale a no consentir.
+- **Puerto del Core implementado en el Host:** `IParticipanteDatosUsuario` (`Modules/AccessControl/AccessControl.Application/Interfaces/IParticipanteDatosUsuario.cs`, con `Seccion`, `ExportarAsync` y `EliminarAsync` idempotente). Lo implementan `ParticipanteHabitos`, `ParticipantePerfilSalud` (sección `perfilYSalud`), `ParticipantePermisos` y `ParticipanteDocumentos`, y lo usan la descarga de datos y la baja de cuenta. **Todo dato nuevo por usuario debe entrar aquí** (exportar y borrar).
 - **Consentimiento:** `IConsentimientoService` (AccessControl.Application), con `DatosSalud`, `Marketing`, `CompartirCumplimiento` y `EstadisticasAnonimas`. Los mocks del frontend esperan **409** si falta `datosSalud`.
 - **Usuario** (correo, nombre, activo, baja programada): `IUsuarioRepository.GetByIdAsync` (AccessControl).
 
@@ -87,6 +93,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 | `Seguridad:ContrasenasFiltradas:Habilitado/UrlBase` | Pwned Passwords |
 | `Documentos:RutaAlmacenamiento`, `Swagger:Habilitado`, `Https:RedireccionDesactivada`, `BaseDeDatos:MigrarAlIniciar` | varios |
 | `SMTP_HOST/PORT/USER/PASS`, `CORREO_MODO`, `OPENWEATHER_API_KEY` | correo y clima |
+| `DATAPROTECTION_KEYS_PATH` | claves de cifrado de los datos de salud; obligatoria fuera de Development (`Host/WebApi/Extensions/ProteccionDeDatosExtensions.cs`), volumen `dataprotection-claves` en Docker |
 | `RateLimit:*` | políticas `login`, `registro`, `recuperacion`, `activacion`, `refresh`, `google` y `privacidad` (`Host/WebApi/Extensions/LimitacionDePeticionesExtensions.cs`) |
 
 ## Pruebas
