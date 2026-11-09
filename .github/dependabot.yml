@@ -1,7 +1,12 @@
 version: 2
 
-# Todas las actualizaciones llegan como PR hacia develop (nunca directo a main), una vez por semana.
-# El CI (ci-ok y seguridad-ok) revisa cada PR igual que las demás.
+# Política de versiones (desde el 09-11-2026): las dependencias se quedan en una versión FIJA y segura.
+# - Nada se actualiza solo por ser más nuevo: open-pull-requests-limit: 0 apaga las PR de versión de Dependabot.
+# - Solo se actualiza cuando hace falta: una vulnerabilidad (alerta de Dependabot, NuGetAudit en el build,
+#   npm audit, dependency-review o Trivy en el CI) o una función que la necesite. Se hace a mano, en una rama
+#   de trabajo con PR a develop, subiendo a la versión parcheada más cercana.
+# - Las alertas de seguridad de Dependabot siguen activas (Settings › Code security): avisan sin abrir PR.
+# Se mantiene cada ecosistema listado para que Dependabot conozca los manifiestos y las carpetas.
 updates:
   - package-ecosystem: nuget
     # La raíz no tiene .csproj (la solución es .slnx), así que se listan las carpetas de proyectos.
@@ -13,10 +18,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
-    groups:
-      nuget-menores:
-        update-types: [minor, patch]
+    open-pull-requests-limit: 0
 
   - package-ecosystem: npm
     directory: "/frontend"
@@ -24,14 +26,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    open-pull-requests-limit: 5
-    groups:
-      npm-desarrollo:
-        dependency-type: development
-        update-types: [minor, patch]
-      npm-produccion:
-        dependency-type: production
-        update-types: [minor, patch]
+    open-pull-requests-limit: 0
 
   - package-ecosystem: github-actions
     directory: "/"
@@ -39,9 +34,7 @@ updates:
     schedule:
       interval: weekly
       day: monday
-    groups:
-      acciones:
-        patterns: ["*"]
+    open-pull-requests-limit: 0
 
   - package-ecosystem: docker
     directory: "/"
@@ -49,3 +42,4 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 0

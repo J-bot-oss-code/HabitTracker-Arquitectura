@@ -454,7 +454,22 @@ Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflow
 | `seguridad.yml` | Imagen Docker | Trivy sobre el `Dockerfile` y la imagen de la API | hay una configuración insegura o una vulnerabilidad alta o crítica con parche disponible |
 | `seguridad.yml` | Auditoría de workflows | actionlint y zizmor sobre los propios workflows | un workflow tiene un fallo de seguridad de severidad media o mayor |
 
-Además, Dependabot abre cada lunes PR hacia `develop` con actualizaciones de NuGet, npm, Docker y GitHub Actions, y `seguridad.yml` se ejecuta también los lunes para detectar vulnerabilidades publicadas después del último cambio.
+**Versiones fijas.** Desde el 09-11-2026 cada dependencia se queda en una versión exacta y segura:
+- NuGet con versión exacta en cada `.csproj`;
+- npm sin `^` y con `save-exact=true` en `frontend/.npmrc`;
+- Docker con etiquetas exactas (`sdk:10.0.403`, `aspnet:10.0.14` y `mssql/server:2022-CU27-ubuntu-22.04`);
+- el CI con .NET `10.0.403` y Node `24.22.2`, y las Actions fijadas por SHA.
+
+Dependabot ya no abre PR por versiones nuevas (`open-pull-requests-limit: 0`). Una dependencia solo se actualiza cuando hace falta: por una vulnerabilidad o porque una función la necesita. Se sube a mano a la versión parcheada más cercana, en una rama con PR a `develop`.
+
+Las vulnerabilidades llegan por cinco vías:
+- las alertas de Dependabot;
+- NuGetAudit, que rompe el build con las altas y críticas;
+- `npm audit`;
+- dependency-review;
+- Trivy, en `seguridad.yml`, que también se ejecuta los lunes para detectar avisos publicados después del último cambio.
+
+La imagen final ejecuta `apt-get upgrade` para recibir los parches de Ubuntu.
 
 ### Reproducir las comprobaciones en local
 

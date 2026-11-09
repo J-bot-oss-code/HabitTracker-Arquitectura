@@ -78,6 +78,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
   - El cuerpo de la PR lleva 4 secciones: Qué cambia, Por qué, Cómo probarlo y Qué NO incluye (skill `flujo-pr`).
   - `develop` y `main` rechazan el push directo. Si se trabajó en `develop` local: `git push origin develop:feature/...` (sin `-u`).
   - Las PR las fusiona el usuario.
+- **Versiones fijas (desde el 09-11-2026):** las dependencias no se actualizan solo por ser más nuevas, sino por seguridad o por necesidad. El detalle está en `docs/historial/ci.md` y en la skill.
 - La bitácora de cada práctica (`docs/bitacora-*.md`) registra las solicitudes reales al agente, sus errores y las correcciones.
 - **Al cerrar cada entrega:** actualiza este archivo (≤120 líneas), mueve el detalle de la fase a `docs/historial/`, regenera el inventario de la skill (`bash scripts/contexto/generar-inventario.sh`) y comprueba con `bash scripts/ci/verificar-contexto.sh`.
 
