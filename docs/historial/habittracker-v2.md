@@ -238,3 +238,58 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
   - **Pendiente bajo:**
     - En el mock, el orden «validación → consentimiento» no es exacto en todos los casos.
     - El foco no va a los errores de guardado del cuestionario.
+
+## Fase 3a: catálogo de planes y recomendador en el backend (`feature/habittracker-catalogo-planes`, 09-11-2026)
+
+- **Dominio (`Domain/Planes/`):**
+  - `PlanPlantilla` + `TareaPlantilla`, con `VersionMinima` y `AnclaSugerida` en cada tarea y `GuiaSemanal` con `TipExtra`.
+  - Las invariantes de seguridad del contenido están en el constructor. Un plan se rechaza si:
+    - usa datos de nivel 2 sin `RequiereCuestionario`;
+    - es un Básico de peso o de intensidad alta;
+    - sus semanas no encajan con su nivel;
+    - es un Regular sin guía para cada semana;
+    - tiene una tarea de agua por encima de 20 vasos o 5 litros al día.
+  - `ReglasSeguridadPlanes` es la única definición de "no apto". `SituacionPersona.Crear` deja fuera el cuestionario sin el consentimiento, pero la edad sigue protegiendo.
+  - `RecomendadorPlanes` y `VariantesMiDia`: "Mi día" de la jornada siempre primero; sin cuestionario, primero lo que no pide preguntas.
+- **Contenido:** `catalogo-planes.json` con los 13 planes del plan, embebido. `LectorCatalogoPlanes` es estricto y `SembradorCatalogoPlanes` hace un upsert en cada arranque y nunca borra.
+- **API:**
+  - `GET /api/plans` y `GET /api/plans/{slug}`: anónimos, con caché pública de 5 minutos y la política `catalogo` (60 por minuto y por IP).
+  - `GET /api/plans/recommended`: rol `Estandar`, con `no-store`.
+- **Migración `AgregarCatalogoPlanes`:** `PlanesPlantilla` (listas como JSON con enums como texto) y `TareasPlantilla` (`Guid` propio).
+  - Aplicada a la base local `HabitTracker` después del respaldo `HabitTracker_antes_catalogo_20261109.bak`.
+- **Decisiones tomadas al implementar:**
+  - **Un Regular dura de 3 a 12 semanas, no de 4 a 12:** `reducir-estres` (21 días) es Regular en el plan.
+  - **Los días de la semana y la hora sugerida de cada tarea no se modelan:** el ancla los reemplaza y el `ResolvedorAncla` de la Fase 4 calcula la hora (YAGNI).
+  - **Las variantes de "Mi día" de otras jornadas no se recomiendan,** pero siguen en el catálogo.
+  - **Sin edad ni sexo en el perfil,** un plan que los restringe se recomienda con un aviso para completarlos; la inscripción (Fase 4) decidirá.
+  - **La palabra «peso» se permite en los planes** («tu propio peso», «peso muerto»). Siguen prohibidas kg, calorías, dieta, IMC y las palabras de culpa.
+- **Verificación:**
+  - **Pruebas:** backend 1029 (antes 947), con build sin avisos.
+  - **Prueba de contenido:**
+    - los 13 slugs;
+    - el cuestionario cuando hay datos de nivel 2;
+    - los topes del agua, y el aviso médico con los riñones;
+    - la versión mínima y el ancla;
+    - las palabras prohibidas (encontró «Nada está prohibido» en el JSON y se reescribió).
+  - **Mutación:** 6 reglas rotas a propósito, y todas hacen fallar al menos una prueba:
+    - un plan de nivel 2 sin cuestionario;
+    - un alérgeno del plan ignorado;
+    - "Mi día" deja de ir primero;
+    - se lee el cuestionario sin consentimiento;
+    - el sembrador no retira;
+    - el agua sin tope.
+  - **Contra la API real**, en una base aislada que ya se borró: **33 de 33**, más un reinicio que confirma la siembra idempotente (0 nuevos, 13 planes y 33 tareas). Se comprobaron:
+    - la caché y el 429;
+    - el 404 con código;
+    - "Mi día" de turno nocturno primero;
+    - el no apto con embarazo;
+    - el aviso de agua con hipertensión.
+- **Revisión RD-01..RD-12 (`core-transversal-reviewer`):** sin bloqueantes ni altos. Se corrigió en esta rama:
+  - **Medio: un error de un endpoint público quedaba en caché 5 minutos.** `[ResponseCache]` fija la cabecera antes de la acción, así que un 404 o un 500 salían con `public,max-age=300`. Ahora `GlobalExceptionMiddleware` responde todo error con `no-store`, con su prueba.
+  - **Bajo:**
+    - si falta la migración, la API no arranca; ahora el log dice qué hacer;
+    - una `GuiaSemanal` NULL en la base ya no da un 500.
+  - **Pendiente bajo:**
+    - Detrás de un proxy, el límite por IP del catálogo es compartido (deuda 3 del ESTADO, Fase 6).
+    - Un plan retirado que vuelve al JSON con una versión menor la baja; se acepta porque el JSON manda.
+- **Lección:** un script de mutación que restaura el archivo original con `mv` le deja una fecha anterior a la de la DLL y la compilación incremental no lo recompila. Después de mutar, hay que compilar con `--no-incremental`.

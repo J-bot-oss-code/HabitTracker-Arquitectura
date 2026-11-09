@@ -304,6 +304,22 @@ Solo se cifra el cuestionario. Peso, altura y medidas se guardan sin cifrar porq
 
 Si la persona retira el consentimiento `datosSalud`, sus datos no se borran y los sigue viendo, pero la evaluación deja de usarlos (`usaDatosDeSalud: false`). Un bloque que no se pueda descifrar, por ejemplo porque se perdieron las claves, se trata como no respondido: la persona lo vuelve a responder, sin recibir un 500.
 
+**Catálogo de planes (HabitTracker v2, Fase 3).** 13 planes de lanzamiento: 7 Básicos (de 1 a 3 hábitos durante 2 a 4 semanas) y 6 Regulares (programas de 3 a 12 semanas con una guía semanal).
+- **`PlanPlantilla`** y sus **`TareaPlantilla`**. Cada tarea lleva una versión mínima ("Hoy solo lo mínimo") y un ancla de la jornada (`AlDespertar`, `AlLlegarAlTrabajo`…).
+- El contenido vive en `Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/catalogo-planes.json`, embebido en el ensamblado. `SembradorCatalogoPlanes` lo lleva a la base **en cada arranque**:
+  - un plan nuevo se agrega;
+  - uno con `versionContenido` mayor se actualiza;
+  - uno que sale del JSON se retira (`Activo = false`) y nunca se borra.
+- **Seguridad del contenido:** el dominio rechaza un plan que use datos de nivel 2 sin exigir el cuestionario, un Básico de peso o de intensidad alta, o una tarea de agua por encima de 20 vasos o 5 litros al día. Un error en el JSON detiene el arranque.
+- **`ReglasSeguridadPlanes`** es la única definición de cuándo un plan no es apto: edad o sexo del plan, planes de peso con embarazo, posparto, trastorno de la conducta alimentaria, menor de 18 o IMC bajo, intensidad con "consulta a tu médico", impacto o zona lesionada, contraindicaciones y alérgenos. Los mensajes explican la razón sin nombrar la condición.
+- **`RecomendadorPlanes`:** la variante de "Mi día de trabajo saludable" de la jornada de la persona va siempre primera (oficina, turno nocturno o trabajo físico). Sin cuestionario se ordena por la jornada, primero lo que no pide preguntas de salud; con cuestionario se afina por objetivos, lugar y experiencia.
+
+| Endpoint | Rol | Qué hace |
+|---|---|---|
+| `GET /api/plans?area=&nivel=&perfilLaboral=` | anónimo | Planes activos, Básicos primero. `Cache-Control` público de 5 minutos y límite por IP (`RateLimit:CatalogoPorMinuto`, 60 por defecto). |
+| `GET /api/plans/{slug}` | anónimo | Detalle con tareas, guía semanal y aviso de seguridad. El tip extra de cada semana no viaja: se desbloquea al seguir el plan (Fase 4). `404 plan_no_encontrado`. |
+| `GET /api/plans/recommended` | `Estandar` | Recomendados con sus motivos y advertencias, y los no aptos con su razón. `404 perfil_no_encontrado` antes del onboarding. Sin el consentimiento `datosSalud` no lee el cuestionario y recomienda por la jornada (`personalizadoConSalud: false`). |
+
 ## 💻 Stack Tecnológico
 
 **Framework Principal:** .NET 10 (Web API)

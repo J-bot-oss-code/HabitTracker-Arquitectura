@@ -50,6 +50,9 @@
 | PermissionsController | POST | `/api/permissions/{id:guid}/approve` | rol Administrador |
 | PermissionsController | POST | `/api/permissions/{id:guid}/reject` | rol Administrador |
 | PlanDelDiaController | GET | `/api/habits/plan-del-dia` | rol Estandar |
+| PlansController | GET | `/api/plans` | anónimo |
+| PlansController | GET | `/api/plans/recommended` | rol Estandar |
+| PlansController | GET | `/api/plans/{slug}` | anónimo |
 | PrivacidadController | GET | `/api/privacy/consents` | autenticado |
 | PrivacidadController | PUT | `/api/privacy/consents` | autenticado |
 | PrivacidadController | POST | `/api/privacy/deletion-request` | rol Estandar |
@@ -71,7 +74,7 @@
 
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
 ## Proyectos de prueba (backend)
@@ -84,14 +87,14 @@
 | DocumentManager.Application.Tests | 1 | 30 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 3 | 20 | 5 |
-| HabitTracker.Application.Tests | 3 | 51 | 3 |
-| HabitTracker.Domain.Tests | 6 | 60 | 9 |
-| HabitTracker.Integration.Tests | 6 | 28 | 4 |
+| HabitTracker.Api.Tests | 4 | 25 | 7 |
+| HabitTracker.Application.Tests | 4 | 58 | 5 |
+| HabitTracker.Domain.Tests | 7 | 79 | 18 |
+| HabitTracker.Integration.Tests | 7 | 38 | 4 |
 | Permissions.Application.Tests | 1 | 7 | 1 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 2 | 6 | 1 |
-| **Total** | | **610** | **85** |
+| **Total** | | **651** | **98** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -129,5 +132,5 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 ## Contenido del módulo de negocio
 
-- `catalogo-planes.json`: aún no existe (Fase 3)
+- `Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/catalogo-planes.json`: 13 planes
 - `mensajes-motivacion.json`: aún no existe (Fase 4)
