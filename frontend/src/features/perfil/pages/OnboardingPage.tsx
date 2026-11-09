@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useForm, type FieldErrors, type UseFormRegister } from 'react-hook-form'
+import { Controller, useForm, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { Link, Navigate, useLocation } from 'react-router'
 import { useCerrarSesion } from '@/features/auth/api'
 import {
@@ -10,14 +10,7 @@ import {
   VERSION_PRIVACIDAD,
   VERSION_TERMINOS,
 } from '@/features/publico/api'
-import {
-  etiquetaSexo,
-  infoActividad,
-  LIMITES_CORPORALES,
-  NIVELES_ACTIVIDAD,
-  SEXOS,
-} from '@/features/publico/types'
-import { esNoDisponible, mensajeDeError } from '@/shared/api/problem'
+import { esErrorHttp, esNoDisponible, mensajeDeError } from '@/shared/api/problem'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { Alert } from '@/shared/ui/Alert'
 import { AuthCard, claseEnlace } from '@/shared/ui/AuthCard'
@@ -26,7 +19,7 @@ import { Button } from '@/shared/ui/Button'
 import { Casilla } from '@/shared/ui/Casilla'
 import { EmptyState } from '@/shared/ui/Card'
 import { ConsentFieldset } from '@/shared/ui/ConsentFieldset'
-import { Input, Select } from '@/shared/ui/Field'
+import { Select } from '@/shared/ui/Field'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useToast } from '@/shared/ui/Toast'
 import {
@@ -34,18 +27,16 @@ import {
   borrarRegistroPendiente,
   esPerfilInexistente,
   leerRegistroPendiente,
+  useConsentimientos,
   useGuardarConsentimientos,
   useGuardarPerfil,
   usePerfil,
   type RegistroPendiente,
 } from '../api'
-import {
-  CAMPOS_POR_PASO,
-  LIMITES_PLAN,
-  onboardingSchema,
-  SIN_META,
-  type OnboardingForm,
-} from '../schemas'
+import { OpcionesTarjeta } from '../components/Opciones'
+import { ETIQUETA_PERFIL_LABORAL, ZONAS_HORARIAS_COMUNES, zonaDelNavegador } from '../etiquetas'
+import { CAMPOS_POR_PASO, onboardingSchema, type OnboardingForm } from '../schemas'
+import { PERFILES_LABORALES } from '../types'
 
 // Al terminar el onboarding el usuario aterriza en su panel, o vuelve a la página interna que
 // pidió (RequierePerfil la pasa en state.desde).
@@ -62,17 +53,17 @@ function destinoPedido(state: unknown): string {
     : DESTINO_TRAS_ONBOARDING
 }
 
-const TITULOS = ['Tus datos básicos', 'Tu actividad y tu tiempo', 'Antes de empezar'] as const
+const TITULOS = ['¿Cómo es tu jornada?', 'Tu zona horaria', 'Antes de empezar'] as const
 
-// Onboarding (docs/mejoras §3): pasos 3 a 5 del alta. Solo para cuentas sin perfil; quien ya
-// lo completó va directo a su panel.
+// Onboarding (docs/mejoras §3): pasos 3 a 5 del alta, en 3 toques. Solo para cuentas sin perfil; quien
+// ya lo completó va directo a su panel.
 export function OnboardingPage() {
   const { usuario } = useAuth()
   const { state } = useLocation()
   const perfil = usePerfil()
   const destino = destinoPedido(state)
 
-  if (perfil.isPending) return <CargandoPagina texto="Preparando tu plan…" />
+  if (perfil.isPending) return <CargandoPagina texto="Preparando tu día…" />
   // También al terminar: guardar el perfil actualiza esta consulta y se navega desde aquí.
   if (perfil.isSuccess) return <Navigate to={destino} replace />
   if (esNoDisponible(perfil.error)) {
@@ -104,6 +95,8 @@ export function OnboardingPage() {
   return <Asistente correo={usuario?.correo ?? ''} />
 }
 
+// Onboarding de 3 toques (P1, P2): jornada → zona horaria → aviso de salud. No pide edad, peso ni
+// el cuestionario de salud: eso se pide solo cuando un plan lo necesita (Configuración › Perfil y salud).
 function Asistente({ correo }: { correo: string }) {
   const { salir } = useCerrarSesion()
   // Se lee una sola vez: si otra pestaña cambia el almacenamiento, el asistente no cambia a
@@ -111,32 +104,25 @@ function Asistente({ correo }: { correo: string }) {
   const [pendiente] = useState<RegistroPendiente | null>(() => leerRegistroPendiente(correo))
   const [paso, setPaso] = useState(0)
   const titulo = useRef<HTMLDivElement>(null)
+  const consentimientos = useConsentimientos()
   const guardarConsentimientos = useGuardarConsentimientos()
   const guardarPerfil = useGuardarPerfil()
   // Se vuelven a pedir los consentimientos si no hay registro recordado en este dispositivo o si
   // desde entonces se publicó otra versión de los términos o de la privacidad.
   const pedirConsentimiento = pendiente === null || !aceptoVersionesVigentes(pendiente)
   const esquema = useMemo(() => onboardingSchema(pedirConsentimiento), [pedirConsentimiento])
-  const datos = pendiente?.datosCorporales
+  const zonaDetectada = useMemo(() => zonaDelNavegador(), [])
 
   const {
     register,
     handleSubmit,
     trigger,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<OnboardingForm>({
     resolver: zodResolver(esquema),
     defaultValues: {
-      edad: datos?.edad,
-      // Opcional: sin dato de la calculadora queda en "Prefiero no decirlo".
-      sexo: datos?.sexo ?? 'no-decir',
-      alturaCm: datos?.alturaCm,
-      pesoKg: datos?.pesoKg,
-      actividad: datos?.actividad,
-      diasPorSemana: 3,
-      minutosPorSesion: 30,
-      // Del catálogo (tipo exacto del slug) o "Elegir más tarde".
-      metaSlug: METAS_CATALOGO.find((m) => m.slug === pendiente?.metaSlug)?.slug ?? SIN_META,
+      zonaHoraria: zonaDetectada,
       avisoSalud: false,
       terminos: false,
       privacidad: false,
@@ -155,37 +141,43 @@ function Asistente({ correo }: { correo: string }) {
   const alertaError = useRef<HTMLDivElement>(null)
   const { notificar } = useToast()
 
-  // Primero el consentimiento y después los datos de salud: el servidor no guarda un perfil
-  // sin consentimiento (contrato propuesto).
+  // Para conservar los permisos que ya existían hay que haberlos leído (un 404 es "nunca dio ninguno").
+  const consentimientosLeidos = consentimientos.isSuccess || esErrorHttp(consentimientos.error, 404)
+  const [sinConsentimientos, setSinConsentimientos] = useState(false)
+
   const enviar = handleSubmit(async (d) => {
+    if (pedirConsentimiento && !consentimientosLeidos) {
+      setSinConsentimientos(true)
+      void consentimientos.refetch()
+      return
+    }
+    setSinConsentimientos(false)
     try {
-      await guardarConsentimientos.mutateAsync({
-        terminosVersion: VERSION_TERMINOS,
-        privacidadVersion: VERSION_PRIVACIDAD,
-        datosSalud: true,
-        marketing: d.marketing,
-        compartirCumplimiento: false,
-        estadisticasAnonimas: false,
-      })
+      if (pedirConsentimiento) {
+        // Solo términos, privacidad y marketing: el de datos de salud se conserva como estaba (no se
+        // da por hecho en el alta, P1).
+        await guardarConsentimientos.mutateAsync({
+          terminosVersion: VERSION_TERMINOS,
+          privacidadVersion: VERSION_PRIVACIDAD,
+          datosSalud: consentimientos.data?.datosSalud ?? false,
+          marketing: d.marketing,
+          compartirCumplimiento: consentimientos.data?.compartirCumplimiento ?? false,
+          estadisticasAnonimas: consentimientos.data?.estadisticasAnonimas ?? false,
+        })
+      }
       await guardarPerfil.mutateAsync({
-        edad: d.edad,
-        sexo: d.sexo === 'no-decir' ? null : d.sexo,
-        alturaCm: d.alturaCm,
-        pesoKg: d.pesoKg,
-        actividad: d.actividad,
-        diasPorSemana: d.diasPorSemana,
-        minutosPorSesion: d.minutosPorSesion,
-        metaSlug: d.metaSlug === SIN_META ? null : d.metaSlug,
+        ...PERFIL_VACIO,
+        perfilLaboral: d.perfilLaboral,
+        zonaHoraria: d.zonaHoraria,
         avisoSaludAceptado: true,
+        // El plan que eligió en la landing queda como interés (lo usa "Hoy").
+        metaSlug: METAS_CATALOGO.find((m) => m.slug === pendiente?.metaSlug)?.slug ?? null,
       })
       // Con el perfil guardado, OnboardingPage lleva al destino pedido.
       borrarRegistroPendiente()
-      const meta = METAS_CATALOGO.find((m) => m.slug === d.metaSlug)
-      notificar(
-        meta ? `Listo: tu plan «${meta.nombre}» empieza hoy.` : 'Listo: tu perfil quedó guardado.',
-      )
+      notificar('Listo: ya puedes empezar tu día.')
     } catch {
-      // El error queda en el estado de la mutación y se muestra arriba del formulario.
+      // El error queda en el estado de la mutación y se muestra arriba del botón.
     }
   })
 
@@ -194,6 +186,12 @@ function Asistente({ correo }: { correo: string }) {
   useEffect(() => {
     if (errorEnvio) alertaError.current?.focus()
   }, [errorEnvio])
+
+  const zonas = ZONAS_HORARIAS_COMUNES.includes(
+    zonaDetectada as (typeof ZONAS_HORARIAS_COMUNES)[number],
+  )
+    ? ZONAS_HORARIAS_COMUNES
+    : [zonaDetectada, ...ZONAS_HORARIAS_COMUNES]
 
   return (
     <div ref={titulo} className="w-full max-w-md">
@@ -218,8 +216,50 @@ function Asistente({ correo }: { correo: string }) {
           noValidate
           className="space-y-4"
         >
-          {paso === 0 && <PasoDatosBasicos register={register} errors={errors} />}
-          {paso === 1 && <PasoActividad register={register} errors={errors} />}
+          {paso === 0 && (
+            <>
+              <p className="text-sm text-atenuado">
+                Armamos tu día saludable alrededor de tu trabajo: agua, pausas y descanso a tu
+                ritmo.
+              </p>
+              <Controller
+                name="perfilLaboral"
+                control={control}
+                render={({ field }) => (
+                  <OpcionesTarjeta
+                    leyenda="Elige la que más se parece a tu día"
+                    opciones={PERFILES_LABORALES.map((p) => ({
+                      valor: p,
+                      ...ETIQUETA_PERFIL_LABORAL[p],
+                    }))}
+                    valor={field.value}
+                    alCambiar={field.onChange}
+                    error={errors.perfilLaboral?.message}
+                  />
+                )}
+              />
+            </>
+          )}
+          {paso === 1 && (
+            <>
+              <p className="text-sm text-atenuado">
+                La usamos para que tus recordatorios lleguen a tu hora. La detectamos de tu
+                dispositivo: cámbiala solo si no es la tuya.
+              </p>
+              <Select
+                etiqueta="Zona horaria"
+                error={errors.zonaHoraria?.message}
+                {...register('zonaHoraria')}
+              >
+                {zonas.map((z) => (
+                  <option key={z} value={z}>
+                    {z.replaceAll('_', ' ')}
+                    {z === zonaDetectada ? ' (detectada)' : ''}
+                  </option>
+                ))}
+              </Select>
+            </>
+          )}
           {paso === 2 && (
             <PasoAvisoSalud
               register={register}
@@ -228,11 +268,16 @@ function Asistente({ correo }: { correo: string }) {
             />
           )}
 
+          {sinConsentimientos && (
+            <Alert tono="peligro">
+              No pudimos leer tus consentimientos actuales. Espera un momento y vuelve a intentarlo.
+            </Alert>
+          )}
           {errorEnvio && (
             <div ref={alertaError} tabIndex={-1} className="outline-none">
               <Alert tono="peligro">
-                {mensajeDeError(errorEnvio, 'No se pudo guardar tu plan.')} Tus datos siguen aquí:
-                puedes volver a intentarlo.
+                {mensajeDeError(errorEnvio, 'No se pudo guardar tu perfil.')} Tus respuestas siguen
+                aquí: puedes volver a intentarlo.
               </Alert>
             </div>
           )}
@@ -248,7 +293,7 @@ function Asistente({ correo }: { correo: string }) {
               className="flex-1 whitespace-nowrap"
               cargando={isSubmitting}
             >
-              {paso < 2 ? 'Continuar' : 'Empezar mi plan'}
+              {paso < 2 ? 'Continuar' : 'Empezar mi día'}
             </Button>
           </div>
         </form>
@@ -257,116 +302,24 @@ function Asistente({ correo }: { correo: string }) {
   )
 }
 
+// Campos del nivel 2 vacíos: el onboarding solo guarda el nivel 1.
+const PERFIL_VACIO = {
+  horaEntradaTrabajo: null,
+  horaSalidaTrabajo: null,
+  horaDespertar: null,
+  horaDormir: null,
+  edad: null,
+  sexo: null,
+  alturaCm: null,
+  pesoKg: null,
+  actividad: null,
+  diasPorSemana: null,
+  minutosPorSesion: null,
+} as const
+
 type PropsPaso = {
   register: UseFormRegister<OnboardingForm>
   errors: FieldErrors<OnboardingForm>
-}
-
-function PasoDatosBasicos({ register, errors }: PropsPaso) {
-  const { edad, alturaCm, pesoKg } = LIMITES_CORPORALES
-  return (
-    <>
-      <p className="text-sm text-atenuado">
-        Con estos datos ajustamos tu plan. Solo tú los ves y puedes cambiarlos cuando quieras.
-      </p>
-      <Input
-        etiqueta="Edad"
-        type="number"
-        inputMode="numeric"
-        min={edad.min}
-        max={edad.max}
-        error={errors.edad?.message}
-        {...register('edad', { valueAsNumber: true })}
-      />
-      <Select
-        etiqueta="Sexo"
-        ayuda="Opcional. Solo se usa para estimar tus calorías."
-        error={errors.sexo?.message}
-        {...register('sexo')}
-      >
-        {SEXOS.map((s) => (
-          <option key={s} value={s}>
-            {etiquetaSexo[s]}
-          </option>
-        ))}
-        <option value="no-decir">Prefiero no decirlo</option>
-      </Select>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input
-          etiqueta="Altura (cm)"
-          type="number"
-          inputMode="decimal"
-          min={alturaCm.min}
-          max={alturaCm.max}
-          error={errors.alturaCm?.message}
-          {...register('alturaCm', { valueAsNumber: true })}
-        />
-        <Input
-          etiqueta="Peso (kg)"
-          type="number"
-          inputMode="decimal"
-          step="0.1"
-          min={pesoKg.min}
-          max={pesoKg.max}
-          error={errors.pesoKg?.message}
-          {...register('pesoKg', { valueAsNumber: true })}
-        />
-      </div>
-    </>
-  )
-}
-
-function PasoActividad({ register, errors }: PropsPaso) {
-  const { diasPorSemana, minutosPorSesion } = LIMITES_PLAN
-  return (
-    <>
-      <Select
-        etiqueta="Nivel de actividad"
-        error={errors.actividad?.message}
-        {...register('actividad')}
-      >
-        <option value="">Elige tu nivel de actividad</option>
-        {NIVELES_ACTIVIDAD.map((n) => (
-          <option key={n} value={n}>
-            {infoActividad[n].etiqueta}
-          </option>
-        ))}
-      </Select>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input
-          etiqueta="Días por semana"
-          type="number"
-          inputMode="numeric"
-          min={diasPorSemana.min}
-          max={diasPorSemana.max}
-          error={errors.diasPorSemana?.message}
-          {...register('diasPorSemana', { valueAsNumber: true })}
-        />
-        <Input
-          etiqueta="Minutos por sesión"
-          type="number"
-          inputMode="numeric"
-          min={minutosPorSesion.min}
-          max={minutosPorSesion.max}
-          error={errors.minutosPorSesion?.message}
-          {...register('minutosPorSesion', { valueAsNumber: true })}
-        />
-      </div>
-      <Select
-        etiqueta="Tu meta"
-        ayuda="Puedes cambiarla después desde tu perfil."
-        error={errors.metaSlug?.message}
-        {...register('metaSlug')}
-      >
-        {METAS_CATALOGO.map((m) => (
-          <option key={m.slug} value={m.slug}>
-            {m.nombre}
-          </option>
-        ))}
-        <option value={SIN_META}>Elegir más tarde</option>
-      </Select>
-    </>
-  )
 }
 
 function PasoAvisoSalud({

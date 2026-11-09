@@ -109,18 +109,24 @@ describe('registro pendiente en el dispositivo', () => {
   })
 })
 
-// Contrato propuesto (mocks/handlers/propuestas/perfil.ts): el "servidor" valida de nuevo.
+// Réplica de ProfileController (mocks/handlers/perfil.ts): el "servidor" valida de nuevo.
 const url = (ruta: string) => `${window.location.origin}${ruta}`
-const perfilValido = {
-  edad: 30,
-  sexo: null,
-  alturaCm: 170,
-  pesoKg: 70,
-  actividad: 'moderada',
-  diasPorSemana: 3,
-  minutosPorSesion: 30,
-  metaSlug: 'primeros-5-km',
+const nivel1 = {
+  perfilLaboral: 'OficinaDiurna',
+  zonaHoraria: 'America/Santo_Domingo',
   avisoSaludAceptado: true,
+  horaEntradaTrabajo: null,
+  horaSalidaTrabajo: null,
+  horaDespertar: null,
+  horaDormir: null,
+  edad: null,
+  sexo: null,
+  alturaCm: null,
+  pesoKg: null,
+  actividad: null,
+  diasPorSemana: null,
+  minutosPorSesion: null,
+  metaSlug: 'primeros-5-km',
 }
 const consentimientos = {
   terminosVersion: 'v2.1',
@@ -130,6 +136,7 @@ const consentimientos = {
   compartirCumplimiento: false,
   estadisticasAnonimas: false,
 }
+const idLuis = () => db.usuarios.find((u) => u.correo === CORREOS.otro)?.id ?? ''
 
 async function put(ruta: string, token: string, body: unknown) {
   return fetch(url(ruta), {
@@ -139,13 +146,13 @@ async function put(ruta: string, token: string, body: unknown) {
   })
 }
 
-describe('contrato propuesto del perfil', () => {
-  it('sin perfil responde 404 con ProblemDetails (no es "pieza no disponible")', async () => {
+describe('contrato del perfil y la salud', () => {
+  it('sin perfil responde 404 con ProblemDetails y código perfil_no_encontrado', async () => {
     const token = iniciarSesionComo('otro')
-    db.perfiles.delete(db.usuarios.find((u) => u.correo === CORREOS.otro)?.id ?? '')
+    db.perfiles.delete(idLuis())
     const r = await fetch(url('/api/profile'), { headers: { Authorization: `Bearer ${token}` } })
     expect(r.status).toBe(404)
-    expect((await r.json()).title).toBe('No encontrado.')
+    expect((await r.json()).codigo).toBe('perfil_no_encontrado')
   })
 
   it('el Administrador recibe 403 y sin sesión 401', async () => {
@@ -156,10 +163,13 @@ describe('contrato propuesto del perfil', () => {
     expect((await fetch(url('/api/profile'))).status).toBe(401)
   })
 
-  it('no guarda datos de salud sin consentimiento (409)', async () => {
+  it('el nivel 1 se guarda sin consentimiento de salud; con peso o altura pide 409 (P1)', async () => {
     const token = iniciarSesionComo('otro')
-    db.consentimientos.delete(db.usuarios.find((u) => u.correo === CORREOS.otro)?.id ?? '')
-    expect((await put('/api/profile', token, perfilValido)).status).toBe(409)
+    db.consentimientos.delete(idLuis())
+    expect((await put('/api/profile', token, nivel1)).status).toBe(200)
+    const conPeso = await put('/api/profile', token, { ...nivel1, pesoKg: 70 })
+    expect(conPeso.status).toBe(409)
+    expect((await conPeso.json()).codigo).toBe('consentimiento_salud_requerido')
   })
 
   it.each([
@@ -167,12 +177,14 @@ describe('contrato propuesto del perfil', () => {
     ['edad', 30.5],
     ['pesoKg', 301],
     ['diasPorSemana', 8],
-    ['metaSlug', 'inventada'],
+    ['perfilLaboral', 'Astronauta'],
+    ['zonaHoraria', 'Zona/Inventada'],
+    ['horaDespertar', '25:00'],
     ['avisoSaludAceptado', false],
-    ['sexo', 'otro'],
+    ['sexo', 'mujer'],
   ])('rechaza %s = %s con 400', async (campo, valor) => {
     const token = iniciarSesionComo('otro')
-    expect((await put('/api/profile', token, { ...perfilValido, [campo]: valor })).status).toBe(400)
+    expect((await put('/api/profile', token, { ...nivel1, [campo]: valor })).status).toBe(400)
   })
 
   it('solo acepta las versiones vigentes de términos y privacidad', async () => {
@@ -187,11 +199,81 @@ describe('contrato propuesto del perfil', () => {
     expect((await ok.json()).aceptadoEn).toEqual(expect.stringMatching(/Z$/))
   })
 
-  it('el plan empieza al elegir meta y se conserva si la meta no cambia', async () => {
+  it('el plan de interés empieza al elegirlo y se conserva si no cambia', async () => {
     const token = iniciarSesionComo('otro')
-    const primero = await (await put('/api/profile', token, perfilValido)).json()
+    const primero = await (await put('/api/profile', token, nivel1)).json()
     expect(primero.inicioPlan).toEqual(expect.stringMatching(/Z$/))
-    const segundo = await (await put('/api/profile', token, { ...perfilValido, pesoKg: 69 })).json()
+    const segundo = await (
+      await put('/api/profile', token, { ...nivel1, perfilLaboral: 'Remoto' })
+    ).json()
     expect(segundo.inicioPlan).toBe(primero.inicioPlan)
+  })
+
+  it('un bloque del cuestionario sin consentimiento es 409; con él se guarda y se evalúa', async () => {
+    const token = iniciarSesionComo('otro')
+    db.consentimientos.delete(idLuis())
+    const bloque = { condiciones: ['Embarazo'], alergias: ['Ninguna'] }
+    expect((await put('/api/profile/health/condiciones', token, bloque)).status).toBe(409)
+
+    await put('/api/privacy/consents', token, consentimientos)
+    const r = await put('/api/profile/health/condiciones', token, bloque)
+    expect(r.status).toBe(200)
+    const dto = await r.json()
+    expect(dto.evaluacion.restricciones).toContain('SinRestriccionCalorica')
+    expect(dto.evaluacion.completitud).toEqual({
+      objetivos: false,
+      seguridad: false,
+      condiciones: true,
+    })
+  })
+
+  it.each([
+    [
+      '/api/profile/health/condiciones',
+      { condiciones: ['Ninguna', 'Asma'], alergias: ['Ninguna'] },
+    ],
+    [
+      '/api/profile/health/objetivos',
+      {
+        objetivos: ['DormirMejor', 'Hidratarme', 'MasEnergia', 'ReducirEstres'],
+        zonas: [],
+        experiencia: 'Ninguna',
+        lugar: 'Gimnasio',
+      },
+    ],
+    [
+      '/api/profile/health/objetivos',
+      { objetivos: ['DormirMejor'], zonas: ['Espalda'], experiencia: 'Ninguna', lugar: 'Gimnasio' },
+    ],
+    ['/api/profile/health/seguridad', { dolorDePecho: true }],
+  ])('rechaza un bloque inválido en %s con 400', async (ruta, cuerpo) => {
+    const token = iniciarSesionComo('estandar')
+    expect((await put(ruta, token, cuerpo)).status).toBe(400)
+  })
+
+  it('con el consentimiento retirado las respuestas se ven pero la evaluación no las usa', async () => {
+    const token = iniciarSesionComo('estandar')
+    const seguridad = {
+      afeccionCardiacaOPresionAlta: true,
+      dolorDePecho: false,
+      mareosOPerdidaDeConocimiento: false,
+      otraEnfermedadCronica: false,
+      medicacionCronica: false,
+      problemaOseoOArticular: false,
+      soloActividadSupervisada: false,
+    }
+    const evaluacion = (await (await put('/api/profile/health/seguridad', token, seguridad)).json())
+      .evaluacion
+    expect(evaluacion.nivel).toBe('ConsultarMedico')
+    // Mismo orden que el backend (valor del enum), no alfabético.
+    expect(evaluacion.restricciones).toEqual(['SoloIntensidadBaja', 'SinIntensidadAlta'])
+    await put('/api/privacy/consents', token, { ...consentimientos, datosSalud: false })
+
+    const dto = await (
+      await fetch(url('/api/profile/health'), { headers: { Authorization: `Bearer ${token}` } })
+    ).json()
+    expect(dto.seguridad.afeccionCardiacaOPresionAlta).toBe(true)
+    expect(dto.usaDatosDeSalud).toBe(false)
+    expect(dto.evaluacion.nivel).toBe('Normal')
   })
 })

@@ -288,7 +288,7 @@ Las reglas de salud viven en un solo punto, `EvaluadorSalud`. Traduce las respue
 
 | Endpoint (rol `Estandar`) | Qué hace |
 |---|---|
-| `GET/PUT /api/profile` | Perfil. `404 perfil_no_encontrado` antes del onboarding. Con peso o altura exige el consentimiento `datosSalud`. |
+| `GET/PUT /api/profile` | Perfil. `404 perfil_no_encontrado` antes del onboarding. Un peso o una altura **nuevos** exigen el consentimiento `datosSalud`. Reenviar los ya guardados no lo exige, así que quien retiró el permiso puede seguir cambiando su jornada. |
 | `GET /api/profile/health` | Bloques del cuestionario con su evaluación (nivel de precaución, restricciones, alérgenos y completitud). |
 | `PUT /api/profile/health/objetivos`, `/seguridad`, `/condiciones` | Guarda un bloque. En las condiciones, «Ninguna» no se combina con otras opciones. |
 | `GET/POST /api/progress/weights` | Peso, uno por día. `objetivoKg`: si se omite, se conserva; con `null`, se quita. El último peso pasa al perfil. |

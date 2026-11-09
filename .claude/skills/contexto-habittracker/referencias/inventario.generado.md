@@ -85,13 +85,13 @@
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
 | HabitTracker.Api.Tests | 3 | 20 | 5 |
-| HabitTracker.Application.Tests | 3 | 50 | 3 |
+| HabitTracker.Application.Tests | 3 | 51 | 3 |
 | HabitTracker.Domain.Tests | 6 | 60 | 9 |
 | HabitTracker.Integration.Tests | 6 | 28 | 4 |
 | Permissions.Application.Tests | 1 | 7 | 1 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 2 | 6 | 1 |
-| **Total** | | **609** | **85** |
+| **Total** | | **610** | **85** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -116,7 +116,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `auth`: 27 archivos
 - `coming-soon`: 2 archivos
 - `habits`: 23 archivos
-- `perfil`: 7 archivos
+- `perfil`: 11 archivos
 - `permissions`: 13 archivos
 - `privacidad`: 10 archivos
 - `progreso`: 11 archivos
@@ -126,12 +126,6 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 - `GET /api/admin/metrics` (admin.ts)
 - `GET /api/audit` (admin.ts)
-- `GET /api/profile` (perfil.ts)
-- `PUT /api/profile` (perfil.ts)
-- `GET /api/progress/weights` (progreso.ts)
-- `POST /api/progress/weights` (progreso.ts)
-- `GET /api/progress/measurements` (progreso.ts)
-- `POST /api/progress/measurements` (progreso.ts)
 
 ## Contenido del módulo de negocio
 

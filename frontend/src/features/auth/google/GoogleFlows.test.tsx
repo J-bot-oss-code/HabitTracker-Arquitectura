@@ -39,7 +39,7 @@ describe('Continuar con Google en el inicio de sesión', () => {
     await user.click(screen.getByRole('button', { name: 'Crear cuenta con Google' }))
 
     // Una cuenta nueva no tiene perfil: el panel la lleva al onboarding.
-    expect(await screen.findByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
     expect(router.state.location.pathname).not.toBe('/login')
     const creada = db.usuarios.find((u) => u.correo === 'nueva.persona@example.com')
     expect(creada).toMatchObject({ activo: true, password: null })
@@ -154,7 +154,7 @@ describe('Continuar con Google en el registro', () => {
 
     await user.click(screen.getByRole('button', { name: BOTON }))
 
-    expect(await screen.findByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
     expect(
       screen.queryByText(/Todavía no tienes una cuenta con este correo/),
     ).not.toBeInTheDocument()

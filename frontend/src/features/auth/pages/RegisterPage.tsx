@@ -1,12 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useEffect, useId, useRef } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, useLocation, useSearchParams } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { consentimientoSchema, guardarRegistroPendiente } from '@/features/perfil/api'
 import {
   buscarMeta,
-  validarDatosCorporales,
   RUTAS_LEGALES,
   VERSION_PRIVACIDAD,
   VERSION_TERMINOS,
@@ -45,11 +44,7 @@ export function RegisterPage() {
   const registro = useRegistro()
   const alertaError = useRef<HTMLDivElement>(null)
   const [params] = useSearchParams()
-  const location = useLocation()
   const meta = buscarMeta(params.get('meta'))
-  const datosCalculadora = validarDatosCorporales(
-    (location.state as { datosCalculadora?: unknown } | null)?.datosCalculadora,
-  )
 
   const {
     register,
@@ -103,7 +98,9 @@ export function RegisterPage() {
             privacidadVersion: VERSION_PRIVACIDAD,
             marketing: datos.marketing,
             metaSlug: meta?.slug ?? null,
-            datosCorporales: datosCalculadora,
+            // Peso, altura, edad y sexo de la calculadora son datos de salud: no se guardan en el navegador. El
+            // onboarding ya no los pide (P1); se piden en Perfil y salud cuando un plan los necesita.
+            datosCorporales: null,
           }),
       },
     ),

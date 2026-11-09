@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError, esNoDisponible, mensajeDeError } from './problem'
+import { ApiError, esNoDisponible, MENSAJE_CONSENTIMIENTO_SALUD, mensajeDeError } from './problem'
 
 describe('mensajeDeError (RD-08)', () => {
   it('usa el primer error de validación del modelo', () => {
@@ -45,6 +45,18 @@ describe('mensajeDeError (RD-08)', () => {
     expect(mensajeDeError(new TypeError('Failed to fetch'))).toBe(
       'No se pudo contactar con el servidor.',
     )
+  })
+})
+
+describe('mensajeDeError con datos de salud sin permiso', () => {
+  it('el 409 consentimiento_salud_requerido dice dónde dar el permiso', () => {
+    const error = new ApiError(409, {
+      title: 'Falta el consentimiento.',
+      detail: 'Falta el consentimiento para usar tus datos de salud.',
+      codigo: 'consentimiento_salud_requerido',
+    })
+    expect(mensajeDeError(error)).toBe(MENSAJE_CONSENTIMIENTO_SALUD)
+    expect(MENSAJE_CONSENTIMIENTO_SALUD).toMatch(/Configuración › Perfil y salud/)
   })
 })
 

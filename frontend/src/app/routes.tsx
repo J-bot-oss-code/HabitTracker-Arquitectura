@@ -68,6 +68,7 @@ const paginas = {
     'AjustesInicioSesionPage',
   ),
   apariencia: perezosa(() => import('./ajustes/AparienciaPage'), 'AparienciaPage'),
+  perfilSalud: perezosa(() => import('@/features/perfil/pages/PerfilSaludPage'), 'PerfilSaludPage'),
   privacidad: perezosa(
     () => import('@/features/privacidad/pages/PrivacidadPage'),
     'PrivacidadPage',
@@ -205,6 +206,14 @@ export const rutas: RouteObject[] = [
               {
                 element: <RequireAuth roles={['Estandar']} />,
                 children: [
+                  {
+                    path: 'perfil-salud',
+                    handle: {
+                      titulo: 'Perfil y salud',
+                      descripcion: 'Tu jornada, tus horarios y, si un plan lo pide, tu salud.',
+                    },
+                    ...paginas.perfilSalud,
+                  },
                   // Descargar, decidir y retirarse no deben exigir dar más datos primero.
                   {
                     path: 'privacidad',
