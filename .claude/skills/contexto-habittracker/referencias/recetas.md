@@ -74,5 +74,5 @@ bash scripts/ci/verificar-contexto.sh
 ## PR
 
 1. Rama de trabajo, nunca push a `develop` ni a `main`. Si los commits se hicieron en `develop` local: `git push origin develop:feature/<nombre>` (sin `-u`).
-2. Skill `flujo-pr`: cuerpo en 4 secciones (Qué cambia, Por qué, Cómo probarlo, Qué NO incluye). La PR va a `develop`; después, `develop → main`.
+2. Skill `flujo-pr`: cuerpo en 4 secciones (Qué cambia, Por qué, Cómo probarlo, Qué NO incluye). La PR va a `develop`. La PR `develop → main` se abre solo cuando el plan esté listo y funcional en `develop`.
 3. Al cerrar: inventario, referencias de esta skill y ESTADO actualizados.

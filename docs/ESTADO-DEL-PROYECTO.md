@@ -74,7 +74,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 7. Flujo de trabajo
 
 - **Commits** en español con IDs RF/RD **de 2 dígitos** (`feat: ... [RF-NEG-02, RD-07]`) y revisión RD-01..RD-12 antes de cada commit (ver `AGENTS.md`).
-- **Ramas:** `feature/`, `fix/`, `docs/`, `refactor/` o `chore/` → PR a `develop` → PR `develop → main` (`Promover a main — ...`).
+- **Ramas:** `feature/`, `fix/`, `docs/`, `refactor/` o `chore/` → PR a `develop`. Solo PRs a `main` (`Promover a main — ...`) cuando el plan v2 esté listo y funcional en `develop`.
   - El cuerpo de la PR lleva 4 secciones: Qué cambia, Por qué, Cómo probarlo y Qué NO incluye (skill `flujo-pr`).
   - `develop` y `main` rechazan el push directo. Si se trabajó en `develop` local: `git push origin develop:feature/...` (sin `-u`).
   - Las PR las fusiona el usuario.
