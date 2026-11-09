@@ -69,6 +69,9 @@ var app = builder.Build();
 // Migraciones y datos semilla (solo si BaseDeDatos:MigrarAlIniciar=true; la composición de Docker lo activa).
 await app.InicializarBaseDeDatosAsync();
 
+// Catálogo de planes de HabitTracker (siempre: es contenido del código, no datos de demostración).
+await app.SembrarCatalogoPlanesAsync();
+
 // Middleware global de excepciones al inicio del pipeline (RD-07, RD-08).
 app.UseMiddleware<GlobalExceptionMiddleware>();
 

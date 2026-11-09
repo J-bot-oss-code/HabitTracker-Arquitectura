@@ -1,5 +1,6 @@
 using HabitTracker.Application.Interfaces;
 using HabitTracker.Application.Services;
+using HabitTracker.Infrastructure.Contenido;
 using HabitTracker.Infrastructure.DependencyInjection;
 using HabitTracker.Infrastructure.Persistence;
 using HabitTracker.Infrastructure.Repositories;
@@ -41,6 +42,11 @@ public static class HabitTrackerModuleExtensions
         services.AddScoped<ICuestionarioSaludService, CuestionarioSaludService>();
         services.AddScoped<IProgresoCorporalService, ProgresoCorporalService>();
         services.AddScoped<IDatosPerfilSaludService, DatosPerfilSaludService>();
+
+        // Catálogo de planes y recomendador (Fase 3). El contenido sale de catalogo-planes.json y lo siembra el Host al arrancar.
+        services.AddScoped<IPlanPlantillaRepository, PlanPlantillaRepository>();
+        services.AddScoped<IPlanesService, PlanesService>();
+        services.AddScoped<SembradorCatalogoPlanes>();
 
         // Plan del día: usa la API externa de clima (la clave llega por la variable OPENWEATHER_API_KEY).
         services.AddScoped<IPlanDelDiaService, PlanDelDiaService>();

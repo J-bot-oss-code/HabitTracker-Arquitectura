@@ -25,6 +25,8 @@ public sealed class RecursoNoEncontradoException(string codigo, string mensaje) 
     public const string HabitoNoEncontrado = "habito_no_encontrado";
     /// <summary>La persona aún no completó el onboarding: el frontend la lleva a <c>/bienvenida</c> (RequierePerfil).</summary>
     public const string PerfilNoEncontrado = "perfil_no_encontrado";
+    /// <summary>No hay un plan activo del catálogo con ese slug.</summary>
+    public const string PlanNoEncontrado = "plan_no_encontrado";
 }
 
 /// <summary>Una regla de negocio rechaza la operación (HTTP 400). Ejemplos: <c>fecha_futura</c>, <c>meta_no_encontrada</c>.</summary>
