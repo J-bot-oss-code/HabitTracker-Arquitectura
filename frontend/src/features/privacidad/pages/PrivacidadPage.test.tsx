@@ -18,7 +18,7 @@ describe('exportación (pura)', () => {
     )
   })
 
-  it('arma el archivo con lo del servidor más el perfil y el progreso (null si no existen)', () => {
+  it('arma el archivo con lo que entrega el servidor y le pone formato y versión', () => {
     const servidor = {
       generadoEn: '2026-11-03T10:00:00.000Z',
       cuenta: {
@@ -37,15 +37,13 @@ describe('exportación (pura)', () => {
       sesiones: [],
       modulos: { habitos: [], permisos: [], documentos: [] },
     }
-    const e = armarExportacion(servidor, { perfil: null, pesos: null, mediciones: null })
+    const e = armarExportacion(servidor)
     expect(e).toMatchObject({
       formato: 'habittracker-datos',
-      version: 2,
+      version: 3,
       generadoEn: '2026-11-03T10:00:00.000Z',
       cuenta: { correo: 'a@b.c' },
       modulos: { habitos: [] },
-      perfil: null,
-      progreso: { pesos: null, mediciones: null },
     })
   })
 })
@@ -105,9 +103,9 @@ describe('Centro de privacidad', () => {
       const contenido = JSON.parse(await (captura.blob as unknown as Blob).text())
       expect(contenido).toMatchObject({
         formato: 'habittracker-datos',
-        version: 2,
+        version: 3,
         cuenta: { correo: 'estandar@demo.com', rol: 'Estandar', tienePassword: true },
-        perfil: { metaSlug: 'primeros-5-km' },
+        modulos: { perfilYSalud: { perfil: { metaSlug: 'primeros-5-km' } } },
       })
       expect(contenido.consentimientos).toHaveLength(1)
       expect(contenido.consentimientos[0]).toMatchObject({
@@ -116,8 +114,8 @@ describe('Centro de privacidad', () => {
       })
       expect(contenido.modulos.habitos).toHaveLength(3)
       expect(Array.isArray(contenido.modulos.permisos)).toBe(true)
-      expect(contenido.progreso.pesos.registros).toHaveLength(10)
-      expect(contenido.progreso.mediciones).toHaveLength(8)
+      expect(contenido.modulos.perfilYSalud.pesos).toHaveLength(10)
+      expect(contenido.modulos.perfilYSalud.mediciones).toHaveLength(8)
       // No viaja nada de otras cuentas ni credenciales.
       expect(JSON.stringify(contenido)).not.toMatch(/otro@demo|Demo1234|"password"|passwordHash/i)
       expect(db.auditoria).toHaveLength(eventosAntes + 1)
@@ -127,15 +125,16 @@ describe('Centro de privacidad', () => {
       })
     })
 
-    it('si falta una pieza que el servidor aún no ofrece la descarga sigue con esa parte en null', async () => {
+    it('el archivo es el del servidor: no pide perfil ni progreso por su cuenta', async () => {
       const captura = capturarDescarga()
-      server.use(http.get('/api/progress/weights', () => new HttpResponse(null, { status: 404 })))
+      // Si el cliente aún pidiera el progreso aparte, este 500 rompería la descarga.
+      server.use(http.get('/api/progress/weights', () => problema(500, 'Error interno.')))
       const { user } = renderApp('/ajustes/privacidad', { como: 'estandar' })
       await user.click(await screen.findByRole('button', { name: /Descargar mis datos/ }))
       expect(await screen.findByText('Descarga lista.')).toBeInTheDocument()
 
       const contenido = JSON.parse(await (captura.blob as unknown as Blob).text())
-      expect(contenido.progreso.pesos).toBeNull()
+      expect(contenido.modulos.perfilYSalud.pesos).toHaveLength(10)
       expect(contenido.modulos.habitos).toHaveLength(3)
     })
 

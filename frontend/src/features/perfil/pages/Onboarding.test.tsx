@@ -32,7 +32,7 @@ beforeEach(() => {
 describe('onboarding (pasos 3 a 5 del alta)', () => {
   it('una cuenta sin perfil que entra al panel va al onboarding', async () => {
     const { router } = renderApp('/habitos', { como: 'otro' })
-    expect(await screen.findByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/bienvenida')
   })
 
@@ -52,50 +52,51 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
     expect(await screen.findByText('No tienes acceso a esta sección')).toBeInTheDocument()
   })
 
-  it('valida cada paso antes de avanzar y "Atrás" conserva lo escrito', async () => {
+  it('valida cada paso antes de avanzar y "Atrás" conserva lo elegido', async () => {
     recordarRegistro()
     const { user } = renderApp('/bienvenida', { como: 'otro' })
     await user.click(await screen.findByRole('button', { name: 'Continuar' }))
-    expect(await screen.findByText('Escribe tu edad.')).toBeInTheDocument()
-    expect(screen.getByText('Escribe tu altura.')).toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
+    expect(await screen.findByText('Elige cómo es tu jornada.')).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('Edad'), '15')
+    await user.click(screen.getByRole('radio', { name: /Turno de noche/ }))
     await user.click(screen.getByRole('button', { name: 'Continuar' }))
-    expect(await screen.findByText('Debe ser al menos 16 años.')).toBeInTheDocument()
-
-    await user.clear(screen.getByLabelText('Edad'))
-    await user.type(screen.getByLabelText('Edad'), '40')
-    await user.selectOptions(screen.getByLabelText(/^Sexo/), 'hombre')
-    await user.type(screen.getByLabelText('Altura (cm)'), '180')
-    await user.type(screen.getByLabelText('Peso (kg)'), '82')
-    await user.click(screen.getByRole('button', { name: 'Continuar' }))
-
-    const titulo = await screen.findByRole('heading', { name: 'Tu actividad y tu tiempo' })
+    const titulo = await screen.findByRole('heading', { name: 'Tu zona horaria' })
     expect(titulo).toHaveFocus()
     expect(screen.getByText('Paso 4 de 5')).toBeInTheDocument()
-    // La meta recordada del registro viene elegida.
-    expect(screen.getByLabelText(/^Tu meta/)).toHaveValue('fuerza-en-casa')
 
     await user.click(screen.getByRole('button', { name: 'Atrás' }))
-    expect(await screen.findByLabelText('Edad')).toHaveValue(40)
+    expect(await screen.findByRole('radio', { name: /Turno de noche/ })).toBeChecked()
   })
 
-  it('propone los datos que se escribieron en la calculadora', async () => {
-    recordarRegistro({
-      datosCorporales: { edad: 27, sexo: 'mujer', alturaCm: 160, pesoKg: 55.5, actividad: 'alta' },
-    })
+  it('no pide edad, peso ni datos de salud: son 3 toques y guarda solo el nivel 1 (P1)', async () => {
+    recordarRegistro()
     const { user } = renderApp('/bienvenida', { como: 'otro' })
-    expect(await screen.findByLabelText('Edad')).toHaveValue(27)
-    expect(screen.getByLabelText(/^Sexo/)).toHaveValue('mujer')
-    expect(screen.getByLabelText('Peso (kg)')).toHaveValue(55.5)
-    await user.click(screen.getByRole('button', { name: 'Continuar' }))
-    expect(await screen.findByLabelText('Nivel de actividad')).toHaveValue('alta')
+    await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })
+    expect(screen.queryByLabelText('Edad')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText(/Peso/)).not.toBeInTheDocument()
+
+    // Toques: jornada, Continuar, Continuar, aviso de salud, Empezar (la zona viene detectada).
+    await completarOnboarding(user, { jornada: 'Trabajo físico' })
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
+    expect(db.perfiles.get(luis())).toMatchObject({
+      perfilLaboral: 'TrabajoFisico',
+      zonaHoraria: expect.any(String),
+      edad: null,
+      pesoKg: null,
+      alturaCm: null,
+    })
+    // El alta no da por hecho el consentimiento de datos de salud.
+    expect(db.consentimientos.get(luis())?.datosSalud ?? false).toBe(false)
   })
 
   it('desde otro dispositivo vuelve a pedir los consentimientos y los registra', async () => {
     const { user } = renderApp('/bienvenida', { como: 'otro' })
-    expect(await screen.findByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
 
     // Sin aceptarlos, no se guarda nada.
     await completarOnboarding(user)
@@ -106,14 +107,19 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
 
     await user.click(screen.getByRole('checkbox', { name: /Términos de uso/ }))
     await user.click(screen.getByRole('checkbox', { name: /Política de privacidad/ }))
-    await user.click(screen.getByRole('button', { name: 'Empezar mi plan' }))
+    await user.click(screen.getByRole('button', { name: 'Empezar mi día' }))
     expect(
       await screen.findByRole('heading', {
         level: 1,
         name: /^(Buenos días|Buenas tardes|Buenas noches)/,
       }),
     ).toBeInTheDocument()
-    expect(db.consentimientos.get(luis())).toMatchObject({ datosSalud: true, marketing: false })
+    // Términos y privacidad sí; el de datos de salud no se da por hecho (P1).
+    expect(db.consentimientos.get(luis())).toMatchObject({
+      terminosVersion: 'v2.1',
+      datosSalud: false,
+      marketing: false,
+    })
     expect(db.perfiles.get(luis())).toMatchObject({ metaSlug: null })
   })
 
@@ -131,17 +137,37 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
     expect(db.perfiles.get(luis())).toMatchObject({ metaSlug: 'fuerza-en-casa' })
   })
 
+  it('desde otro dispositivo conserva el permiso de datos de salud que ya había dado', async () => {
+    db.consentimientos.set(luis(), {
+      terminosVersion: 'v2.1',
+      privacidadVersion: 'v1.4',
+      aceptadoEn: new Date().toISOString(),
+      datosSalud: true,
+      marketing: false,
+      compartirCumplimiento: false,
+      estadisticasAnonimas: true,
+    })
+    const { user } = renderApp('/bienvenida', { como: 'otro' })
+    await completarOnboarding(user, { aceptarConsentimientos: true })
+    expect(
+      await screen.findByRole('heading', {
+        level: 1,
+        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
+      }),
+    ).toBeInTheDocument()
+    expect(db.consentimientos.get(luis())).toMatchObject({
+      datosSalud: true,
+      estadisticasAnonimas: true,
+    })
+  })
+
   it('exige confirmar el aviso de salud', async () => {
     recordarRegistro()
     const { user } = renderApp('/bienvenida', { como: 'otro' })
-    await user.type(await screen.findByLabelText('Edad'), '30')
-    await user.selectOptions(screen.getByLabelText(/^Sexo/), 'mujer')
-    await user.type(screen.getByLabelText('Altura (cm)'), '165')
-    await user.type(screen.getByLabelText('Peso (kg)'), '60')
+    await user.click(await screen.findByRole('radio', { name: /Oficina de día/ }))
     await user.click(screen.getByRole('button', { name: 'Continuar' }))
-    await user.selectOptions(await screen.findByLabelText('Nivel de actividad'), 'ligera')
-    await user.click(screen.getByRole('button', { name: 'Continuar' }))
-    await user.click(await screen.findByRole('button', { name: 'Empezar mi plan' }))
+    await user.click(await screen.findByRole('button', { name: 'Continuar' }))
+    await user.click(await screen.findByRole('button', { name: 'Empezar mi día' }))
     expect(await screen.findByText('Confirma que leíste el aviso de salud.')).toBeInTheDocument()
     expect(db.perfiles.has(luis())).toBe(false)
   })
@@ -165,7 +191,7 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
     )
     const { user, router } = renderApp('/bienvenida', { como: 'otro' })
     await completarOnboarding(user)
-    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo guardar tu plan.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudo guardar tu perfil.')
     expect(screen.queryByText(/PerfilService|Perfil\.cs/)).not.toBeInTheDocument()
     expect(router.state.location.pathname).toBe('/bienvenida')
   })
@@ -192,7 +218,7 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
   })
 })
 
-describe('con el backend real (sin el contrato propuesto)', () => {
+describe('con un backend sin la pieza de perfil (404 sin cuerpo)', () => {
   // Una ruta que el backend no tiene responde 404 sin cuerpo.
   beforeEach(() =>
     server.use(http.get('/api/profile', () => new HttpResponse(null, { status: 404 }))),

@@ -33,6 +33,9 @@ const mensajesPorEstado: Record<number, string> = {
   429: 'Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.',
 }
 
+export const MENSAJE_CONSENTIMIENTO_SALUD =
+  'Para guardar este dato necesitamos tu permiso para usar tus datos de salud. Actívalo en Configuración › Perfil y salud.'
+
 // RD-08: al usuario solo le llegan mensajes comprensibles, nunca detalles internos.
 // El backend ya envía textos genéricos en title/detail; si no hay, se usa uno por estado.
 export function mensajeDeError(
@@ -50,6 +53,9 @@ export function mensajeDeError(
       return primero ?? mensajesPorEstado[400]
     }
     if (error.status >= 500) return porDefecto
+    // Datos de salud sin el consentimiento: se dice dónde darlo (Configuración › Perfil y salud).
+    if (error.problem?.codigo === 'consentimiento_salud_requerido')
+      return MENSAJE_CONSENTIMIENTO_SALUD
     return (
       error.problem?.detail || error.problem?.title || mensajesPorEstado[error.status] || porDefecto
     )

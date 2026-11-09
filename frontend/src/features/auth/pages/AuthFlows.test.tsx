@@ -38,7 +38,7 @@ describe('flujos de cuenta', () => {
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
     // Sin perfil, el panel lleva al onboarding con la meta del registro.
-    expect(await screen.findByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
     expect(screen.getByText('Paso 3 de 5')).toBeInTheDocument()
     await completarOnboarding(user)
     expect(
@@ -50,16 +50,18 @@ describe('flujos de cuenta', () => {
 
     const nueva = db.usuarios.find((u) => u.correo === 'nueva@demo.com')
     expect(db.perfiles.get(nueva?.id ?? '')).toMatchObject({
-      edad: 31,
+      perfilLaboral: 'OficinaDiurna',
+      edad: null,
       sexo: null,
       metaSlug: 'primeros-5-km',
       avisoSaludAceptado: true,
     })
-    // Los consentimientos del registro llegan al servidor sin volver a pedirlos.
+    // Los consentimientos del registro llegan al servidor sin volver a pedirlos. El de datos de salud no se da por
+    // hecho: se pide cuando un plan lo necesita (P1).
     expect(db.consentimientos.get(nueva?.id ?? '')).toMatchObject({
       terminosVersion: 'v2.1',
       privacidadVersion: 'v1.4',
-      datosSalud: true,
+      datosSalud: false,
       marketing: true,
     })
   })
@@ -167,7 +169,7 @@ describe('flujos de cuenta', () => {
     expect(screen.queryByText(/Meta elegida/)).not.toBeInTheDocument()
   })
 
-  it('los datos de la calculadora llegan al registro y se recuerdan para el onboarding', async () => {
+  it('los datos de la calculadora no se guardan en el navegador al registrarse (son datos de salud)', async () => {
     const { user } = renderApp('/calculadoras')
     await user.type(await screen.findByLabelText('Edad'), '33')
     await user.selectOptions(screen.getByLabelText('Sexo'), 'hombre')
@@ -178,13 +180,8 @@ describe('flujos de cuenta', () => {
     await user.click(await screen.findByRole('link', { name: 'Guardar y crear mi plan' }))
 
     await registrarCuenta(user, 'calcula@demo.com')
-    expect(leerRegistroPendiente('calcula@demo.com')?.datosCorporales).toEqual({
-      edad: 33,
-      sexo: 'hombre',
-      alturaCm: 181,
-      pesoKg: 77,
-      actividad: 'alta',
-    })
+    expect(leerRegistroPendiente('calcula@demo.com')?.datosCorporales).toBeNull()
+    expect(localStorage.getItem('habittracker.registro-pendiente') ?? '').not.toMatch(/181|77/)
   })
 
   it('descarta datos de calculadora manipulados en el estado de navegación', async () => {

@@ -12,7 +12,7 @@ describe('Configuración', () => {
     expect(await screen.findByText('estandar@demo.com', { selector: 'dd' })).toBeInTheDocument()
   })
 
-  it('el Estándar ve las cinco secciones y navega entre ellas', async () => {
+  it('el Estándar ve las seis secciones y navega entre ellas', async () => {
     const { user, router } = renderApp('/ajustes/cuenta', { como: 'estandar' })
     await screen.findByRole('heading', { level: 1, name: 'Cuenta' })
     const enlaces = within(secciones())
@@ -22,6 +22,7 @@ describe('Configuración', () => {
       'Cuenta',
       'Contraseña y seguridad',
       'Inicio de sesión',
+      'Perfil y salud',
       'Privacidad y datos',
       'Apariencia',
     ])

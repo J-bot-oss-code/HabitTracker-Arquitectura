@@ -2,7 +2,7 @@
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
 import type { EventoAuditoriaDto } from '@/features/auditoria/types'
-import type { ConsentimientosDto, PerfilDto } from '@/features/perfil/types'
+import type { ConsentimientosDto, CuestionarioSaludDto, PerfilDto } from '@/features/perfil/types'
 import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import type { Rol } from '@/shared/auth/roles'
@@ -53,6 +53,11 @@ export interface HabitoMock {
 
 // --- Contratos propuestos (sin backend todavía; ver handlers/propuestas) ---
 export type PerfilMock = Omit<PerfilDto, 'nombre'>
+// El cuestionario se guarda por bloques; la evaluación se calcula al leerlo (como EvaluadorSalud).
+export type CuestionarioMock = Omit<
+  CuestionarioSaludDto,
+  'version' | 'evaluacion' | 'usaDatosDeSalud'
+>
 
 // Baja de cuenta pedida (modo "eliminar"): mientras dura el periodo de gracia la cuenta sigue activa y se puede
 // cancelar; al terminar, el proceso del backend borra todo. Desactivar no la programa: queda inactiva.
@@ -84,6 +89,7 @@ interface Db {
   vinculosGoogle: Map<string, { subject: string; vinculadoEn: string }>
   // Por id de usuario.
   perfiles: Map<string, PerfilMock>
+  cuestionarios: Map<string, CuestionarioMock>
   consentimientos: Map<string, ConsentimientosDto>
   pesos: Map<string, PesosDto>
   mediciones: Map<string, MedicionDto[]>
@@ -101,6 +107,7 @@ export const db: Db = {
   sesiones: [],
   vinculosGoogle: new Map(),
   perfiles: new Map(),
+  cuestionarios: new Map(),
   consentimientos: new Map(),
   pesos: new Map(),
   mediciones: new Map(),
@@ -276,35 +283,50 @@ export function reiniciarDb() {
     [
       estandar,
       {
+        perfilLaboral: 'OficinaDiurna',
+        zonaHoraria: 'America/Santo_Domingo',
+        avisoSaludAceptado: true,
+        horaEntradaTrabajo: '08:00:00',
+        horaSalidaTrabajo: '17:00:00',
+        horaDespertar: '06:30:00',
+        horaDormir: '22:30:00',
         edad: 29,
-        sexo: 'mujer',
+        sexo: 'Mujer',
         alturaCm: 165,
         pesoKg: 68.4,
-        actividad: 'ligera',
+        actividad: 'Ligera',
         diasPorSemana: 3,
         minutosPorSesion: 30,
         metaSlug: 'primeros-5-km',
         // Semana 3 de 8 del plan.
         inicioPlan: inicioDelDiaUtc(-17, ahora),
-        avisoSaludAceptado: true,
+        actualizadoEn: new Date(ahora - 17 * DIA).toISOString(),
       },
     ],
     [
       db.usuarios[2].id,
       {
+        perfilLaboral: 'TurnoNocturno',
+        zonaHoraria: 'America/Santo_Domingo',
+        avisoSaludAceptado: true,
+        horaEntradaTrabajo: '22:00:00',
+        horaSalidaTrabajo: '06:00:00',
+        horaDespertar: null,
+        horaDormir: null,
         edad: 34,
         sexo: null,
         alturaCm: 178,
         pesoKg: 81,
-        actividad: 'moderada',
+        actividad: 'Moderada',
         diasPorSemana: 4,
         minutosPorSesion: 45,
         metaSlug: null,
         inicioPlan: null,
-        avisoSaludAceptado: true,
+        actualizadoEn: new Date(ahora - 20 * DIA).toISOString(),
       },
     ],
   ])
+  db.cuestionarios = new Map()
   db.consentimientos = new Map([
     [estandar, consentimiento(false)],
     [db.usuarios[2].id, consentimiento(true)],

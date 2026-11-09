@@ -93,6 +93,13 @@ export const SECCIONES_AJUSTES: SeccionAjustes[] = [
     descripcion: 'Google vinculado y dispositivos con la sesión abierta.',
   },
   {
+    a: '/ajustes/perfil-salud',
+    etiqueta: 'Perfil y salud',
+    icono: 'rayo',
+    roles: ['Estandar'],
+    descripcion: 'Tu jornada, tus horarios y tu cuestionario de salud.',
+  },
+  {
     a: '/ajustes/privacidad',
     etiqueta: 'Privacidad y datos',
     icono: 'permisos',
@@ -126,6 +133,7 @@ const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
   { patron: /^\/hoy\/?$/i, roles: ['Estandar'] },
   { patron: /^\/progreso\/?$/i, roles: ['Estandar'] },
   { patron: /^\/ajustes\/privacidad\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/ajustes\/perfil-salud\/?$/i, roles: ['Estandar'] },
   { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
   { patron: /^\/bienvenida\/?$/i, roles: ['Estandar'] },
   { patron: /^\/permisos\/?$/i, roles: ['Estandar'] },
