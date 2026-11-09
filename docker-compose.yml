@@ -12,7 +12,7 @@ services:
   # La aplicación la encuentra por su NOMBRE de servicio ("db"), no por localhost.
   # --------------------------------------------------------------------------
   db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
     platform: linux/amd64
     restart: unless-stopped
     environment:

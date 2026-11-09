@@ -1,6 +1,6 @@
 # ---------- Etapa 1: compilar y publicar ----------
 # La imagen del SDK (grande) solo se usa aquí; no llega a la imagen final.
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.403 AS build
 WORKDIR /src
 
 # Se copia el repositorio (.dockerignore deja fuera bin/, obj/, .git/, frontend/, tests/ y .env).
@@ -15,7 +15,7 @@ RUN for intento in 1 2 3; do \
 RUN dotnet publish Host/WebApi/WebApi.csproj -c Release -o /app/publish --no-restore
 
 # ---------- Etapa 2: imagen final, solo el runtime ----------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.14 AS final
 WORKDIR /app
 
 # Parches de seguridad del sistema base. La imagen oficial de Microsoft se reconstruye con retraso respecto

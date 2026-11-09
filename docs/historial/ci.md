@@ -20,6 +20,18 @@
   - **"Etiquetas de entrega":** `practica-*` y `asignacion-*` (los 16 tags de §2) no se pueden actualizar, borrar ni mover con force-push. Crear tags nuevos sigue permitido.
   - El ruleset antiguo "Proteccion de main" (id 26568693) está desactivado y sin ramas objetivo; quedó sin efecto y se puede borrar.
 - **Dependabot (desde el 04-11-2026):** PR semanales hacia `develop`. Las menores y parches van agrupadas; los saltos mayores llegan sueltos. `typescript` 7 se ignora: `typescript-eslint` declara el peer `typescript <6.1.0` y `npm ci` falla con ERESOLVE (retomar cuando lo soporte).
+- **Versiones fijas (desde el 09-11-2026):** a pedido del usuario, las dependencias se quedan en una versión exacta y segura, y solo se actualizan por seguridad o por necesidad.
+  - **Dependabot:** `open-pull-requests-limit: 0` en los 4 ecosistemas, así que ya no abre PR de versión. Las alertas siguen activas. Las *security updates* siguen desactivadas porque abrirían la PR contra `main`.
+  - **Las 11 PR abiertas (#86–#96) se cerraron sin fusionar:**
+    - Ninguna corregía una vulnerabilidad: no había alertas abiertas y `npm audit` daba 0.
+    - Cinco eran saltos mayores con riesgo: `System.Security.Cryptography.Pkcs` 9→10, `jsdom` 31, `@testing-library/jest-dom` 7 y `globals` 17.
+  - **npm:** `package.json` pasa de rangos `^` a las versiones que ya estaban instaladas según `package-lock.json`, sin actualizar ninguna, y `frontend/.npmrc` lleva `save-exact=true`. En el lock solo cambian los rangos de la raíz.
+  - **Docker y CI:** las versiones que ya se estaban usando quedan fijadas:
+    - `sdk:10.0` → `10.0.403`;
+    - `aspnet:10.0` → `10.0.14`;
+    - `mssql/server:2022-latest` → `2022-CU27-ubuntu-22.04`;
+    - `dotnet-version: 10.0.x` → `10.0.403`;
+    - `node-version: 24` → `24.22.2`, que incluye el parche de seguridad de la 24.22.1.
 - **Escaneo semanal de Trivy:** puede bloquear por parches de Ubuntu publicados después del último cambio (CVE-2026-109518 de `apt`, 05-11-2026). El `Dockerfile` ejecuta `apt-get upgrade` en la etapa final como solución; por eso la imagen no es reproducible bit a bit.
 - **Pendiente:** descripción automática de las PR (Qué cambia / Por qué / Cómo probarlo / Qué NO incluye), el CD (el destino previsto es Vercel, que no hospeda .NET de forma nativa), el Dockerfile del frontend y la conexión frontend↔backend. Deuda anotada: `frontend/AGENTS.md` aún dice "backend congelado" y `.github/PULL_REQUEST_TEMPLATE.md` (§6.5) sigue siendo una PR rellenada.
 
