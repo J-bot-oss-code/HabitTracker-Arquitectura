@@ -279,6 +279,111 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.ToTable("PerfilesUsuario", (string)null);
                 });
 
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanPlantilla", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.PrimitiveCollection<string>("Alergenos")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("AvisoSeguridad")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.PrimitiveCollection<string>("Beneficios")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.PrimitiveCollection<string>("Contraindicaciones")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("EdadMaxima")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EdadMinima")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Impacto")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Intensidad")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Lugar")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Nivel")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.PrimitiveCollection<string>("PerfilesLaborales")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("RequiereCuestionario")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Resumen")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Semanas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sexo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("VersionContenido")
+                        .HasColumnType("int");
+
+                    b.PrimitiveCollection<string>("ZonasCorporales")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Activo");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("PlanesPlantilla", (string)null);
+                });
+
             modelBuilder.Entity("HabitTracker.Domain.Progreso.MedicionCorporal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -418,6 +523,94 @@ namespace HabitTracker.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Habito");
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanPlantilla", b =>
+                {
+                    b.OwnsMany("HabitTracker.Domain.Planes.SemanaGuia", "GuiaSemanal", b1 =>
+                        {
+                            b1.Property<Guid>("PlanPlantillaId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAddOrUpdate();
+
+                            b1.Property<int>("Semana");
+
+                            b1.Property<string>("Texto")
+                                .IsRequired();
+
+                            b1.Property<string>("TipExtra");
+
+                            b1.HasKey("PlanPlantillaId", "__synthesizedOrdinal");
+
+                            b1.ToTable("PlanesPlantilla");
+
+                            b1
+                                .ToJson("GuiaSemanal")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PlanPlantillaId");
+                        });
+
+                    b.OwnsMany("HabitTracker.Domain.Planes.TareaPlantilla", "Tareas", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("AnclaSugerida")
+                                .IsRequired()
+                                .HasMaxLength(30)
+                                .HasColumnType("nvarchar(30)");
+
+                            b1.Property<decimal>("Cantidad")
+                                .HasPrecision(8, 2)
+                                .HasColumnType("decimal(8,2)");
+
+                            b1.Property<string>("Instrucciones")
+                                .IsRequired()
+                                .HasMaxLength(1000)
+                                .HasColumnType("nvarchar(1000)");
+
+                            b1.Property<string>("Nombre")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<int>("Orden")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("Periodicidad")
+                                .IsRequired()
+                                .HasMaxLength(30)
+                                .HasColumnType("nvarchar(30)");
+
+                            b1.Property<Guid>("PlanPlantillaId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Unidad")
+                                .IsRequired()
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)");
+
+                            b1.Property<string>("VersionMinima")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("PlanPlantillaId");
+
+                            b1.ToTable("TareasPlantilla", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("PlanPlantillaId");
+                        });
+
+                    b.Navigation("GuiaSemanal");
+
+                    b.Navigation("Tareas");
                 });
 
             modelBuilder.Entity("HabitTracker.Domain.Entities.Categoria", b =>

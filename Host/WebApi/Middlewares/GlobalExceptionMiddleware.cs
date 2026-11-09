@@ -176,6 +176,8 @@ public class GlobalExceptionMiddleware
 
         context.Response.ContentType = "application/problem+json";
         context.Response.StatusCode = (int)status;
+        // [ResponseCache] fija la caché antes de la acción: un error nunca debe quedar guardado en un navegador o un proxy.
+        context.Response.Headers.CacheControl = "no-store";
 
         var payload = JsonSerializer.Serialize(problem);
         await context.Response.WriteAsync(payload);

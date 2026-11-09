@@ -11,7 +11,8 @@ namespace WebApi.Extensions;
 /// - recuperacion: evita probar códigos de recuperación e inundar de correos a una víctima;
 /// - refresh: evita probar refresh tokens y cargar la base de datos con renovaciones;
 /// - google: evita probar contraseñas con /google/vincular y cargar el validador de tokens;
-/// - privacidad: evita probar contraseñas con la baja de cuenta y repetir la descarga de datos.
+/// - privacidad: evita probar contraseñas con la baja de cuenta y repetir la descarga de datos;
+/// - catalogo: el catálogo público de planes es anónimo; el tope evita que un cliente lo descargue en bucle.
 /// Los topes son por minuto y se pueden cambiar en RateLimit:* (la configuración inválida detiene el arranque).
 /// </summary>
 public static class LimitacionDePeticionesExtensions
@@ -23,6 +24,7 @@ public static class LimitacionDePeticionesExtensions
     public const string Refresh = "refresh";
     public const string Google = "google";
     public const string Privacidad = "privacidad";
+    public const string Catalogo = "catalogo";
 
     public static IServiceCollection AddLimitacionDePeticiones(this IServiceCollection services, IConfiguration configuracion)
     {
@@ -35,6 +37,7 @@ public static class LimitacionDePeticionesExtensions
             (Refresh, "RefreshPorMinuto", 30),
             (Google, "GooglePorMinuto", 10),
             (Privacidad, "PrivacidadPorMinuto", 10),
+            (Catalogo, "CatalogoPorMinuto", 60),
         };
 
         services.AddRateLimiter(opciones =>

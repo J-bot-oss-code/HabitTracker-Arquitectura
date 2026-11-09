@@ -5,6 +5,7 @@ using AccessControl.Domain.Interfaces;
 using AccessControl.Infrastructure.Persistence;
 using DocumentManager.Infrastructure.Persistence;
 using HabitTracker.Domain.Entities;
+using HabitTracker.Infrastructure.Contenido;
 using HabitTracker.Infrastructure.Persistence;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -86,6 +87,34 @@ public static class InicializacionBaseDeDatos
         SqlException sql => sql.Number is -2 or 53 or 10060 or 10061 or 4060 or 18456 or 233 or 258 or 40613,
         _ => false
     };
+
+    /// <summary>
+    /// Lleva el catálogo de planes embebido a la base (Fase 3). A diferencia de las migraciones, corre en cada arranque,
+    /// también en desarrollo local, para que el catálogo siga al código. Un contenido inválido detiene el arranque.
+    /// </summary>
+    public static async Task SembrarCatalogoPlanesAsync(this WebApplication app)
+    {
+        var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("InicializacionBaseDeDatos");
+        try
+        {
+            await EjecutarConReintentosAsync(async () =>
+            {
+                using var scope = app.Services.CreateScope();
+                var resultado = await scope.ServiceProvider.GetRequiredService<SembradorCatalogoPlanes>().SembrarAsync();
+                logger.LogInformation(
+                    "Catálogo de planes: {Nuevos} nuevos, {Actualizados} actualizados y {Retirados} retirados.",
+                    resultado.Nuevos, resultado.Actualizados, resultado.Retirados);
+            }, IntentosMaximos, EsperaEntreIntentos, logger);
+        }
+        catch (Exception ex)
+        {
+            // El caso típico en local: falta aplicar la migración AgregarCatalogoPlanes (tabla inexistente).
+            logger.LogCritical(ex,
+                "No se pudo sembrar el catálogo de planes. Aplica las migraciones de HabitTrackerDbContext " +
+                "(dotnet ef database update) o revisa catalogo-planes.json.");
+            throw;
+        }
+    }
 
     private static async Task MigrarAsync(WebApplication app)
     {

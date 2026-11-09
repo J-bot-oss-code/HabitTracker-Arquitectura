@@ -1,5 +1,6 @@
 using HabitTracker.Domain.Entities;
 using HabitTracker.Domain.Perfil;
+using HabitTracker.Domain.Planes;
 using HabitTracker.Domain.Progreso;
 using HabitTracker.Infrastructure.Persistence.Configuraciones;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,9 @@ public class HabitTrackerDbContext : DbContext
     internal DbSet<CuestionarioSaludFila> CuestionariosSalud { get; set; } = null!;
     public DbSet<RegistroPeso> RegistrosPeso { get; set; } = null!;
     public DbSet<MedicionCorporal> MedicionesCorporales { get; set; } = null!;
+
+    // Fase 3: catálogo de planes (lo escribe solo el sembrador al arrancar).
+    public DbSet<PlanPlantilla> PlanesPlantilla { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
