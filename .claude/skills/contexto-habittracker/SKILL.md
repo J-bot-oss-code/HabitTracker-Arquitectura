@@ -35,7 +35,7 @@ Monolito modular .NET 10 (Clean Architecture) + frontend React en `frontend/`. U
 ## Reglas de oro
 
 - **Tags de entrega** (`practica-*`, `asignacion-*`, `*-defecto-*`): nunca se mueven ni se reescriben; GitHub lo impide con un ruleset.
-- **Ramas:** trabajo en `feature/`, `fix/`, `docs/`, `refactor/` o `chore/` → PR a `develop` → PR `develop → main`. `develop` y `main` rechazan el push directo. PR con la skill `flujo-pr` (4 secciones). Las PR las fusiona el usuario.
+- **Ramas:** trabajo en `feature/`, `fix/`, `docs/`, `refactor/` o `chore/` → PR a `develop`. **Solo PRs a `main` cuando el plan (`docs/plan-habittracker-v2.md`) esté listo y funcional en `develop`**; mientras tanto, ninguna PR `develop → main`. `develop` y `main` rechazan el push directo. PR con la skill `flujo-pr` (4 secciones). Las PR las fusiona el usuario.
 - **Commits** en español: `tipo(ámbito opcional): descripción [RF-XX-NN, RD-NN]`.
   - Regex del CI (`scripts/ci/verificar-commits.sh`): IDs `RF-[A-Z]+-[0-9]{2}` o `RD-[0-9]{2}`, **exactamente 2 dígitos** (`RF-NEG-02.1` falla), entre corchetes al final y separados por `, `.
   - La primera palabra no puede ser inglesa. Usa IDs **existentes** (`referencias/requisitos.md`), nunca inventados.
