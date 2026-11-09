@@ -70,6 +70,25 @@ public class PerfilSaludServicesTests
 
     [Fact]
     [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_Perfil_ConsentimientoRetirado_PermiteCambiarLaJornadaSiElPesoNoCambia()
+    {
+        // Arrange: guardó su peso con permiso y luego lo retiró.
+        consentimiento.DatosSalud = true;
+        await PerfilService().GuardarAsync(usuario, Nivel1() with { PesoKg = 70 });
+        consentimiento.DatosSalud = false;
+
+        // Act: el formulario reenvía el mismo peso junto con la jornada nueva.
+        var dto = await PerfilService().GuardarAsync(usuario, Nivel1() with { PerfilLaboral = PerfilLaboral.Remoto, PesoKg = 70 });
+        var otroPeso = await Record.ExceptionAsync(() => PerfilService().GuardarAsync(usuario, Nivel1() with { PesoKg = 69 }));
+
+        // Assert: la jornada se guarda; un peso nuevo sigue exigiendo el permiso.
+        Assert.Equal(PerfilLaboral.Remoto, dto.PerfilLaboral);
+        Assert.IsType<ConsentimientoSaludRequeridoException>(otroPeso);
+        Assert.Equal(70, perfiles.Datos.Single().PesoKg);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
     public async Task RF_NEG_02_Perfil_GuardarDosVeces_ReemplazaElMismoPerfil()
     {
         consentimiento.DatosSalud = true;

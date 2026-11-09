@@ -93,12 +93,17 @@ public sealed class PerfilService(
         Guardas.ExigirIdentidad(usuarioId);
         ArgumentNullException.ThrowIfNull(datos);
 
-        // Nivel 1 (jornada, zona, aviso) no pide consentimiento: un plan Básico se empieza sin datos de salud (P1).
-        if (datos.TraeDatosDeSalud)
-            await Guardas.ExigirConsentimientoAsync(consentimiento, usuarioId, cancellationToken);
-
         var ahora = Guardas.Ahora(_reloj);
         var perfil = await perfiles.ObtenerAsync(usuarioId, cancellationToken);
+
+        // Nivel 1 (jornada, zona, aviso) no pide consentimiento: un plan Básico se empieza sin datos de salud (P1).
+        // Solo pide el consentimiento un peso o una altura NUEVOS: quien retiró el permiso puede seguir cambiando su
+        // jornada aunque el perfil vuelva a enviar el peso que ya estaba guardado.
+        var cambiaDatosDeSalud = datos.TraeDatosDeSalud
+            && (perfil is null || datos.PesoKg != perfil.PesoKg || datos.AlturaCm != perfil.AlturaCm);
+        if (cambiaDatosDeSalud)
+            await Guardas.ExigirConsentimientoAsync(consentimiento, usuarioId, cancellationToken);
+
         if (perfil is null)
         {
             perfil = PerfilUsuario.Crear(usuarioId, datos, ahora);
