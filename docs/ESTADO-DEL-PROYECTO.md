@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 08-11-2026, Fase 2a del plan HabitTracker v2 (backend de perfil, salud cifrada y progreso corporal). Antes, ese mismo día, la Fase 1 (cimientos), y el 07-11-2026 la Fase 0 (skill de contexto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
+> Última actualización: 08-11-2026, Fase 2b del plan HabitTracker v2 (frontend de perfil y salud conectado). Antes, la Fase 2a (backend de perfil, salud cifrada y progreso corporal). Antes, ese mismo día, la Fase 1 (cimientos), y el 07-11-2026 la Fase 0 (skill de contexto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
 > **Al iniciar una sesión, usa la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/`): rutas, contratos, recetas y requisitos sin leer el repositorio entero. Reglas de trabajo en `AGENTS.md`; guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -14,7 +14,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 | HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`, 6 endpoints en `api/habits`), perfil en dos niveles, cuestionario de salud cifrado y progreso corporal (`api/profile`, `api/progress`), y `plan-del-dia`. **En evolución:** plan v2, Fases 0, 1 y 2a hechas | `docs/historial/habittracker-v2.md` |
 | DocumentManager | Completo para la P4 (RF-DOC-01 a 05) | `docs/historial/practica-4.md` |
 | Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | — |
-| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios y privacidad. Perfil, peso y medidas ya tienen backend real, pero el frontend aún usa sus mocks (Fase 2b). Las métricas siguen como contrato propuesto | `docs/historial/frontend.md` |
+| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas. Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
 | CI | `ci-ok` y `seguridad-ok` obligatorios en `develop` y `main` | `docs/historial/ci.md` |
 
 ## 2. Tags de entrega (no mover ni reescribir)
@@ -35,8 +35,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **946** pruebas (medido el 08-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
-- **Frontend:** `cd frontend && npm test` ejecuta **634** pruebas en 49 archivos (medido el 08-11-2026) sin backend (MSW).
+- **Backend:** `dotnet test` ejecuta **947** pruebas (medido el 08-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Frontend:** `cd frontend && npm test` ejecuta **651** pruebas en 50 archivos (medido el 08-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
 ## 4. Entorno local
@@ -92,7 +92,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 9. Próximos pasos
 
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
-  - Fases 0, 1 y 2a (backend) hechas → Fase 2b (frontend: onboarding de 3 toques, «Tu salud», Perfil y salud, Progreso conectado) → Fases 3–5, el corte vertical;
+  - Fases 0, 1 y 2 hechas → Fases 3–5, el corte vertical (siguiente: Fase 3, catálogo de lanzamiento de 13 planes y recomendador);
   - Fase 6, producción, métricas y piloto;
   - las Fases 7–9 dependen del informe del piloto.
 - **Pendiente de decidir antes de la Fase 6:** dónde se hospeda el piloto. El CD está pendiente y Vercel no hospeda .NET.

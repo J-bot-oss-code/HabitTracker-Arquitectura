@@ -181,3 +181,60 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
 - Progreso conectado.
 - Los contratos salen de `CONTRATOS_PROPUESTOS`.
 - Los enums del backend son PascalCase (`Mujer`, `MuyAlta`, `TurnoNocturno`), y el contrato propuesto usaba minúsculas: el frontend los adopta.
+
+## Fase 2b: perfil y salud en el frontend (`feature/frontend-perfil-salud`, 08-11-2026)
+
+- **Contrato:** `features/perfil/types.ts` copia `ProfileController`: perfil en dos niveles, enums en PascalCase (`TurnoNocturno`, `Mujer`, `MuyAlta`) y cuestionario por bloques con su evaluación. Las etiquetas en español están en `features/perfil/etiquetas.ts`.
+- **Onboarding de 3 toques (P1, P2):**
+  - **Pasos:** jornada (tarjetas de radio), zona horaria (detectada con `Intl`, solo se confirma) y aviso de salud. No pide edad, peso ni el cuestionario.
+  - **Consentimiento:** ya no da por hecho `datosSalud`. Si hay que volver a pedir los documentos, conserva el valor que tenía.
+  - **Plan de la landing:** queda como interés (`metaSlug`).
+- **Configuración › Perfil y salud** (`/ajustes/perfil-salud`, solo Estándar):
+  - nivel 1 y datos opcionales (horarios, edad, sexo, altura, peso, actividad);
+  - los tres bloques del cuestionario, cada uno con su botón y su fecha;
+  - «Lo que tendremos en cuenta» (nivel de precaución y restricciones, en lenguaje llano);
+  - un aviso para activar `datosSalud` aquí mismo.
+  - «Ninguna» es exclusiva en las dos direcciones y los objetivos tienen un máximo de 3.
+- **Progreso conectado:** el 409 muestra un mensaje común (`MENSAJE_CONSENTIMIENTO_SALUD`) que dice dónde dar el permiso.
+- **Descarga de datos:** ahora es solo la del servidor (formato versión 3, con la sección `perfilYSalud`); el cliente ya no pide perfil ni progreso por su cuenta.
+- **Mocks:** `src/mocks/handlers/perfil.ts` y `progreso.ts` salen de `CONTRATOS_PROPUESTOS` y replican el backend:
+  - nivel 1 sin consentimiento y 409 solo con peso o altura;
+  - bloques validados y evaluación replicada de `EvaluadorSalud`, que con el consentimiento retirado no se usa;
+  - fechas en UTC con `Z`, `fecha_futura` y `perfil_requerido`;
+  - una medida por día y zona, y el último peso que pasa al perfil.
+- **Medido:**
+  - **Pruebas:** frontend 651 (antes 634) y backend 947 (+1 por el ajuste del consentimiento), con lint, tipos y build en verde.
+  - **Mutación:** 5 reglas rotas a propósito y todas hacen fallar al menos una prueba:
+    - el onboarding vuelve a dar por hecho `datosSalud`;
+    - «Ninguna» deja de ser exclusiva (sobrevivió al primer intento y se reforzó la prueba);
+    - el 409 no explica dónde dar el permiso;
+    - se exige el consentimiento aunque el peso no cambie, en el backend y en el mock.
+  - **Contra la API real**, en una base aislada que ya se borró: **13 de 13**. El backend acepta tal cual los cuerpos que arma el frontend:
+    - el perfil del onboarding, con todo en `null` salvo el nivel 1;
+    - las horas `HH:mm` de un `input type=time`;
+    - los tres bloques del cuestionario;
+    - el peso con `toISOString()`;
+    - y responde la descarga con `perfilYSalud`.
+- **Revisión (`frontend-reviewer`):** sin bloqueantes. Se corrigió en esta rama:
+  - **Alto: el registro guardaba en `localStorage` el peso, la altura, la edad y el sexo de la calculadora,** que el onboarding ya no usa. Ahora no se guardan (`datosCorporales: null`) y hay una prueba de ello.
+  - **Alto: con el permiso retirado no se podía cambiar la jornada,** porque el formulario reenvía el peso guardado.
+    - El backend (`PerfilService`) ahora exige el consentimiento solo si el peso o la altura **cambian** (con su prueba), y el mock hace lo mismo.
+  - **Medio: valores por defecto peligrosos.**
+    - El aviso «Permitir usar mis datos de salud» solo aparece con los consentimientos ya leídos y con versiones aceptadas: nunca acepta en nombre de la persona una versión legal que no vio.
+    - El onboarding no envía consentimientos sin haberlos leído antes, así no retira uno que existía.
+  - **Medio: fidelidad.**
+    - Las fechas usan `formatearFecha` (RD-11).
+    - El mock ordena las restricciones y los alérgenos como el backend (por el valor del enum).
+  - **Bajo:**
+    - el mock conserva el registro del mismo día al reemplazar un peso;
+    - la descarga del mock deja el nombre vacío y la sincronización del peso actualiza `actualizadoEn`;
+    - `replaceAll` en los nombres de las zonas;
+    - `aria-describedby` en los errores de las opciones.
+  - **Pruebas nuevas:**
+    - el mensaje del 409;
+    - `fecha_futura` y `perfil_requerido`;
+    - el onboarding que conserva `datosSalud`;
+    - el orden de la evaluación.
+  - **Pendiente bajo:**
+    - En el mock, el orden «validación → consentimiento» no es exacto en todos los casos.
+    - El foco no va a los errores de guardado del cuestionario.

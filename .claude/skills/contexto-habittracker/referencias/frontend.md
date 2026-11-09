@@ -29,8 +29,8 @@
 | Feature | Qué hay | Backend |
 |---|---|---|
 | `habits` | Lista, crear (sin meta), detalle (`GET /api/habits/{id}`), transiciones, avance, reconfigurar, **Hoy** (`hoy.ts`) y métricas de racha y logros calculadas en el navegador (`estados.ts`, `progreso.ts`) | Real: `/api/habits` |
-| `perfil` | Onboarding `/bienvenida` (edad, sexo, altura, peso, actividad, días, minutos, `metaSlug`, aviso de salud) | **Propuesto**: `/api/profile` |
-| `progreso` | Peso, medidas, constancia, récords y logros | **Propuesto**: `/api/progress/weights` y `/measurements` |
+| `perfil` | Onboarding de **3 toques** `/bienvenida` (jornada → zona horaria → aviso de salud; no pide datos de salud), Configuración › **Perfil y salud** `/ajustes/perfil-salud` (perfil nivel 2 y cuestionario por bloques, aviso para activar `datosSalud`) | Real: `/api/profile`, `/api/profile/health/*` |
+| `progreso` | Peso, medidas, constancia, récords y logros | Real: `/api/progress/weights` y `/measurements` |
 | `publico` | Landing, catálogo **estático** de 6 metas (`catalogo.ts`, `slug` estable), calculadora de calorías y textos legales (`legal.ts`: términos `v2.1` y privacidad `v1.4`) | Ninguno |
 | `privacidad` | Consentimientos (incluido `datosSalud`), baja y descarga | Real: `/api/privacy/*` |
 | `auth` | Registro con consentimientos, activación con código, login, Google y sesiones | Real: `/api/auth/*` |
@@ -44,7 +44,7 @@ Slugs del catálogo: `primeros-5-km`, `ganar-masa-muscular`, `perder-grasa-soste
 - Se declaran en `src/mocks/handlers/propuestas/*.ts`, se registran en `CONTRATOS_PROPUESTOS` (`propuestas/index.ts`) y se apuntan en "Pendientes para el backend" de `frontend/docs/PLAN-FRONTEND-NEXUS.md`.
 - Una prueba (`src/mocks/propuestas.test.ts`) exige que los handlers y el registro coincidan y que ninguna propuesta pise una ruta real.
 - Cuando el backend implementa un contrato, sale del registro y su handler pasa a `src/mocks/handlers/<feature>.ts`, replicando las reglas del backend.
-- Los handlers propuestos de perfil y progreso responden **409** sin el consentimiento `datosSalud`.
+- Perfil y progreso ya son handlers reales (`src/mocks/handlers/perfil.ts` y `progreso.ts`): 409 `consentimiento_salud_requerido` (`mensajeDeError` explica dónde dar el permiso), enums del perfil en PascalCase y la evaluación de salud replicada de `EvaluadorSalud`. La descarga de datos es solo la del servidor (sección `perfilYSalud`).
 
 ## Peculiaridades del contrato
 
