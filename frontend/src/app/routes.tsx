@@ -7,6 +7,7 @@ import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { ForgotPasswordPage, ResendActivationPage } from '@/features/auth/pages/SoloCorreoPage'
 import { ComingSoonPage } from '@/features/coming-soon/ComingSoonPage'
 import { PIEZAS_PENDIENTES } from '@/features/coming-soon/piezas'
+import { CatalogoPlanes } from '@/features/planes/components/CatalogoPlanes'
 import { LandingPage } from '@/features/publico/pages/LandingPage'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { EmptyState } from '@/shared/ui/Card'
@@ -51,7 +52,9 @@ function perezosa<M>(cargar: () => Promise<M>, nombre: keyof M): Pick<RouteObjec
 }
 
 const paginas = {
-  metas: perezosa(() => import('@/features/publico/pages/MetasPage'), 'MetasPage'),
+  metas: perezosa(() => import('@/features/planes/pages/MetasPage'), 'MetasPage'),
+  planDetalle: perezosa(() => import('@/features/planes/pages/PlanDetallePage'), 'PlanDetallePage'),
+  planes: perezosa(() => import('@/features/planes/pages/PlanesPage'), 'PlanesPage'),
   calculadoras: perezosa(
     () => import('@/features/publico/pages/CalculadorasPage'),
     'CalculadorasPage',
@@ -105,9 +108,21 @@ export const rutas: RouteObject[] = [
       {
         index: true,
         handle: { titulo: 'Convierte tu meta en un plan diario' },
-        element: <LandingPage />,
+        element: (
+          <LandingPage
+            catalogo={
+              <CatalogoPlanes
+                base="/metas"
+                anclaId="metas"
+                titulo="Elige una meta"
+                descripcion="Explora los planes libremente. Para empezar uno, crea tu cuenta."
+              />
+            }
+          />
+        ),
       },
       { path: 'metas', handle: { titulo: 'Elige una meta' }, ...paginas.metas },
+      { path: 'metas/:slug', handle: { titulo: 'Detalle del plan' }, ...paginas.planDetalle },
       {
         path: 'calculadoras',
         handle: { titulo: 'Calculadora de calorías' },
@@ -235,6 +250,12 @@ export const rutas: RouteObject[] = [
                 element: <RequierePerfil />,
                 children: [
                   { path: 'hoy', handle: { titulo: 'Hoy' }, ...paginas.hoy },
+                  { path: 'planes', handle: { titulo: 'Planes' }, ...paginas.planes },
+                  {
+                    path: 'planes/:slug',
+                    handle: { titulo: 'Detalle del plan' },
+                    ...paginas.planDetalle,
+                  },
                   { path: 'progreso', handle: { titulo: 'Tu progreso' }, ...paginas.progreso },
                   { path: 'habitos', handle: { titulo: 'Mis hábitos' }, ...paginas.habitos },
                   {

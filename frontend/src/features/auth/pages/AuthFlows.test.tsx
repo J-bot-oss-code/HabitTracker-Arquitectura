@@ -155,12 +155,13 @@ describe('flujos de cuenta', () => {
   it('muestra la meta elegida en el panel (escritorio) y sobre el formulario (móvil)', async () => {
     renderApp('/registro?meta=dormir-mejor')
     const panel = await screen.findByRole('complementary')
-    expect(within(panel).getByText('Dormir mejor')).toBeInTheDocument()
+    // El nombre llega del catálogo del servidor: aparece cuando termina de cargarlo.
+    expect(await within(panel).findByText('Dormir mejor')).toBeInTheDocument()
     expect(within(panel).getByRole('link', { name: 'Volver a explorar metas' })).toHaveAttribute(
       'href',
       '/metas',
     )
-    expect(screen.getByText(/Meta elegida:/)).toHaveTextContent('Meta elegida: Dormir mejor')
+    expect(await screen.findByText(/Meta elegida:/)).toHaveTextContent('Meta elegida: Dormir mejor')
   })
 
   it('una meta inventada en la URL no se muestra', async () => {

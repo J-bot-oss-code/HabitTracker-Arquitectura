@@ -1,0 +1,980 @@
+import type { PlanDetalleDto } from '@/features/planes/types'
+
+// Copia de Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/catalogo-planes.json tal como la devuelve
+// GET /api/plans/{slug} (sin el tip extra de la guía). La prueba mocks/planes.test.ts la compara con el JSON del
+// backend: si el contenido cambia allí, esta lista debe actualizarse (regenerarla, no editarla a mano).
+export const PLANES_MOCK: PlanDetalleDto[] = [
+  {
+    slug: 'mi-dia-oficina',
+    nombre: 'Mi día de oficina saludable',
+    resumen:
+      '3 hábitos pequeños para tu jornada sentada: agua, pausas activas y descanso para la vista.',
+    descripcion:
+      'Para quien pasa el día frente a una computadora, en la oficina, en casa o estudiando. Son tres gestos que caben entre reunión y reunión. Si un día se complica, basta con la versión mínima.',
+    area: 'Movilidad',
+    nivel: 'Basico',
+    intensidad: 'Baja',
+    semanas: 4,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: ['OficinaDiurna', 'Remoto', 'Estudiante', 'SinEmpleo'],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Menos rigidez en el cuello y la espalda al final del día',
+      'Tus ojos descansan de la pantalla varias veces al día',
+      'Llegas a la tarde con más energía',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Si tienes la presión alta, o una enfermedad del corazón o de los riñones, consulta a tu médico cuánta agua te conviene tomar.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Tomar agua durante la jornada',
+        instrucciones:
+          'Deja una botella o un vaso en tu escritorio y toma un vaso cada vez que termines una tarea o una reunión.',
+        periodicidad: 'Diaria',
+        cantidad: 8,
+        unidad: 'vasos',
+        versionMinima: 'Toma 2 vasos de agua, uno al llegar y otro al salir.',
+        anclaSugerida: 'AlLlegarAlTrabajo',
+      },
+      {
+        orden: 2,
+        nombre: 'Pausa activa cada 2 horas',
+        instrucciones:
+          'Ponte de pie 3 minutos: gira los hombros, estira el cuello con suavidad y camina hasta la puerta o la ventana.',
+        periodicidad: 'Diaria',
+        cantidad: 3,
+        unidad: 'pausas',
+        versionMinima: 'Haz 1 pausa de 1 minuto: ponte de pie y estírate.',
+        anclaSugerida: 'AMediaManana',
+      },
+      {
+        orden: 3,
+        nombre: 'Descanso de la vista y postura',
+        instrucciones:
+          'Cada vez que lo recuerdes, mira algo lejano durante 20 segundos, apoya la espalda en la silla y baja los hombros.',
+        periodicidad: 'Diaria',
+        cantidad: 3,
+        unidad: 'veces',
+        versionMinima: 'Mira por la ventana 20 segundos una vez.',
+        anclaSugerida: 'AMediaTarde',
+      },
+    ],
+    guiaSemanal: [],
+  },
+  {
+    slug: 'mi-dia-turno-nocturno',
+    nombre: 'Mi día saludable en turno de noche',
+    resumen:
+      'Agua, una pausa activa y una rutina para dormir de día, pensada para quien trabaja de noche o rota turnos.',
+    descripcion:
+      'Para call center, seguridad, salud, zona franca o cualquier trabajo con horario nocturno o rotativo. El plan se ata a tu turno, no al reloj: el despertar es cuando tú te levantas.',
+    area: 'Descanso',
+    nivel: 'Basico',
+    intensidad: 'Baja',
+    semanas: 4,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: ['TurnoNocturno', 'TurnosRotativos'],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Un sueño de día más profundo y sin interrupciones',
+      'Te mantienes despierto en el turno sin depender solo del café',
+      'Tu cuerpo se mueve aunque el turno sea largo',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Si tienes la presión alta, o una enfermedad del corazón o de los riñones, consulta a tu médico cuánta agua te conviene tomar.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Tomar agua durante el turno',
+        instrucciones:
+          'Llena una botella al empezar el turno y tómala a sorbos. Evita tomar mucha agua justo antes de acostarte.',
+        periodicidad: 'Diaria',
+        cantidad: 8,
+        unidad: 'vasos',
+        versionMinima: 'Toma 2 vasos de agua durante el turno.',
+        anclaSugerida: 'AlLlegarAlTrabajo',
+      },
+      {
+        orden: 2,
+        nombre: 'Pausa activa a mitad del turno',
+        instrucciones:
+          'Camina 5 minutos o sube y baja una escalera con calma. Si no puedes salir, estírate de pie junto a tu puesto.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'pausas',
+        versionMinima: 'Ponte de pie y estírate 1 minuto.',
+        anclaSugerida: 'AMediaManana',
+      },
+      {
+        orden: 3,
+        nombre: 'Rutina para dormir de día',
+        instrucciones:
+          'Al llegar a casa: lentes oscuros en el camino, cuarto a oscuras o con antifaz, celular en silencio y una hora fija para acostarte.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Pon el celular en silencio antes de acostarte.',
+        anclaSugerida: 'AlSalirDelTrabajo',
+      },
+    ],
+    guiaSemanal: [],
+  },
+  {
+    slug: 'mi-dia-trabajo-fisico',
+    nombre: 'Mi día saludable en trabajo de pie',
+    resumen:
+      'Agua con el calor, un estiramiento al empezar y descansos cortos, para quien trabaja de pie o en movimiento.',
+    descripcion:
+      'Para construcción, almacén, delivery en moto, comercio, cocina o cualquier trabajo físico. Con el calor del país el agua y la sombra son parte del trabajo, no un lujo.',
+    area: 'Hidratacion',
+    nivel: 'Basico',
+    intensidad: 'Baja',
+    semanas: 4,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: ['TrabajoFisico'],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Aguantas mejor el calor de la jornada',
+      'Menos dolor de espalda y piernas al llegar a casa',
+      'Descansos cortos que te devuelven energía',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Si tienes la presión alta, o una enfermedad del corazón o de los riñones, consulta a tu médico cuánta agua te conviene tomar. Si te mareas con el calor, para y busca sombra.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Tomar agua con el calor',
+        instrucciones:
+          'Toma un vaso de agua cada hora aunque no tengas sed, y uno más después de cada esfuerzo fuerte. Lleva tu botella siempre contigo.',
+        periodicidad: 'Diaria',
+        cantidad: 10,
+        unidad: 'vasos',
+        versionMinima: 'Toma 3 vasos de agua repartidos en el día.',
+        anclaSugerida: 'AlLlegarAlTrabajo',
+      },
+      {
+        orden: 2,
+        nombre: 'Estiramiento antes de empezar',
+        instrucciones:
+          '5 minutos antes de cargar o moverte: espalda, piernas, hombros y muñecas, sin rebotes y sin dolor.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Estira la espalda y las piernas 1 minuto.',
+        anclaSugerida: 'AlLlegarAlTrabajo',
+      },
+      {
+        orden: 3,
+        nombre: 'Descanso corto a la sombra',
+        instrucciones:
+          'Siéntate 5 minutos a la sombra o en un lugar fresco, con agua, a media mañana y a media tarde.',
+        periodicidad: 'Diaria',
+        cantidad: 2,
+        unidad: 'descansos',
+        versionMinima: 'Haz 1 descanso de 2 minutos a la sombra.',
+        anclaSugerida: 'AMediaTarde',
+      },
+    ],
+    guiaSemanal: [],
+  },
+  {
+    slug: 'hidratacion-con-calor',
+    nombre: 'Hidratación con calor',
+    resumen: '3 semanas para que tomar agua sea automático, con el calor del día a día.',
+    descripcion:
+      'Un plan corto para quien olvida tomar agua. Se ata a momentos que ya haces cada día, como levantarte o almorzar, y no necesita nada más que una botella.',
+    area: 'Hidratacion',
+    nivel: 'Basico',
+    intensidad: 'Baja',
+    semanas: 3,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Menos dolor de cabeza y cansancio por la tarde',
+      'Una botella siempre lista sin pensarlo',
+      'Un hábito que se queda en 3 semanas',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Si tienes la presión alta, o una enfermedad del corazón o de los riñones, consulta a tu médico cuánta agua te conviene tomar.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Un vaso de agua al despertar',
+        instrucciones: 'Deja un vaso o una botella junto a la cama y tómalo antes del café.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'vasos',
+        versionMinima: 'Toma unos sorbos de agua al levantarte.',
+        anclaSugerida: 'AlDespertar',
+      },
+      {
+        orden: 2,
+        nombre: 'Tomar agua durante el día',
+        instrucciones:
+          'Reparte tus vasos: uno con cada comida y uno entre comidas. Con mucho calor, uno más.',
+        periodicidad: 'Diaria',
+        cantidad: 7,
+        unidad: 'vasos',
+        versionMinima: 'Toma 1 vaso con el almuerzo.',
+        anclaSugerida: 'DespuesDelAlmuerzo',
+      },
+    ],
+    guiaSemanal: [],
+  },
+  {
+    slug: 'caminar-para-empezar',
+    nombre: 'Caminar para empezar',
+    resumen:
+      'Empieza con 10 minutos de caminata y llega a 25 en 4 semanas, sin gimnasio ni equipo.',
+    descripcion:
+      'El plan más sencillo para moverte más. Camina temprano o al caer la tarde, nunca bajo el sol del mediodía. También cuenta bajarte una parada antes de la guagua o subir por las escaleras.',
+    area: 'Energia',
+    nivel: 'Basico',
+    intensidad: 'Baja',
+    semanas: 4,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Más energía y mejor ánimo',
+      'Duermes mejor los días que caminas',
+      'Cero gasto: solo unos tenis cómodos',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Lleva agua, usa ropa ligera y evita las horas de más calor.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Caminar',
+        instrucciones:
+          'Camina a buen paso el tiempo de la semana según la guía. Temprano o al caer la tarde, con agua.',
+        periodicidad: 'Diaria',
+        cantidad: 10,
+        unidad: 'minutos',
+        versionMinima: 'Camina 5 minutos, aunque sea dentro de la casa.',
+        anclaSugerida: 'AlSalirDelTrabajo',
+      },
+    ],
+    guiaSemanal: [
+      {
+        semana: 1,
+        texto: '10 minutos a paso cómodo. Lo importante es salir.',
+      },
+      {
+        semana: 2,
+        texto: '15 minutos. Puedes partirlos en dos caminatas cortas.',
+      },
+      {
+        semana: 3,
+        texto: '20 minutos a un paso en el que puedas hablar, pero no cantar.',
+      },
+      {
+        semana: 4,
+        texto: '25 minutos. Ya es parte de tu día.',
+      },
+    ],
+  },
+  {
+    slug: 'respiracion-anti-estres',
+    nombre: 'Respiración anti estrés',
+    resumen:
+      '5 minutos de respiración al día durante 2 semanas para bajar el ritmo cuando el trabajo aprieta.',
+    descripcion:
+      'Una técnica sencilla: inhala en 4 tiempos, sostén 4 y exhala en 6. Se puede hacer sentado en el escritorio, en el carro estacionado o antes de dormir.',
+    area: 'Estres',
+    nivel: 'Basico',
+    intensidad: 'Baja',
+    semanas: 2,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Una herramienta para los momentos de tensión',
+      'Te cuesta menos desconectar al final del día',
+      'Solo necesitas 5 minutos y un lugar tranquilo',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico ni la atención de salud mental. Si te mareas, vuelve a respirar normal.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Respiración de 5 minutos',
+        instrucciones:
+          'Siéntate derecho, inhala por la nariz en 4 tiempos, sostén 4 y exhala por la boca en 6. Repite durante 5 minutos.',
+        periodicidad: 'Diaria',
+        cantidad: 5,
+        unidad: 'minutos',
+        versionMinima: 'Haz 3 respiraciones lentas.',
+        anclaSugerida: 'AMediaTarde',
+      },
+      {
+        orden: 2,
+        nombre: 'Respiración antes de dormir',
+        instrucciones:
+          'Ya acostado, repite la respiración 4-4-6 durante 2 minutos con las luces apagadas.',
+        periodicidad: 'Diaria',
+        cantidad: 2,
+        unidad: 'minutos',
+        versionMinima: 'Haz 1 respiración lenta al acostarte.',
+        anclaSugerida: 'AntesDeDormir',
+      },
+    ],
+    guiaSemanal: [],
+  },
+  {
+    slug: 'desconexion-digital-nocturna',
+    nombre: 'Desconexión digital nocturna',
+    resumen: '3 semanas para dejar el celular antes de dormir y descansar de verdad.',
+    descripcion:
+      'La pantalla de noche retrasa el sueño. Este plan te ayuda a guardar el celular un rato antes de acostarte y a no revisarlo al despertar en la madrugada.',
+    area: 'Descanso',
+    nivel: 'Basico',
+    intensidad: 'Baja',
+    semanas: 3,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Te duermes antes y con la mente más tranquila',
+      'Menos ganas de revisar el celular a cada rato',
+      'Tiempo de noche para ti o para tu familia',
+    ],
+    avisoSeguridad: 'Es una guía general de bienestar y no sustituye el consejo de tu médico.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Pantallas fuera 30 minutos antes de dormir',
+        instrucciones:
+          'Pon el celular a cargar lejos de la cama y activa el modo no molestar. Lee, conversa o prepara el día siguiente.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Deja el celular 10 minutos antes de dormir.',
+        anclaSugerida: 'AntesDeDormir',
+      },
+      {
+        orden: 2,
+        nombre: 'Cerrar el día sin trabajo',
+        instrucciones:
+          'Después de cenar, no revises el correo ni los grupos del trabajo. Si algo es urgente, te llamarán.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Silencia el grupo del trabajo al cenar.',
+        anclaSugerida: 'AntesDeCenar',
+      },
+    ],
+    guiaSemanal: [],
+  },
+  {
+    slug: 'perder-grasa-sostenible',
+    nombre: 'Perder grasa de forma sostenible',
+    resumen:
+      '12 semanas de hábitos de comida, agua y movimiento, sin extremos y con comida de aquí.',
+    descripcion:
+      'Pequeños cambios que se sostienen: más vegetales en el plato, agua en lugar de refrescos, caminar a diario y cenar temprano. Con plátano, yuca, arroz, habichuelas y aguacate, en las porciones que te sientan bien. Ningún alimento queda fuera.',
+    area: 'ControlDePeso',
+    nivel: 'Regular',
+    intensidad: 'Baja',
+    semanas: 12,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Hábitos que puedes mantener después del plan',
+      'Comida dominicana, sin productos caros',
+      'Más energía y mejor descanso en el camino',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico ni de un nutricionista. No es para el embarazo ni para quien tiene o tuvo un trastorno de la conducta alimentaria. Si tienes la presión alta, o una enfermedad del corazón o de los riñones, consulta a tu médico cuánta agua te conviene tomar.',
+    requiereCuestionario: true,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Tomar agua en lugar de refrescos',
+        instrucciones:
+          'Toma agua con cada comida y entre comidas. Si te gusta con sabor, agrega limón o chinola sin azúcar.',
+        periodicidad: 'Diaria',
+        cantidad: 8,
+        unidad: 'vasos',
+        versionMinima: 'Cambia una bebida con azúcar por un vaso de agua.',
+        anclaSugerida: 'DespuesDelAlmuerzo',
+      },
+      {
+        orden: 2,
+        nombre: 'Caminar a diario',
+        instrucciones:
+          'Camina a buen paso temprano o al caer la tarde. La guía semanal te dice cuánto.',
+        periodicidad: 'Diaria',
+        cantidad: 20,
+        unidad: 'minutos',
+        versionMinima: 'Camina 5 minutos.',
+        anclaSugerida: 'AlSalirDelTrabajo',
+      },
+      {
+        orden: 3,
+        nombre: 'Mitad del plato con vegetales',
+        instrucciones:
+          'En el almuerzo, llena la mitad del plato con vegetales o ensalada, un cuarto con arroz o víveres y un cuarto con habichuelas, pollo, huevo o pescado.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'comidas',
+        versionMinima: 'Agrega un vegetal a tu almuerzo.',
+        anclaSugerida: 'DespuesDelAlmuerzo',
+      },
+      {
+        orden: 4,
+        nombre: 'Cenar temprano',
+        instrucciones:
+          'Cena al menos 2 horas antes de acostarte, algo ligero que te deje dormir bien.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Cena 1 hora antes de acostarte.',
+        anclaSugerida: 'AntesDeCenar',
+      },
+    ],
+    guiaSemanal: [
+      {
+        semana: 1,
+        texto: 'Empieza por el agua y la caminata. La comida, igual que siempre.',
+      },
+      {
+        semana: 2,
+        texto: 'Mitad del plato con vegetales en el almuerzo.',
+      },
+      {
+        semana: 3,
+        texto: 'Cambia un refresco o un jugo con azúcar por agua o agua con limón.',
+      },
+      {
+        semana: 4,
+        texto: 'Caminata de 25 minutos. Cena al menos 2 horas antes de dormir.',
+      },
+      {
+        semana: 5,
+        texto: 'Repite lo que funcionó. Si una semana fue difícil, vuelve a la versión mínima.',
+      },
+      {
+        semana: 6,
+        texto: 'Mitad del plato con vegetales también en la cena.',
+      },
+      {
+        semana: 7,
+        texto: 'Caminata de 30 minutos o dos de 15.',
+      },
+      {
+        semana: 8,
+        texto: 'Come despacio: deja el tenedor entre bocado y bocado.',
+      },
+      {
+        semana: 9,
+        texto: 'Lleva fruta para la media tarde: mango, guineo o lo que haya en temporada.',
+      },
+      {
+        semana: 10,
+        texto: 'Añade un día de caminata más larga, de 40 minutos.',
+      },
+      {
+        semana: 11,
+        texto: 'Revisa tus hábitos: quédate con los que ya son automáticos.',
+      },
+      {
+        semana: 12,
+        texto: 'Cierra el plan con lo que mantendrás de aquí en adelante.',
+      },
+    ],
+  },
+  {
+    slug: 'reducir-estres',
+    nombre: 'Reducir el estrés',
+    resumen:
+      '21 días de prácticas cortas: respiración, pausas en la jornada y unas líneas escritas al final del día.',
+    descripcion:
+      'Un programa de 3 semanas para bajar el ritmo sin dejar de trabajar. Cada semana suma una práctica nueva y todas caben en menos de 10 minutos.',
+    area: 'Estres',
+    nivel: 'Regular',
+    intensidad: 'Baja',
+    semanas: 3,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Prácticas guiadas de 5 a 10 minutos',
+      'Pausas que caben en la jornada',
+      'Un registro breve de cómo te sientes',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico ni la atención de salud mental. Si te sientes desbordado, busca ayuda profesional.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Respiración de 5 minutos',
+        instrucciones: 'Inhala en 4 tiempos, sostén 4 y exhala en 6, durante 5 minutos.',
+        periodicidad: 'Diaria',
+        cantidad: 5,
+        unidad: 'minutos',
+        versionMinima: 'Haz 3 respiraciones lentas.',
+        anclaSugerida: 'AMediaManana',
+      },
+      {
+        orden: 2,
+        nombre: 'Pausa para desconectar',
+        instrucciones: '3 minutos lejos de la pantalla: camina, estírate o mira algo lejano.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'pausas',
+        versionMinima: 'Cierra los ojos 30 segundos.',
+        anclaSugerida: 'AMediaTarde',
+      },
+      {
+        orden: 3,
+        nombre: 'Tres líneas al final del día',
+        instrucciones:
+          'Escribe en papel o en el celular qué salió bien hoy y qué dejas para mañana. No guardes aquí datos sensibles.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Escribe una sola línea.',
+        anclaSugerida: 'AntesDeDormir',
+      },
+    ],
+    guiaSemanal: [
+      {
+        semana: 1,
+        texto: 'Respiración de 5 minutos a media mañana.',
+      },
+      {
+        semana: 2,
+        texto:
+          'Añade una pausa de 3 minutos a media tarde: camina, estírate o mira por la ventana.',
+      },
+      {
+        semana: 3,
+        texto: 'Añade 3 líneas escritas antes de dormir: qué salió bien y qué te preocupa.',
+      },
+    ],
+  },
+  {
+    slug: 'dormir-mejor',
+    nombre: 'Dormir mejor',
+    resumen:
+      '4 semanas para un sueño constante: horario fijo, luz de mañana, menos café de tarde y menos pantallas.',
+    descripcion:
+      'Las personas adultas necesitan de 7 a 9 horas de sueño. Este plan no te obliga a dormir más de golpe: ajusta tu horario poco a poco y cuida lo que pasa antes de acostarte.',
+    area: 'Descanso',
+    nivel: 'Regular',
+    intensidad: 'Baja',
+    semanas: 4,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: false,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Un horario de sueño con recordatorio',
+      'Hábitos para desconectar antes de dormir',
+      'Te levantas con más energía',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Si roncas fuerte o te despiertas sin aire, consulta a tu médico.',
+    requiereCuestionario: false,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Acostarte a tu hora',
+        instrucciones:
+          'Acuéstate a la hora que elegiste, también los fines de semana, con un margen de media hora.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Acuéstate 15 minutos antes que ayer.',
+        anclaSugerida: 'AntesDeDormir',
+      },
+      {
+        orden: 2,
+        nombre: 'Luz de la mañana',
+        instrucciones: 'Recibe 10 minutos de luz natural al poco de despertar, sin lentes oscuros.',
+        periodicidad: 'Diaria',
+        cantidad: 10,
+        unidad: 'minutos',
+        versionMinima: 'Abre la ventana al despertar.',
+        anclaSugerida: 'AlDespertar',
+      },
+      {
+        orden: 3,
+        nombre: 'Sin café después de media tarde',
+        instrucciones:
+          'Deja el café, el té negro y las bebidas energéticas para antes de las 3 de la tarde.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Toma medio café en lugar de uno entero.',
+        anclaSugerida: 'AMediaTarde',
+      },
+      {
+        orden: 4,
+        nombre: 'Pantallas fuera antes de dormir',
+        instrucciones: 'Deja el celular cargando lejos de la cama 30 minutos antes de dormir.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Deja el celular 10 minutos antes de dormir.',
+        anclaSugerida: 'AntesDeDormir',
+      },
+    ],
+    guiaSemanal: [
+      {
+        semana: 1,
+        texto: 'Elige una hora fija para acostarte y respétala 5 de 7 días.',
+      },
+      {
+        semana: 2,
+        texto: 'Sal 10 minutos a la luz de la mañana.',
+      },
+      {
+        semana: 3,
+        texto: 'Último café antes de las 3 de la tarde.',
+      },
+      {
+        semana: 4,
+        texto: 'Pantallas fuera 30 minutos antes de dormir.',
+      },
+    ],
+  },
+  {
+    slug: 'primeros-5-km',
+    nombre: 'Primeros 5 km',
+    resumen:
+      '8 semanas para pasar de caminar a correr 5 km seguidos, combinando trote suave y caminata.',
+    descripcion:
+      'Tres salidas por semana de 25 a 35 minutos. La carga sube poco a poco para evitar lesiones. Sal temprano o al caer la tarde, nunca bajo el sol del mediodía.',
+    area: 'Energia',
+    nivel: 'Regular',
+    intensidad: 'Media',
+    semanas: 8,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: null,
+    impacto: true,
+    zonasCorporales: [],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Sesiones de 25 a 35 minutos con calentamiento incluido',
+      'La carga sube poco a poco para evitar lesiones',
+      'Tu racha y tu avance semanal siempre a la vista',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Correr es una actividad de impacto: si tienes molestias en las rodillas o alguna condición del corazón, consulta antes. Lleva agua y evita las horas de más calor.',
+    requiereCuestionario: true,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Salida de trote y caminata',
+        instrucciones:
+          '5 minutos de caminata para calentar, la combinación de la semana según la guía y 5 minutos de caminata para terminar.',
+        periodicidad: 'Semanal',
+        cantidad: 3,
+        unidad: 'salidas',
+        versionMinima: 'Camina 10 minutos a buen paso.',
+        anclaSugerida: 'AlSalirDelTrabajo',
+      },
+      {
+        orden: 2,
+        nombre: 'Estirar después de correr',
+        instrucciones: '5 minutos de estiramiento de piernas y espalda al volver, sin rebotes.',
+        periodicidad: 'Semanal',
+        cantidad: 3,
+        unidad: 'veces',
+        versionMinima: 'Estira las piernas 1 minuto.',
+        anclaSugerida: 'AntesDeCenar',
+      },
+    ],
+    guiaSemanal: [
+      {
+        semana: 1,
+        texto: '1 minuto de trote y 2 de caminata, 8 veces.',
+      },
+      {
+        semana: 2,
+        texto: '2 minutos de trote y 2 de caminata, 6 veces.',
+      },
+      {
+        semana: 3,
+        texto: '3 minutos de trote y 1 de caminata, 6 veces.',
+      },
+      {
+        semana: 4,
+        texto: '5 minutos de trote y 2 de caminata, 4 veces.',
+      },
+      {
+        semana: 5,
+        texto: '8 minutos de trote y 2 de caminata, 3 veces.',
+      },
+      {
+        semana: 6,
+        texto: '10 minutos de trote y 1 de caminata, 3 veces.',
+      },
+      {
+        semana: 7,
+        texto: '15 minutos de trote, 2 de caminata y 10 de trote.',
+      },
+      {
+        semana: 8,
+        texto: 'Trote suave de 30 minutos o 5 km, lo que llegue primero.',
+      },
+    ],
+  },
+  {
+    slug: 'ganar-masa-muscular',
+    nombre: 'Ganar masa muscular',
+    resumen:
+      '12 semanas de fuerza en el gimnasio por grupos musculares, con progresión de cargas, proteína y descanso.',
+    descripcion:
+      'Cuatro entrenamientos por semana: piernas y glúteos, espalda, pecho y hombros, y core. Cada semana la guía te dice cuándo subir la carga. Sin suplementos: con la comida de casa alcanza.',
+    area: 'Gimnasio',
+    nivel: 'Regular',
+    intensidad: 'Media',
+    semanas: 12,
+    sexo: 'Todos',
+    edadMinima: 18,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: 'Gimnasio',
+    impacto: false,
+    zonasCorporales: ['AbdomenYCore', 'GluteosYPiernas', 'BrazosYHombros', 'Espalda'],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Rutinas por grupo muscular con series y descansos',
+      'Registro de tus entrenamientos para ver tu avance',
+      'Hábito diario de proteína y descanso',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico ni de un entrenador. Aprende la técnica con poca carga y para si sientes dolor. No es para menores de 18 años.',
+    requiereCuestionario: true,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Entrenamiento de fuerza',
+        instrucciones:
+          'Día 1: sentadilla, prensa y puente de glúteos. Día 2: remo, jalón y plancha. Día 3: press de pecho, press de hombros y fondos asistidos. Día 4: peso muerto rumano, zancadas y abdominales. Series y repeticiones según la guía.',
+        periodicidad: 'Semanal',
+        cantidad: 4,
+        unidad: 'sesiones',
+        versionMinima: 'Haz 1 serie de cada ejercicio del día.',
+        anclaSugerida: 'AlSalirDelTrabajo',
+      },
+      {
+        orden: 2,
+        nombre: 'Proteína en cada comida',
+        instrucciones:
+          'Incluye habichuelas, huevo, pollo, pescado, queso o yogur en el desayuno, el almuerzo y la cena, según lo que te siente bien.',
+        periodicidad: 'Diaria',
+        cantidad: 3,
+        unidad: 'comidas',
+        versionMinima: 'Agrega proteína a una comida.',
+        anclaSugerida: 'DespuesDelAlmuerzo',
+      },
+      {
+        orden: 3,
+        nombre: 'Dormir para recuperarte',
+        instrucciones: 'Acuéstate a una hora fija para dormir de 7 a 9 horas.',
+        periodicidad: 'Diaria',
+        cantidad: 1,
+        unidad: 'veces',
+        versionMinima: 'Acuéstate 15 minutos antes que ayer.',
+        anclaSugerida: 'AntesDeDormir',
+      },
+    ],
+    guiaSemanal: [
+      {
+        semana: 1,
+        texto: 'Aprende la técnica: 3 series de 12 con poca carga.',
+      },
+      {
+        semana: 2,
+        texto: 'Igual que la semana 1, con descansos de 90 segundos.',
+      },
+      {
+        semana: 3,
+        texto: 'Sube la carga un poco si las 12 repeticiones salen fáciles.',
+      },
+      {
+        semana: 4,
+        texto: 'Semana de descarga: la mitad de las series.',
+      },
+      {
+        semana: 5,
+        texto: '4 series de 10 repeticiones.',
+      },
+      {
+        semana: 6,
+        texto: 'Sube la carga en los ejercicios de piernas.',
+      },
+      {
+        semana: 7,
+        texto: '4 series de 10 con la nueva carga.',
+      },
+      {
+        semana: 8,
+        texto: 'Semana de descarga: la mitad de las series.',
+      },
+      {
+        semana: 9,
+        texto: '4 series de 8 con más carga.',
+      },
+      {
+        semana: 10,
+        texto: 'Mantén la carga y mejora la técnica.',
+      },
+      {
+        semana: 11,
+        texto: 'Última subida de carga si la técnica es correcta.',
+      },
+      {
+        semana: 12,
+        texto: 'Repite tus mejores sesiones y cierra el plan.',
+      },
+    ],
+  },
+  {
+    slug: 'fuerza-en-casa',
+    nombre: 'Fuerza en casa',
+    resumen: '6 semanas de ejercicios con tu propio peso, sin equipo, en sesiones de 20 minutos.',
+    descripcion:
+      'Tres sesiones por semana en la sala de tu casa. Si quieres más carga, un galón de agua o una mochila con libros sirven de pesa. La técnica va explicada paso a paso.',
+    area: 'Gimnasio',
+    nivel: 'Regular',
+    intensidad: 'Baja',
+    semanas: 6,
+    sexo: 'Todos',
+    edadMinima: 16,
+    edadMaxima: 100,
+    perfilesLaborales: [],
+    lugar: 'CasaSinEquipo',
+    impacto: false,
+    zonasCorporales: ['AbdomenYCore', 'GluteosYPiernas', 'BrazosYHombros'],
+    contraindicaciones: [],
+    alergenos: [],
+    beneficios: [
+      'Sesiones de 20 minutos con tu propio peso',
+      'Técnica explicada paso a paso',
+      'Progresión semanal clara',
+    ],
+    avisoSeguridad:
+      'Es una guía general de bienestar y no sustituye el consejo de tu médico. Para si sientes dolor y empieza con pocas repeticiones.',
+    requiereCuestionario: true,
+    tareas: [
+      {
+        orden: 1,
+        nombre: 'Rutina con tu propio peso',
+        instrucciones:
+          'Sentadillas, flexiones (con las rodillas apoyadas si hace falta), plancha y puente de glúteos, en rondas según la guía. 5 minutos de calentamiento antes.',
+        periodicidad: 'Semanal',
+        cantidad: 3,
+        unidad: 'sesiones',
+        versionMinima: 'Haz 1 ronda de cada ejercicio.',
+        anclaSugerida: 'AlSalirDelTrabajo',
+      },
+    ],
+    guiaSemanal: [
+      {
+        semana: 1,
+        texto:
+          '2 rondas de 8 sentadillas, 6 flexiones apoyando las rodillas y 20 segundos de plancha.',
+      },
+      {
+        semana: 2,
+        texto: '3 rondas con las mismas repeticiones.',
+      },
+      {
+        semana: 3,
+        texto: '3 rondas de 10 sentadillas, 8 flexiones y 30 segundos de plancha.',
+      },
+      {
+        semana: 4,
+        texto: 'Añade 10 puentes de glúteos por ronda.',
+      },
+      {
+        semana: 5,
+        texto: '3 rondas de 12 sentadillas, 10 flexiones y 40 segundos de plancha.',
+      },
+      {
+        semana: 6,
+        texto: '4 rondas a tu ritmo y cierra el plan.',
+      },
+    ],
+  },
+]

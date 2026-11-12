@@ -4,12 +4,8 @@ import { useForm, useWatch } from 'react-hook-form'
 import { Link, useSearchParams } from 'react-router'
 import { z } from 'zod'
 import { consentimientoSchema, guardarRegistroPendiente } from '@/features/perfil/api'
-import {
-  buscarMeta,
-  RUTAS_LEGALES,
-  VERSION_PRIVACIDAD,
-  VERSION_TERMINOS,
-} from '@/features/publico/api'
+import { esSlugPlan, usePlanResumen } from '@/features/planes/api'
+import { RUTAS_LEGALES, VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/publico/api'
 import { esErrorHttp, mensajeDeError } from '@/shared/api/problem'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
@@ -44,7 +40,8 @@ export function RegisterPage() {
   const registro = useRegistro()
   const alertaError = useRef<HTMLDivElement>(null)
   const [params] = useSearchParams()
-  const meta = buscarMeta(params.get('meta'))
+  const metaUrl = params.get('meta')
+  const { plan: meta } = usePlanResumen(metaUrl)
 
   const {
     register,
@@ -97,7 +94,9 @@ export function RegisterPage() {
             terminosVersion: VERSION_TERMINOS,
             privacidadVersion: VERSION_PRIVACIDAD,
             marketing: datos.marketing,
-            metaSlug: meta?.slug ?? null,
+            // Por formato: si el catálogo tarda o falla, la persona no pierde el plan elegido. Existe o no en el
+            // catálogo lo comprueba el onboarding.
+            metaSlug: esSlugPlan(metaUrl) ? metaUrl : null,
             // Peso, altura, edad y sexo de la calculadora son datos de salud: no se guardan en el navegador. El
             // onboarding ya no los pide (P1); se piden en Perfil y salud cuando un plan los necesita.
             datosCorporales: null,
