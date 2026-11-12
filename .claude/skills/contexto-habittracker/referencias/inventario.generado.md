@@ -42,6 +42,12 @@
 | HabitsController | POST | `/api/habits/{id:guid}/transition` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/progress` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/advanced-reconfig` | rol Estandar |
+| MyPlansController | POST | `/api/my-plans` | rol Estandar |
+| MyPlansController | GET | `/api/my-plans` | rol Estandar |
+| MyPlansController | GET | `/api/my-plans/{id:guid}` | rol Estandar |
+| MyPlansController | POST | `/api/my-plans/{id:guid}/transition` | rol Estandar |
+| MyPlansController | POST | `/api/my-plans/{id:guid}/adjust` | rol Estandar |
+| MyPlansController | PUT | `/api/my-plans/{id:guid}/reminder` | rol Estandar |
 | PermissionsController | POST | `/api/permissions` | autenticado |
 | PermissionsController | GET | `/api/permissions` | autenticado |
 | PermissionsController | GET | `/api/permissions/effective/{permiso}` | autenticado |
@@ -69,12 +75,15 @@
 | ProgressController | POST | `/api/progress/weights` | rol Estandar |
 | ProgressController | GET | `/api/progress/measurements` | rol Estandar |
 | ProgressController | POST | `/api/progress/measurements` | rol Estandar |
+| TodayController | GET | `//api/today` | rol Estandar |
+| TodayController | GET | `//api/progress/summary` | rol Estandar |
+| TodayController | POST | `//api/progress/achievements/seen` | rol Estandar |
 
 ## Migraciones por contexto
 
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
 ## Proyectos de prueba (backend)
@@ -87,14 +96,14 @@
 | DocumentManager.Application.Tests | 1 | 30 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 4 | 25 | 7 |
-| HabitTracker.Application.Tests | 4 | 58 | 5 |
-| HabitTracker.Domain.Tests | 7 | 79 | 18 |
-| HabitTracker.Integration.Tests | 7 | 38 | 4 |
+| HabitTracker.Api.Tests | 5 | 33 | 10 |
+| HabitTracker.Application.Tests | 5 | 93 | 7 |
+| HabitTracker.Domain.Tests | 9 | 139 | 26 |
+| HabitTracker.Integration.Tests | 9 | 57 | 4 |
 | Permissions.Application.Tests | 1 | 7 | 1 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 2 | 6 | 1 |
-| **Total** | | **651** | **98** |
+| **Total** | | **773** | **111** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -105,6 +114,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `ParticipanteHabitos.cs`: `class ParticipanteHabitos(IHabitoService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePerfilSalud.cs`: `class ParticipantePerfilSalud(IDatosPerfilSaludService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePermisos.cs`: `class ParticipantePermisos(ISolicitudPermisoService servicio) : IParticipanteDatosUsuario`
+- `ParticipantePlanes.cs`: `class ParticipantePlanes(IDatosPlanesService servicio) : IParticipanteDatosUsuario`
 - `PermisoServiceAdapter.cs`: `class PermisoServiceAdapter(ISolicitudPermisoService solicitudPermisoService) : IPermisoService`
 
 ## Workers (BackgroundService)
@@ -134,4 +144,4 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 ## Contenido del módulo de negocio
 
 - `Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/catalogo-planes.json`: 13 planes
-- `mensajes-motivacion.json`: aún no existe (Fase 4)
+- `Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/mensajes-motivacion.json`: 33 mensajes

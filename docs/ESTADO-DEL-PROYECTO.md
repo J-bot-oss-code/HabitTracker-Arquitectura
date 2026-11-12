@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 12-11-2026, Fase 3b del plan HabitTracker v2 (frontend del catálogo de planes y del recomendador). Antes, el 09-11-2026, la Fase 3a (backend del catálogo de 13 planes y del recomendador) y, el 08-11-2026, la Fase 2b (frontend de perfil y salud conectado) y la Fase 2a (backend de perfil, salud cifrada y progreso corporal). Antes, ese mismo día, la Fase 1 (cimientos), y el 07-11-2026 la Fase 0 (skill de contexto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
+> Última actualización: 12-11-2026, Fase 4a del plan HabitTracker v2 (backend de Mis planes, check-in diario y adherencia). Antes, ese mismo día, la Fase 3b (frontend del catálogo) y, el 09-11-2026, la Fase 3a (backend del catálogo de 13 planes y del recomendador) y, el 08-11-2026, la Fase 2b (frontend de perfil y salud conectado) y la Fase 2a (backend de perfil, salud cifrada y progreso corporal). Antes, ese mismo día, la Fase 1 (cimientos), y el 07-11-2026 la Fase 0 (skill de contexto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
 > **Al iniciar una sesión, usa la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/`): rutas, contratos, recetas y requisitos sin leer el repositorio entero. Reglas de trabajo en `AGENTS.md`; guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -11,7 +11,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 |---|---|---|
 | AccessControl | Completo: registro + activación con código, JWT de 15 min + refresh en cookie, Google, bloqueo, contraseñas reforzadas, consentimientos, baja y descarga de datos, administración y cola de correos | `docs/historial/control-acceso-v2.md` |
 | Permissions | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada` | P2 |
-| HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`, 6 endpoints en `api/habits`), perfil en dos niveles, cuestionario de salud cifrado y progreso corporal (`api/profile`, `api/progress`), catálogo de planes y recomendador (`api/plans`), y `plan-del-dia`. **En evolución:** plan v2, Fases 0, 1, 2 y 3 hechas | `docs/historial/habittracker-v2.md` |
+| HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`, 6 endpoints en `api/habits`), perfil en dos niveles, cuestionario de salud cifrado y progreso corporal (`api/profile`, `api/progress`), catálogo de planes y recomendador (`api/plans`), Mis planes con pausas, ajustes, logros y mensajes (`api/my-plans`, `api/today`, `api/progress/summary`), y `plan-del-dia`. **En evolución:** plan v2, Fases 0 a 3 y 4a hechas | `docs/historial/habittracker-v2.md` |
 | DocumentManager | Completo para la P4 (RF-DOC-01 a 05) | `docs/historial/practica-4.md` |
 | Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | — |
 | Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, y el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`). Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
@@ -35,7 +35,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **1029** pruebas (medido el 09-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Backend:** `dotnet test` ejecuta **1214** pruebas (medido el 12-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
 - **Frontend:** `cd frontend && npm test` ejecuta **692** pruebas en 53 archivos (medido el 12-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
@@ -53,8 +53,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 - **`ValueGeneratedNever`** en toda entidad hija con Id asignado por el dominio (como `RegistroDiario.Id`). Sin esto, EF emite UPDATE en vez de INSERT y la API responde 500.
 - **Enums como texto** (`JsonStringEnumConverter`); también se aceptan números.
-- **Errores:** `ProblemDetails` con mensaje genérico (RD-08) y una extensión `codigo` estable en Control de Acceso (tabla en el README) y en HabitTracker (`habito_no_encontrado` 404, `fecha_futura` y `meta_no_encontrada` 400). Las transiciones prohibidas del hábito siguen siendo un 400 genérico, para no tocar las suites de la P3. `UnauthorizedAccessException` responde 403 con sesión y 401 sin ella.
-- **Transiciones en un solo punto:** `TransicionesHabito.EsTransicionValida` y `TransicionesSolicitudPermiso`. Reconfigurar un hábito inicia un ciclo nuevo y conserva el historial.
+- **Errores:** `ProblemDetails` con mensaje genérico (RD-08) y una extensión `codigo` estable en Control de Acceso (tabla en el README) y en HabitTracker (`habito_no_encontrado`, `plan_usuario_no_encontrado` y `plan_no_encontrado` 404; `fecha_futura`, `plan_no_apto`, `limite_planes`, `plan_ya_activo`, `transicion_plan_invalida`… 400). Las transiciones prohibidas del hábito siguen siendo un 400 genérico, para no tocar las suites de la P3. `UnauthorizedAccessException` responde 403 con sesión y 401 sin ella.
+- **Transiciones en un solo punto:** `TransicionesHabito.EsTransicionValida`, `TransicionesPlanUsuario` y `TransicionesSolicitudPermiso`. Reconfigurar un hábito inicia un ciclo nuevo y conserva el historial.
 - **Módulos conectados por puertos:** la interfaz vive en el `Application` de quien la usa y la implementa un adaptador en `Host/WebApi/Adapters/` (`PermisoServiceAdapter`, `IParticipanteDatosUsuario` para la baja y la descarga). Ningún módulo lee tablas de otro.
 - **Plan HabitTracker v2** (07-11-2026):
   - Básico y Regular se distinguen por su estructura.
@@ -62,6 +62,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
   - Cifrado en reposo con Data Protection.
   - Principios P1–P8.
   - El piloto (Fase 6) decide las Fases 7–9.
+- **Adherencia (Fase 4a):** `CalculadoraProgreso` es la única definición de racha y cumplimiento y mide por el **día local** del perfil (`CumpleMetaFinal` sigue en UTC, regla de la P3). Un plan con tareas diarias se mide en días y uno solo semanal, en semanas; un día sin registro no corta la racha y dos seguidos sí; las pausas no cuentan. Los ajustes se sugieren, nunca se aplican solos, y los logros no reciben peso ni medidas.
 
 ## 6. Deuda técnica conocida
 
@@ -69,7 +70,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 2. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
 3. Dentro de Docker, `RemoteIpAddress` es la IP de la pasarela, así que todos los clientes comparten el cupo del limitador de peticiones (hasta configurar `ForwardedHeaders` con `KnownProxies`). Desde la Fase 3 importa más: la política `catalogo` recibe todo el tráfico anónimo de la landing. *(Fase 6.)*
 4. `webapi` no tiene healthcheck. *(Fase 6.)*
-5. `.github/PULL_REQUEST_TEMPLATE.md` contiene una PR rellenada en lugar de una plantilla con las 4 secciones.
+5. El límite de 3 planes en curso se comprueba en el servicio: dos peticiones simultáneas podrían pasarlo (solo el mismo plan repetido lo impide la base). `MarcarLogrosVistos` marca todos los logros y una zona horaria desconocida cae a UTC sin avisar (tzdata en Docker, Fase 6).
+6. `.github/PULL_REQUEST_TEMPLATE.md` contiene una PR rellenada en lugar de una plantilla con las 4 secciones.
 
 ## 7. Flujo de trabajo
 
@@ -94,7 +96,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 9. Próximos pasos
 
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
-  - Fases 0 a 3 hechas → Fases 4 y 5, el corte vertical (siguiente: Fase 4, Mis planes: inscripción, check-in diario, adherencia y logros);
+  - Fases 0 a 3 y 4a hechas → Fases 4b y 5, el corte vertical (siguiente: Fase 4b, el frontend de Mis planes: inscribirse, Hoy con «Hecho» y «Hoy solo lo mínimo», progreso y logros);
   - Fase 6, producción, métricas y piloto;
   - las Fases 7–9 dependen del informe del piloto.
 - **Pendiente de decidir antes de la Fase 6:** dónde se hospeda el piloto. El CD está pendiente y Vercel no hospeda .NET.
