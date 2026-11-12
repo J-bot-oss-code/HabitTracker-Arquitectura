@@ -48,6 +48,16 @@ public static class HabitTrackerModuleExtensions
         services.AddScoped<IPlanesService, PlanesService>();
         services.AddScoped<SembradorCatalogoPlanes>();
 
+        // Mis planes, Hoy, constancia, logros y mensajes de motivación (Fase 4). El contenido de los mensajes se lee una vez.
+        services.AddScoped<IPlanUsuarioRepository, PlanUsuarioRepository>();
+        services.AddScoped<ILogroUsuarioRepository, LogroUsuarioRepository>();
+        services.AddSingleton<ICatalogoMensajes, CatalogoMensajes>();
+        services.AddScoped<IPlanUsuarioService, PlanUsuarioService>();
+        services.AddScoped<ILogrosService, LogrosService>();
+        services.AddScoped<IHoyService, HoyService>();
+        services.AddScoped<IResumenProgresoService, ResumenProgresoService>();
+        services.AddScoped<IDatosPlanesService, DatosPlanesService>();
+
         // Plan del día: usa la API externa de clima (la clave llega por la variable OPENWEATHER_API_KEY).
         services.AddScoped<IPlanDelDiaService, PlanDelDiaService>();
         services.AddServicioClimaOpenWeather(configuration);

@@ -1,3 +1,4 @@
+using HabitTracker.Domain.Adherencia;
 using HabitTracker.Domain.Entities;
 using HabitTracker.Domain.Perfil;
 using HabitTracker.Domain.Planes;
@@ -27,6 +28,10 @@ public class HabitTrackerDbContext : DbContext
 
     // Fase 3: catálogo de planes (lo escribe solo el sembrador al arrancar).
     public DbSet<PlanPlantilla> PlanesPlantilla { get; set; } = null!;
+
+    // Fase 4: los planes de cada persona, su constancia y sus logros.
+    public DbSet<PlanUsuario> PlanesUsuario { get; set; } = null!;
+    public DbSet<LogroUsuario> LogrosUsuario { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

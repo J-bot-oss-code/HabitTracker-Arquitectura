@@ -27,6 +27,8 @@ public sealed class RecursoNoEncontradoException(string codigo, string mensaje) 
     public const string PerfilNoEncontrado = "perfil_no_encontrado";
     /// <summary>No hay un plan activo del catálogo con ese slug.</summary>
     public const string PlanNoEncontrado = "plan_no_encontrado";
+    /// <summary>No existe un plan en curso o terminado de esta persona con ese id (o es de otra persona).</summary>
+    public const string PlanUsuarioNoEncontrado = "plan_usuario_no_encontrado";
 }
 
 /// <summary>Una regla de negocio rechaza la operación (HTTP 400). Ejemplos: <c>fecha_futura</c>, <c>meta_no_encontrada</c>.</summary>
@@ -36,6 +38,17 @@ public sealed class ReglaNegocioException(string codigo, string mensaje) : Habit
     public const string MetaNoEncontrada = "meta_no_encontrada";
     /// <summary>La operación necesita el perfil (por ejemplo, fijar un peso objetivo) y todavía no existe.</summary>
     public const string PerfilRequerido = "perfil_requerido";
+    /// <summary>El plan no es para la persona (edad, sexo, intensidad, alérgenos…). Lo decide <c>ReglasSeguridadPlanes</c>.</summary>
+    public const string PlanNoApto = "plan_no_apto";
+    /// <summary>Faltan bloques del cuestionario de salud que el plan necesita.</summary>
+    public const string CuestionarioIncompleto = "cuestionario_incompleto";
+    public const string LimitePlanes = "limite_planes";
+    public const string PlanYaActivo = "plan_ya_activo";
+    public const string LimiteExtensiones = "limite_extensiones";
+    public const string TransicionPlanInvalida = "transicion_plan_invalida";
+    public const string PlanAunNoTermina = "plan_aun_no_termina";
+    public const string AjusteNoDisponible = "ajuste_no_disponible";
+    public const string VersionMinimaNoDisponible = "version_minima_no_disponible";
 }
 
 /// <summary>

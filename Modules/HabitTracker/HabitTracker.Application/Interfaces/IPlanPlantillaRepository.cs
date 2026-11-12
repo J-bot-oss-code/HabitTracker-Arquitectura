@@ -10,4 +10,10 @@ public interface IPlanPlantillaRepository
 
     /// <summary>Plan activo con ese slug, o null.</summary>
     Task<PlanPlantilla?> ObtenerActivoPorSlugAsync(string slug, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Las plantillas con esos slugs, activas o retiradas: un plan en curso conserva su guía semanal aunque la plantilla
+    /// salga del catálogo. Una sola consulta para toda la lista de planes de una persona.
+    /// </summary>
+    Task<IReadOnlyList<PlanPlantilla>> ObtenerPorSlugsAsync(IReadOnlyCollection<string> slugs, CancellationToken cancellationToken = default);
 }

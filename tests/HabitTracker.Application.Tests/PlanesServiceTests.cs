@@ -43,6 +43,9 @@ public class PlanesServiceTests
         public Task<IReadOnlyList<PlanPlantilla>> ListarActivosAsync(CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<PlanPlantilla>>([.. planes.Where(p => p.Activo)]);
 
+        public Task<IReadOnlyList<PlanPlantilla>> ObtenerPorSlugsAsync(IReadOnlyCollection<string> slugs, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<PlanPlantilla>>([.. planes.Where(p => slugs.Contains(p.Slug))]);
+
         public Task<PlanPlantilla?> ObtenerActivoPorSlugAsync(string slug, CancellationToken cancellationToken = default) =>
             Task.FromResult(planes.FirstOrDefault(p => p.Activo && p.Slug == slug));
     }

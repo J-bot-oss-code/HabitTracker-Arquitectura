@@ -340,3 +340,45 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
     - confirmar antes de cambiar de plan, porque reinicia la semana del plan;
     - foco tras elegir un plan y título de pestaña con el nombre del plan.
 - **Lección de entorno:** Vitest falla en todas las suites si la terminal abre `frontend/` con la unidad en minúscula (`c:\`), porque carga `vitest` dos veces. Se ejecuta desde `C:\` en mayúscula.
+
+## Fase 4a: mis planes, check-in diario y adherencia en el backend (`feature/habittracker-mis-planes`, 12-11-2026)
+
+- **Dominio:**
+  - `Planes/PlanUsuario.cs`: el plan de una persona, su `PeriodoPausa` (inicio, fin y motivo) y `TransicionesPlanUsuario`, **el único punto de la máquina**: `Activo ⇄ Pausado`, y `Completado` (solo desde Activo y al llegar a su fin) o `Cancelado` como terminales. Extender y activar el modo suave no son transiciones.
+  - `Planes/ResolvedorAncla.cs`: ancla + jornada → hora local sugerida (el turno nocturno tiene sus valores).
+  - `Adherencia/CalculadoraProgreso.cs`, **la única definición de racha y cumplimiento**:
+    - un plan con al menos una tarea diaria se mide en días; uno que solo tiene tareas semanales se mide en **semanas** (`UnidadSeguimiento.Semanas`): los días vacíos entre sesiones son lo esperado, no un fallo;
+    - un día o una semana sin registro no corta la racha y dos seguidos sí; una pausa justificada no cuenta ni corta;
+    - el modo suave convierte la versión mínima en un día completo.
+  - `Adherencia/SugeridorAjuste.cs` (4 o más días sin registro en los últimos 7 → modo suave, extender o pausar; **nunca se aplica solo**), `CalculadoraLogros.cs` (su firma no recibe peso ni medidas) y `Motivacion/SelectorMensajesMotivacion.cs` (determinista con FNV-1a sobre el `Guid` del usuario y el día local; con 2 o más días sin registro, mensaje de regreso).
+  - `Habito` gana `PlanUsuarioId`, `Descripcion`, `VersionMinima`, `Ancla` y `PausadoPorPlan`: al reanudar un plan solo vuelven los hábitos que el plan pausó. `RegistroDiario` gana `EsVersionMinima`.
+- **Application:** `IPlanUsuarioService`, `IHoyService`, `IResumenProgresoService`, `ILogrosService` e `IDatosPlanesService` (exportar y borrar), con los puertos de `IPlanUsuarioPuertos.cs`. `ConflictoDeUnicidadException` es la excepción propia de Application para una violación de unicidad, de modo que el servicio no conoce a EF.
+- **Infrastructure:** `mensajes-motivacion.json` (33 mensajes en 6 categorías, recurso embebido, ≤160 caracteres) y `CatalogoMensajes`; repositorios de planes y logros; `HabitTrackerUnitOfWork` traduce la violación de un índice único a `ConflictoDeUnicidadException`.
+- **API (rol `Estandar`, identidad del token, 404 con cuerpo para lo ajeno):**
+  - `POST /api/my-plans` (201), `GET /api/my-plans`, `GET /api/my-plans/{id}`, `POST .../transition`, `POST .../adjust` y `PUT .../reminder`;
+  - `GET /api/today`, `GET /api/progress/summary` y `POST /api/progress/achievements/seen`;
+  - `POST /api/habits/{id}/progress` acepta `esVersionMinima`.
+  - `ParticipantePlanes` (sección `planes`) exporta y borra los planes, las pausas y los logros con la descarga y la baja de cuenta.
+- **Migración `AgregarPlanesUsuario`:** `PlanesUsuario`, `PeriodosPausa` y `LogrosUsuario` (único por persona y clave), las columnas nuevas de `Habitos` (FK a `PlanesUsuario` en `SetNull`) y `RegistrosDiarios.EsVersionMinima`.
+- **Decisiones tomadas al implementar:**
+  - **La adherencia se mide por el día local,** con la zona del perfil. `Habito.CumpleMetaFinal` sigue usando el día UTC (regla de la P3, no se toca); la diferencia solo afecta a la transición del hábito a Completado y queda documentada.
+  - **Las pausas se miden en días locales,** y `Reanudar` agrega al final del plan exactamente los mismos días que `CalculadoraProgreso` deja fuera.
+  - **Un plan de N semanas dura N×7 días:** el último día es el fin previsto menos uno.
+  - **Terminar un plan no borra nada.** Con `conservarHabitos`, los hábitos siguen activos y **conservan su vínculo con el plan**, para no perder su historial ni su récord; sin él, quedan en pausa.
+  - **"Hoy solo lo mínimo"** registra `Cantidad = 1` con `EsVersionMinima = true`: la invariante `Cantidad > 0` de la P3 se mantiene.
+  - **Un plan solo se puede tener una vez en curso:** un índice único filtrado (`UsuarioId`, `PlanPlantillaId` donde el estado es Activo o Pausado) lo garantiza en la base; un plan terminado no impide empezarlo de nuevo.
+  - **Un logro se gana una sola vez:** inserción idempotente (`INSERT … WHERE NOT EXISTS`) más el índice único.
+  - **Sin clima en `GET /api/today`:** el perfil no guarda ciudad. `plan-del-dia` y sus pruebas no cambian.
+- **Verificación:**
+  - **Pruebas:** backend 1214 (antes 1029), con build sin avisos.
+  - **Mutación:** 28 reglas rotas a propósito y todas hacen fallar al menos una prueba: racha tolerante, tope de 2 extensiones, logros sin peso, determinismo del mensaje, umbral del sugeridor, plan no apto, límite de planes, aislamiento entre personas, pausas locales, índice único, conservar los hábitos, etc.
+    - Dos sobrevivieron al principio y destaparon huecos: el día en que se reanuda una pausa y el resumen de un lunes sin sesiones. Se reforzaron las pruebas, no el código.
+    - Un mutante del servicio de logros es equivalente a propósito: la inserción idempotente y el índice único se respaldan entre sí.
+  - **Contra la API real**, en una base SQL Server aislada que ya se borró: **58 de 58** (planes, límites, pausas, ajustes, aislamiento entre personas, exportación y lo que queda en la base).
+- **Lecciones:**
+  - `sqlcmd` necesita `-I` (`QUOTED_IDENTIFIER ON`) para borrar o modificar filas de una tabla con un índice filtrado.
+  - Las pruebas de dominio que fijaron la semántica diaria de un plan semanal tuvieron que reescribirse: el diseño nuevo mide por semanas.
+- **Pendiente aceptado:**
+  - el límite de 3 planes en curso se comprueba en el servicio y una carrera de dos peticiones podría pasarlo (solo el plan repetido lo impide la base);
+  - `MarcarLogrosVistos` marca todos los logros;
+  - una zona horaria desconocida cae a UTC sin avisar (tzdata en la imagen Docker, Fase 6).

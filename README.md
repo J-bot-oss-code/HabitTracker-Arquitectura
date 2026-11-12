@@ -320,6 +320,28 @@ Si la persona retira el consentimiento `datosSalud`, sus datos no se borran y lo
 | `GET /api/plans/{slug}` | anónimo | Detalle con tareas, guía semanal y aviso de seguridad. El tip extra de cada semana no viaja: se desbloquea al seguir el plan (Fase 4). `404 plan_no_encontrado`. |
 | `GET /api/plans/recommended` | `Estandar` | Recomendados con sus motivos y advertencias, y los no aptos con su razón. `404 perfil_no_encontrado` antes del onboarding. Sin el consentimiento `datosSalud` no lee el cuestionario y recomienda por la jornada (`personalizadoConSalud: false`). |
 
+**Mis planes, check-in diario y adherencia (HabitTracker v2, Fase 4).** Una persona empieza un plan del catálogo y el sistema crea sus hábitos, mide su constancia sin castigarla y le propone ajustes.
+- **`PlanUsuario`:** `Activo ⇄ Pausado`; `Completado` (solo desde Activo, al llegar al fin) y `Cancelado` son terminales. La máquina vive en `TransicionesPlanUsuario`. Se pueden seguir hasta 3 planes a la vez y un mismo plan no se repite mientras esté en curso (lo garantiza un índice único filtrado).
+- **Pausas con motivo** (lesión, viaje, enfermedad, trabajo u otro): no cuentan para la racha y, al reanudar, el plan se alarga esos mismos días locales.
+- **`CalculadoraProgreso`** es la única definición de racha y cumplimiento, y usa el día local de la zona del perfil: un día sin registro no corta la racha y dos seguidos sí. Un plan que solo tiene tareas semanales se mide en semanas.
+- **Versión mínima:** «Hoy solo lo mínimo» registra el avance con `esVersionMinima` y cuenta como un día cumplido. Con el modo suave (7 días) cuenta como completo.
+- **Ajustes sugeridos, nunca automáticos:** con 4 o más días sin registro en los últimos 7 se ofrece el modo suave, extender una semana (máximo 2) o pausar.
+- **Logros y mensajes:** los logros premian la constancia y el regreso, y no reciben peso ni medidas. El mensaje del día sale de `mensajes-motivacion.json` (33 mensajes), es el mismo todo el día y nunca culpa.
+- **Terminar no borra:** con `conservarHabitos` los hábitos siguen activos y conservan su vínculo con el plan; si no, quedan en pausa.
+
+| Endpoint | Rol | Qué hace |
+|---|---|---|
+| `POST /api/my-plans` | `Estandar` | Empieza un plan (`{slug, ancla?, hora?}`) → 201. `400 plan_no_apto`, `cuestionario_incompleto`, `limite_planes`, `plan_ya_activo`; `409 consentimiento_salud_requerido` solo si el plan pide el cuestionario. |
+| `GET /api/my-plans`, `GET /api/my-plans/{id}` | `Estandar` | Los planes de la persona con su progreso. Un plan ajeno es `404 plan_usuario_no_encontrado`. |
+| `POST /api/my-plans/{id}/transition` | `Estandar` | `{nuevoEstado, motivoPausa?, conservarHabitos?}`. `400 transicion_plan_invalida`, `plan_aun_no_termina`. |
+| `POST /api/my-plans/{id}/adjust` | `Estandar` | `{tipo: ModoSuave \| Extender}`. `400 limite_extensiones`, `ajuste_no_disponible`. |
+| `PUT /api/my-plans/{id}/reminder` | `Estandar` | Hora y activación del recordatorio del plan. |
+| `GET /api/today` | `Estandar` | Las tareas de hoy con su ancla y estado, el mensaje del día, el tip de la semana y la sugerencia de ajuste. No depende del clima (`plan-del-dia` sigue aparte). |
+| `GET /api/progress/summary`, `POST /api/progress/achievements/seen` | `Estandar` | Racha, récord, logros y «tu mes en números»; marcar los logros como vistos. |
+| `POST /api/habits/{id}/progress` | `Estandar` | Ahora acepta `esVersionMinima`. |
+
+La descarga de datos y la baja de cuenta incluyen los planes, las pausas y los logros (sección `planes`).
+
 ## 💻 Stack Tecnológico
 
 **Framework Principal:** .NET 10 (Web API)
