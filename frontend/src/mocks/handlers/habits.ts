@@ -54,7 +54,12 @@ export function aDto(h: HabitoMock): HabitoDto {
     cumpleMetaFinal: cumpleMetaFinal(h),
     // Desde la Fase 1 de HabitTracker v2 las fechas salen con "Z" (conversor UTC del DbContext).
     fechaInicioCiclo: h.fechaInicioCiclo,
-    registros: h.registros.map((r) => ({ ...r })),
+    registros: h.registros.map((r) => ({ ...r, esVersionMinima: r.esVersionMinima ?? false })),
+    // Fase 4: null en un hábito suelto; con valor en uno nacido de una tarea de un plan.
+    planUsuarioId: h.planUsuarioId ?? null,
+    descripcion: h.descripcion ?? null,
+    versionMinima: h.versionMinima ?? null,
+    ancla: h.ancla ?? null,
   }
 }
 
@@ -160,6 +165,8 @@ export const habitsHandlers = [
       return respuestas.operacion()
     }
     habito.estado = nuevo
+    // Un cambio de estado directo lo decide la persona: el plan ya no es quien lo pausó (Habito.CambiarEstado).
+    habito.pausadoPorPlan = false
     return new HttpResponse(null, { status: 204 })
   }),
 
@@ -167,17 +174,21 @@ export const habitsHandlers = [
     await latencia()
     const { sesion, error } = autenticar(request, ROLES)
     if (error) return error
-    const body = await leerJson<{ cantidad: number; fechaUtc: string }>(request)
+    const body = await leerJson<{ cantidad: number; fechaUtc: string; esVersionMinima?: boolean }>(
+      request,
+    )
     const fecha = typeof body?.fechaUtc === 'string' ? body.fechaUtc : ''
-    // El backend exige DateTimeKind.Utc: la fecha debe llevar "Z".
+    // El backend exige DateTimeKind.Utc: la fecha debe llevar "Z". esVersionMinima es opcional (falso).
     if (
       !body ||
       !esCantidad(body.cantidad) ||
       !/Z$/.test(fecha) ||
-      Number.isNaN(Date.parse(fecha))
+      Number.isNaN(Date.parse(fecha)) ||
+      (body.esVersionMinima !== undefined && typeof body.esVersionMinima !== 'boolean')
     ) {
       return respuestas.invalida()
     }
+    const esVersionMinima = body.esVersionMinima === true
     // RD-07: el backend rechaza un avance de un día que todavía no llegó.
     if (Date.parse(fecha) > Date.now() + TOLERANCIA_RELOJ_MS) {
       return respuestas.codigo('fecha_futura', 'La fecha del avance no puede ser futura.')
@@ -185,12 +196,20 @@ export const habitsHandlers = [
     const habito = habitoDelUsuario(params.id, sesion.usuario.id)
     if (habito instanceof Response) return habito
     if (habito.estado !== 'Activo') return respuestas.operacion()
+    // "Hoy solo lo mínimo" solo existe en un hábito de un plan (Habito.RegistrarAvance).
+    if (esVersionMinima && !habito.versionMinima) {
+      return respuestas.codigo(
+        'version_minima_no_disponible',
+        'Este hábito no tiene una versión mínima.',
+      )
+    }
 
     habito.registros.push({
       id: crypto.randomUUID(),
       cantidad: body.cantidad,
       fecha: new Date(fecha).toISOString(),
       unidad: habito.unidad,
+      esVersionMinima,
     })
     return new HttpResponse(null, { status: 204 })
   }),
