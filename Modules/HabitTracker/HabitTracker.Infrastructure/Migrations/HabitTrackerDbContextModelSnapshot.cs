@@ -37,6 +37,33 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.ToTable("EtiquetaHabito");
                 });
 
+            modelBuilder.Entity("HabitTracker.Domain.Adherencia.LogroUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Clave")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("ObtenidoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("VistoEn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Clave")
+                        .IsUnique();
+
+                    b.ToTable("LogrosUsuario", (string)null);
+                });
+
             modelBuilder.Entity("HabitTracker.Domain.Entities.Categoria", b =>
                 {
                     b.Property<Guid>("Id")
@@ -85,9 +112,17 @@ namespace HabitTracker.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Ancla")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<decimal>("CantidadObjetivo")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Estado")
                         .IsRequired()
@@ -104,9 +139,15 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<bool>("PausadoPorPlan")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Periodicidad")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("PlanUsuarioId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Unidad")
                         .IsRequired()
@@ -116,9 +157,15 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("VersionMinima")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MetaId");
+
+                    b.HasIndex("PlanUsuarioId");
 
                     b.HasIndex("UsuarioId");
 
@@ -186,6 +233,9 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<decimal>("Cantidad")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<bool>("EsVersionMinima")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime2");
@@ -384,6 +434,72 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.ToTable("PlanesPlantilla", (string)null);
                 });
 
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Extensiones")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaFinPrevista")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeOnly?>("HoraRecordatorio")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("ModoSuaveHasta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MotivoPausa")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid?>("PlanPlantillaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("RecordatoriosActivos")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Semanas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Estado");
+
+                    b.HasIndex("UsuarioId", "PlanPlantillaId")
+                        .IsUnique()
+                        .HasFilter("[PlanPlantillaId] IS NOT NULL AND [Estado] IN ('Activo', 'Pausado')");
+
+                    b.ToTable("PlanesUsuario", (string)null);
+                });
+
             modelBuilder.Entity("HabitTracker.Domain.Progreso.MedicionCorporal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -487,6 +603,11 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.HasOne("HabitTracker.Domain.Entities.Meta", "Meta")
                         .WithMany("Habitos")
                         .HasForeignKey("MetaId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("HabitTracker.Domain.Planes.PlanUsuario", null)
+                        .WithMany()
+                        .HasForeignKey("PlanUsuarioId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Meta");
@@ -611,6 +732,40 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Navigation("GuiaSemanal");
 
                     b.Navigation("Tareas");
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanUsuario", b =>
+                {
+                    b.OwnsMany("HabitTracker.Domain.Planes.PeriodoPausa", "Pausas", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime?>("FinUtc")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<DateTime>("InicioUtc")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<string>("Motivo")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("nvarchar(20)");
+
+                            b1.Property<Guid>("PlanUsuarioId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("PlanUsuarioId");
+
+                            b1.ToTable("PeriodosPausa", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("PlanUsuarioId");
+                        });
+
+                    b.Navigation("Pausas");
                 });
 
             modelBuilder.Entity("HabitTracker.Domain.Entities.Categoria", b =>

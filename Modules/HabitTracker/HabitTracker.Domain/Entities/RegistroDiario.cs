@@ -6,13 +6,15 @@ namespace HabitTracker.Domain.Entities
         public decimal Cantidad { get; private set; }
         public DateTime Fecha { get; private set; }
         public string Unidad { get; private set; } = string.Empty;
+        /// <summary>"Hoy solo lo mínimo": el avance se hizo con la versión mínima de la tarea.</summary>
+        public bool EsVersionMinima { get; private set; }
 
         public Guid HabitoId { get; private set; }
         public Habito Habito { get; private set; } = null!;
 
         private RegistroDiario() { } // Constructor privado para EF Core
 
-        public RegistroDiario(decimal cantidad, DateTime fechaUtc, string unidad)
+        public RegistroDiario(decimal cantidad, DateTime fechaUtc, string unidad, bool esVersionMinima = false)
         {
             if (cantidad <= 0)
                 throw new ArgumentException("La cantidad debe ser positiva.", nameof(cantidad));
@@ -25,6 +27,7 @@ namespace HabitTracker.Domain.Entities
             Cantidad = cantidad;
             Fecha = fechaUtc;
             Unidad = unidad;
+            EsVersionMinima = esVersionMinima;
         }
     }
 }

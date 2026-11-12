@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "mensajes": [
+    { "categoria": "Inicio", "texto": "Empezar es lo más difícil, y ya lo hiciste. Hoy basta con un primer paso pequeño." },
+    { "categoria": "Inicio", "texto": "Un hábito nuevo se construye de a poco. Hoy escoge lo más fácil y hazlo." },
+    { "categoria": "Inicio", "texto": "No tiene que ser perfecto. Que sea posible: eso es lo que cuenta al principio." },
+    { "categoria": "Inicio", "texto": "Tu plan está listo y tú también. Empieza con la tarea que más te guste." },
+    { "categoria": "Inicio", "texto": "Los primeros días son para probar. Ajustamos lo que haga falta, sin prisa." },
+    { "categoria": "Inicio", "texto": "Hoy empieza algo bueno para ti. Con la versión mínima también cuenta." },
+
+    { "categoria": "Constancia", "texto": "Cada día que cumples suma, aunque sea poquito. Sigue así, a tu ritmo." },
+    { "categoria": "Constancia", "texto": "Lo pequeño que repites cada día vale más que lo grande que haces una sola vez." },
+    { "categoria": "Constancia", "texto": "Ya le estás agarrando el ritmo. Un día a la vez, como vas." },
+    { "categoria": "Constancia", "texto": "Hoy toca otro pasito. Si el día está complicado, la versión mínima cuenta igual." },
+    { "categoria": "Constancia", "texto": "Tu constancia se nota. Respira, toma agua y sigue con lo tuyo." },
+    { "categoria": "Constancia", "texto": "Lo importante es volver cada día, y tú vuelves. Buen trabajo." },
+
+    { "categoria": "Recaida", "texto": "Qué bueno verte de vuelta. Retomar es parte del camino, y hoy lo estás haciendo." },
+    { "categoria": "Recaida", "texto": "Volver cuenta, y mucho. Hoy empezamos de nuevo, sin cuentas pendientes." },
+    { "categoria": "Recaida", "texto": "Un par de días de pausa no borran lo que ya avanzaste. Sigue desde aquí." },
+    { "categoria": "Recaida", "texto": "Retomar es de valientes. Hoy basta con lo mínimo para volver al ritmo." },
+    { "categoria": "Recaida", "texto": "Aquí estás otra vez, y eso es lo que importa. Poco a poco." },
+
+    { "categoria": "Hito", "texto": "¡Llegaste a un hito! Detente un momento a reconocer cuánto has avanzado." },
+    { "categoria": "Hito", "texto": "Mira cuántos días has cumplido desde que empezaste. Eso lo hiciste tú." },
+    { "categoria": "Hito", "texto": "Otro tramo del camino cumplido. Celébralo a tu manera." },
+    { "categoria": "Hito", "texto": "Hoy puedes darte un buen descanso: la constancia también se cuida." },
+    { "categoria": "Hito", "texto": "Llevas un buen tramo recorrido. Lo que sigue es seguir, y ya sabes cómo." },
+
+    { "categoria": "Cierre", "texto": "Terminaste tu plan. Lo que construiste en estas semanas es tuyo y se queda contigo." },
+    { "categoria": "Cierre", "texto": "Llegaste al final. Mira atrás: cada día que cumpliste hizo posible este momento." },
+    { "categoria": "Cierre", "texto": "Plan completado. Descansa, celebra y, cuando quieras, escoge tu próximo paso." },
+    { "categoria": "Cierre", "texto": "Cerraste un ciclo con constancia. Gracias por dedicarte este tiempo." },
+    { "categoria": "Cierre", "texto": "Lo lograste: cumpliste el plan. Los hábitos que armaste ya son parte de ti." },
+
+    { "categoria": "Regreso", "texto": "Aquí seguimos cuando quieras. Hoy puedes retomar con la versión mínima, sin presión." },
+    { "categoria": "Regreso", "texto": "Pasa que la vida se complica. Cuando puedas, vuelve con un solo gesto pequeño." },
+    { "categoria": "Regreso", "texto": "Cuando quieras retomar, empieza por lo más fácil y ya verás cómo arranca el día." },
+    { "categoria": "Regreso", "texto": "No hay prisa ni cuentas pendientes. Retomar hoy, con lo mínimo, ya es un buen comienzo." },
+    { "categoria": "Regreso", "texto": "Tu plan te espera tal como lo dejaste. Un paso pequeño hoy es suficiente." },
+    { "categoria": "Regreso", "texto": "Un mal rato no es el final. Cuando te sientas con ganas, aquí estamos." }
+  ]
+}
