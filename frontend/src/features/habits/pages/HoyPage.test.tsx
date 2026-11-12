@@ -101,7 +101,7 @@ describe('panel Hoy', () => {
     db.habitos = []
     renderApp('/hoy', { como: 'estandar' })
     expect(await screen.findByText('Aún no tienes un plan — elige una meta')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ver metas' })).toHaveAttribute('href', '/metas')
+    expect(screen.getByRole('link', { name: 'Ver metas' })).toHaveAttribute('href', '/planes')
     expect(screen.getByText('0/0')).toBeInTheDocument()
   })
 
@@ -117,7 +117,7 @@ describe('panel Hoy', () => {
     renderApp('/hoy', { como: 'estandar' })
     expect(await screen.findByRole('heading', { level: 1, name: /^Buen/ })).toBeInTheDocument()
     expect(screen.getByText('Sin plan')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Elige una meta' })).toHaveAttribute('href', '/metas')
+    expect(screen.getByRole('link', { name: 'Elige una meta' })).toHaveAttribute('href', '/planes')
   })
 
   it('un error al cargar ofrece reintentar', async () => {

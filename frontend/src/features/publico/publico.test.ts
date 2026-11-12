@@ -1,32 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { calcularKcal, metabolismoBasal } from './calorias'
-import { AREAS, buscarMeta, METAS_CATALOGO, metasDelArea } from './catalogo'
 import { esDocumentoLegal, INFO_LEGAL, VERSION_PRIVACIDAD, VERSION_TERMINOS } from './legal'
 import { calculadoraSchema } from './schemas'
-
-describe('catálogo de metas', () => {
-  it('contiene las seis metas de la especificación con slugs únicos', () => {
-    expect(METAS_CATALOGO).toHaveLength(6)
-    expect(new Set(METAS_CATALOGO.map((m) => m.slug)).size).toBe(6)
-  })
-
-  it('cada área del filtro tiene al menos una meta', () => {
-    for (const area of AREAS) expect(metasDelArea(area).length).toBeGreaterThan(0)
-    expect(metasDelArea('todas')).toHaveLength(6)
-    expect(metasDelArea('Descanso').map((m) => m.nombre)).toEqual(['Dormir mejor'])
-  })
-
-  it('buscarMeta valida el slug que llega de la URL', () => {
-    expect(buscarMeta('primeros-5-km')?.nombre).toBe('Primeros 5 km')
-    expect(buscarMeta('<script>')).toBeNull()
-    expect(buscarMeta(null)).toBeNull()
-    expect(buscarMeta('')).toBeNull()
-  })
-
-  it('la duración en semanas cuadra con el texto (21 días = 3 semanas)', () => {
-    expect(buscarMeta('reducir-estres')).toMatchObject({ semanas: 3, duracion: '21 días' })
-  })
-})
 
 describe('calculadora de calorías (Mifflin-St Jeor)', () => {
   it('calcula el metabolismo basal de mujer y hombre', () => {

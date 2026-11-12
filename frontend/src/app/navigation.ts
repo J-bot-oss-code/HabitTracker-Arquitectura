@@ -16,6 +16,7 @@ export interface ItemNavegacion {
 export const NAVEGACION: ItemNavegacion[] = [
   { a: '/hoy', etiqueta: 'Hoy', icono: 'rayo', roles: ['Estandar'] },
   { a: '/habitos', etiqueta: 'Mis hábitos', icono: 'habitos', roles: ['Estandar'] },
+  { a: '/planes', etiqueta: 'Planes', icono: 'calendario', roles: ['Estandar'] },
   { a: '/progreso', etiqueta: 'Progreso', icono: 'trofeo', roles: ['Estandar'] },
   { a: '/permisos', etiqueta: 'Mis permisos', icono: 'permisos', roles: ['Estandar'] },
   { a: '/admin', etiqueta: 'Resumen', icono: 'reportes', roles: ['Administrador'], fin: true },

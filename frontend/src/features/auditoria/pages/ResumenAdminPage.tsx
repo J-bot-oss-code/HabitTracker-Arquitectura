@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { buscarMeta } from '@/features/publico/api'
+import { usePlanes } from '@/features/planes/api'
 import { esNoDisponible } from '@/shared/api/problem'
 import { Badge } from '@/shared/ui/Badge'
 import { BarraProgreso } from '@/shared/ui/BarraProgreso'
@@ -14,14 +14,15 @@ import { TablaAuditoria } from '../components/TablaAuditoria'
 import { descargarCsv, nombreCsv } from '../csv'
 import { metricasACsv } from '../metricas'
 
-const nombrePlan = (slug: string) => buscarMeta(slug)?.nombre ?? slug
-
 // Resumen (§5.6): lo primero que ve el Administrador. Son métricas agregadas y anónimas: ninguna
 // cifra permite saber qué hace una persona concreta.
 export function ResumenAdminPage() {
   const metricas = useMetricas()
   const recientes = useAuditoria({ limite: 8 })
   const m = metricas.data
+  const planes = usePlanes()
+  // Un plan retirado del catálogo (o con el catálogo sin cargar) se muestra por su slug.
+  const nombrePlan = (slug: string) => planes.data?.find((p) => p.slug === slug)?.nombre ?? slug
 
   return (
     <>

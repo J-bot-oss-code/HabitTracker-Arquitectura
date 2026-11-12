@@ -1,5 +1,5 @@
+import { esSlugPlan } from '@/features/planes/api'
 import {
-  buscarMeta,
   validarDatosCorporales,
   VERSION_PRIVACIDAD,
   VERSION_TERMINOS,
@@ -88,8 +88,9 @@ export function purgarRegistroPendienteCaducado(ahora = Date.now()) {
   leerValido(ahora)
 }
 
-// Solo vale para la cuenta que lo creó y antes de caducar. La meta y los datos corporales se
-// revalidan contra el catálogo y los límites, porque localStorage es editable.
+// Solo vale para la cuenta que lo creó y antes de caducar. El plan (por su formato) y los datos
+// corporales (por sus límites) se revalidan, porque localStorage es editable. Que el plan exista en el
+// catálogo lo comprueba quien lo usa (AuthLayout y el onboarding), que tiene la lista.
 export function leerRegistroPendiente(
   correo: string,
   ahora = Date.now(),
@@ -99,7 +100,7 @@ export function leerRegistroPendiente(
   const datosVigentes = ahora - registro.guardadoEn <= CADUCIDAD_DATOS_CORPORALES_MS
   return {
     ...registro,
-    metaSlug: buscarMeta(registro.metaSlug)?.slug ?? null,
+    metaSlug: esSlugPlan(registro.metaSlug) ? registro.metaSlug : null,
     datosCorporales: datosVigentes ? validarDatosCorporales(registro.datosCorporales) : null,
   }
 }

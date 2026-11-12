@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { constanciaPorDia, logrosDe, recordsDe, useHabitos } from '@/features/habits/api'
 import { usePerfil } from '@/features/perfil/api'
-import { buscarMeta } from '@/features/publico/api'
+import { usePlanResumen } from '@/features/planes/api'
 import { fechaLargaUtc } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
@@ -24,7 +24,7 @@ const SEMANAS_CONSTANCIA = 10
 export function ProgresoPage() {
   const [periodo, setPeriodo] = useState<Periodo>('3meses')
   const perfil = usePerfil()
-  const meta = buscarMeta(perfil.data?.metaSlug)
+  const { plan: meta } = usePlanResumen(perfil.data?.metaSlug)
   const fin = instanteFinDelPlan(perfil.data?.inicioPlan, meta?.semanas)
 
   return (

@@ -293,3 +293,50 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
     - Detrás de un proxy, el límite por IP del catálogo es compartido (deuda 3 del ESTADO, Fase 6).
     - Un plan retirado que vuelve al JSON con una versión menor la baja; se acepta porque el JSON manda.
 - **Lección:** un script de mutación que restaura el archivo original con `mv` le deja una fecha anterior a la de la DLL y la compilación incremental no lo recompila. Después de mutar, hay que compilar con `--no-incremental`.
+
+## Fase 3b: catálogo de planes y recomendados en el frontend (`feature/frontend-catalogo-planes`, 12-11-2026)
+
+- **Nueva feature `features/planes`:**
+  - **Contrato y datos:**
+    - `types.ts` copia los DTO de `PlansController`;
+    - `etiquetas.ts` trae los textos en español;
+    - `api.ts` ofrece `usePlanes`, `usePlan`, `usePlanResumen` y `useRecomendados`.
+  - **Pantallas:**
+    - `CatalogoPlanes` (filtros por nivel y área): lo usan la landing, `/metas` y `/planes`.
+    - `PlanDetallePage` en `/metas/:slug` y `/planes/:slug`: aviso de seguridad, tareas con su versión mínima y guía semanal.
+    - `PlanesPage` en `/planes`: «Tu día de trabajo saludable» primero, recomendados con sus motivos y «No recomendado para ti» con su razón.
+  - **Hoy:** quien aún no tiene hábitos ve «Empezar mi día saludable» con la variante de su jornada.
+  - **Menú:** «Planes» solo para el rol Estándar.
+- **Catálogo estático eliminado** (`publico/catalogo.ts`, `CatalogoMetas`, `TarjetaMeta`). Sus consumidores usan ahora la API:
+  - **Panel del alta y `ResumenAdminPage`:** `usePlanResumen`.
+  - **`HoyPage` y `ProgresoPage`:** `usePlanResumen`, para mostrar la semana del plan.
+  - **Slugs de la URL o de `localStorage`:** se validan por formato (`esSlugPlan`).
+  - **Landing:** recibe el catálogo por una ranura (`LandingPage catalogo={…}`), porque una feature no importa componentes de otra.
+- **«Elegir este plan»:** guarda el plan como interés (`metaSlug`) reenviando el perfil vigente, hasta que la Fase 4 traiga la inscripción real.
+  - Antes de enviar se pide el perfil al servidor, para no pisar un peso registrado hace un momento.
+  - El botón no se habilita mientras no se sepa si el plan es para la persona, porque el servidor aún no lo impone.
+- **Mock de los planes:** replica `RecomendadorPlanes` y `ReglasSeguridadPlanes`. Sus datos se generaron del `catalogo-planes.json` y `mocks/planes.test.ts` los compara con el JSON del backend.
+- **Verificación:**
+  - **Pruebas:** frontend 692 (antes 651) con lint, tipos y build en verde. Pasan tres veces seguidas.
+  - **Mutación:** 11 reglas rotas a propósito y todas hacen fallar al menos una prueba.
+    - Tres sobrevivieron al primer intento y destaparon huecos: el slug con mayúsculas, la tarjeta de Hoy comprobada antes de que la consulta resolviera y el cuestionario leído sin consentimiento.
+    - Se reforzaron las pruebas, no el código.
+  - **Contra la API real**, en una base aislada que ya se borró: **27 de 27 respuestas idénticas** a las del mock.
+    - 9 personas con distintos perfiles, cuestionarios y condiciones (embarazo, hipertensión, «sí» en la revisión de seguridad, IMC bajo, menor de edad…).
+    - El catálogo, los 13 detalles y 4 filtros.
+- **Revisiones (`frontend-reviewer` y `frontend-design-critic`):** sin bloqueantes. Se corrigió en esta rama:
+  - **Medio (reviewer):**
+    - elegir un plan podía pisar un peso recién registrado;
+    - se podía elegir un plan sin saber si era apto;
+    - la prueba de contenido fallaba si no estaba el JSON del backend.
+  - **Alto (diseño):**
+    - «no recomendado» sonaba a prohibición; ahora usa un tono de cuidado;
+    - la acción principal de Hoy es un botón;
+    - el catálogo completo marca los planes no recomendados.
+  - **Medio (diseño):** nivel con etiqueta visible, aviso de cuántos planes se muestran y estados vacíos separados.
+  - **Pendiente:**
+    - filtros del catálogo en la URL;
+    - unificar «meta» y «plan» en los textos;
+    - confirmar antes de cambiar de plan, porque reinicia la semana del plan;
+    - foco tras elegir un plan y título de pestaña con el nombre del plan.
+- **Lección de entorno:** Vitest falla en todas las suites si la terminal abre `frontend/` con la unidad en minúscula (`c:\`), porque carga `vitest` dos veces. Se ejecuta desde `C:\` en mayúscula.

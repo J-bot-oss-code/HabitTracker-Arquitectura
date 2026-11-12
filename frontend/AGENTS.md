@@ -18,7 +18,7 @@ español con RF/RD, flujo de ramas y PRs) están en el `AGENTS.md` de la raíz.
 src/
   app/        router (routes.tsx), guards (RequireAuth / SoloInvitados), layouts, navigation, providers
   shared/     api (http + ProblemDetails), auth (JWT, sesión, roles), config (env), lib, ui
-  features/   auth · habits · permissions · admin-users · coming-soon
+  features/   auth · habits · permissions · admin-users · perfil · progreso · privacidad · planes · publico · auditoria · coming-soon
               publico · perfil · progreso · privacidad · auditoria (pantallas de producto)
               cada una con types.ts · api.ts · schemas.ts · components/ · pages/ · *.test.ts(x)
   mocks/      API simulada: db.ts (memoria), http.ts (auth, ProblemDetails), handlers/, contrato.test.ts
@@ -138,6 +138,7 @@ marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activa
   en `RUTAS_SIN_RENOVACION`: su 401 es «contraseña incorrecta», no «token vencido». Con mocks, el botón es una
   demostración (`window.prompt`) y el «ID token» es `mock-google|sub|correo|nombre|1` (`tokenDemo.ts`): nunca
   llega al backend real.
+- **Planes (conectado, HabitTracker v2 Fase 3):** `features/planes/`. El catálogo de 13 planes viene de la API: `GET /api/plans` y `/{slug}` (anónimos, caché de 5 min) y `GET /api/plans/recommended` (Estándar). Pantallas: catálogo en la landing y en `/metas` (`CatalogoPlanes`, filtros por nivel y área), detalle en `/metas/:slug` y `/planes/:slug` (aviso de seguridad, tareas con su versión mínima y guía semanal) y **Planes** `/planes` (recomendados con sus motivos y «No recomendado para ti» con su razón). La landing recibe el catálogo por una ranura (`LandingPage catalogo={…}`) porque una feature no importa componentes de otra. Un slug que llega de la URL o de `localStorage` se valida por formato (`esSlugPlan`) y, para mostrar su nombre, contra la lista del servidor (`usePlanResumen`). «Elegir este plan» guarda el plan como interés en el perfil (`metaSlug`, reenviando el perfil vigente) hasta que la Fase 4 traiga la inscripción real. Los hooks van siempre antes de un `return` anticipado.
 - **Sesiones activas (conectado):** Configuración › Inicio de sesión › «Sesiones activas» (`features/auth/components/SesionesActivas.tsx`):
   `GET /api/auth/sesiones`, `DELETE /api/auth/sesiones/{id}` (404 si no es tuya) y `POST /api/auth/logout-todas`.
   «Cerrar las demás» cierra una por una; «Cerrar en todos los dispositivos» corta también este navegador.

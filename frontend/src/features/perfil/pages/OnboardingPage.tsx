@@ -3,9 +3,9 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { Link, Navigate, useLocation } from 'react-router'
 import { useCerrarSesion } from '@/features/auth/api'
+import { usePlanes } from '@/features/planes/api'
 import {
   INFO_LEGAL,
-  METAS_CATALOGO,
   RUTAS_LEGALES,
   VERSION_PRIVACIDAD,
   VERSION_TERMINOS,
@@ -107,6 +107,8 @@ function Asistente({ correo }: { correo: string }) {
   const consentimientos = useConsentimientos()
   const guardarConsentimientos = useGuardarConsentimientos()
   const guardarPerfil = useGuardarPerfil()
+  // Catálogo del servidor: el plan recordado del registro solo se guarda si existe.
+  const planes = usePlanes()
   // Se vuelven a pedir los consentimientos si no hay registro recordado en este dispositivo o si
   // desde entonces se publicó otra versión de los términos o de la privacidad.
   const pedirConsentimiento = pendiente === null || !aceptoVersionesVigentes(pendiente)
@@ -171,7 +173,10 @@ function Asistente({ correo }: { correo: string }) {
         zonaHoraria: d.zonaHoraria,
         avisoSaludAceptado: true,
         // El plan que eligió en la landing queda como interés (lo usa "Hoy").
-        metaSlug: METAS_CATALOGO.find((m) => m.slug === pendiente?.metaSlug)?.slug ?? null,
+        // Ya viene validado por formato; con el catálogo cargado también debe existir. Si no cargó, se conserva.
+        metaSlug: planes.data
+          ? (planes.data.find((p) => p.slug === pendiente?.metaSlug)?.slug ?? null)
+          : (pendiente?.metaSlug ?? null),
       })
       // Con el perfil guardado, OnboardingPage lleva al destino pedido.
       borrarRegistroPendiente()

@@ -118,12 +118,13 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `auditoria`: 9 archivos
 - `auth`: 27 archivos
 - `coming-soon`: 2 archivos
-- `habits`: 23 archivos
+- `habits`: 24 archivos
 - `perfil`: 11 archivos
 - `permissions`: 13 archivos
+- `planes`: 10 archivos
 - `privacidad`: 10 archivos
 - `progreso`: 11 archivos
-- `publico`: 19 archivos
+- `publico`: 15 archivos
 
 ## Frontend: contratos propuestos (sin backend)
 

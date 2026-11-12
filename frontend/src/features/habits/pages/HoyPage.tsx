@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { usePerfil } from '@/features/perfil/api'
-import { buscarMeta } from '@/features/publico/api'
+import { usePlanResumen } from '@/features/planes/api'
 import { fechaLargaUtc } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/Button'
 import { claseBoton } from '@/shared/ui/claseBoton'
@@ -16,6 +16,7 @@ import { TiraSemana, type CeldaSemana } from '@/shared/ui/TiraSemana'
 import { useHabitos } from '../api'
 import { CrearHabitoForm } from '../components/CrearHabitoForm'
 import { FilaTarea } from '../components/FilaTarea'
+import { TuDiaSaludable } from '../components/TuDiaSaludable'
 import { RegistrarAvanceForm } from '../components/RegistrarAvanceForm'
 import {
   cumplimientoSemanal,
@@ -43,6 +44,8 @@ const DIAS = [
 export function HoyPage() {
   const habitos = useHabitos()
   const perfil = usePerfil()
+  // Hook: va antes de los return anticipados de abajo. Sin plan (o con el catálogo sin cargar) el panel funciona igual.
+  const { plan: meta } = usePlanResumen(perfil.data?.metaSlug)
   const navigate = useNavigate()
   const [creando, setCreando] = useState(false)
   // Solo el id: el hábito se busca en la lista vigente al dibujar, así el diálogo no muestra
@@ -69,7 +72,6 @@ export function HoyPage() {
   const registrando = lista.find((h) => h.id === registrandoId)
 
   // El perfil es una pieza propuesta: sin él (o sin meta) el panel funciona igual.
-  const meta = buscarMeta(perfil.data?.metaSlug)
   const semanaPlan =
     meta && perfil.data?.inicioPlan ? semanaDelPlan(perfil.data.inicioPlan, meta.semanas) : null
   // Sin perfil no se saluda por el correo (dato personal): solo se omite el nombre.
@@ -103,6 +105,8 @@ export function HoyPage() {
         </div>
       </header>
 
+      {lista.length === 0 && <TuDiaSaludable />}
+
       <section aria-label="Resumen del día" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Estadistica
           etiqueta="Tareas de hoy"
@@ -132,7 +136,7 @@ export function HoyPage() {
               meta.nombre
             ) : (
               <Link
-                to="/metas"
+                to="/planes"
                 className="inline-flex min-h-11 items-center font-semibold text-acento underline"
               >
                 Elige una meta
@@ -160,7 +164,7 @@ export function HoyPage() {
                   accion={
                     <div className="flex flex-wrap justify-center gap-3">
                       <Link
-                        to="/metas"
+                        to="/planes"
                         className="inline-flex min-h-11 items-center rounded-lg px-3 font-semibold text-acento underline"
                       >
                         Ver metas

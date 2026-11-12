@@ -20,25 +20,47 @@ describe('inicio público (sin sesión)', () => {
     expect(screen.getByRole('link', { name: 'Crear cuenta' })).toHaveAttribute('href', '/registro')
   })
 
-  it('filtra el catálogo por área y cada meta lleva al registro con su slug', async () => {
+  it('filtra el catálogo por nivel y por área, y cada plan lleva a su detalle', async () => {
     const { user } = renderApp('/metas')
-    const filtros = await screen.findByRole('group', { name: 'Filtrar metas por área' })
-    expect(within(filtros).getByRole('button', { name: /Todas/ })).toHaveAttribute(
+    const filtros = await screen.findByRole('group', { name: 'Filtrar planes por nivel' })
+    expect(within(filtros).getByRole('button', { name: /Todos/ })).toHaveAttribute(
       'aria-pressed',
       'true',
     )
+    // Los 13 planes de lanzamiento vienen de la API.
+    expect(await screen.findAllByRole('article')).toHaveLength(13)
+    expect(within(filtros).getByRole('button', { name: /Básicos/ })).toHaveTextContent('7')
+
+    expect(screen.getByText('Mostrando 13 de 13 planes')).toBeInTheDocument()
+    await user.click(within(filtros).getByRole('button', { name: /Regulares/ }))
     expect(screen.getAllByRole('article')).toHaveLength(6)
+    // Quien usa un lector de pantalla oye cuántos quedaron.
+    expect(screen.getByText('Mostrando 6 de 13 planes')).toBeInTheDocument()
 
-    await user.click(within(filtros).getByRole('button', { name: /Descanso/ }))
+    await user.click(within(filtros).getByRole('button', { name: /Todos/ }))
+    await user.selectOptions(screen.getByLabelText('Área'), 'Descanso')
     const tarjetas = screen.getAllByRole('article')
-    expect(tarjetas).toHaveLength(1)
-    expect(within(tarjetas[0]).getByRole('heading', { name: 'Dormir mejor' })).toBeInTheDocument()
+    expect(tarjetas).toHaveLength(3)
+    expect(
+      within(
+        tarjetas.find((t) => within(t).queryByRole('heading', { name: 'Dormir mejor' }))!,
+      ).getByRole('link', { name: 'Ver el plan: Dormir mejor' }),
+    ).toHaveAttribute('href', '/metas/dormir-mejor')
 
-    await user.click(within(filtros).getByRole('button', { name: /Todas/ }))
-    expect(screen.getByRole('link', { name: 'Empezar este plan: Primeros 5 km' })).toHaveAttribute(
-      'href',
-      '/registro?meta=primeros-5-km',
-    )
+    // Con un filtro sin resultados se ofrece quitarlo.
+    await user.click(within(filtros).getByRole('button', { name: /Regulares/ }))
+    await user.selectOptions(screen.getByLabelText('Área'), 'Hidratacion')
+    expect(await screen.findByText('No hay planes con ese filtro')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Quitar los filtros' }))
+    expect(screen.getAllByRole('article')).toHaveLength(13)
+  })
+
+  it('la landing muestra el mismo catálogo que /metas', async () => {
+    renderApp('/')
+    expect(await screen.findAllByRole('article')).toHaveLength(13)
+    expect(
+      screen.getByRole('link', { name: 'Ver el plan: Mi día de oficina saludable' }),
+    ).toHaveAttribute('href', '/metas/mi-dia-oficina')
   })
 
   it('la calculadora valida los datos y muestra la estimación con su aviso', async () => {
@@ -133,7 +155,7 @@ describe('inicio público (sin sesión)', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Elige una meta' }),
     ).toBeInTheDocument()
-    expect(screen.getAllByRole('heading', { level: 2 })).toHaveLength(6)
+    expect(await screen.findAllByRole('heading', { level: 2 })).toHaveLength(13)
   })
 
   it('una dirección desconocida muestra la página no encontrada, sin pedir sesión', async () => {
