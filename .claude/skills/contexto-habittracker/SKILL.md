@@ -44,7 +44,7 @@ Monolito modular .NET 10 (Clean Architecture) + frontend React en `frontend/`. U
   - Se sube a mano a la versión parcheada más cercana, en una rama con PR a `develop`.
   - Dependabot no abre PR de versión (`open-pull-requests-limit: 0`).
   - npm usa versiones exactas (`frontend/.npmrc` con `save-exact=true`, sin `^`).
-  - Docker y el CI usan etiquetas exactas (`sdk:10.0.403`, `aspnet:10.0.14`, `2022-CU27-ubuntu-22.04`, .NET `10.0.403` y Node `24.22.2`).
+  - Docker y el CI usan etiquetas exactas (`sdk:10.0.404`, `aspnet:10.0.15`, `2022-CU27-ubuntu-22.04`, .NET `10.0.404` y Node `24.22.2`).
   - Las Actions van fijadas por SHA.
 - **CI obligatorio:** `ci-ok` y `seguridad-ok`. Los analizadores de seguridad de .NET y NuGetAudit NU1903/NU1904 son errores: se arregla la causa, nunca se baja la severidad de una categoría.
 - **Capas:** `Api → Infrastructure → Application → Domain`. El dominio no tiene `ProjectReference` ni EF. Ningún módulo del Core referencia a HabitTracker (lo verifica `scripts/ci/verificar-reglas-rd.sh`).
