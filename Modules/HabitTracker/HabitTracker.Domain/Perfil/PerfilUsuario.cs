@@ -1,5 +1,3 @@
-using System.Text.RegularExpressions;
-
 namespace HabitTracker.Domain.Perfil;
 
 /// <summary>Jornada de la persona: es la puerta de entrada de las recomendaciones (P2).</summary>
@@ -47,8 +45,7 @@ public sealed record DatosPerfil(
     decimal? PesoKg = null,
     NivelActividad? Actividad = null,
     int? DiasPorSemana = null,
-    int? MinutosPorSesion = null,
-    string? MetaSlug = null)
+    int? MinutosPorSesion = null)
 {
     /// <summary>Peso y altura son datos de salud: guardarlos exige el consentimiento <c>datosSalud</c>.</summary>
     public bool TraeDatosDeSalud => AlturaCm.HasValue || PesoKg.HasValue;
@@ -58,7 +55,7 @@ public sealed record DatosPerfil(
 /// Perfil de la persona en el módulo de negocio (una fila por usuario). Los límites son los del frontend
 /// (<c>LIMITES_CORPORALES</c> y <c>LIMITES_PLAN</c>) y se validan aquí, en un solo punto (RD-07).
 /// </summary>
-public sealed partial class PerfilUsuario
+public sealed class PerfilUsuario
 {
     public const int EdadMinima = 16;
     public const int EdadMaxima = 100;
@@ -83,8 +80,6 @@ public sealed partial class PerfilUsuario
     public NivelActividad? Actividad { get; private set; }
     public int? DiasPorSemana { get; private set; }
     public int? MinutosPorSesion { get; private set; }
-    public string? MetaSlug { get; private set; }
-    public DateTime? InicioPlan { get; private set; }
     public DateTime ActualizadoEn { get; private set; }
 
     private PerfilUsuario() { } // EF Core
@@ -99,16 +94,12 @@ public sealed partial class PerfilUsuario
         return perfil;
     }
 
-    /// <summary>Reemplaza los datos del perfil. El plan de interés reinicia <see cref="InicioPlan"/> solo si cambia.</summary>
+    /// <summary>Reemplaza los datos del perfil. Los planes que la persona sigue viven en <c>PlanUsuario</c>, no aquí.</summary>
     public void Actualizar(DatosPerfil datos, DateTime ahoraUtc)
     {
         ArgumentNullException.ThrowIfNull(datos);
         ExigirUtc(ahoraUtc);
         Validar(datos);
-
-        var slug = string.IsNullOrWhiteSpace(datos.MetaSlug) ? null : datos.MetaSlug.Trim();
-        if (slug != MetaSlug)
-            InicioPlan = slug is null ? null : ahoraUtc;
 
         PerfilLaboral = datos.PerfilLaboral;
         ZonaHoraria = datos.ZonaHoraria.Trim();
@@ -124,7 +115,6 @@ public sealed partial class PerfilUsuario
         Actividad = datos.Actividad;
         DiasPorSemana = datos.DiasPorSemana;
         MinutosPorSesion = datos.MinutosPorSesion;
-        MetaSlug = slug;
         ActualizadoEn = ahoraUtc;
     }
 
@@ -175,9 +165,6 @@ public sealed partial class PerfilUsuario
             throw new ArgumentException("Los días por semana deben estar entre 1 y 7.", nameof(datos.DiasPorSemana));
         if (datos.MinutosPorSesion is { } minutos && (minutos < 10 || minutos > 180))
             throw new ArgumentException("Los minutos por sesión deben estar entre 10 y 180.", nameof(datos.MinutosPorSesion));
-        if (!string.IsNullOrWhiteSpace(datos.MetaSlug)
-            && (datos.MetaSlug.Trim().Length > 60 || !SlugValido().IsMatch(datos.MetaSlug.Trim())))
-            throw new ArgumentException("El plan de interés no es válido.", nameof(datos.MetaSlug));
     }
 
     private static void ValidarPeso(decimal pesoKg, string parametro)
@@ -199,7 +186,4 @@ public sealed partial class PerfilUsuario
         if (fecha.Kind != DateTimeKind.Utc)
             throw new ArgumentException("La fecha debe ser UTC.", nameof(fecha));
     }
-
-    [GeneratedRegex("^[a-z0-9]+(-[a-z0-9]+)*$")]
-    private static partial Regex SlugValido();
 }

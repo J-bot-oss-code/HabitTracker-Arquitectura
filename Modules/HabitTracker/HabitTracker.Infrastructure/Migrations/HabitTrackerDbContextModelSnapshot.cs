@@ -292,13 +292,6 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<TimeOnly?>("HoraSalidaTrabajo")
                         .HasColumnType("time");
 
-                    b.Property<DateTime?>("InicioPlan")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("MetaSlug")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
                     b.Property<int?>("MinutosPorSesion")
                         .HasColumnType("int");
 
