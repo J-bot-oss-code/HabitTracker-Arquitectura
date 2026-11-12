@@ -457,8 +457,8 @@ Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflow
 **Versiones fijas.** Desde el 09-11-2026 cada dependencia se queda en una versión exacta y segura:
 - NuGet con versión exacta en cada `.csproj`;
 - npm sin `^` y con `save-exact=true` en `frontend/.npmrc`;
-- Docker con etiquetas exactas (`sdk:10.0.403`, `aspnet:10.0.14` y `mssql/server:2022-CU27-ubuntu-22.04`);
-- el CI con .NET `10.0.403` y Node `24.22.2`, y las Actions fijadas por SHA.
+- Docker con etiquetas exactas (`sdk:10.0.404`, `aspnet:10.0.15` y `mssql/server:2022-CU27-ubuntu-22.04`);
+- el CI con .NET `10.0.404` y Node `24.22.2`, y las Actions fijadas por SHA.
 
 Dependabot ya no abre PR por versiones nuevas (`open-pull-requests-limit: 0`). Una dependencia solo se actualiza cuando hace falta: por una vulnerabilidad o porque una función la necesita. Se sube a mano a la versión parcheada más cercana, en una rama con PR a `develop`.
 

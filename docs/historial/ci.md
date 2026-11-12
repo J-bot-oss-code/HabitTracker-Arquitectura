@@ -32,6 +32,7 @@
     - `mssql/server:2022-latest` → `2022-CU27-ubuntu-22.04`;
     - `dotnet-version: 10.0.x` → `10.0.403`;
     - `node-version: 24` → `24.22.2`, que incluye el parche de seguridad de la 24.22.1.
+  - **Primera subida por seguridad (12-11-2026):** Trivy encontró 3 vulnerabilidades altas en `Microsoft.AspNetCore.App.Runtime.linux-x64` 10.0.14 (CVE-2026-114146, CVE-2026-114147 y CVE-2026-114149; corregidas en la 10.0.15) y bloqueó todas las PR. Se subió a `aspnet:10.0.15` y a `sdk:10.0.404`, y .NET del CI a `10.0.404`: una subida de parche, solo por la vulnerabilidad.
 - **Escaneo semanal de Trivy:** puede bloquear por parches de Ubuntu publicados después del último cambio (CVE-2026-109518 de `apt`, 05-11-2026). El `Dockerfile` ejecuta `apt-get upgrade` en la etapa final como solución; por eso la imagen no es reproducible bit a bit.
 - **Pendiente:** descripción automática de las PR (Qué cambia / Por qué / Cómo probarlo / Qué NO incluye), el CD (el destino previsto es Vercel, que no hospeda .NET de forma nativa), el Dockerfile del frontend y la conexión frontend↔backend. Deuda anotada: `frontend/AGENTS.md` aún dice "backend congelado" y `.github/PULL_REQUEST_TEMPLATE.md` (§6.5) sigue siendo una PR rellenada.
 
