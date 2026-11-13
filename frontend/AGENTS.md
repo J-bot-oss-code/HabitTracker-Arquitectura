@@ -81,9 +81,7 @@ backend (`.github/copilot/agents/`) siguen aplicando a `Host/` y `Modules/`.
 
 ## Identidad visual
 
-La fuente de verdad es la especificación `docs/mejoras/diseno-ui-web-movil.md`: diseño sobrio
-(fondo gris claro, tarjetas blancas con borde sutil, un solo acento índigo, sin degradados ni
-sombras pesadas), Plus Jakarta Sans para títulos y cifras e Inter para el cuerpo. Temas Claro,
+La identidad es «la hoja del día» (ver `src/index.css`): tinta verde abeto sobre papel, un subrayador amarillo-verde (`marcador`) solo para lo hecho, esquinas casi rectas (radios 3–9 px), listas regladas con la hora al margen en lugar de tarjetas, sin degradados ni sombras. Bricolage Grotesque en títulos y cifras y Atkinson Hyperlegible Next en el cuerpo. La especificación `docs/mejoras/diseno-ui-web-movil.md` sigue mandando en estructura y componentes; solo cambian los tokens de color, tipografía y radio. Temas Claro,
 Oscuro y Sistema sobre tokens semánticos (`src/index.css`); la equivalencia con los tokens de la
 especificación y las desviaciones por accesibilidad están en `docs/PLAN-FRONTEND-NEXUS.md`.
 

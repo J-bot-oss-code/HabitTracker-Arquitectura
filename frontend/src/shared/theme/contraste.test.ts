@@ -66,6 +66,7 @@ describe('contraste de los temas (WCAG 2.2 AA)', () => {
       ['acento-fuerte', 'acento-suave'],
       ['acento-fuerte', 'superficie'],
       ['tinta-texto', 'tinta'],
+      ['marcador-texto', 'marcador'],
       ['tinta-atenuado', 'tinta'],
       ['racha-texto', 'racha-fondo'],
       ['nota-texto', 'nota-fondo'],

@@ -142,8 +142,12 @@ export function HoyPage() {
           p.sugerencia && <SugerenciaDeAjuste key={p.planId} plan={p} sugerencia={p.sugerencia} />,
       )}
 
-      <section aria-label="Resumen del día" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section
+        aria-label="Resumen del día"
+        className="mb-6 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-borde bg-borde lg:grid-cols-4"
+      >
         <Estadistica
+          plana
           etiqueta="Tareas de hoy"
           icono="check"
           valor={`${hechas}/${total}`}
@@ -151,18 +155,21 @@ export function HoyPage() {
           destacada={total > 0 && hechas === total}
         />
         <Estadistica
+          plana
           etiqueta="Racha actual"
           icono="llama"
           valor={racha}
           detalle={`${racha === 1 ? 'día' : 'días'} seguidos · récord ${rachaMasLarga(lista)}`}
         />
         <Estadistica
+          plana
           etiqueta="Cumplimiento semanal"
           icono="trofeo"
           valor={cumplimiento === null ? '—' : `${Math.round(cumplimiento)} %`}
           detalle="hábitos diarios, últimos 7 días"
         />
         <Estadistica
+          plana
           etiqueta="Plan · semana"
           icono="calendario"
           valor={

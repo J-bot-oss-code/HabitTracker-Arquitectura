@@ -13,7 +13,7 @@
 ## Checklist
 
 - [x] **Paso 0** — Rama, línea base (backend 106/106, frontend 222/222) y este plan.
-- [x] **Paso 1** — Identidad de la especificación (tokens, Plus Jakarta Sans, temas Claro, Oscuro y Sistema; sin halos ni degradados), componentes base reestilizados (`Estadistica` con barra, `BarraProgreso`, insignia Admin), cliente con `put`/`delete`, `esNoDisponible` y registro de contratos propuestos con su prueba. Cada ruta nueva se registra en el paso que construye su pantalla, para que ningún commit deje rutas vacías.
+- [x] **Paso 1** — Identidad de la especificación (tokens; desde el 13-11-2026 «la hoja del día» con Bricolage Grotesque y Atkinson Hyperlegible Next, temas Claro, Oscuro y Sistema; sin halos ni degradados), componentes base reestilizados (`Estadistica` con barra, `BarraProgreso`, insignia Admin), cliente con `put`/`delete`, `esNoDisponible` y registro de contratos propuestos con su prueba. Cada ruta nueva se registra en el paso que construye su pantalla, para que ningún commit deje rutas vacías.
 - [x] **Paso 2** — Landing pública en `/` con `PublicLayout` (cabecera con menú móvil y pie legal), catálogo de planes (`/metas`; desde la Fase 3b viene de la API, con filtros por nivel y área), calculadora de calorías Mifflin-St Jeor sin guardar nada (`/calculadoras`) y documentos legales versionados (`/legal/:documento`: términos v2.1, privacidad v1.4, cookies, salud). Con sesión, la cabecera lleva al panel del rol.
 - [x] **Paso 3** — Registro con consentimiento legal y onboarding (3 pantallas: pasos 3 a 5 del alta). _(Crítica de diseño, ronda 1.)_
 - [x] **Paso 4** — Panel "Hoy" en `/hoy` (destino tras iniciar sesión y tras el onboarding del Estándar): fecha y saludo, 4 estadísticas, tareas del día con "Marcar hecha" y "Registrar cantidad", próxima tarea y tira de la semana. Usa los hábitos reales; el perfil propuesto solo aporta el nombre y el plan.
@@ -63,7 +63,7 @@ Los componentes usan nombres semánticos (`bg-superficie`, `text-atenuado`…) d
 - Al imprimir ("Exportar PDF") se aplican siempre los colores claros, y solo se oculta lo marcado con `data-no-imprimir`.
 - Para el Paso 5: entre sí, los niveles `calor-1/2` no llegan a 3:1, así que cada celda del mapa de calor necesita una alternativa en texto.
 
-Tipografía: Plus Jakarta Sans 600–800 (títulos y cifras) e Inter (cuerpo), ambas empaquetadas con `@fontsource`, sin CDN. Radios: inputs y botones 12 px, tarjetas 16 px, destacadas 20 px, chips 999 px. La única sombra es `shadow-flotante`, que se usa en la tarjeta del hero y en las capas flotantes (modal, toast, menú).
+Tipografía: Bricolage Grotesque (títulos y cifras) y Atkinson Hyperlegible Next (cuerpo), ambas empaquetadas con `@fontsource`, sin CDN. Radios por token (`--radius-*`): 3, 5, 7 y 9 px; chips 999 px. La única sombra es `shadow-flotante`, que se usa en la tarjeta del hero y en las capas flotantes (modal, toast, menú).
 
 **Desviaciones y notas del Paso 7:**
 

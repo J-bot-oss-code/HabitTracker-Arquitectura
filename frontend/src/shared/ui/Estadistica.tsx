@@ -12,6 +12,7 @@ export function Estadistica({
   icono,
   destacada = false,
   progreso,
+  plana = false,
 }: {
   etiqueta: string
   valor: ReactNode
@@ -20,12 +21,19 @@ export function Estadistica({
   destacada?: boolean
   // Porcentaje 0–100 para la barra; se omite si no aplica.
   progreso?: number
+  // Sin borde ni esquinas: la celda de una franja de cifras que dibuja el contenedor.
+  plana?: boolean
 }) {
   return (
     <div
       className={cn(
-        'rounded-2xl border bg-superficie p-4 sm:p-5',
-        destacada ? 'border-acento ring-1 ring-acento' : 'border-borde',
+        'bg-superficie p-4 sm:p-5',
+        plana
+          ? destacada && 'bg-acento-suave'
+          : cn(
+              'rounded-2xl border',
+              destacada ? 'border-acento ring-1 ring-acento' : 'border-borde',
+            ),
       )}
     >
       <div className="flex items-center justify-between gap-2">

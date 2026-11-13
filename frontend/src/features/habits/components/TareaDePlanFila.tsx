@@ -27,78 +27,83 @@ export function TareaDePlanFila({ tarea }: { tarea: TareaHoyDto }) {
     )
   }
 
-  const momento = [
-    tarea.ancla ? ETIQUETA_ANCLA[tarea.ancla] : null,
-    tarea.horaSugerida ? `${tarea.horaSugerida}` : null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const momento = tarea.ancla ? ETIQUETA_ANCLA[tarea.ancla] : ''
 
   return (
-    <li className="space-y-2 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="min-w-0">
-          <Link
-            to={`/habitos/${tarea.habitoId}`}
-            className="flex min-h-11 items-center font-semibold hover:underline"
-          >
-            {tarea.nombre}
-          </Link>
-          <p className="text-sm text-atenuado">
-            {tarea.planNombre}
-            {momento && ` · ${momento}`}
-          </p>
-          <p className="text-sm text-atenuado">
-            {tarea.periodicidad === 'Diaria' ? 'Diario' : 'Semanal'} ·{' '}
-            <span className="tabular-nums">
-              {formatoCantidad.format(tarea.cantidadPeriodo)} /{' '}
-              {formatoCantidad.format(tarea.cantidadObjetivo)}
-            </span>{' '}
-            {tarea.unidad}
-          </p>
-        </div>
-        {tarea.estado === 'Hecho' && (
-          <Badge tono="exito" icono="check">
-            Hecho
-          </Badge>
+    <li className="grid grid-cols-[3.75rem_minmax(0,1fr)] gap-x-4 py-4">
+      <p className="cifra pt-3 text-lg">
+        {tarea.horaSugerida && (
+          <time dateTime={tarea.horaSugerida}>
+            <span className="sr-only">A las </span>
+            {tarea.horaSugerida}
+          </time>
         )}
-        {tarea.estado === 'Minimo' && (
-          <Badge tono="exito" icono="check">
-            Hoy hiciste lo mínimo
-          </Badge>
-        )}
-      </div>
-      {tarea.instrucciones && tarea.estado === 'Pendiente' && (
-        <p className="text-sm text-texto-2">{tarea.instrucciones}</p>
-      )}
-      {tarea.estado !== 'Hecho' && (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            tamano="sm"
-            cargando={registrar.isPending}
-            onClick={() => registrar_(tarea.restante, false, `¡${tarea.nombre} hecho!`)}
-            aria-label={`Hecho: ${tarea.nombre}`}
-          >
-            Hecho
-          </Button>
-          {tarea.estado === 'Pendiente' && tarea.versionMinima && (
-            <Button
-              tamano="sm"
-              variante="secundario"
-              disabled={registrar.isPending}
-              onClick={() =>
-                registrar_(CANTIDAD_MINIMA, true, 'Con lo mínimo también cuenta. ¡Bien hecho!')
-              }
-              aria-label={`Hoy solo lo mínimo: ${tarea.nombre}`}
+      </p>
+      <div className="min-w-0 space-y-2">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div className="min-w-0">
+            <Link
+              to={`/habitos/${tarea.habitoId}`}
+              className="flex min-h-11 items-center font-semibold hover:underline"
             >
-              Hoy solo lo mínimo
-            </Button>
+              {tarea.nombre}
+            </Link>
+            <p className="text-sm text-atenuado">
+              {tarea.planNombre}
+              {momento && ` · ${momento}`}
+            </p>
+            <p className="text-sm text-atenuado">
+              {tarea.periodicidad === 'Diaria' ? 'Diario' : 'Semanal'} ·{' '}
+              <span className="tabular-nums">
+                {formatoCantidad.format(tarea.cantidadPeriodo)} /{' '}
+                {formatoCantidad.format(tarea.cantidadObjetivo)}
+              </span>{' '}
+              {tarea.unidad}
+            </p>
+          </div>
+          {tarea.estado === 'Hecho' && (
+            <Badge tono="exito" icono="check">
+              Hecho
+            </Badge>
+          )}
+          {tarea.estado === 'Minimo' && (
+            <Badge tono="exito" icono="check">
+              Hoy hiciste lo mínimo
+            </Badge>
           )}
         </div>
-      )}
-      {tarea.estado === 'Pendiente' && tarea.versionMinima && (
-        <p className="text-xs text-atenuado">Lo mínimo: {tarea.versionMinima}</p>
-      )}
+        {tarea.instrucciones && tarea.estado === 'Pendiente' && (
+          <p className="text-sm text-texto-2">{tarea.instrucciones}</p>
+        )}
+        {tarea.estado !== 'Hecho' && (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              tamano="sm"
+              cargando={registrar.isPending}
+              onClick={() => registrar_(tarea.restante, false, `¡${tarea.nombre} hecho!`)}
+              aria-label={`Hecho: ${tarea.nombre}`}
+            >
+              Hecho
+            </Button>
+            {tarea.estado === 'Pendiente' && tarea.versionMinima && (
+              <Button
+                tamano="sm"
+                variante="secundario"
+                disabled={registrar.isPending}
+                onClick={() =>
+                  registrar_(CANTIDAD_MINIMA, true, 'Con lo mínimo también cuenta. ¡Bien hecho!')
+                }
+                aria-label={`Hoy solo lo mínimo: ${tarea.nombre}`}
+              >
+                Hoy solo lo mínimo
+              </Button>
+            )}
+          </div>
+        )}
+        {tarea.estado === 'Pendiente' && tarea.versionMinima && (
+          <p className="text-xs text-atenuado">Lo mínimo: {tarea.versionMinima}</p>
+        )}
+      </div>
     </li>
   )
 }
