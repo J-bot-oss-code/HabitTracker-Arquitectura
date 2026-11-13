@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -52,10 +53,11 @@ public class PermisosErroresTests
     [Trait("Requirement", "RD-07")]
     public void RD_07_CrearPermisoRequest_SoloAceptaClavesConPuntos(string permiso, bool valido)
     {
-        var peticion = new CrearPermisoRequest(permiso);
+        // ASP.NET valida los atributos del PARÁMETRO del constructor del record ([param: ...]); con [property: ...] los ignora y lanza.
+        var parametro = typeof(CrearPermisoRequest).GetConstructors().Single().GetParameters().Single();
+        var validadores = parametro.GetCustomAttributes<ValidationAttribute>().ToList();
 
-        var ok = Validator.TryValidateObject(peticion, new ValidationContext(peticion), [], validateAllProperties: true);
-
-        Assert.Equal(valido, ok);
+        Assert.NotEmpty(validadores);
+        Assert.Equal(valido, validadores.All(v => v.IsValid(permiso)));
     }
 }

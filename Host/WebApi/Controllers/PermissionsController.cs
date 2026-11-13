@@ -128,7 +128,7 @@ public class PermissionsController : ControllerBase
 
 /// <summary>La clave del permiso es un nombre con puntos (<c>Habits.AdvancedReconfig</c>), no texto libre (RD-07).</summary>
 public record CrearPermisoRequest(
-    [property: Required, StringLength(256, MinimumLength = 3), RegularExpression(@"^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$",
+    [param: Required, StringLength(256, MinimumLength = 3), RegularExpression(@"^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$",
         ErrorMessage = "El permiso no es válido.")]
     string PermisoSolicitado);
 
