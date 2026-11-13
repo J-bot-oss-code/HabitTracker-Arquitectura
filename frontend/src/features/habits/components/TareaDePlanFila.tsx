@@ -7,6 +7,8 @@ import { Button } from '@/shared/ui/Button'
 import { useToast } from '@/shared/ui/Toast'
 import { useRegistrarAvance } from '../api'
 
+// Como decide el backend (Fase 4a): «lo mínimo» registra 1 y cuenta como día cumplido.
+const CANTIDAD_MINIMA = 1
 const formatoCantidad = new Intl.NumberFormat('es-DO', { maximumFractionDigits: 2 })
 
 // Una tarea de un plan en «Hoy». «Hecho» registra lo que falta del periodo; «Hoy solo lo mínimo» registra la
@@ -25,9 +27,6 @@ export function TareaDePlanFila({ tarea }: { tarea: TareaHoyDto }) {
     )
   }
 
-  // shortcut: la versión mínima no tiene cantidad propia en el contrato; se registra la mitad de lo que falta
-  // (máximo 1), siempre por debajo de la meta, hasta que el backend la defina.
-  const cantidadMinima = Math.max(0.01, Math.round(Math.min(1, tarea.restante / 2) * 100) / 100)
   const momento = [
     tarea.ancla ? ETIQUETA_ANCLA[tarea.ancla] : null,
     tarea.horaSugerida ? `${tarea.horaSugerida}` : null,
@@ -88,7 +87,7 @@ export function TareaDePlanFila({ tarea }: { tarea: TareaHoyDto }) {
               variante="secundario"
               disabled={registrar.isPending}
               onClick={() =>
-                registrar_(cantidadMinima, true, 'Con lo mínimo también cuenta. ¡Bien hecho!')
+                registrar_(CANTIDAD_MINIMA, true, 'Con lo mínimo también cuenta. ¡Bien hecho!')
               }
               aria-label={`Hoy solo lo mínimo: ${tarea.nombre}`}
             >
