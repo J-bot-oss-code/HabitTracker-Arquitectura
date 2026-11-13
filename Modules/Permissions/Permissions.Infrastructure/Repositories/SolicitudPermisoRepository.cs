@@ -91,4 +91,24 @@ public sealed class SolicitudPermisoRepository(PermissionsDbContext dbContext) :
                 solicitud.Estado == EstadoSolicitudPermiso.Aplicada,
                 cancellationToken);
     }
+
+    public Task<bool> ExisteVigenteAsync(
+        string solicitante,
+        string permisoSolicitado,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(solicitante);
+        ArgumentException.ThrowIfNullOrWhiteSpace(permisoSolicitado);
+
+        var solicitanteNormalizado = solicitante.Trim().ToUpper();
+        var permisoNormalizado = permisoSolicitado.Trim().ToUpper();
+
+        return dbContext.SolicitudesPermisos
+            .AsNoTracking()
+            .AnyAsync(solicitud =>
+                solicitud.Solicitante.ToUpper() == solicitanteNormalizado &&
+                solicitud.PermisoSolicitado.ToUpper() == permisoNormalizado &&
+                (solicitud.Estado == EstadoSolicitudPermiso.Pendiente || solicitud.Estado == EstadoSolicitudPermiso.Aplicada),
+                cancellationToken);
+    }
 }

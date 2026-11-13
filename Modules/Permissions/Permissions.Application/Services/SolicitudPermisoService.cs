@@ -1,4 +1,5 @@
 using Permissions.Application.DTOs;
+using Permissions.Application.Exceptions;
 using Permissions.Application.Interfaces;
 using Permissions.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,12 @@ public sealed class SolicitudPermisoService(
         if (string.IsNullOrWhiteSpace(command.PermisoSolicitado))
         {
             throw new ArgumentException("El permiso solicitado es obligatorio.", nameof(command));
+        }
+
+        // Una persona no repite una solicitud que sigue vigente: espera su resolución (o ya tiene el permiso).
+        if (await repository.ExisteVigenteAsync(command.Solicitante, command.PermisoSolicitado, cancellationToken))
+        {
+            throw new SolicitudDuplicadaException();
         }
 
         var solicitud = new SolicitudPermiso(command.Solicitante, command.PermisoSolicitado);
@@ -79,7 +86,7 @@ public sealed class SolicitudPermisoService(
 
         if (solicitud is null)
         {
-            throw new InvalidOperationException("La solicitud no existe.");
+            throw new SolicitudNoEncontradaException();
         }
 
         if (EsAdministrador(rolUsuario) || (EsEstandar(rolUsuario) && EsPropietario(solicitud, usuarioConsulta)))
@@ -98,7 +105,7 @@ public sealed class SolicitudPermisoService(
 
         if (solicitud is null)
         {
-            throw new InvalidOperationException("La solicitud no existe.");
+            throw new SolicitudNoEncontradaException();
         }
 
         var resultado = solicitud.Aprobar(command.Aprobador, DateTime.UtcNow);
@@ -121,7 +128,7 @@ public sealed class SolicitudPermisoService(
 
         if (solicitud is null)
         {
-            throw new InvalidOperationException("La solicitud no existe.");
+            throw new SolicitudNoEncontradaException();
         }
 
         var resultado = solicitud.Rechazar(command.Aprobador, command.MotivoRechazo, DateTime.UtcNow);

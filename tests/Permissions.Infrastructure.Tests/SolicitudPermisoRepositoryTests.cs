@@ -139,4 +139,34 @@ public sealed class SolicitudPermisoRepositoryTests
         Assert.True(permisoAplicadoEfectivo);
         Assert.False(noPropietarioEfectivo);
     }
+
+    [Fact]
+    [Trait("Requirement", "RF-GP-01")]
+    public async Task RF_GP_01_Repository_ExisteVigente_SoloCuentaPendienteYAplicada_SinMayusculas()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<PermissionsDbContext>().UseSqlite(connection).Options;
+        await using (var setup = new PermissionsDbContext(options))
+            await setup.Database.EnsureCreatedAsync();
+
+        var pendiente = new SolicitudPermiso("ana@ejemplo.com", "Habits.AdvancedReconfig");
+        var rechazada = new SolicitudPermiso("ana@ejemplo.com", "Documents.Otro");
+        rechazada.Rechazar("admin@ejemplo.com", "No", DateTime.UtcNow);
+        var aplicada = new SolicitudPermiso("luis@ejemplo.com", "Habits.AdvancedReconfig");
+        aplicada.Aprobar("admin@ejemplo.com", DateTime.UtcNow);
+        await using (var contexto = new PermissionsDbContext(options))
+        {
+            contexto.SolicitudesPermisos.AddRange(pendiente, rechazada, aplicada);
+            await contexto.SaveChangesAsync();
+        }
+
+        await using var lectura = new PermissionsDbContext(options);
+        var repositorio = new SolicitudPermisoRepository(lectura);
+
+        Assert.True(await repositorio.ExisteVigenteAsync("ANA@ejemplo.com", "habits.advancedreconfig"));
+        Assert.True(await repositorio.ExisteVigenteAsync("luis@ejemplo.com", "Habits.AdvancedReconfig"));
+        Assert.False(await repositorio.ExisteVigenteAsync("ana@ejemplo.com", "Documents.Otro")); // rechazada: se puede volver a pedir
+        Assert.False(await repositorio.ExisteVigenteAsync("otra@ejemplo.com", "Habits.AdvancedReconfig"));
+    }
 }
