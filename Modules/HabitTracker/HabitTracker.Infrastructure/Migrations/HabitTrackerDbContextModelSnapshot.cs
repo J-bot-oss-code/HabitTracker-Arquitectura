@@ -234,6 +234,10 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("ClaveIdempotencia")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
                     b.Property<bool>("EsVersionMinima")
                         .HasColumnType("bit");
 
@@ -243,6 +247,13 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<Guid>("HabitoId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("App");
+
                     b.Property<string>("Unidad")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -251,6 +262,10 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("HabitoId");
+
+                    b.HasIndex("HabitoId", "ClaveIdempotencia")
+                        .IsUnique()
+                        .HasFilter("[ClaveIdempotencia] IS NOT NULL");
 
                     b.ToTable("RegistrosDiarios");
                 });

@@ -91,7 +91,7 @@ public class HabitsController : ControllerBase
     public async Task<IActionResult> RegistrarAvance(Guid id, [FromBody] RegistrarAvanceRequest request, CancellationToken cancellationToken)
     {
         var usuarioId = ObtenerUsuarioId();
-        await _service.RegistrarAvanceAsync(id, request.Cantidad, request.FechaUtc, usuarioId, request.EsVersionMinima, cancellationToken);
+        await _service.RegistrarAvanceAsync(id, request.Cantidad, request.FechaUtc, usuarioId, request.EsVersionMinima, cancellationToken: cancellationToken);
         return NoContent();
     }
 
