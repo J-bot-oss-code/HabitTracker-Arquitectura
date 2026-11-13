@@ -382,3 +382,20 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
   - el límite de 3 planes en curso se comprueba en el servicio y una carrera de dos peticiones podría pasarlo (solo el plan repetido lo impide la base);
   - `MarcarLogrosVistos` marca todos los logros;
   - una zona horaria desconocida cae a UTC sin avisar (tzdata en la imagen Docker, Fase 6).
+
+## Fase 4b: Mis planes, Hoy y logros en el frontend (`feature/frontend-mis-planes`, 12-11-2026)
+
+- **Backend (commit aparte):** `MetaSlug` e `InicioPlan` salen del perfil (dominio, DTO, petición, EF) con la migración `QuitarMetaSlugDelPerfil`. Un cliente antiguo que aún envíe `metaSlug` no falla: el campo se ignora.
+- **Contrato:** `features/mis-planes/` (tipos, cliente, zod) y el mock MSW de `my-plans`, `today` y `progress/summary`, que porta `CalculadoraProgreso`, `SugeridorAjuste`, `CalculadoraLogros` y `ResolvedorAncla`. `shared/api/clavesSeguimiento.ts` rompe el ciclo entre `habits` y `mis-planes`.
+- **Pantallas:**
+  - «Empezar este plan» con «¿Cuándo lo harás?» (ancla y hora);
+  - Hoy desde `api/today` con «Hecho», «Hoy solo lo mínimo» (cantidad 1, como decide el backend), mensaje del día, sugerencia de ajuste y celebración semanal una sola vez (se recuerda en `sessionStorage` porque el backend no marca «visto»);
+  - Mis planes en `/planes` y detalle en `/mis-planes/:id`: pausar con motivo, reanudar, ajustar, recordatorio, completar (solo al llegar al final) y «Dejar este plan» con confirmación;
+  - Progreso con los logros y «tu mes en números» del servidor.
+- **Decisiones:**
+  - el plan elegido en la landing ya no se guarda como interés: el onboarding termina en la ficha del plan y gana a la ruta pedida;
+  - el plan de ejemplo no se siembra en las pruebas (`sembrarPlanDemo()`), para no tocar las suites existentes;
+  - KISS: se borró el cálculo de logros del navegador, `solicitudDePerfil` e `instanteFinDelPlan`.
+- **Revisión:** `frontend-reviewer` aprobó sin bloqueantes. `frontend-design-critic` pidió carga y error de Hoy, el aviso de ajuste con margen, tono de aviso (no rojo) para las reglas esperadas, «Dejar este plan» en lugar de un segundo «Cancelar» y ocultar «Completar» antes del final: se atendió. Quedan anotados sin hacer, por KISS: foco tras «Hecho», una sola tabla de estados, tarjeta entera clicable y esqueletos con `role="status"`.
+- **Verificación:** backend 1218 pruebas; frontend 795 en 57 archivos; typecheck, lint y build limpios. Contra la API real (SQL Server aislado, ya borrado): migración aplicada sin las columnas, inscribirse, `plan_ya_activo`, Hoy con el estado `Minimo`, ajustar, pausar con y sin motivo, `plan_aun_no_termina`, resumen y logros vistos.
+- **Lección:** `prettier --write` sobre carpetas enteras reformatea los finales de línea de archivos que no se tocaron (CRLF en Windows); formatea solo lo que cambias.
