@@ -7,7 +7,7 @@ export function InsigniaRacha({ dias, className }: { dias: number; className?: s
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full bg-racha-fondo px-3 py-1 text-sm font-semibold text-racha-texto',
+        'inline-flex items-center gap-1.5 rounded-md bg-racha-fondo px-3 py-1 text-sm font-semibold text-racha-texto',
         className,
       )}
     >

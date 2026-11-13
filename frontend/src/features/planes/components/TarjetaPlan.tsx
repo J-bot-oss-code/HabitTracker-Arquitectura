@@ -4,8 +4,8 @@ import { Icono } from '@/shared/ui/Icono'
 import { ETIQUETA_AREA, ETIQUETA_INTENSIDAD, ETIQUETA_NIVEL, duracionPlan } from '../etiquetas'
 import type { PlanResumenDto, RazonNoAptoDto } from '../types'
 
-// Tarjeta de un plan (GoalCard de la especificación, §3): la usan el catálogo público, los recomendados y los
-// "No recomendado para ti". Nada de lo que muestra depende solo del color.
+// Fila de un plan en el índice (la usan el catálogo público, los recomendados y los "No recomendado para ti"): a la
+// izquierda qué es y por qué; a la derecha cuánto dura y el enlace. Nada de lo que muestra depende solo del color.
 export function TarjetaPlan({
   plan,
   base,
@@ -28,54 +28,56 @@ export function TarjetaPlan({
 }) {
   const Titulo = nivelTitulo === 2 ? 'h2' : 'h3'
   return (
-    <article className="flex w-full flex-col rounded-2xl border border-borde bg-superficie p-5">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="rotulo">{ETIQUETA_AREA[plan.area]}</p>
-        <Badge tono="neutro">{ETIQUETA_NIVEL[plan.nivel]}</Badge>
+    <article className="grid w-full gap-x-10 gap-y-3 border-t border-borde py-5 md:grid-cols-[minmax(0,1fr)_15rem]">
+      <div>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="rotulo">{ETIQUETA_AREA[plan.area]}</p>
+          <Badge tono="neutro">{ETIQUETA_NIVEL[plan.nivel]}</Badge>
+        </div>
+        {noRecomendado && (
+          <p className="mt-2">
+            <Badge tono="info" icono="info">
+              No recomendado para ti
+            </Badge>
+          </p>
+        )}
+        <Titulo className="mt-2 text-xl font-bold">{plan.nombre}</Titulo>
+        <p className="mt-1.5 text-sm text-atenuado">{plan.resumen}</p>
+
+        {razones.length > 0 && (
+          <ul className="mt-3 space-y-1.5 text-sm text-texto-2">
+            {razones.map((r) => (
+              <li key={r.motivo} className="flex items-start gap-2">
+                <Icono nombre="info" className="mt-0.5 size-4 shrink-0 text-atenuado" />
+                <span>{r.mensaje}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {motivos.length > 0 && (
+          <ul className="mt-3 space-y-1.5 text-sm text-texto-2">
+            {motivos.map((m) => (
+              <li key={m} className="flex items-start gap-2">
+                <Icono nombre="check" className="mt-0.5 size-4 shrink-0 text-acento" />
+                <span>{m}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {advertencias.length > 0 && (
+          <ul className="mt-3 space-y-1.5 text-sm text-texto-2">
+            {advertencias.map((a) => (
+              <li key={a} className="flex items-start gap-2">
+                <Icono nombre="alerta" className="mt-0.5 size-4 shrink-0 text-aviso" />
+                <span>{a}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
-      {noRecomendado && (
-        <p className="mt-2">
-          <Badge tono="info" icono="info">
-            No recomendado para ti
-          </Badge>
-        </p>
-      )}
-      <Titulo className="mt-3 text-lg font-bold">{plan.nombre}</Titulo>
-      <p className="mt-1.5 text-sm text-atenuado">{plan.resumen}</p>
 
-      {razones.length > 0 && (
-        <ul className="mt-3 space-y-1.5 text-sm text-texto-2">
-          {razones.map((r) => (
-            <li key={r.motivo} className="flex items-start gap-2">
-              <Icono nombre="info" className="mt-0.5 size-4 shrink-0 text-atenuado" />
-              <span>{r.mensaje}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {motivos.length > 0 && (
-        <ul className="mt-3 space-y-1.5 text-sm text-texto-2">
-          {motivos.map((m) => (
-            <li key={m} className="flex items-start gap-2">
-              <Icono nombre="check" className="mt-0.5 size-4 shrink-0 text-acento" />
-              <span>{m}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-      {advertencias.length > 0 && (
-        <ul className="mt-3 space-y-1.5 text-sm text-texto-2">
-          {advertencias.map((a) => (
-            <li key={a} className="flex items-start gap-2">
-              <Icono nombre="alerta" className="mt-0.5 size-4 shrink-0 text-aviso" />
-              <span>{a}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <div className="mt-auto pt-4">
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-texto-2">
+      <div className="md:text-right">
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-medium text-texto-2 md:justify-end">
           <span className="inline-flex items-center gap-1.5">
             <Icono nombre="calendario" className="size-4 text-atenuado" />
             {duracionPlan(plan.semanas)} · {ETIQUETA_INTENSIDAD[plan.intensidad].toLowerCase()}

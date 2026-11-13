@@ -4,7 +4,7 @@ import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Alert } from '@/shared/ui/Alert'
 import { AnilloProgreso } from '@/shared/ui/AnilloProgreso'
 import { Card, CardBody, EmptyState, Seccion } from '@/shared/ui/Card'
-import { Estadistica } from '@/shared/ui/Estadistica'
+import { Estadistica, FranjaCifras } from '@/shared/ui/Estadistica'
 import { Icono } from '@/shared/ui/Icono'
 import { MiniBarras } from '@/shared/ui/MiniBarras'
 import { CargandoPagina } from '@/shared/ui/Spinner'
@@ -99,7 +99,7 @@ export function HabitDetailPage() {
             </AnilloProgreso>
           </div>
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <FranjaCifras className="grid-cols-1 min-[420px]:grid-cols-3">
               <Estadistica
                 etiqueta="Racha"
                 icono="llama"
@@ -118,7 +118,7 @@ export function HabitDetailPage() {
                 valor={formato.format(totalDelCiclo(habito))}
                 detalle={`${habito.registros.length} registros`}
               />
-            </div>
+            </FranjaCifras>
             {habito.cumpleMetaFinal && <Alert tono="exito">Meta del período cumplida.</Alert>}
             <AccionesTransicion habito={habito} />
           </div>

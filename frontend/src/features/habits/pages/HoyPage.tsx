@@ -9,7 +9,7 @@ import { claseBoton } from '@/shared/ui/claseBoton'
 import { Card, CardBody, EmptyState } from '@/shared/ui/Card'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Esqueleto } from '@/shared/ui/Spinner'
-import { Estadistica } from '@/shared/ui/Estadistica'
+import { Estadistica, FranjaCifras } from '@/shared/ui/Estadistica'
 import { Icono } from '@/shared/ui/Icono'
 import { InsigniaRacha } from '@/shared/ui/InsigniaRacha'
 import { Modal } from '@/shared/ui/Modal'
@@ -142,7 +142,7 @@ export function HoyPage() {
           p.sugerencia && <SugerenciaDeAjuste key={p.planId} plan={p} sugerencia={p.sugerencia} />,
       )}
 
-      <section aria-label="Resumen del día" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <FranjaCifras etiqueta="Resumen del día" className="grid-cols-2 lg:grid-cols-4">
         <Estadistica
           etiqueta="Tareas de hoy"
           icono="check"
@@ -185,7 +185,7 @@ export function HoyPage() {
             )
           }
         />
-      </section>
+      </FranjaCifras>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <section aria-labelledby="tareas-titulo">

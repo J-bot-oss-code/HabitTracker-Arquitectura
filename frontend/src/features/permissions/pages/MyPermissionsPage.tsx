@@ -16,7 +16,6 @@ export function MyPermissionsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        rotulo="Accesos"
         titulo="Mis permisos"
         descripcion="Solicita permisos para acciones protegidas y consulta su estado."
       />

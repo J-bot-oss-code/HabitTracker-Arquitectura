@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Button } from '@/shared/ui/Button'
 import { EmptyState, PageHeader } from '@/shared/ui/Card'
-import { Estadistica } from '@/shared/ui/Estadistica'
+import { Estadistica, FranjaCifras } from '@/shared/ui/Estadistica'
 import { Icono } from '@/shared/ui/Icono'
 import { Modal } from '@/shared/ui/Modal'
 import { Segmentado } from '@/shared/ui/Segmentado'
@@ -36,7 +36,6 @@ export function HabitsPage() {
   return (
     <>
       <PageHeader
-        rotulo="Tu rendimiento"
         titulo="Mis hábitos"
         descripcion="Planifica, activa y registra el avance de tus hábitos."
         acciones={
@@ -48,7 +47,7 @@ export function HabitsPage() {
       />
 
       {lista.length > 0 && (
-        <section aria-label="Resumen de rendimiento" className="mb-6 grid grid-cols-3 gap-3">
+        <FranjaCifras etiqueta="Resumen de rendimiento" className="grid-cols-3">
           <Estadistica
             etiqueta="En marcha"
             icono="rayo"
@@ -68,7 +67,7 @@ export function HabitsPage() {
             valor={mejorRacha}
             detalle="períodos seguidos"
           />
-        </section>
+        </FranjaCifras>
       )}
 
       <div className="mb-6">
@@ -114,11 +113,13 @@ export function HabitsPage() {
           }
         />
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        <ul className="border-b border-borde">
           {visibles.map((h) => (
-            <HabitoCard key={h.id} habito={h} />
+            <li key={h.id}>
+              <HabitoCard habito={h} />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       <Modal abierto={creando} titulo="Nuevo hábito" alCerrar={() => setCreando(false)}>
