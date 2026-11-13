@@ -24,6 +24,9 @@ builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, 
 
 // Adaptador de IConsentimientoSalud para HabitTracker (consentimiento datosSalud de Control de Acceso).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IConsentimientoSalud, ConsentimientoSaludAdapter>();
+// Archivos vinculados a planes: HabitTracker ve los documentos por un puerto y el Manejador de documentos consulta una guarda al eliminar.
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.IDocumentosUsuario, DocumentosUsuarioAdapter>();
+builder.Services.AddScoped<DocumentManager.Application.Interfaces.IGuardaEliminacionDocumento, GuardaEliminacionDocumentoAdapter>();
 
 // Cifrado en reposo de los datos de salud: claves persistentes en DATAPROTECTION_KEYS_PATH (obligatorio fuera de Development).
 builder.Services.AddProteccionDeDatos(builder.Configuration, builder.Environment);

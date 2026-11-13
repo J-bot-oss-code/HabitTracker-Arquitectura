@@ -32,6 +32,7 @@ public class HabitTrackerDbContext : DbContext
     // Fase 4: los planes de cada persona, su constancia y sus logros.
     public DbSet<PlanUsuario> PlanesUsuario { get; set; } = null!;
     public DbSet<LogroUsuario> LogrosUsuario { get; set; } = null!;
+    public DbSet<AdjuntoPlan> AdjuntosPlan { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
