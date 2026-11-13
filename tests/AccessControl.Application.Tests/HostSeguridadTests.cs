@@ -92,6 +92,19 @@ public class HostSeguridadTests
     }
 
     [Fact]
+    public async Task RF_DOC_03_LaPoliticaDeCors_ExponeContentDisposition_ParaElNombreDeLaDescarga()
+    {
+        var cfg = Config(("Cors:OrigenesPermitidos:0", "http://localhost:5174"));
+        await using var proveedor = new ServiceCollection().AddLogging().AddCorsDelFrontend(cfg).BuildServiceProvider();
+
+        var politica = await proveedor.GetRequiredService<Microsoft.AspNetCore.Cors.Infrastructure.ICorsPolicyProvider>()
+            .GetPolicyAsync(new Microsoft.AspNetCore.Http.DefaultHttpContext(), CorsExtensions.PoliticaFrontend);
+
+        Assert.Contains("Content-Disposition", politica!.ExposedHeaders);
+        Assert.False(politica.AllowAnyOrigin); // sigue siendo una lista exacta de orígenes
+    }
+
+    [Fact]
     public void RD_07_LosOrigenesSeNormalizan_SinBarraFinalNiDuplicadosNiVacios()
     {
         var cfg = Config(
