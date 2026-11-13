@@ -34,20 +34,6 @@ export {
   ETIQUETA_ZONA,
 } from './etiquetas'
 
-// El PUT /api/profile reemplaza el perfil entero. Para cambiar un solo dato (por ejemplo el plan de interés) se
-// reenvía el resto tal cual: peso y altura sin cambios no piden el consentimiento de salud.
-export function solicitudDePerfil(
-  perfil: PerfilDto,
-  cambios: Partial<GuardarPerfilRequest> = {},
-): GuardarPerfilRequest {
-  // Nombre, inicio del plan y actualización los fija el servidor: no forman parte de la solicitud.
-  const copia: Partial<PerfilDto> = { ...perfil }
-  delete copia.nombre
-  delete copia.inicioPlan
-  delete copia.actualizadoEn
-  return { ...(copia as GuardarPerfilRequest), ...cambios }
-}
-
 // ProfileController (HabitTracker v2, Fase 2): perfil y cuestionario de salud por bloques.
 export const perfilApi = {
   obtener: () => api.get<PerfilDto>('/api/profile'),

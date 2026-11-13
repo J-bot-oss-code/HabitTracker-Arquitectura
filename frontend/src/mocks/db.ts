@@ -458,9 +458,6 @@ export function reiniciarDb() {
         actividad: 'Ligera',
         diasPorSemana: 3,
         minutosPorSesion: 30,
-        metaSlug: 'primeros-5-km',
-        // Semana 3 de 8 del plan.
-        inicioPlan: inicioDelDiaUtc(-17, ahora),
         actualizadoEn: new Date(ahora - 17 * DIA).toISOString(),
       },
     ],
@@ -481,8 +478,6 @@ export function reiniciarDb() {
         actividad: 'Moderada',
         diasPorSemana: 4,
         minutosPorSesion: 45,
-        metaSlug: null,
-        inicioPlan: null,
         actualizadoEn: new Date(ahora - 20 * DIA).toISOString(),
       },
     ],

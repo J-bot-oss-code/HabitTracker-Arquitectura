@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { db } from '@/mocks/db'
+import { db, sembrarPlanDemo } from '@/mocks/db'
 import { adminHandlers } from '@/mocks/handlers/propuestas/admin'
 import { problema } from '@/mocks/http'
 import { server } from '@/mocks/server'
@@ -94,6 +94,7 @@ describe('contrato propuesto del panel de administración', () => {
   })
 
   it('las métricas son agregadas y anónimas: ningún correo ni id de persona', async () => {
+    sembrarPlanDemo()
     const r = await llamar('/api/admin/metrics', iniciarSesionComo('admin'))
     const m: MetricasDto = await r.json()
     expect(m).toMatchObject({
@@ -101,7 +102,7 @@ describe('contrato propuesto del panel de administración', () => {
       registros7d: 0,
       retencion30d: 50,
       eliminacionesEnCurso: 0,
-      planesMasIniciados: [{ slug: 'primeros-5-km', cantidad: 1 }],
+      planesMasIniciados: [{ slug: 'mi-dia-oficina', cantidad: 1 }],
     })
     expect(JSON.stringify(m)).not.toMatch(/@|demo|-0000|[0-9a-f]{8}-[0-9a-f]{4}/)
   })
@@ -194,6 +195,7 @@ describe('contrato propuesto del panel de administración', () => {
 
 describe('Resumen del Administrador', () => {
   it('muestra los indicadores, los planes y la auditoría reciente', async () => {
+    sembrarPlanDemo()
     renderApp('/admin', { como: 'admin' })
     expect(await screen.findByRole('heading', { level: 1, name: 'Resumen' })).toBeInTheDocument()
     expect(screen.getByText('Métricas agregadas y anónimas.')).toBeInTheDocument()
@@ -205,7 +207,7 @@ describe('Resumen del Administrador', () => {
     expect(within(kpis).queryByText(/Google|RF-/)).not.toBeInTheDocument()
 
     const planes = await screen.findByRole('region', { name: 'Planes más iniciados' })
-    expect(within(planes).getByText('Primeros 5 km')).toBeInTheDocument()
+    expect(within(planes).getByText('Mi día de oficina saludable')).toBeInTheDocument()
     expect(within(planes).getByText('1 inicio')).toBeInTheDocument()
 
     const tabla = await screen.findByRole('table', { name: /Eventos de auditoría/ })

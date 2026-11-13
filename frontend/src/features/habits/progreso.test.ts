@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { constanciaPorDia, logrosDe, recordsDe } from './progreso'
+import { constanciaPorDia } from './progreso'
 import type { HabitoDto } from './types'
 
 // Jueves 5 de noviembre de 2026, 15:00 UTC.
@@ -81,58 +81,6 @@ describe('constancia por día', () => {
   })
 })
 
-describe('récords y logros', () => {
-  it('cuenta racha, avances y hábitos completados', () => {
-    const lista = [
-      habito({
-        registros: [
-          [-1, 10],
-          [-2, 10],
-          [-3, 10],
-          [-5, 4],
-        ],
-      }),
-      habito({ estado: 'Completado', registros: [[-1, 3]] }),
-    ]
-    expect(recordsDe(lista)).toEqual({
-      rachaMasLarga: 3,
-      avancesRegistrados: 5,
-      habitosCompletados: 1,
-    })
-    expect(recordsDe([])).toEqual({
-      rachaMasLarga: 0,
-      avancesRegistrados: 0,
-      habitosCompletados: 0,
-    })
-  })
-
-  it('desbloquea cada insignia en su umbral', () => {
-    const base = { rachaMasLarga: 0, avancesRegistrados: 0, habitosCompletados: 0 }
-    const obtenidos = (r: typeof base) =>
-      logrosDe(r)
-        .filter((l) => l.obtenido)
-        .map((l) => l.clave)
-    expect(obtenidos(base)).toEqual([])
-    expect(obtenidos({ ...base, avancesRegistrados: 1 })).toEqual(['primer-avance'])
-    expect(obtenidos({ ...base, rachaMasLarga: 7, avancesRegistrados: 7 })).toEqual([
-      'primer-avance',
-      'primera-semana',
-    ])
-    expect(obtenidos({ rachaMasLarga: 30, avancesRegistrados: 25, habitosCompletados: 1 })).toEqual(
-      ['primer-avance', 'primera-semana', 'veinticinco-avances', 'constancia-30', 'meta-cumplida'],
-    )
-  })
-
-  it('ninguna insignia premia bajar de peso', () => {
-    const titulos = logrosDe({
-      rachaMasLarga: 0,
-      avancesRegistrados: 0,
-      habitosCompletados: 0,
-    }).map((l) => l.titulo.toLowerCase())
-    expect(titulos.some((t) => t.includes('peso') || t.includes('kg'))).toBe(false)
-  })
-})
-
 describe('constancia con hábitos que ya no están activos', () => {
   it('un hábito Completado no penaliza los días en que no cumplió', () => {
     const activo = habito({ registros: [[-1, 10]] })
@@ -158,15 +106,5 @@ describe('constancia con hábitos que ya no están activos', () => {
     const inicioSiguiente = new Date('2026-11-06T00:00:00.000Z')
     expect(constanciaPorDia([], 10, finDelDia).findIndex((d) => d.hoy)).toBe(66) // jueves
     expect(constanciaPorDia([], 10, inicioSiguiente).findIndex((d) => d.hoy)).toBe(67) // viernes
-  })
-})
-
-describe('avance hacia los logros', () => {
-  it('cada logro dice cuánto lleva y nunca pasa de su meta', () => {
-    const logros = logrosDe({ rachaMasLarga: 3, avancesRegistrados: 40, habitosCompletados: 0 })
-    const por = (clave: string) => logros.find((l) => l.clave === clave)
-    expect(por('primera-semana')).toMatchObject({ actual: 3, meta: 7, obtenido: false })
-    expect(por('veinticinco-avances')).toMatchObject({ actual: 25, meta: 25, obtenido: true })
-    expect(por('meta-cumplida')).toMatchObject({ actual: 0, meta: 1, obtenido: false })
   })
 })

@@ -46,6 +46,19 @@ export const CLAVES_LOGRO = [
 ] as const
 export type ClaveLogro = (typeof CLAVES_LOGRO)[number]
 
+// Lo que se muestra de cada logro. Siempre habla de constancia (P4), nunca del cuerpo.
+export const TEXTO_LOGRO: Record<ClaveLogro, { titulo: string; descripcion: string }> = {
+  PrimerAvance: { titulo: 'Primer paso', descripcion: 'Registraste tu primer avance.' },
+  PrimeraSemana: { titulo: 'Primera semana', descripcion: 'Cumpliste tu primera semana.' },
+  VeinticincoAvances: { titulo: '25 avances', descripcion: 'Registraste 25 avances en total.' },
+  Constancia21: { titulo: '21 días de constancia', descripcion: 'Llevas 21 días cumpliendo.' },
+  Constancia30: { titulo: '30 días de constancia', descripcion: 'Llevas 30 días cumpliendo.' },
+  MetaCumplida: { titulo: 'Meta cumplida', descripcion: 'Completaste la meta de una tarea.' },
+  Regreso: { titulo: 'Volviste', descripcion: 'Retomaste tu plan después de un descanso.' },
+  MitadDelPlan: { titulo: 'Mitad del plan', descripcion: 'Llegaste a la mitad de tu plan.' },
+  PlanCompletado: { titulo: 'Plan completado', descripcion: 'Terminaste un plan completo.' },
+}
+
 // Constantes de PlanUsuario y SugeridorAjuste: sirven para orientar a la persona; el servidor decide.
 export const MAXIMO_PLANES_EN_CURSO = 3
 export const MAXIMO_EXTENSIONES = 2

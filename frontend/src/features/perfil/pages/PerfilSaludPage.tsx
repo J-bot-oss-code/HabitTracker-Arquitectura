@@ -192,8 +192,7 @@ function PanelPerfil({ perfil }: { perfil: PerfilDto }) {
 
   const enviar = handleSubmit(async (d) => {
     try {
-      // PUT reemplaza el perfil: se reenvía el plan de interés para no perderlo.
-      await guardar.mutateAsync({ ...d, avisoSaludAceptado: true, metaSlug: perfil.metaSlug })
+      await guardar.mutateAsync({ ...d, avisoSaludAceptado: true })
       notificar('Perfil guardado.')
     } catch {
       // Se muestra junto al botón.

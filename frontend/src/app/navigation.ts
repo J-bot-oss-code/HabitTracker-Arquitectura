@@ -136,6 +136,7 @@ const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
   { patron: /^\/ajustes\/privacidad\/?$/i, roles: ['Estandar'] },
   { patron: /^\/ajustes\/perfil-salud\/?$/i, roles: ['Estandar'] },
   { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
+  { patron: /^\/mis-planes(\/|$)/i, roles: ['Estandar'] },
   { patron: /^\/bienvenida\/?$/i, roles: ['Estandar'] },
   { patron: /^\/permisos\/?$/i, roles: ['Estandar'] },
 ]

@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Controller, useForm, type FieldErrors, type UseFormRegister } from 'react-hook-form'
 import { Link, Navigate, useLocation } from 'react-router'
 import { useCerrarSesion } from '@/features/auth/api'
-import { usePlanes } from '@/features/planes/api'
 import {
   INFO_LEGAL,
   RUTAS_LEGALES,
@@ -42,7 +41,9 @@ import { PERFILES_LABORALES } from '../types'
 // pidió (RequierePerfil la pasa en state.desde).
 export const DESTINO_TRAS_ONBOARDING = '/hoy'
 
-function destinoPedido(state: unknown): string {
+function destinoPedido(state: unknown, planPendiente: string | null): string {
+  // Quien llegó desde la landing con un plan termina en su ficha (la ruta pedida solo era /hoy por defecto).
+  if (planPendiente) return `/planes/${planPendiente}`
   const desde = (state as { desde?: unknown } | null)?.desde
   // Solo rutas internas: nada de //dominio ni /\dominio (redirección abierta).
   return typeof desde === 'string' &&
@@ -61,7 +62,12 @@ export function OnboardingPage() {
   const { usuario } = useAuth()
   const { state } = useLocation()
   const perfil = usePerfil()
-  const destino = destinoPedido(state)
+  // El plan que eligió en la landing se lee antes de que el asistente borre el registro: al terminar, la persona
+  // llega a su ficha para pulsar «Empezar este plan». Ya viene validado por formato (esSlugPlan).
+  const [planPendiente] = useState(() =>
+    usuario ? (leerRegistroPendiente(usuario.correo)?.metaSlug ?? null) : null,
+  )
+  const destino = destinoPedido(state, planPendiente)
 
   if (perfil.isPending) return <CargandoPagina texto="Preparando tu día…" />
   // También al terminar: guardar el perfil actualiza esta consulta y se navega desde aquí.
@@ -107,8 +113,6 @@ function Asistente({ correo }: { correo: string }) {
   const consentimientos = useConsentimientos()
   const guardarConsentimientos = useGuardarConsentimientos()
   const guardarPerfil = useGuardarPerfil()
-  // Catálogo del servidor: el plan recordado del registro solo se guarda si existe.
-  const planes = usePlanes()
   // Se vuelven a pedir los consentimientos si no hay registro recordado en este dispositivo o si
   // desde entonces se publicó otra versión de los términos o de la privacidad.
   const pedirConsentimiento = pendiente === null || !aceptoVersionesVigentes(pendiente)
@@ -172,11 +176,6 @@ function Asistente({ correo }: { correo: string }) {
         perfilLaboral: d.perfilLaboral,
         zonaHoraria: d.zonaHoraria,
         avisoSaludAceptado: true,
-        // El plan que eligió en la landing queda como interés (lo usa "Hoy").
-        // Ya viene validado por formato; con el catálogo cargado también debe existir. Si no cargó, se conserva.
-        metaSlug: planes.data
-          ? (planes.data.find((p) => p.slug === pendiente?.metaSlug)?.slug ?? null)
-          : (pendiente?.metaSlug ?? null),
       })
       // Con el perfil guardado, OnboardingPage lleva al destino pedido.
       borrarRegistroPendiente()

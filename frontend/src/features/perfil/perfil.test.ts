@@ -199,16 +199,6 @@ describe('contrato del perfil y la salud', () => {
     expect((await ok.json()).aceptadoEn).toEqual(expect.stringMatching(/Z$/))
   })
 
-  it('el plan de interés empieza al elegirlo y se conserva si no cambia', async () => {
-    const token = iniciarSesionComo('otro')
-    const primero = await (await put('/api/profile', token, nivel1)).json()
-    expect(primero.inicioPlan).toEqual(expect.stringMatching(/Z$/))
-    const segundo = await (
-      await put('/api/profile', token, { ...nivel1, perfilLaboral: 'Remoto' })
-    ).json()
-    expect(segundo.inicioPlan).toBe(primero.inicioPlan)
-  })
-
   it('un bloque del cuestionario sin consentimiento es 409; con él se guarda y se evalúa', async () => {
     const token = iniciarSesionComo('otro')
     db.consentimientos.delete(idLuis())

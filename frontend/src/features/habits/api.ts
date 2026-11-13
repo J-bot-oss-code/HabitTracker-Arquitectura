@@ -84,12 +84,4 @@ export const useReconfigurarHabito = (id: string) =>
 
 // Métricas de presentación de Progreso, para otras features (frontend/AGENTS.md: una feature
 // solo usa de otra su api.ts/types.ts).
-export {
-  constanciaPorDia,
-  logrosDe,
-  recordsDe,
-  type DiaConstancia,
-  type Logro,
-  type NivelConstancia,
-  type Records,
-} from './progreso'
+export { constanciaPorDia, type DiaConstancia, type NivelConstancia } from './progreso'

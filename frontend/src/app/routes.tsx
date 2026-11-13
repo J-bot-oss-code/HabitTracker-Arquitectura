@@ -55,6 +55,7 @@ const paginas = {
   metas: perezosa(() => import('@/features/planes/pages/MetasPage'), 'MetasPage'),
   planDetalle: perezosa(() => import('@/features/planes/pages/PlanDetallePage'), 'PlanDetallePage'),
   planes: perezosa(() => import('@/features/planes/pages/PlanesPage'), 'PlanesPage'),
+  miPlan: perezosa(() => import('@/features/mis-planes/pages/MiPlanPage'), 'MiPlanPage'),
   calculadoras: perezosa(
     () => import('@/features/publico/pages/CalculadorasPage'),
     'CalculadorasPage',
@@ -256,6 +257,7 @@ export const rutas: RouteObject[] = [
                     handle: { titulo: 'Detalle del plan' },
                     ...paginas.planDetalle,
                   },
+                  { path: 'mis-planes/:id', handle: { titulo: 'Mi plan' }, ...paginas.miPlan },
                   { path: 'progreso', handle: { titulo: 'Tu progreso' }, ...paginas.progreso },
                   { path: 'habitos', handle: { titulo: 'Mis hábitos' }, ...paginas.habitos },
                   {
