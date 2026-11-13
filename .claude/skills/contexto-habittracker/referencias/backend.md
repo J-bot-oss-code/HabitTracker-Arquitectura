@@ -128,3 +128,9 @@ dotnet ef migrations list --project Modules/<M>/<M>.Infrastructure --startup-pro
 ```
 
 Contextos: `ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext` y `DocumentManagerDbContext`. Tras traer cambios, aplica las migraciones pendientes: sin ellas, la API responde 500.
+
+## Archivos vinculados a planes y permisos (13-11-2026)
+
+- `Permissions`: `SolicitudNoEncontradaException` (404 `solicitud_no_encontrada`) y `SolicitudDuplicadaException` (409 `solicitud_duplicada`), mapeadas en `GlobalExceptionMiddleware`; `CrearPermisoRequest` valida la clave con `[param: …]` (con `[property: …]` ASP.NET lanza).
+- `DocumentManager.Application`: `IGuardaEliminacionDocumento` (opcional en `DocumentoService`) y `DocumentoProtegidoException` (409 `documento_requiere_permiso`); el Administrador no pasa por la guarda.
+- `HabitTracker`: `AdjuntoPlan` + `AdjuntosPlanService` (`api/my-plans/{id}/attachments`, `GET api/my-plans/attachments`), puertos `IDocumentosUsuario` (adaptador `DocumentosUsuarioAdapter`) y `IAdjuntoPlanRepository`; `PermisoRequeridoException` (409). La guarda compuesta `GuardaEliminacionDocumentoAdapter` usa el **repositorio**, no el servicio, para no cerrar un ciclo de inyección.

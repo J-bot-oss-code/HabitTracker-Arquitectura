@@ -10,11 +10,11 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 | Módulo | Estado | Historia |
 |---|---|---|
 | AccessControl | Completo: registro + activación con código, JWT de 15 min + refresh en cookie, Google, bloqueo, contraseñas reforzadas, consentimientos, baja y descarga de datos, administración y cola de correos | `docs/historial/control-acceso-v2.md` |
-| Permissions | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada` | P2 |
+| Permissions | Completo: `Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`. Sin duplicados vigentes (409 `solicitud_duplicada`) y con la clave validada (nombre con puntos) | P2 |
 | HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`, 6 endpoints en `api/habits`), perfil en dos niveles, cuestionario de salud cifrado y progreso corporal (`api/profile`, `api/progress`), catálogo de planes y recomendador (`api/plans`), Mis planes con pausas, ajustes, logros y mensajes (`api/my-plans`, `api/today`, `api/progress/summary`), y `plan-del-dia`. **En evolución:** plan v2, Fases 0 a 4 hechas; el perfil ya no guarda plan de interés (`MetaSlug` e `InicioPlan` salieron en la 4b) | `docs/historial/habittracker-v2.md` |
-| DocumentManager | Completo para la P4 (RF-DOC-01 a 05) | `docs/historial/practica-4.md` |
+| DocumentManager | Completo para la P4 (RF-DOC-01 a 05). Un punto de extensión (`IGuardaEliminacionDocumento`) deja que el Host vete eliminar un archivo en uso (409 `documento_requiere_permiso`); sin guarda todo sigue igual | `docs/historial/practica-4.md` |
 | Auditing, Notifications, Reports | Solo esqueleto (proyectos vacíos) | — |
-| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`) y Mis planes (empezar un plan, Hoy desde `api/today`, `/mis-planes/:id`, celebración semanal y logros del servidor en Progreso). Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
+| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`) y Mis planes (empezar un plan, «Archivos del plan», Hoy desde `api/today`, `/mis-planes/:id`, celebración semanal y logros del servidor en Progreso), «Mis archivos» (`/documentos`) y Configuración › Solicitudes. Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
 | CI | `ci-ok` y `seguridad-ok` obligatorios en `develop` y `main` | `docs/historial/ci.md` |
 
 ## 2. Tags de entrega (no mover ni reescribir)
@@ -35,8 +35,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **1218** pruebas (medido el 12-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
-- **Frontend:** `cd frontend && npm test` ejecuta **795** pruebas en 57 archivos (medido el 12-11-2026) sin backend (MSW).
+- **Backend:** `dotnet test` ejecuta **1268** pruebas (medido el 13-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Frontend:** `cd frontend && npm test` ejecuta **911** pruebas en 62 archivos (medido el 13-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
 ## 4. Entorno local
@@ -63,10 +63,11 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
   - Principios P1–P8.
   - El piloto (Fase 6) decide las Fases 7–9.
 - **Adherencia (Fase 4a):** `CalculadoraProgreso` es la única definición de racha y cumplimiento y mide por el **día local** del perfil (`CumpleMetaFinal` sigue en UTC, regla de la P3). Un plan con tareas diarias se mide en días y uno solo semanal, en semanas; un día sin registro no corta la racha y dos seguidos sí; las pausas no cuentan. Los ajustes se sugieren, nunca se aplican solos, y los logros no reciben peso ni medidas.
+- **Archivos y permisos (13-11-2026):** la persona controla sus archivos y los elimina cuando quiera; **solo los vinculados a un plan en curso** (Activo o En pausa) piden un permiso **por archivo** (`Documents.DeleteLinked.{id sin guiones}`), que se pide en la propia pantalla y aprueba un Administrador. Quitar el vínculo con el plan en curso pide el mismo permiso (si no, sería la forma de esquivarlo). Los archivos se vinculan a **planes**, no a hábitos (`AdjuntoPlan`, tope de 10 por plan, en cascada con el plan). La regla la compone el Host (`GuardaEliminacionDocumentoAdapter`) y el Manejador de documentos sigue con una sola responsabilidad: no lee archivos ni recomienda; las recomendaciones siguen con el método actual. «Mis permisos» salió del menú: el permiso se pide donde se necesita y el historial vive en Configuración › Solicitudes. Sin fotos del cuerpo en Progreso (P4).
 
 ## 6. Deuda técnica conocida
 
-1. `PermissionsController` decide el 404 buscando `"no existe"` en el mensaje (`EsNoEncontrado`). En HabitTracker ya se resolvió con `RecursoNoEncontradoException`; queda para cuando se trabaje el módulo de Permisos.
+1. Archivos vinculados, detalles por pulir: el permiso `Documents.DeleteLinked.{id}` no se consume (queda Aplicada y un duplicado se rechaza); el Administrador elimina sin pasar por la guarda (intencional); `GET api/my-plans/attachments` no filtra los archivos eliminados; `adjuntar` sin `documentoId` responde 404 y no 400; la descarga de datos no incluye los vínculos archivo-plan (los archivos sí, en su sección).
 2. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
 3. Dentro de Docker, `RemoteIpAddress` es la IP de la pasarela, así que todos los clientes comparten el cupo del limitador de peticiones (hasta configurar `ForwardedHeaders` con `KnownProxies`). Desde la Fase 3 importa más: la política `catalogo` recibe todo el tráfico anónimo de la landing. *(Fase 6.)*
 4. `webapi` no tiene healthcheck. *(Fase 6.)*
@@ -96,6 +97,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 9. Próximos pasos
 
+- **Fase 5 detenida** hasta entregar las prácticas de Notificaciones, Auditoría y Reportes (rama `feature/habittracker-correo-accion`, sin push; sus rutas deben pasar de `api/notifications/*` a `api/reminders/*` y la entrega irá detrás de `INotificadorUsuario`).
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
   - Fases 0 a 4 hechas → Fase 5, el corte vertical (siguiente: recordatorios y check-in por correo, `RegistroDiario.Origen` y `ClaveIdempotencia`);
   - Fase 6, producción, métricas y piloto;

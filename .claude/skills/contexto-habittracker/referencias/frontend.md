@@ -23,7 +23,7 @@
 - `src/shared/auth/tokenStorage.ts` guarda el token de acceso **en memoria**; la sesión larga la sostiene la cookie HttpOnly.
 - `src/shared/lib/fechas.ts`: fechas UTC. Las de los hábitos llegan con `Z`; `parsearFechaUtc` acepta también fechas sin zona.
 - `src/app/guards.tsx`: `RequierePerfil` lleva a `/bienvenida` si `GET /api/profile` responde 404 **con** ProblemDetails. Envuelve `/hoy`, `/progreso`, `/habitos` y `/permisos`.
-- `src/app/navigation.ts` define el menú (Estándar: Hoy, Mis hábitos, **Planes** —con «Mis planes» arriba—, Progreso, Mis permisos) y las secciones de Configuración (`/ajustes`: Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos, Apariencia). No hay sección de Notificaciones ni de Perfil todavía.
+- `src/app/navigation.ts` define el menú (Estándar: Hoy, Mis hábitos, **Planes** —con «Mis planes» arriba—, Progreso, **Mis archivos**; los permisos viven en Configuración › Solicitudes) y las secciones de Configuración (`/ajustes`: Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos, Apariencia). No hay sección de Notificaciones ni de Perfil todavía.
 
 ## Features relevantes para el negocio
 
@@ -37,8 +37,9 @@
 | `publico` | Landing (el catálogo le llega por una ranura: `LandingPage catalogo={…}`), calculadora de calorías y textos legales (`legal.ts`: términos `v2.1` y privacidad `v1.4`) | Ninguno |
 | `privacidad` | Consentimientos (incluido `datosSalud`), baja y descarga | Real: `/api/privacy/*` |
 | `auth` | Registro con consentimientos, activación con código, login, Google y sesiones | Real: `/api/auth/*` |
+| `documentos` | «Mis archivos» `/documentos` (subir, descargar, eliminar), `BotonEliminarArchivo` (pide el permiso por archivo cuando está en un plan en curso), adjuntos de plan (`useAdjuntosDePlan`…) y `permisoArchivo.ts`; «Archivos del plan» vive en `mis-planes/components/ArchivosDelPlan.tsx` | Real: `/api/documents`, `/api/my-plans/{id}/attachments` |
 | `auditoria` | Resumen y auditoría del Administrador | **Propuesto**: `/api/admin/metrics` y `/api/audit` |
-| `coming-soon` | Notificaciones, cola de correos, reportes y documentos (`piezas.ts`, con sus RF) | — |
+| `coming-soon` | Notificaciones, cola de correos y reportes (`piezas.ts`, con sus RF) | — |
 
 Slugs del catálogo (13, de la API): los 6 Regulares `perder-grasa-sostenible`, `reducir-estres`, `dormir-mejor`, `primeros-5-km`, `ganar-masa-muscular` y `fuerza-en-casa`, y los 7 Básicos `mi-dia-oficina`, `mi-dia-turno-nocturno`, `mi-dia-trabajo-fisico`, `hidratacion-con-calor`, `caminar-para-empezar`, `respiracion-anti-estres` y `desconexion-digital-nocturna`.
 - **No hay catálogo estático:** un slug que llega de la URL o de `localStorage` se valida por formato (`esSlugPlan`) y, para mostrar su nombre, contra la lista del servidor (`usePlanResumen`). Un hook nunca va después de un `return` anticipado (`HoyPage` lo rompió una vez).
