@@ -17,7 +17,7 @@ function recordarRegistro(extra: Partial<Parameters<typeof guardarRegistroPendie
     terminosVersion: 'v2.1',
     privacidadVersion: 'v1.4',
     marketing: false,
-    metaSlug: 'fuerza-en-casa',
+    metaSlug: null,
     datosCorporales: null,
     ...extra,
   })
@@ -120,7 +120,6 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
       datosSalud: false,
       marketing: false,
     })
-    expect(db.perfiles.get(luis())).toMatchObject({ metaSlug: null })
   })
 
   it('al terminar olvida el registro recordado en el dispositivo', async () => {
@@ -134,7 +133,16 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
       }),
     ).toBeInTheDocument()
     expect(localStorage.getItem('habittracker.registro-pendiente')).toBeNull()
-    expect(db.perfiles.get(luis())).toMatchObject({ metaSlug: 'fuerza-en-casa' })
+  })
+
+  it('si venía de la landing con un plan, termina en la ficha de ese plan para empezarlo', async () => {
+    recordarRegistro({ metaSlug: 'fuerza-en-casa' })
+    const { user } = renderApp('/bienvenida', { como: 'otro' })
+    await completarOnboarding(user)
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Fuerza en casa' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Empezar este plan' })).toBeInTheDocument()
   })
 
   it('desde otro dispositivo conserva el permiso de datos de salud que ya había dado', async () => {

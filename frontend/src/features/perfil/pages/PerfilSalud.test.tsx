@@ -24,14 +24,13 @@ describe('Configuración › Perfil y salud', () => {
     expect(screen.getByText('Puedes empezar cualquier plan apto para tu edad.')).toBeInTheDocument()
   })
 
-  it('guarda el perfil y reenvía el plan de interés para no perderlo', async () => {
+  it('guarda el perfil y conserva el peso que ya tenía', async () => {
     const { user } = renderApp('/ajustes/perfil-salud', { como: 'estandar' })
     await user.selectOptions(await screen.findByLabelText('Tu jornada'), 'TurnoNocturno')
     await user.click(screen.getByRole('button', { name: 'Guardar perfil' }))
     expect(await screen.findByText('Perfil guardado.')).toBeInTheDocument()
     expect(db.perfiles.get(ana())).toMatchObject({
       perfilLaboral: 'TurnoNocturno',
-      metaSlug: 'primeros-5-km',
       pesoKg: 68.4,
     })
   })

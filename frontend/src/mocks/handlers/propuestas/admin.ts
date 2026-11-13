@@ -52,8 +52,8 @@ export const adminHandlers = [
     const retenidos = [...antiguos].filter((actor) => activos.has(actor)).length
 
     const porPlan = new Map<string, number>()
-    for (const perfil of db.perfiles.values()) {
-      if (perfil.metaSlug) porPlan.set(perfil.metaSlug, (porPlan.get(perfil.metaSlug) ?? 0) + 1)
+    for (const plan of db.planesUsuario) {
+      if (plan.slug) porPlan.set(plan.slug, (porPlan.get(plan.slug) ?? 0) + 1)
     }
 
     const metricas: MetricasDto = {

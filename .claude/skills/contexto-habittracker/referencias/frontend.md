@@ -23,7 +23,7 @@
 - `src/shared/auth/tokenStorage.ts` guarda el token de acceso **en memoria**; la sesión larga la sostiene la cookie HttpOnly.
 - `src/shared/lib/fechas.ts`: fechas UTC. Las de los hábitos llegan con `Z`; `parsearFechaUtc` acepta también fechas sin zona.
 - `src/app/guards.tsx`: `RequierePerfil` lleva a `/bienvenida` si `GET /api/profile` responde 404 **con** ProblemDetails. Envuelve `/hoy`, `/progreso`, `/habitos` y `/permisos`.
-- `src/app/navigation.ts` define el menú (Estándar: Hoy, Mis hábitos, **Planes**, Progreso, Mis permisos) y las secciones de Configuración (`/ajustes`: Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos, Apariencia). No hay sección de Notificaciones ni de Perfil todavía.
+- `src/app/navigation.ts` define el menú (Estándar: Hoy, Mis hábitos, **Planes** —con «Mis planes» arriba—, Progreso, Mis permisos) y las secciones de Configuración (`/ajustes`: Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos, Apariencia). No hay sección de Notificaciones ni de Perfil todavía.
 
 ## Features relevantes para el negocio
 
@@ -32,7 +32,8 @@
 | `habits` | Lista, crear (sin meta), detalle (`GET /api/habits/{id}`), transiciones, avance, reconfigurar, **Hoy** (`hoy.ts`) y métricas de racha y logros calculadas en el navegador (`estados.ts`, `progreso.ts`) | Real: `/api/habits` |
 | `perfil` | Onboarding de **3 toques** `/bienvenida` (jornada → zona horaria → aviso de salud; no pide datos de salud), Configuración › **Perfil y salud** `/ajustes/perfil-salud` (perfil nivel 2 y cuestionario por bloques, aviso para activar `datosSalud`) | Real: `/api/profile`, `/api/profile/health/*` |
 | `progreso` | Peso, medidas, constancia, récords y logros | Real: `/api/progress/weights` y `/measurements` |
-| `planes` | Catálogo de 13 planes (`CatalogoPlanes` con filtros por nivel y área), detalle `/metas/:slug` y `/planes/:slug` (aviso de seguridad, tareas con versión mínima, guía semanal, «Elegir este plan»), página **Planes** `/planes` (recomendados con sus motivos y «No recomendado para ti» con su razón) y `usePlanResumen(slug)` para quien solo necesita nombre y duración | Real: `/api/plans`, `/api/plans/{slug}`, `/api/plans/recommended` |
+| `planes` | Catálogo de 13 planes (`CatalogoPlanes` con filtros por nivel y área), detalle `/metas/:slug` y `/planes/:slug` (aviso de seguridad, tareas con versión mínima, guía semanal, «Empezar este plan» con su diálogo «¿Cuándo lo harás?»), página **Planes** `/planes` (recomendados con sus motivos y «No recomendado para ti» con su razón) y `usePlanResumen(slug)` para quien solo necesita nombre y duración | Real: `/api/plans`, `/api/plans/{slug}`, `/api/plans/recommended` |
+| `mis-planes` | `api.ts`, `types.ts` y `schemas.ts` de `api/my-plans`, `api/today` y `api/progress/summary`; página `/mis-planes/:id` (`MiPlanPage`). Hoy usa `TareaDePlanFila` y `AvisosDeHoy` (en `habits`); Progreso y Planes leen sus hooks | Real: `/api/my-plans`, `/api/today`, `/api/progress/summary` |
 | `publico` | Landing (el catálogo le llega por una ranura: `LandingPage catalogo={…}`), calculadora de calorías y textos legales (`legal.ts`: términos `v2.1` y privacidad `v1.4`) | Ninguno |
 | `privacidad` | Consentimientos (incluido `datosSalud`), baja y descarga | Real: `/api/privacy/*` |
 | `auth` | Registro con consentimientos, activación con código, login, Google y sesiones | Real: `/api/auth/*` |
@@ -41,6 +42,7 @@
 
 Slugs del catálogo (13, de la API): los 6 Regulares `perder-grasa-sostenible`, `reducir-estres`, `dormir-mejor`, `primeros-5-km`, `ganar-masa-muscular` y `fuerza-en-casa`, y los 7 Básicos `mi-dia-oficina`, `mi-dia-turno-nocturno`, `mi-dia-trabajo-fisico`, `hidratacion-con-calor`, `caminar-para-empezar`, `respiracion-anti-estres` y `desconexion-digital-nocturna`.
 - **No hay catálogo estático:** un slug que llega de la URL o de `localStorage` se valida por formato (`esSlugPlan`) y, para mostrar su nombre, contra la lista del servidor (`usePlanResumen`). Un hook nunca va después de un `return` anticipado (`HoyPage` lo rompió una vez).
+- **Mis planes en pruebas:** el plan de ejemplo (`mi-dia-oficina`) solo se siembra fuera de las pruebas; una prueba que lo necesite llama `sembrarPlanDemo()`. El perfil ya no tiene `metaSlug`.
 - **El mock de los planes** (`mocks/handlers/planes.ts`) replica `RecomendadorPlanes` y `ReglasSeguridadPlanes`; sus datos (`planesData.ts`) son una copia de `catalogo-planes.json` que `mocks/planes.test.ts` compara con el JSON del backend. Si cambia el contenido allí, se regenera la copia (no se edita a mano).
 
 ## Contratos propuestos (sin backend)

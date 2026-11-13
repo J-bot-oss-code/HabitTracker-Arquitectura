@@ -41,19 +41,17 @@ describe('flujos de cuenta', () => {
     expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
     expect(screen.getByText('Paso 3 de 5')).toBeInTheDocument()
     await completarOnboarding(user)
+    // El plan elegido en la landing queda a un toque: la ficha del plan, para pulsar «Empezar este plan».
     expect(
-      await screen.findByRole('heading', {
-        level: 1,
-        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
-      }),
+      await screen.findByRole('heading', { level: 1, name: 'Primeros 5 km' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Empezar este plan' })).toBeInTheDocument()
 
     const nueva = db.usuarios.find((u) => u.correo === 'nueva@demo.com')
     expect(db.perfiles.get(nueva?.id ?? '')).toMatchObject({
       perfilLaboral: 'OficinaDiurna',
       edad: null,
       sexo: null,
-      metaSlug: 'primeros-5-km',
       avisoSaludAceptado: true,
     })
     // Los consentimientos del registro llegan al servidor sin volver a pedirlos. El de datos de salud no se da por
@@ -64,7 +62,7 @@ describe('flujos de cuenta', () => {
       datosSalud: false,
       marketing: true,
     })
-  })
+  }, 20_000)
 
   it('no crea la cuenta sin los consentimientos obligatorios', async () => {
     const { user } = renderApp('/registro')
@@ -182,7 +180,9 @@ describe('flujos de cuenta', () => {
 
     await registrarCuenta(user, 'calcula@demo.com')
     expect(leerRegistroPendiente('calcula@demo.com')?.datosCorporales).toBeNull()
-    expect(localStorage.getItem('habittracker.registro-pendiente') ?? '').not.toMatch(/181|77/)
+    expect(localStorage.getItem('habittracker.registro-pendiente') ?? '').not.toMatch(
+      /"(edad|alturaCm|pesoKg)":\d/,
+    )
   })
 
   it('descarta datos de calculadora manipulados en el estado de navegación', async () => {

@@ -107,12 +107,3 @@ export function textoDuracion(dias: number, semanas: number): string {
   if (dias < 7) return `${dias} ${dias === 1 ? 'día' : 'días'}`
   return `${semanas} ${semanas === 1 ? 'semana' : 'semanas'}`
 }
-
-// Instante en que termina el plan: inicio del plan más las semanas de la meta.
-export function instanteFinDelPlan(
-  inicioPlan: string | null | undefined,
-  semanas: number | undefined,
-): number | null {
-  if (!inicioPlan || !semanas) return null
-  return tiempo(inicioPlan) + semanas * 7 * DIA_MS
-}

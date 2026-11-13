@@ -2,7 +2,7 @@ import { screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it, vi } from 'vitest'
 import { PREGUNTAS_SEGURIDAD } from '@/features/perfil/types'
-import { db } from '@/mocks/db'
+import { PLAN_DEMO_ID, db, sembrarPlanDemo } from '@/mocks/db'
 import { server } from '@/mocks/server'
 import { CORREOS, renderApp } from '@/test/render'
 
@@ -105,7 +105,7 @@ describe('detalle de un plan (público)', () => {
       await screen.findByRole('heading', { level: 1, name: 'Dormir mejor' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /Empezar este plan/ })).not.toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Elegir este plan' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Empezar este plan' })).not.toBeInTheDocument()
   })
 })
 
@@ -182,37 +182,21 @@ describe('Planes (con sesión)', () => {
       await screen.findByRole('heading', { level: 1, name: 'Perder grasa de forma sostenible' }),
     ).toBeInTheDocument()
     expect(await screen.findByText('No recomendado para ti')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Elegir este plan' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Empezar este plan' })).toBeDisabled()
   })
 
-  it('"Elegir este plan" lo guarda como el plan de la persona', async () => {
+  it('«Empezar este plan» pregunta cuándo y lo deja activo en Hoy', async () => {
     const { user } = renderApp('/planes/dormir-mejor', { como: 'estandar' })
 
-    await user.click(await screen.findByRole('button', { name: 'Elegir este plan' }))
+    await user.click(await screen.findByRole('button', { name: 'Empezar este plan' }))
+    const dialogo = await screen.findByRole('dialog', { name: '¿Cuándo lo harás?' })
+    await user.click(within(dialogo).getByRole('button', { name: 'Empezar este plan' }))
 
-    expect(await screen.findByText('Listo: este es ahora tu plan.')).toBeInTheDocument()
-    expect(db.perfiles.get(idDe('estandar'))?.metaSlug).toBe('dormir-mejor')
-    expect(await screen.findByText('Es tu plan actual')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Elegir este plan' })).not.toBeInTheDocument()
-    // Cambiar el plan no toca el resto del perfil (peso y altura sin cambios no piden permiso).
-    expect(db.perfiles.get(idDe('estandar'))).toMatchObject({ pesoKg: 68.4, edad: 29 })
-  })
-
-  it('al elegir parte del perfil vigente: un peso registrado hace un momento no se pisa', async () => {
-    const { user } = renderApp('/planes/dormir-mejor', { como: 'estandar' })
-    const boton = await screen.findByRole('button', { name: 'Elegir este plan' })
-    await vi.waitFor(() => expect(boton).toBeEnabled())
-    // Otro dispositivo (o Progreso) cambió el peso mientras esta pantalla guardaba el perfil en caché.
-    db.perfiles.set(idDe('estandar'), { ...db.perfiles.get(idDe('estandar'))!, pesoKg: 70.2 })
-
-    await user.click(boton)
-
-    // Con el perfil viejo el servidor vería un peso nuevo y pediría el permiso de salud (409).
-    expect(await screen.findByText('Listo: este es ahora tu plan.')).toBeInTheDocument()
-    expect(db.perfiles.get(idDe('estandar'))).toMatchObject({
-      metaSlug: 'dormir-mejor',
-      pesoKg: 70.2,
-    })
+    expect(await screen.findByText('¡Listo! Tu plan ya está en Hoy.')).toBeInTheDocument()
+    expect(db.planesUsuario.filter((p) => p.slug === 'dormir-mejor')).toHaveLength(1)
+    expect(
+      await screen.findByRole('heading', { level: 1, name: /^(Buenos|Buenas)/ }),
+    ).toBeInTheDocument()
   })
 
   it('sin saber si el plan es para la persona no se puede elegir', async () => {
@@ -223,17 +207,22 @@ describe('Planes (con sesión)', () => {
     )
     renderApp('/planes/dormir-mejor', { como: 'estandar' })
 
-    const boton = await screen.findByRole('button', { name: 'Elegir este plan' })
+    const boton = await screen.findByRole('button', { name: 'Empezar este plan' })
     await vi.waitFor(() => expect(db.perfiles.size).toBeGreaterThan(0))
     expect(boton).toBeDisabled()
     await new Promise((r) => setTimeout(r, 50))
     expect(boton).toBeDisabled()
   })
 
-  it('el plan actual se reconoce al entrar', async () => {
-    renderApp('/planes/primeros-5-km', { como: 'estandar' })
+  it('un plan que ya sigues muestra «Ya lo estás siguiendo» con enlace a su avance', async () => {
+    sembrarPlanDemo()
+    renderApp('/planes/mi-dia-oficina', { como: 'estandar' })
 
-    expect(await screen.findByText('Es tu plan actual')).toBeInTheDocument()
+    expect(await screen.findByText('Ya lo estás siguiendo')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver mi avance' })).toHaveAttribute(
+      'href',
+      `/mis-planes/${PLAN_DEMO_ID}`,
+    )
   })
 
   it('el menú ofrece Planes solo al rol Estándar', async () => {

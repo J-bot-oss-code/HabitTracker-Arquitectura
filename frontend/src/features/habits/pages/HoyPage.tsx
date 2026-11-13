@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { useHoy } from '@/features/mis-planes/api'
 import { usePerfil } from '@/features/perfil/api'
-import { usePlanResumen } from '@/features/planes/api'
+import { useAuth } from '@/shared/auth/AuthContext'
 import { fechaLargaUtc } from '@/shared/lib/fechas'
 import { Button } from '@/shared/ui/Button'
 import { claseBoton } from '@/shared/ui/claseBoton'
@@ -15,7 +16,9 @@ import { Modal } from '@/shared/ui/Modal'
 import { TiraSemana, type CeldaSemana } from '@/shared/ui/TiraSemana'
 import { useHabitos } from '../api'
 import { CrearHabitoForm } from '../components/CrearHabitoForm'
+import { CelebracionDeHoy, SugerenciaDeAjuste } from '../components/AvisosDeHoy'
 import { FilaTarea } from '../components/FilaTarea'
+import { TareaDePlanFila } from '../components/TareaDePlanFila'
 import { TuDiaSaludable } from '../components/TuDiaSaludable'
 import { RegistrarAvanceForm } from '../components/RegistrarAvanceForm'
 import {
@@ -24,7 +27,6 @@ import {
   rachaMasLarga,
   resumenDeHoy,
   saludoSegunHora,
-  semanaDelPlan,
   semanaEnCurso,
   tareasDeHoy,
 } from '../hoy'
@@ -44,8 +46,9 @@ const DIAS = [
 export function HoyPage() {
   const habitos = useHabitos()
   const perfil = usePerfil()
-  // Hook: va antes de los return anticipados de abajo. Sin plan (o con el catálogo sin cargar) el panel funciona igual.
-  const { plan: meta } = usePlanResumen(perfil.data?.metaSlug)
+  // Hooks: van antes de los return anticipados de abajo. Sin planes (o si Hoy falla) el panel funciona igual.
+  const hoy = useHoy()
+  const { usuario } = useAuth()
   const navigate = useNavigate()
   const [creando, setCreando] = useState(false)
   // Solo el id: el hábito se busca en la lista vigente al dibujar, así el diálogo no muestra
@@ -64,16 +67,34 @@ export function HoyPage() {
   }
 
   const lista = habitos.data
-  const tareas = tareasDeHoy(lista)
-  const { hechas, total, porcentaje } = resumenDeHoy(tareas)
+  // Los hábitos de un plan se muestran con sus botones en «Tus planes»; el resto, en «Otros hábitos».
+  const tareas = tareasDeHoy(lista.filter((h) => !h.planUsuarioId))
+  const delPlan = hoy.data?.tareas ?? []
+  const propias = resumenDeHoy(tareas)
+  const hechasPlan = delPlan.filter((t) => t.estado !== 'Pendiente').length
+  const hechas = propias.hechas + hechasPlan
+  const total = propias.total + delPlan.length
+  const porcentaje = total === 0 ? 0 : (hechas / total) * 100
   const racha = rachaDeHoy(lista)
   const cumplimiento = cumplimientoSemanal(lista)
-  const pendiente = tareas.find((t) => !t.hecha)
+  const propia = tareas.find((t) => !t.hecha)
+  const dePlan = delPlan.find((t) => t.estado === 'Pendiente')
+  const pendiente = dePlan
+    ? {
+        id: dePlan.habitoId,
+        nombre: dePlan.nombre,
+        restante: dePlan.restante,
+        unidad: dePlan.unidad,
+      }
+    : propia && {
+        id: propia.habito.id,
+        nombre: propia.habito.nombre,
+        restante: propia.restante,
+        unidad: propia.habito.unidad,
+      }
   const registrando = lista.find((h) => h.id === registrandoId)
 
-  // El perfil es una pieza propuesta: sin él (o sin meta) el panel funciona igual.
-  const semanaPlan =
-    meta && perfil.data?.inicioPlan ? semanaDelPlan(perfil.data.inicioPlan, meta.semanas) : null
+  const plan = hoy.data?.planes[0]
   // Sin perfil no se saluda por el correo (dato personal): solo se omite el nombre.
   const nombre = (perfil.data?.nombre ?? '').split(' ')[0]
 
@@ -107,6 +128,20 @@ export function HoyPage() {
 
       {lista.length === 0 && <TuDiaSaludable />}
 
+      {hoy.data?.mensaje && <p className="mb-4 text-texto-2">{hoy.data.mensaje}</p>}
+      {hoy.data && usuario && (
+        <CelebracionDeHoy
+          usuarioId={usuario.id}
+          semana={hoy.data.celebracionSemana}
+          tipExtra={hoy.data.tipExtra}
+          logros={hoy.data.logrosNuevos}
+        />
+      )}
+      {hoy.data?.planes.map(
+        (p) =>
+          p.sugerencia && <SugerenciaDeAjuste key={p.planId} plan={p} sugerencia={p.sugerencia} />,
+      )}
+
       <section aria-label="Resumen del día" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Estadistica
           etiqueta="Tareas de hoy"
@@ -130,10 +165,16 @@ export function HoyPage() {
         <Estadistica
           etiqueta="Plan · semana"
           icono="calendario"
-          valor={semanaPlan && meta ? `${semanaPlan} de ${meta.semanas}` : 'Sin plan'}
+          valor={
+            plan
+              ? `${plan.semanaActual} de ${plan.semanasTotales}`
+              : hoy.isPending
+                ? '—'
+                : 'Sin plan'
+          }
           detalle={
-            meta ? (
-              meta.nombre
+            plan ? (
+              plan.nombre
             ) : (
               <Link
                 to="/planes"
@@ -156,7 +197,25 @@ export function HoyPage() {
                 </h2>
                 {racha > 0 && <InsigniaRacha dias={racha} />}
               </div>
-              {lista.length === 0 ? (
+              {hoy.isPending && <Esqueleto className="mt-3 h-24" />}
+              {hoy.isError && (
+                <ErrorCarga
+                  error={hoy.error}
+                  porDefecto="No se pudieron cargar las tareas de tus planes."
+                  alReintentar={() => hoy.refetch()}
+                />
+              )}
+              {delPlan.length > 0 && (
+                <ul className="divide-y divide-borde" aria-label="Tareas de tus planes">
+                  {delPlan.map((t) => (
+                    <TareaDePlanFila key={t.habitoId} tarea={t} />
+                  ))}
+                </ul>
+              )}
+              {delPlan.length > 0 && tareas.length > 0 && (
+                <h3 className="mb-1 mt-4 text-sm font-bold text-atenuado">Otros hábitos</h3>
+              )}
+              {hoy.isPending ? null : lista.length === 0 ? (
                 <EmptyState
                   icono="rayo"
                   titulo="Aún no tienes un plan — elige una meta"
@@ -175,7 +234,7 @@ export function HoyPage() {
                     </div>
                   }
                 />
-              ) : tareas.length === 0 ? (
+              ) : tareas.length === 0 && delPlan.length > 0 ? null : tareas.length === 0 ? (
                 <EmptyState
                   icono="pausa"
                   titulo="Hoy no tienes hábitos activos"
@@ -211,12 +270,12 @@ export function HoyPage() {
             </p>
             {pendiente ? (
               <>
-                <p className="mt-2 text-lg font-bold">{pendiente.habito.nombre}</p>
+                <p className="mt-2 text-lg font-bold">{pendiente.nombre}</p>
                 <p className="mt-1 text-sm text-tinta-atenuado">
-                  Te faltan {Math.round(pendiente.restante * 100) / 100} {pendiente.habito.unidad}.
+                  Te faltan {Math.round(pendiente.restante * 100) / 100} {pendiente.unidad}.
                 </p>
                 <Link
-                  to={`/habitos/${pendiente.habito.id}`}
+                  to={`/habitos/${pendiente.id}`}
                   className="mt-4 inline-flex min-h-11 items-center gap-1.5 rounded-lg font-semibold text-acento-claro underline underline-offset-4"
                 >
                   Ver hábito

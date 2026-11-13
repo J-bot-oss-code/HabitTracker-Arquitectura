@@ -40,7 +40,7 @@ public class ProfileController(IPerfilService perfiles, ICuestionarioSaludServic
             request.PerfilLaboral!.Value, request.ZonaHoraria, request.AvisoSaludAceptado,
             request.HoraEntradaTrabajo, request.HoraSalidaTrabajo, request.HoraDespertar, request.HoraDormir,
             request.Edad, request.Sexo, request.AlturaCm, request.PesoKg, request.Actividad,
-            request.DiasPorSemana, request.MinutosPorSesion, request.MetaSlug);
+            request.DiasPorSemana, request.MinutosPorSesion);
         var perfil = await perfiles.GuardarAsync(UsuarioId(), datos, cancellationToken);
         return Ok(perfil with { Nombre = Nombre() });
     }
@@ -112,8 +112,7 @@ public sealed record GuardarPerfilRequest(
     [Range(typeof(decimal), "30", "300", ParseLimitsInInvariantCulture = true, ConvertValueInInvariantCulture = true)] decimal? PesoKg = null,
     NivelActividad? Actividad = null,
     [Range(1, 7)] int? DiasPorSemana = null,
-    [Range(10, 180)] int? MinutosPorSesion = null,
-    [StringLength(60)] string? MetaSlug = null);
+    [Range(10, 180)] int? MinutosPorSesion = null);
 
 public sealed record BloqueObjetivosRequest(
     [Required, MinLength(1), MaxLength(BloqueObjetivos.MaximoObjetivos)] Objetivo[]? Objetivos,

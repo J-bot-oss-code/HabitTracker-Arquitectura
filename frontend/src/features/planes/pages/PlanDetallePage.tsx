@@ -1,18 +1,15 @@
-import { useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router'
+import { useMisPlanes } from '@/features/mis-planes/api'
 import {
   ETIQUETA_ALERGIA,
   ETIQUETA_CONDICION,
   ETIQUETA_LUGAR,
   ETIQUETA_ZONA,
-  perfilApi,
-  perfilKeys,
-  solicitudDePerfil,
-  useGuardarPerfil,
   usePerfil,
 } from '@/features/perfil/api'
 import { useAuth } from '@/shared/auth/AuthContext'
-import { esErrorHttp, mensajeDeError } from '@/shared/api/problem'
+import { esErrorHttp } from '@/shared/api/problem'
 import { Alert } from '@/shared/ui/Alert'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
@@ -21,8 +18,8 @@ import { claseBoton } from '@/shared/ui/claseBoton'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Icono } from '@/shared/ui/Icono'
 import { Esqueleto } from '@/shared/ui/Spinner'
-import { useToast } from '@/shared/ui/Toast'
 import { usePlan, useRecomendados } from '../api'
+import { EmpezarPlanDialogo } from '../components/EmpezarPlanDialogo'
 import {
   DESCRIPCION_NIVEL,
   ETIQUETA_ANCLA,
@@ -102,15 +99,14 @@ function NoEncontrado({ base }: { base: string }) {
 }
 
 // El botón de acción depende de quién mira: sin sesión pide crear la cuenta; el Estándar ve si el plan es
-// para él (el servidor decide) y puede elegirlo como su plan; el Administrador solo lo consulta.
+// para él (el servidor decide) y puede empezarlo; el Administrador solo lo consulta.
 function AccionDelPlan({ plan }: { plan: PlanDetalleDto }) {
   const { usuario } = useAuth()
   const esEstandar = usuario?.rol === 'Estandar'
   const recomendaciones = useRecomendados(esEstandar)
   const perfil = usePerfil(esEstandar)
-  const guardar = useGuardarPerfil()
-  const queryClient = useQueryClient()
-  const { notificar } = useToast()
+  const misPlanes = useMisPlanes(esEstandar)
+  const [abierto, setAbierto] = useState(false)
 
   if (!usuario) {
     return (
@@ -134,23 +130,9 @@ function AccionDelPlan({ plan }: { plan: PlanDetalleDto }) {
   const noApto: PlanNoAptoDto | undefined = recomendaciones.data?.noAptos.find(
     (n) => n.plan.slug === plan.slug,
   )
-  const esElActual = perfil.data?.metaSlug === plan.slug
-
-  async function elegir() {
-    try {
-      // El PUT reemplaza el perfil entero: se parte del vigente en el servidor, no de una copia en caché. Si la
-      // persona acaba de registrar un peso, reenviar el viejo lo pisaría (o pediría el consentimiento sin motivo).
-      const vigente = await queryClient.fetchQuery({
-        queryKey: perfilKeys.perfil,
-        queryFn: perfilApi.obtener,
-        staleTime: 0,
-      })
-      await guardar.mutateAsync(solicitudDePerfil(vigente, { metaSlug: plan.slug }))
-      notificar('Listo: este es ahora tu plan.')
-    } catch {
-      // El error queda en el estado de la mutación y se muestra debajo del botón.
-    }
-  }
+  const siguiendo = misPlanes.data?.find(
+    (p) => p.slug === plan.slug && (p.estado === 'Activo' || p.estado === 'Pausado'),
+  )
 
   return (
     <div className="space-y-3">
@@ -180,31 +162,32 @@ function AccionDelPlan({ plan }: { plan: PlanDetalleDto }) {
           ))}
         </ul>
       )}
-      {esElActual ? (
-        <Badge tono="exito" icono="check">
-          Es tu plan actual
-        </Badge>
+      {siguiendo ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge tono="exito" icono="check">
+            Ya lo estás siguiendo
+          </Badge>
+          <Link
+            to={`/mis-planes/${siguiendo.id}`}
+            className="inline-flex min-h-11 items-center font-semibold text-acento underline"
+          >
+            Ver mi avance
+          </Link>
+        </div>
       ) : (
         <Button
           tamano="lg"
-          onClick={elegir}
-          cargando={guardar.isPending}
-          // Mientras no se sabe si el plan es para la persona no se puede elegir: el servidor todavía no lo impide
-          // (plan_no_apto llega con la inscripción, Fase 4).
+          onClick={() => setAbierto(true)}
           disabled={
             !!noApto || !perfil.data || recomendaciones.isPending || recomendaciones.isError
           }
         >
-          Elegir este plan
+          Empezar este plan
         </Button>
       )}
-      {!esElActual && recomendaciones.isPending && (
+      <EmpezarPlanDialogo plan={plan} abierto={abierto} alCerrar={() => setAbierto(false)} />
+      {!siguiendo && recomendaciones.isPending && (
         <p className="text-sm text-atenuado">Estamos comprobando si este plan encaja contigo…</p>
-      )}
-      {guardar.isError && (
-        <Alert tono="peligro">
-          {mensajeDeError(guardar.error, 'No se pudo guardar tu plan. Inténtalo de nuevo.')}
-        </Alert>
       )}
     </div>
   )

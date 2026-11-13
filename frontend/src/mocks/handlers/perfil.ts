@@ -71,11 +71,7 @@ function perfilValido(b: Partial<GuardarPerfilRequest> | null): b is GuardarPerf
     nuloO(b.pesoKg, (v) => enRango(v, LIMITES_CORPORALES.pesoKg)) &&
     nuloO(b.actividad, (v) => esUno(ACTIVIDADES_PERFIL, v)) &&
     nuloO(b.diasPorSemana, (v) => enRango(v, LIMITES_PLAN.diasPorSemana, true)) &&
-    nuloO(b.minutosPorSesion, (v) => enRango(v, LIMITES_PLAN.minutosPorSesion, true)) &&
-    nuloO(
-      b.metaSlug,
-      (v) => typeof v === 'string' && /^[a-z0-9]+(-[a-z0-9]+)*$/.test(v) && v.length <= 60,
-    )
+    nuloO(b.minutosPorSesion, (v) => enRango(v, LIMITES_PLAN.minutosPorSesion, true))
   )
 }
 
@@ -268,14 +264,6 @@ export const perfilHandlers = [
       const rechazo = sinConsentimientoSalud(sesion.usuario.id)
       if (rechazo) return rechazo
     }
-    const metaSlug = body.metaSlug ?? null
-    // El plan de interés empieza al elegirlo y vuelve a empezar solo si cambia.
-    const inicioPlan =
-      metaSlug === null
-        ? null
-        : anterior?.metaSlug === metaSlug
-          ? anterior.inicioPlan
-          : new Date().toISOString()
     const perfil: PerfilMock = {
       perfilLaboral: body.perfilLaboral,
       zonaHoraria: body.zonaHoraria.trim(),
@@ -291,8 +279,6 @@ export const perfilHandlers = [
       actividad: body.actividad ?? null,
       diasPorSemana: body.diasPorSemana ?? null,
       minutosPorSesion: body.minutosPorSesion ?? null,
-      metaSlug,
-      inicioPlan,
       actualizadoEn: new Date().toISOString(),
     }
     db.perfiles.set(sesion.usuario.id, perfil)

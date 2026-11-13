@@ -105,7 +105,7 @@ describe('Centro de privacidad', () => {
         formato: 'habittracker-datos',
         version: 3,
         cuenta: { correo: 'estandar@demo.com', rol: 'Estandar', tienePassword: true },
-        modulos: { perfilYSalud: { perfil: { metaSlug: 'primeros-5-km' } } },
+        modulos: { perfilYSalud: { perfil: { perfilLaboral: 'OficinaDiurna' } } },
       })
       expect(contenido.consentimientos).toHaveLength(1)
       expect(contenido.consentimientos[0]).toMatchObject({

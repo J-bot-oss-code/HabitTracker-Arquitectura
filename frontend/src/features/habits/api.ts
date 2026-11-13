@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { CLAVES_SEGUIMIENTO, invalidarSeguimiento } from '@/shared/api/clavesSeguimiento'
 import { api, type IdResponse } from '@/shared/api/http'
 import { ApiError } from '@/shared/api/problem'
 import type {
@@ -24,7 +25,7 @@ export const habitsApi = {
 }
 
 export const habitKeys = {
-  todos: ['habits'] as const,
+  todos: CLAVES_SEGUIMIENTO.habitos,
   // Prefijo de `todos`: invalidar la lista también refresca el detalle.
   detalle: (id: string) => ['habits', id] as const,
 }
@@ -60,11 +61,13 @@ export function useHabito(id: string) {
   })
 }
 
+// Un avance, un cambio de estado o una reconfiguración de un hábito de un plan también mueven Hoy
+// (GET /api/today), el progreso de Mis planes y el resumen de constancia: se invalida todo el seguimiento.
 function useMutacionHabitos<TVariables, TData>(mutationFn: (v: TVariables) => Promise<TData>) {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn,
-    onSettled: () => queryClient.invalidateQueries({ queryKey: habitKeys.todos }),
+    onSettled: () => invalidarSeguimiento(queryClient),
   })
 }
 
@@ -81,12 +84,4 @@ export const useReconfigurarHabito = (id: string) =>
 
 // Métricas de presentación de Progreso, para otras features (frontend/AGENTS.md: una feature
 // solo usa de otra su api.ts/types.ts).
-export {
-  constanciaPorDia,
-  logrosDe,
-  recordsDe,
-  type DiaConstancia,
-  type Logro,
-  type NivelConstancia,
-  type Records,
-} from './progreso'
+export { constanciaPorDia, type DiaConstancia, type NivelConstancia } from './progreso'

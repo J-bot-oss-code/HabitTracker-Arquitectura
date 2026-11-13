@@ -83,7 +83,7 @@
 
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
 ## Proyectos de prueba (backend)
@@ -96,14 +96,14 @@
 | DocumentManager.Application.Tests | 1 | 30 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 5 | 33 | 10 |
+| HabitTracker.Api.Tests | 5 | 34 | 11 |
 | HabitTracker.Application.Tests | 5 | 93 | 7 |
-| HabitTracker.Domain.Tests | 9 | 139 | 26 |
+| HabitTracker.Domain.Tests | 9 | 138 | 26 |
 | HabitTracker.Integration.Tests | 9 | 57 | 4 |
 | Permissions.Application.Tests | 1 | 7 | 1 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 2 | 6 | 1 |
-| **Total** | | **773** | **111** |
+| **Total** | | **773** | **112** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -128,10 +128,11 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `auditoria`: 9 archivos
 - `auth`: 27 archivos
 - `coming-soon`: 2 archivos
-- `habits`: 24 archivos
+- `habits`: 26 archivos
+- `mis-planes`: 8 archivos
 - `perfil`: 11 archivos
 - `permissions`: 13 archivos
-- `planes`: 10 archivos
+- `planes`: 11 archivos
 - `privacidad`: 10 archivos
 - `progreso`: 11 archivos
 - `publico`: 15 archivos

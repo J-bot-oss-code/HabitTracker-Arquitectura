@@ -221,6 +221,16 @@ function evaluarPlan(plan: PlanDetalleDto, persona: Persona) {
   return { razones, advertencias }
 }
 
+// La única definición de "no apto": la usan el recomendador y la inscripción (POST /api/my-plans responde
+// 400 plan_no_apto con el mensaje de la primera razón).
+export function razonesNoApto(
+  usuarioId: string,
+  perfil: PerfilMock,
+  plan: PlanDetalleDto,
+): RazonNoAptoDto[] {
+  return evaluarPlan(plan, personaDe(usuarioId, perfil)).razones
+}
+
 // --- RecomendadorPlanes ---
 
 const PUNTOS_MI_DIA = 1000

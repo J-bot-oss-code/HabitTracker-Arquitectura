@@ -1,15 +1,53 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { describe, expect, it } from 'vitest'
-import { db } from '@/mocks/db'
+import { db, sembrarPlanDemo } from '@/mocks/db'
 import { problema } from '@/mocks/http'
 import { server } from '@/mocks/server'
 import { renderApp } from '@/test/render'
 
 const SALUDO = /^(Buenos días|Buenas tardes|Buenas noches), Ana$/
 
+describe('panel Hoy con un plan', () => {
+  it('muestra las tareas del plan con su estado y el avance del plan', async () => {
+    sembrarPlanDemo()
+    renderApp('/hoy', { como: 'estandar' })
+    const lista = await screen.findByRole('list', { name: 'Tareas de tus planes' })
+    expect(within(lista).getAllByRole('listitem')).toHaveLength(3)
+    expect(within(lista).getAllByText('Hecho').length).toBeGreaterThan(0)
+    expect(within(lista).getByText('Hoy hiciste lo mínimo')).toBeInTheDocument()
+    expect(screen.getByText('2 de 4')).toBeInTheDocument()
+  })
+
+  it('«Hoy solo lo mínimo» cuenta el día sin tratarlo como un fallo', async () => {
+    sembrarPlanDemo()
+    const { user } = renderApp('/hoy', { como: 'estandar' })
+    const lista = await screen.findByRole('list', { name: 'Tareas de tus planes' })
+    const botones = within(lista).getAllByRole('button', { name: /^Hoy solo lo mínimo:/ })
+
+    await user.click(botones[0])
+
+    expect(
+      await screen.findByText('Con lo mínimo también cuenta. ¡Bien hecho!'),
+    ).toBeInTheDocument()
+    expect(within(lista).queryByText(/fallaste|perdiste|atrasad/i)).not.toBeInTheDocument()
+  })
+
+  it('«Hecho» registra lo que falta y la tarea pasa a Hecho', async () => {
+    sembrarPlanDemo()
+    const { user } = renderApp('/hoy', { como: 'estandar' })
+    const lista = await screen.findByRole('list', { name: 'Tareas de tus planes' })
+    const botones = () => within(lista).getAllByRole('button', { name: /^Hecho:/ })
+    const antes = botones().length
+
+    await user.click(botones()[0])
+
+    await waitFor(() => expect(botones()).toHaveLength(antes - 1))
+  })
+})
+
 describe('panel Hoy', () => {
-  it('muestra el resumen del día de Ana con su plan', async () => {
+  it('muestra el resumen del día de Ana, sin plan', async () => {
     renderApp('/hoy', { como: 'estandar' })
     expect(await screen.findByRole('heading', { level: 1, name: SALUDO })).toBeInTheDocument()
 
@@ -20,9 +58,8 @@ describe('panel Hoy', () => {
       'aria-valuenow',
       '0',
     )
-    expect(within(resumen).getByText('3 de 8')).toBeInTheDocument()
     expect(within(resumen).getByText('Plan · semana')).toBeInTheDocument()
-    expect(within(resumen).getByText('Primeros 5 km')).toBeInTheDocument()
+    expect(within(resumen).getByText('Sin plan')).toBeInTheDocument()
     expect(within(resumen).getByText(/récord/)).toBeInTheDocument()
   })
 

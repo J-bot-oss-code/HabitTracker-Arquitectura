@@ -1,6 +1,10 @@
 import { Link } from 'react-router'
+import { useMisPlanes } from '@/features/mis-planes/api'
+import type { PlanUsuarioDto } from '@/features/mis-planes/types'
 import { Alert } from '@/shared/ui/Alert'
-import { PageHeader } from '@/shared/ui/Card'
+import { Badge } from '@/shared/ui/Badge'
+import { BarraProgreso } from '@/shared/ui/BarraProgreso'
+import { Card, CardBody, PageHeader } from '@/shared/ui/Card'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Esqueleto } from '@/shared/ui/Spinner'
 import { useRecomendados } from '../api'
@@ -20,6 +24,60 @@ function CargandoRecomendados() {
   )
 }
 
+const ESTADO_PLAN = {
+  Activo: 'En curso',
+  Pausado: 'En pausa',
+  Completado: 'Completado',
+  Cancelado: 'Cancelado',
+}
+
+function TarjetaMiPlan({ plan }: { plan: PlanUsuarioDto }) {
+  const { progreso: p } = plan
+  return (
+    <Card>
+      <CardBody className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Link to={`/mis-planes/${plan.id}`} className="font-bold hover:underline">
+            {plan.nombre}
+          </Link>
+          <Badge tono={plan.estado === 'Activo' ? 'exito' : 'neutro'}>
+            {ESTADO_PLAN[plan.estado]}
+          </Badge>
+        </div>
+        <p className="text-sm text-atenuado">
+          Semana {p.semanaActual} de {p.semanasTotales} · racha {p.racha}{' '}
+          {p.unidad === 'Dias' ? 'días' : 'semanas'}
+        </p>
+        <BarraProgreso
+          etiqueta={`Avance de ${plan.nombre}`}
+          porcentaje={(p.semanaActual / p.semanasTotales) * 100}
+        />
+      </CardBody>
+    </Card>
+  )
+}
+
+// Los planes que la persona sigue (en curso o en pausa), arriba de todo.
+function MisPlanes() {
+  const misPlanes = useMisPlanes()
+  const enCurso = misPlanes.data?.filter((p) => p.estado === 'Activo' || p.estado === 'Pausado')
+  if (!enCurso || enCurso.length === 0) return null
+  return (
+    <section aria-labelledby="mis-planes-titulo" className="mb-10">
+      <h2 id="mis-planes-titulo" className="text-xl font-bold">
+        Mis planes
+      </h2>
+      <ul className={`mt-4 ${REJILLA}`}>
+        {enCurso.map((p) => (
+          <li key={p.id}>
+            <TarjetaMiPlan plan={p} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 // Planes con sesión: primero lo que el servidor recomienda para esta persona (con sus motivos) y lo que no le
 // conviene (con la razón), y debajo todo el catálogo. "Mi día de trabajo saludable" va siempre primero (P2).
 export function PlanesPage() {
@@ -34,6 +92,8 @@ export function PlanesPage() {
         titulo="Planes"
         descripcion="Elige el que va con tu jornada. Puedes cambiarlo cuando quieras."
       />
+
+      <MisPlanes />
 
       {recomendaciones.isPending && <CargandoRecomendados />}
       {recomendaciones.isError && (

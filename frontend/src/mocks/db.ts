@@ -2,10 +2,18 @@
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
 import type { EventoAuditoriaDto } from '@/features/auditoria/types'
+import type {
+  ClaveLogro,
+  EstadoPlanUsuario,
+  MotivoPausa,
+  OrigenPlan,
+} from '@/features/mis-planes/types'
 import type { ConsentimientosDto, CuestionarioSaludDto, PerfilDto } from '@/features/perfil/types'
+import type { Ancla } from '@/features/planes/types'
 import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import type { Rol } from '@/shared/auth/roles'
+import { PLANES_MOCK } from './handlers/planesData'
 
 export const PASSWORD_DEMO = 'Demo1234'
 export const META_DEMO_ID = '3f2b8c1e-6a4d-4e9b-9c7a-1d2e3f4a5b6c'
@@ -13,6 +21,9 @@ export const META_DEMO_ID = '3f2b8c1e-6a4d-4e9b-9c7a-1d2e3f4a5b6c'
 // El código de activación real son 6 dígitos (ActivateRequest.Codigo).
 export const TOKEN_ACTIVACION_DEMO = '123456'
 export const CODIGO_RECUPERACION_DEMO = 'DEMO-123456'
+// Plan que Ana ya sigue en los datos de ejemplo ("Mi día de oficina saludable", en su semana 2 de 4).
+export const PLAN_DEMO_ID = '6d1a2b3c-4d5e-4f60-8a7b-9c0d1e2f3a01'
+export const PLAN_DEMO_SLUG = 'mi-dia-oficina'
 
 export interface UsuarioMock {
   id: string
@@ -36,6 +47,8 @@ export interface RegistroMock {
   cantidad: number
   fecha: string
   unidad: string
+  // "Hoy solo lo mínimo": solo en un hábito de un plan.
+  esVersionMinima?: boolean
 }
 
 export interface HabitoMock {
@@ -49,6 +62,49 @@ export interface HabitoMock {
   metaId?: string
   fechaInicioCiclo: string
   registros: RegistroMock[]
+  // Hábito nacido de una tarea de un plan (Habito.DesdeTareaDePlan). Sin ellos es un hábito suelto.
+  planUsuarioId?: string
+  descripcion?: string
+  versionMinima?: string
+  ancla?: Ancla
+  // Lo pausó el plan (al pausarse o al terminar), no la persona: solo esos vuelven al reanudar el plan.
+  pausadoPorPlan?: boolean
+}
+
+// Un tramo en que el plan estuvo en pausa (PeriodoPausa): esos días no cuentan para la racha.
+export interface PausaPlanMock {
+  inicioUtc: string
+  // Null mientras la pausa sigue abierta.
+  finUtc: string | null
+  motivo: MotivoPausa
+}
+
+// El plan que una persona sigue (PlanUsuario). Sus hábitos están en db.habitos con planUsuarioId.
+export interface PlanUsuarioMock {
+  id: string
+  usuarioId: string
+  slug: string | null
+  nombre: string
+  origen: OrigenPlan
+  estado: EstadoPlanUsuario
+  motivoPausa: MotivoPausa | null
+  semanas: number
+  extensiones: number
+  fechaInicio: string
+  fechaFinPrevista: string
+  modoSuaveHasta: string | null
+  // Hora local "HH:mm".
+  horaRecordatorio: string | null
+  recordatoriosActivos: boolean
+  pausas: PausaPlanMock[]
+}
+
+// Un logro de una persona (LogroUsuario): único por persona y clave, y se felicita una sola vez.
+export interface LogroMock {
+  usuarioId: string
+  clave: ClaveLogro
+  obtenidoEn: string
+  vistoEn: string | null
 }
 
 // --- Contratos propuestos (sin backend todavía; ver handlers/propuestas) ---
@@ -79,6 +135,9 @@ export interface SesionMock {
 interface Db {
   usuarios: UsuarioMock[]
   habitos: HabitoMock[]
+  // Mis planes (HabitTracker v2, Fase 4).
+  planesUsuario: PlanUsuarioMock[]
+  logros: LogroMock[]
   solicitudes: SolicitudPermisoDto[]
   metas: Set<string>
   tokensRevocados: Set<string>
@@ -100,6 +159,8 @@ interface Db {
 export const db: Db = {
   usuarios: [],
   habitos: [],
+  planesUsuario: [],
+  logros: [],
   solicitudes: [],
   metas: new Set(),
   tokensRevocados: new Set(),
@@ -137,6 +198,100 @@ function inicioDelDiaUtc(desplazamientoDias: number, ahora = Date.now()): string
   return new Date(
     Date.UTC(fecha.getUTCFullYear(), fecha.getUTCMonth(), fecha.getUTCDate()),
   ).toISOString()
+}
+
+const logroVisto = (
+  usuarioId: string,
+  clave: ClaveLogro,
+  dias: number,
+  ahora: number,
+): LogroMock => ({
+  usuarioId,
+  clave,
+  obtenidoEn: new Date(ahora - dias * DIA).toISOString(),
+  vistoEn: new Date(ahora - dias * DIA).toISOString(),
+})
+
+// Plan de ejemplo de Ana: sigue "Mi día de oficina saludable" desde hace 9 días (semana 2 de 4, racha
+// de 9), con un día sin registro (no corta la racha), uno con la versión mínima, la semana 1 celebrada y
+// hoy a medias (una tarea hecha, una con la mínima y otra pendiente). Así Hoy, Mis planes y Progreso se
+// ven con contenido.
+//
+// La demo del navegador lo siembra siempre. En las pruebas es opcional: agrega 3 hábitos activos a Ana y
+// las pruebas anteriores a la Fase 4 cuentan con que solo tenga los suyos; las que necesitan el plan
+// llaman a sembrarPlanDemo() al empezar (reiniciarDb() lo quita después de cada prueba).
+export function sembrarPlanDemo(ahora = Date.now()) {
+  if (db.planesUsuario.some((p) => p.id === PLAN_DEMO_ID)) return
+  const estandar = db.usuarios[0].id
+  const plantilla = PLANES_MOCK.find((p) => p.slug === PLAN_DEMO_SLUG)!
+  // Por día (0 = el día en que empezó, 9 = hoy) y por tarea del plan: la cantidad avanzada, 'min' (un
+  // avance con la versión mínima) o null (sin avance).
+  const avances: (number | 'min' | null)[][] = [
+    [8, 3, 3],
+    [8, 3, 3],
+    [6, 2, null],
+    [null, null, null],
+    [8, 3, 3],
+    [8, 'min', 3],
+    [8, 3, 3],
+    [8, 3, 3],
+    [5, null, 3],
+    [8, 'min', null],
+  ]
+  const inicio = ahora - (avances.length - 1) * DIA
+  db.planesUsuario.push({
+    id: PLAN_DEMO_ID,
+    usuarioId: estandar,
+    slug: plantilla.slug,
+    nombre: plantilla.nombre,
+    origen: 'Catalogo',
+    estado: 'Activo',
+    motivoPausa: null,
+    semanas: plantilla.semanas,
+    extensiones: 0,
+    fechaInicio: new Date(inicio).toISOString(),
+    fechaFinPrevista: new Date(inicio + plantilla.semanas * 7 * DIA).toISOString(),
+    modoSuaveHasta: null,
+    // "Al llegar al trabajo" con la entrada de Ana a las 08:00.
+    horaRecordatorio: '08:00',
+    recordatoriosActivos: false,
+    pausas: [],
+  })
+  db.habitos.push(
+    ...plantilla.tareas.map((tarea, t): HabitoMock => ({
+      id: `7c1d2e3f-4a5b-4c6d-8e7f-9a0b1c2d3e1${t + 1}`,
+      usuarioId: estandar,
+      nombre: tarea.nombre,
+      periodicidad: tarea.periodicidad,
+      cantidadObjetivo: tarea.cantidad,
+      unidad: tarea.unidad,
+      estado: 'Activo',
+      fechaInicioCiclo: new Date(inicio).toISOString(),
+      planUsuarioId: PLAN_DEMO_ID,
+      descripcion: tarea.instrucciones,
+      versionMinima: tarea.versionMinima,
+      ancla: tarea.anclaSugerida,
+      registros: avances.flatMap((delDia, d) => {
+        const avance = delDia[t]
+        if (avance === null) return []
+        return [
+          {
+            id: `ee000000-0000-4000-8000-${String(d * 10 + t).padStart(12, '0')}`,
+            cantidad: avance === 'min' ? 1 : avance,
+            // A la hora de ahora, N días atrás: cae en ese día local sea cual sea la zona del perfil.
+            fecha: new Date(inicio + d * DIA).toISOString(),
+            unidad: tarea.unidad,
+            ...(avance === 'min' ? { esVersionMinima: true } : {}),
+          },
+        ]
+      }),
+    })),
+  )
+  // Los logros que esa historia ya ganó, celebrados: Hoy no abre con una felicitación pendiente.
+  db.logros.push(
+    logroVisto(estandar, 'PrimeraSemana', 2, ahora),
+    logroVisto(estandar, 'VeinticincoAvances', 1, ahora),
+  )
 }
 
 export function reiniciarDb() {
@@ -249,6 +404,12 @@ export function reiniciarDb() {
     },
   ]
 
+  // Mis planes: en las pruebas nadie sigue un plan hasta que una prueba llama a sembrarPlanDemo() (al
+  // final de esta función se siembra solo fuera de las pruebas). Ana ya tiene avances en sus hábitos
+  // sueltos, así que su primer logro está ganado y celebrado.
+  db.planesUsuario = []
+  db.logros = [logroVisto(estandar, 'PrimerAvance', 9, ahora)]
+
   db.solicitudes = [
     {
       id: '5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c01',
@@ -297,9 +458,6 @@ export function reiniciarDb() {
         actividad: 'Ligera',
         diasPorSemana: 3,
         minutosPorSesion: 30,
-        metaSlug: 'primeros-5-km',
-        // Semana 3 de 8 del plan.
-        inicioPlan: inicioDelDiaUtc(-17, ahora),
         actualizadoEn: new Date(ahora - 17 * DIA).toISOString(),
       },
     ],
@@ -320,8 +478,6 @@ export function reiniciarDb() {
         actividad: 'Moderada',
         diasPorSemana: 4,
         minutosPorSesion: 45,
-        metaSlug: null,
-        inicioPlan: null,
         actualizadoEn: new Date(ahora - 20 * DIA).toISOString(),
       },
     ],
@@ -424,6 +580,9 @@ export function reiniciarDb() {
       ultimoUsoEn: new Date(ahora - 3 * 60 * 60 * 1000).toISOString(),
     },
   ]
+
+  // La demo del navegador arranca con el plan de ejemplo; las pruebas lo piden con sembrarPlanDemo().
+  if (import.meta.env.MODE !== 'test') sembrarPlanDemo(ahora)
 }
 
 reiniciarDb()

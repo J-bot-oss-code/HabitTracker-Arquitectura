@@ -1,12 +1,15 @@
 import { screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
-import { db } from '@/mocks/db'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { db, sembrarPlanDemo } from '@/mocks/db'
 import { problema } from '@/mocks/http'
 import { server } from '@/mocks/server'
 import { iniciarSesionComo, renderApp } from '@/test/render'
 
 const url = (ruta: string) => `${window.location.origin}${ruta}`
+
+// La línea de la meta de peso termina cuando termina el plan en curso.
+beforeEach(() => sembrarPlanDemo())
 
 describe('pantalla Progreso', () => {
   it('muestra peso, medidas, fotos, constancia, récords y logros de Ana', async () => {
@@ -30,8 +33,8 @@ describe('pantalla Progreso', () => {
     expect(screen.getByRole('heading', { name: 'Fotos de progreso' })).toBeInTheDocument()
     expect(screen.getAllByText('Solo tú ves tu peso.').length).toBeGreaterThan(0)
     expect(await screen.findByRole('list', { name: 'Constancia por día' })).toBeInTheDocument()
-    expect(await screen.findByText('Mejor racha')).toBeInTheDocument()
-    expect(screen.getByText('Primer avance')).toBeInTheDocument()
+    expect(await screen.findByText('Tu mes en números')).toBeInTheDocument()
+    expect(screen.getByText('Primer paso')).toBeInTheDocument()
   })
 
   it('el selector de periodo filtra el peso y marca el activo con aria-pressed', async () => {
@@ -350,12 +353,12 @@ describe('ajustes de la ronda 2 de crítica', () => {
     expect(fin(recortada.getAttribute('aria-label') ?? '')).toBe(fin(nombre3m))
   })
 
-  it('los logros bloqueados dicen cuánto falta, sin el candado de privacidad', async () => {
+  it('los logros son los del servidor y solo hablan de constancia', async () => {
     renderApp('/progreso', { como: 'estandar' })
-    const fila = (await screen.findByText('30 días de racha')).closest('li')
-    expect(fila).not.toBeNull()
-    expect(within(fila as HTMLElement).getByText('Bloqueado')).toBeInTheDocument()
-    expect(within(fila as HTMLElement).getByText(/^\d+ de 30$/)).toBeInTheDocument()
+    expect(await screen.findByText('Primera semana')).toBeInTheDocument()
+    expect(screen.getByText('25 avances')).toBeInTheDocument()
+    expect(screen.getAllByText('Obtenido').length).toBeGreaterThanOrEqual(3)
+    expect(screen.getByText('Días cumplidos')).toBeInTheDocument()
   })
 
   it('el mapa de constancia lleva los días de la semana y el resumen de esta semana', async () => {

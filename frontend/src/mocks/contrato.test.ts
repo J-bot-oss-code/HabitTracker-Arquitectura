@@ -170,6 +170,46 @@ describe('contrato de la API simulada', () => {
     expect(conZ.status).toBe(204)
   })
 
+  it('un hábito suelto trae los campos de plan en null y sus registros con esVersionMinima en falso', async () => {
+    const r = await llamar(`/api/habits/${LEER}`, { token: iniciarSesionComo('estandar') })
+    const habito = await r.json()
+    expect(habito).toMatchObject({
+      planUsuarioId: null,
+      descripcion: null,
+      versionMinima: null,
+      ancla: null,
+    })
+    expect(habito.registros.length).toBeGreaterThan(0)
+    expect(
+      habito.registros.every((x: { esVersionMinima: boolean }) => x.esVersionMinima === false),
+    ).toBe(true)
+  })
+
+  it('esVersionMinima solo vale en un hábito de un plan: en uno suelto es 400 version_minima_no_disponible', async () => {
+    const token = iniciarSesionComo('estandar')
+    const fechaUtc = new Date().toISOString()
+    const minima = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token,
+      body: { cantidad: 1, fechaUtc, esVersionMinima: true },
+    })
+    expect(minima.status).toBe(400)
+    expect((await minima.json()).codigo).toBe('version_minima_no_disponible')
+    // Es opcional y falso por defecto: enviarlo en falso es lo mismo que no enviarlo.
+    const normal = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token,
+      body: { cantidad: 1, fechaUtc, esVersionMinima: false },
+    })
+    expect(normal.status).toBe(204)
+    const noBooleano = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token,
+      body: { cantidad: 1, fechaUtc, esVersionMinima: 'si' },
+    })
+    expect(noBooleano.status).toBe(400)
+  })
+
   it('GET /api/permissions devuelve solo pendientes si se omite soloPendientes', async () => {
     const token = iniciarSesionComo('admin')
     await llamar('/api/permissions/5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c01/reject', {

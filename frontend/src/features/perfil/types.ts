@@ -40,14 +40,10 @@ export interface PerfilDto {
   actividad: ActividadPerfil | null
   diasPorSemana: number | null
   minutosPorSesion: number | null
-  // Plan de interés del catálogo público; null si decide más tarde.
-  metaSlug: string | null
-  // Instante UTC en que empezó el plan de interés; lo fija el servidor.
-  inicioPlan: string | null
   actualizadoEn: string
 }
 
-export type GuardarPerfilRequest = Omit<PerfilDto, 'nombre' | 'inicioPlan' | 'actualizadoEn'>
+export type GuardarPerfilRequest = Omit<PerfilDto, 'nombre' | 'actualizadoEn'>
 
 export interface ConsentimientosDto {
   terminosVersion: string | null
