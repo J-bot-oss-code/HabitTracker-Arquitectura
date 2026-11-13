@@ -1,4 +1,5 @@
 using HabitTracker.Application.Interfaces;
+using HabitTracker.Application.Notificaciones;
 using HabitTracker.Application.Services;
 using HabitTracker.Infrastructure.Contenido;
 using HabitTracker.Infrastructure.DependencyInjection;
@@ -35,6 +36,10 @@ public static class HabitTrackerModuleExtensions
         // Perfil, cuestionario de salud (cifrado con Data Protection) y progreso corporal (Fase 2 de HabitTracker v2).
         // El consentimiento lo resuelve un adaptador del Host (IConsentimientoSalud), registrado en Program.cs.
         services.AddScoped<ICifradorDatos, CifradorDataProtection>();
+        // Check-in por correo (Fase 5): enlace firmado con las mismas claves de Data Protection. IEstadoCuentas lo resuelve
+        // un adaptador del Host, registrado en Program.cs.
+        services.AddScoped<IFirmadorEnlaces, FirmadorEnlaces>();
+        services.AddScoped<ICheckinCorreoService, CheckinCorreoService>();
         services.AddScoped<IPerfilUsuarioRepository, PerfilUsuarioRepository>();
         services.AddScoped<ICuestionarioSaludRepository, CuestionarioSaludRepository>();
         services.AddScoped<IProgresoCorporalRepository, ProgresoCorporalRepository>();
