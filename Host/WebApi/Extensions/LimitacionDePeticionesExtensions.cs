@@ -16,6 +16,7 @@ namespace WebApi.Extensions;
 /// - catalogo: el catálogo público de planes es anónimo; el tope evita que un cliente lo descargue en bucle;
 /// - usuario y subidas: los endpoints con sesión se limitan por persona (no por IP: detrás de un proxy todas comparten la
 ///   IP); subidas protege el disco con un tope menor para documentos.
+/// - checkin: el enlace «Ya lo hice» del correo es anónimo; el tope evita probar tokens.
 /// Los topes son por minuto y se pueden cambiar en RateLimit:* (la configuración inválida detiene el arranque).
 /// </summary>
 public static class LimitacionDePeticionesExtensions
@@ -30,6 +31,7 @@ public static class LimitacionDePeticionesExtensions
     public const string Catalogo = "catalogo";
     public const string Usuario = "usuario";
     public const string Subidas = "subidas";
+    public const string Checkin = "checkin";
 
     public static IServiceCollection AddLimitacionDePeticiones(this IServiceCollection services, IConfiguration configuracion)
     {
@@ -45,6 +47,7 @@ public static class LimitacionDePeticionesExtensions
             (Catalogo, "CatalogoPorMinuto", 60),
             (Usuario, "UsuarioPorMinuto", 120),
             (Subidas, "SubidasPorMinuto", 10),
+            (Checkin, "CheckinPorMinuto", 30),
         };
 
         services.AddRateLimiter(opciones =>
