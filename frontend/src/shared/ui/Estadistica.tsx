@@ -3,8 +3,8 @@ import { cn } from '@/shared/lib/cn'
 import { BarraProgreso } from './BarraProgreso'
 import { Icono, type NombreIcono } from './Icono'
 
-// StatCard de la especificación (§3): etiqueta, cifra grande y detalle, con una barra de
-// progreso opcional. "Destacada" marca un logro con borde de acento, no con sombras.
+// Cifra de una franja: etiqueta, número grande y detalle, con una barra de progreso opcional. No tiene caja propia: la
+// dibuja <FranjaCifras>, que las junta regla a regla. "Destacada" marca un logro con el fondo de acento.
 export function Estadistica({
   etiqueta,
   valor,
@@ -12,7 +12,6 @@ export function Estadistica({
   icono,
   destacada = false,
   progreso,
-  plana = false,
 }: {
   etiqueta: string
   valor: ReactNode
@@ -21,25 +20,13 @@ export function Estadistica({
   destacada?: boolean
   // Porcentaje 0–100 para la barra; se omite si no aplica.
   progreso?: number
-  // Sin borde ni esquinas: la celda de una franja de cifras que dibuja el contenedor.
-  plana?: boolean
 }) {
   return (
-    <div
-      className={cn(
-        'bg-superficie p-4 sm:p-5',
-        plana
-          ? destacada && 'bg-acento-suave'
-          : cn(
-              'rounded-2xl border',
-              destacada ? 'border-acento ring-1 ring-acento' : 'border-borde',
-            ),
-      )}
-    >
+    <div className={cn('bg-superficie p-4 sm:p-5', destacada && 'bg-acento-suave')}>
       <div className="flex items-center justify-between gap-2">
         <p className="break-words text-sm font-medium leading-tight text-atenuado">{etiqueta}</p>
         {icono && (
-          <span className="hidden size-7 shrink-0 place-items-center rounded-lg bg-acento-suave text-acento-fuerte sm:grid">
+          <span className="hidden shrink-0 text-atenuado sm:block">
             <Icono nombre={icono} className="size-4" />
           </span>
         )}
@@ -50,5 +37,29 @@ export function Estadistica({
       )}
       {detalle && <p className="mt-2 text-xs text-atenuado">{detalle}</p>}
     </div>
+  )
+}
+
+// Varias cifras en una sola franja separada por reglas finas, en lugar de una tarjeta por cifra. Las columnas van en
+// `className` (grid-cols-*); con etiqueta es una región con nombre.
+export function FranjaCifras({
+  etiqueta,
+  className,
+  children,
+}: {
+  etiqueta?: string
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <section
+      aria-label={etiqueta}
+      className={cn(
+        'mb-6 grid gap-px overflow-hidden rounded-lg border border-borde bg-borde',
+        className,
+      )}
+    >
+      {children}
+    </section>
   )
 }

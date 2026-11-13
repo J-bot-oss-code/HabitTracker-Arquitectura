@@ -94,14 +94,10 @@ export function CatalogoPlanes({
 
       <div className="mt-6">
         {planes.isPending ? (
-          <ul
-            role="status"
-            aria-label="Cargando planes"
-            className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),1fr))] gap-4"
-          >
+          <ul role="status" aria-label="Cargando planes" className="space-y-3">
             {Array.from({ length: 6 }, (_, i) => (
               <li key={i}>
-                <Esqueleto className="h-56 w-full rounded-2xl" />
+                <Esqueleto className="h-24 w-full" />
               </li>
             ))}
           </ul>
@@ -135,7 +131,7 @@ export function CatalogoPlanes({
             }
           />
         ) : (
-          <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),1fr))] gap-4">
+          <ul className="border-b border-borde">
             {visibles.map((plan) => (
               <li key={plan.slug} className="flex">
                 <TarjetaPlan

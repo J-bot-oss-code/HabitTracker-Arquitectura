@@ -12,6 +12,7 @@ import { CatalogoPlanes } from '../components/CatalogoPlanes'
 import { TarjetaPlan } from '../components/TarjetaPlan'
 import { esMiDia } from '../types'
 
+const FILAS = 'border-b border-borde'
 const REJILLA = 'grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),1fr))] gap-4'
 
 function CargandoRecomendados() {
@@ -114,7 +115,7 @@ export function PlanesPage() {
               <p className="mt-1 text-sm text-atenuado">
                 Empieza por aquí: son pocos hábitos y no pide datos de salud.
               </p>
-              <div className="mt-4 max-w-md">
+              <div className="mt-4 border-b border-borde">
                 <TarjetaPlan
                   plan={miDia.plan}
                   base="/planes"
@@ -145,7 +146,7 @@ export function PlanesPage() {
               <h2 id="recomendados-titulo" className="text-xl font-bold">
                 Recomendados para ti
               </h2>
-              <ul className={`mt-4 ${REJILLA}`}>
+              <ul className={`mt-4 ${FILAS}`}>
                 {otros.map((r) => (
                   <li key={r.plan.slug} className="flex">
                     <TarjetaPlan
@@ -169,7 +170,7 @@ export function PlanesPage() {
                 Puedes leerlos, pero te sugerimos empezar por otro. Cada uno explica por qué no
                 encaja ahora.
               </p>
-              <ul className={`mt-4 ${REJILLA}`}>
+              <ul className={`mt-4 ${FILAS}`}>
                 {datos.noAptos.map((n) => (
                   <li key={n.plan.slug} className="flex">
                     <TarjetaPlan plan={n.plan} base="/planes" razones={n.razones} />

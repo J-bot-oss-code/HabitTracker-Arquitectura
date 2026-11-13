@@ -6,7 +6,7 @@ import { BarraProgreso } from '@/shared/ui/BarraProgreso'
 import { Button } from '@/shared/ui/Button'
 import { Card, CardBody, EmptyState, PageHeader } from '@/shared/ui/Card'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
-import { Estadistica } from '@/shared/ui/Estadistica'
+import { Estadistica, FranjaCifras } from '@/shared/ui/Estadistica'
 import { Icono } from '@/shared/ui/Icono'
 import { Esqueleto } from '@/shared/ui/Spinner'
 import { useAuditoria, useMetricas } from '../api'
@@ -27,7 +27,6 @@ export function ResumenAdminPage() {
   return (
     <>
       <PageHeader
-        rotulo="Administración"
         titulo="Resumen"
         descripcion="Métricas agregadas y anónimas."
         acciones={
@@ -65,7 +64,7 @@ export function ResumenAdminPage() {
       ) : (
         m && (
           <>
-            <section aria-label="Indicadores" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <FranjaCifras etiqueta="Indicadores" className="grid-cols-2 lg:grid-cols-4">
               <Estadistica
                 etiqueta="Usuarios activos"
                 icono="usuarios"
@@ -90,7 +89,7 @@ export function ResumenAdminPage() {
                 valor={m.eliminacionesEnCurso}
                 detalle="en periodo de gracia"
               />
-            </section>
+            </FranjaCifras>
 
             <section aria-labelledby="planes-titulo" className="mt-6">
               <Card>

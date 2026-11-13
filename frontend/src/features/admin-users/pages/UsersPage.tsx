@@ -9,7 +9,7 @@ import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { EmptyState, PageHeader } from '@/shared/ui/Card'
 import { ConfirmarDialogo } from '@/shared/ui/ConfirmarDialogo'
-import { Estadistica } from '@/shared/ui/Estadistica'
+import { Estadistica, FranjaCifras } from '@/shared/ui/Estadistica'
 import { Input } from '@/shared/ui/Field'
 import { CargandoPagina } from '@/shared/ui/Spinner'
 import { useToast } from '@/shared/ui/Toast'
@@ -43,13 +43,12 @@ export function UsersPage() {
   return (
     <>
       <PageHeader
-        rotulo="Administración"
         titulo="Usuarios"
         descripcion="Gestiona roles, estado de las cuentas y restablecimientos de contraseña."
       />
 
       {usuarios.isSuccess && (
-        <section aria-label="Resumen de usuarios" className="mb-6 grid grid-cols-3 gap-3">
+        <FranjaCifras etiqueta="Resumen de usuarios" className="grid-cols-3">
           <Estadistica
             etiqueta="Cuentas"
             icono="usuarios"
@@ -67,7 +66,7 @@ export function UsersPage() {
             icono="permisos"
             valor={lista.filter((u) => u.rol === 'Administrador').length}
           />
-        </section>
+        </FranjaCifras>
       )}
 
       <div className="mb-4 max-w-sm">
