@@ -4,7 +4,7 @@ import type { PlanUsuarioDto } from '@/features/mis-planes/types'
 import { Alert } from '@/shared/ui/Alert'
 import { Badge } from '@/shared/ui/Badge'
 import { BarraProgreso } from '@/shared/ui/BarraProgreso'
-import { Card, CardBody, PageHeader } from '@/shared/ui/Card'
+import { PageHeader } from '@/shared/ui/Card'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
 import { Esqueleto } from '@/shared/ui/Spinner'
 import { useRecomendados } from '../api'
@@ -13,14 +13,13 @@ import { TarjetaPlan } from '../components/TarjetaPlan'
 import { esMiDia } from '../types'
 
 const FILAS = 'border-b border-borde'
-const REJILLA = 'grid grid-cols-[repeat(auto-fill,minmax(min(100%,260px),1fr))] gap-4'
 
 function CargandoRecomendados() {
   return (
-    <div role="status" aria-label="Cargando tus recomendaciones" className={REJILLA}>
-      <Esqueleto className="h-56 w-full rounded-2xl" />
-      <Esqueleto className="h-56 w-full rounded-2xl" />
-      <Esqueleto className="h-56 w-full rounded-2xl" />
+    <div role="status" aria-label="Cargando tus recomendaciones" className="space-y-3">
+      <Esqueleto className="h-24 w-full" />
+      <Esqueleto className="h-24 w-full" />
+      <Esqueleto className="h-24 w-full" />
     </div>
   )
 }
@@ -35,26 +34,25 @@ const ESTADO_PLAN = {
 function TarjetaMiPlan({ plan }: { plan: PlanUsuarioDto }) {
   const { progreso: p } = plan
   return (
-    <Card>
-      <CardBody className="space-y-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <Link to={`/mis-planes/${plan.id}`} className="font-bold hover:underline">
-            {plan.nombre}
-          </Link>
-          <Badge tono={plan.estado === 'Activo' ? 'exito' : 'neutro'}>
-            {ESTADO_PLAN[plan.estado]}
-          </Badge>
-        </div>
-        <p className="text-sm text-atenuado">
-          Semana {p.semanaActual} de {p.semanasTotales} · racha {p.racha}{' '}
-          {p.unidad === 'Dias' ? 'días' : 'semanas'}
-        </p>
-        <BarraProgreso
-          etiqueta={`Avance de ${plan.nombre}`}
-          porcentaje={(p.semanaActual / p.semanasTotales) * 100}
-        />
-      </CardBody>
-    </Card>
+    <div className="space-y-2 border-t border-borde py-5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Link to={`/mis-planes/${plan.id}`} className="font-bold hover:underline">
+          {plan.nombre}
+        </Link>
+        <Badge tono={plan.estado === 'Activo' ? 'exito' : 'neutro'}>
+          {ESTADO_PLAN[plan.estado]}
+        </Badge>
+      </div>
+      <p className="text-sm text-atenuado">
+        Semana {p.semanaActual} de {p.semanasTotales} · racha {p.racha}{' '}
+        {p.unidad === 'Dias' ? 'días' : 'semanas'}
+      </p>
+      <BarraProgreso
+        etiqueta={`Avance de ${plan.nombre}`}
+        porcentaje={(p.semanaActual / p.semanasTotales) * 100}
+        className="max-w-md"
+      />
+    </div>
   )
 }
 
@@ -68,7 +66,7 @@ function MisPlanes() {
       <h2 id="mis-planes-titulo" className="text-xl font-bold">
         Mis planes
       </h2>
-      <ul className={`mt-4 ${REJILLA}`}>
+      <ul className={`mt-4 ${FILAS}`}>
         {enCurso.map((p) => (
           <li key={p.id}>
             <TarjetaMiPlan plan={p} />

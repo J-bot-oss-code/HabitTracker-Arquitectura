@@ -113,11 +113,13 @@ export function HabitsPage() {
           }
         />
       ) : (
-        <div className="border-b border-borde">
+        <ul className="border-b border-borde">
           {visibles.map((h) => (
-            <HabitoCard key={h.id} habito={h} />
+            <li key={h.id}>
+              <HabitoCard habito={h} />
+            </li>
           ))}
-        </div>
+        </ul>
       )}
 
       <Modal abierto={creando} titulo="Nuevo hábito" alCerrar={() => setCreando(false)}>
