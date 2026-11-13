@@ -180,7 +180,9 @@ describe('flujos de cuenta', () => {
 
     await registrarCuenta(user, 'calcula@demo.com')
     expect(leerRegistroPendiente('calcula@demo.com')?.datosCorporales).toBeNull()
-    expect(localStorage.getItem('habittracker.registro-pendiente') ?? '').not.toMatch(/"(edad|alturaCm|pesoKg)":\d/)
+    expect(localStorage.getItem('habittracker.registro-pendiente') ?? '').not.toMatch(
+      /"(edad|alturaCm|pesoKg)":\d/,
+    )
   })
 
   it('descarta datos de calculadora manipulados en el estado de navegación', async () => {
