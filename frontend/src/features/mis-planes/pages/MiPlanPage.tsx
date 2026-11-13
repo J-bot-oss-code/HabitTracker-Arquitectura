@@ -16,6 +16,7 @@ import { Modal } from '@/shared/ui/Modal'
 import { Esqueleto } from '@/shared/ui/Spinner'
 import { useToast } from '@/shared/ui/Toast'
 import { useAjustarPlan, useCambiarEstadoPlan, useMiPlan, useRecordatorioPlan } from '../api'
+import { ArchivosDelPlan } from '../components/ArchivosDelPlan'
 import {
   aPausarRequest,
   aRecordatorioRequest,
@@ -175,6 +176,7 @@ function Plan({ plan }: { plan: PlanUsuarioDto }) {
 
         {enCurso && <Acciones plan={plan} />}
         {enCurso && <Recordatorio plan={plan} />}
+        <ArchivosDelPlan planId={plan.id} enCurso={enCurso} />
       </div>
     </>
   )

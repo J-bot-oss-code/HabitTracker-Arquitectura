@@ -30,7 +30,8 @@ describe('pantalla Progreso', () => {
     expect(within(cintura).getByText('78 cm')).toBeInTheDocument()
     expect(within(cintura).getByText('−4 cm')).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: 'Fotos de progreso' })).toBeInTheDocument()
+    // Las fotos del cuerpo no son parte de Progreso (P4: se motiva la conducta, nunca el cuerpo).
+    expect(screen.queryByText('Fotos de progreso')).not.toBeInTheDocument()
     expect(screen.getAllByText('Solo tú ves tu peso.').length).toBeGreaterThan(0)
     expect(await screen.findByRole('list', { name: 'Constancia por día' })).toBeInTheDocument()
     expect(await screen.findByText('Tu mes en números')).toBeInTheDocument()

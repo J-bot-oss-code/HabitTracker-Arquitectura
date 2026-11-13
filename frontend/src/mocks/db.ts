@@ -2,6 +2,7 @@
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
 import type { EventoAuditoriaDto } from '@/features/auditoria/types'
+import type { DocumentoDto } from '@/features/documentos/types'
 import type {
   ClaveLogro,
   EstadoPlanUsuario,
@@ -107,6 +108,20 @@ export interface LogroMock {
   vistoEn: string | null
 }
 
+// Un archivo del Manejador de documentos (Documento). El borrado es lógico: el registro y los bytes permanecen.
+export interface DocumentoMock extends DocumentoDto {
+  eliminado: boolean
+  contenido: ArrayBuffer
+}
+
+// El vínculo de un archivo con un plan (AdjuntoPlan): único por plan y archivo.
+export interface AdjuntoMock {
+  planUsuarioId: string
+  usuarioId: string
+  documentoId: string
+  adjuntadoEnUtc: string
+}
+
 // --- Contratos propuestos (sin backend todavía; ver handlers/propuestas) ---
 export type PerfilMock = Omit<PerfilDto, 'nombre'>
 // El cuestionario se guarda por bloques; la evaluación se calcula al leerlo (como EvaluadorSalud).
@@ -138,6 +153,9 @@ interface Db {
   // Mis planes (HabitTracker v2, Fase 4).
   planesUsuario: PlanUsuarioMock[]
   logros: LogroMock[]
+  // Archivos y sus vínculos con planes. Nadie los siembra: cada prueba (o persona en la demo) sube los suyos.
+  documentos: DocumentoMock[]
+  adjuntos: AdjuntoMock[]
   solicitudes: SolicitudPermisoDto[]
   metas: Set<string>
   tokensRevocados: Set<string>
@@ -161,6 +179,8 @@ export const db: Db = {
   habitos: [],
   planesUsuario: [],
   logros: [],
+  documentos: [],
+  adjuntos: [],
   solicitudes: [],
   metas: new Set(),
   tokensRevocados: new Set(),
@@ -409,6 +429,8 @@ export function reiniciarDb() {
   // sueltos, así que su primer logro está ganado y celebrado.
   db.planesUsuario = []
   db.logros = [logroVisto(estandar, 'PrimerAvance', 9, ahora)]
+  db.documentos = []
+  db.adjuntos = []
 
   db.solicitudes = [
     {

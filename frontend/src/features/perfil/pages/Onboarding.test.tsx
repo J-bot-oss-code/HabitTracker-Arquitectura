@@ -206,10 +206,10 @@ describe('onboarding (pasos 3 a 5 del alta)', () => {
 
   it('al terminar vuelve a la página que se había pedido', async () => {
     recordarRegistro()
-    const { user, router } = renderApp('/permisos', { como: 'otro' })
+    const { user, router } = renderApp('/habitos', { como: 'otro' })
     await completarOnboarding(user)
-    expect(await screen.findByRole('heading', { name: 'Mis permisos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/permisos')
+    expect(await screen.findByRole('heading', { name: 'Mis hábitos' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/habitos')
   })
 
   it('no sigue un destino externo que llegue en el estado de navegación', async () => {

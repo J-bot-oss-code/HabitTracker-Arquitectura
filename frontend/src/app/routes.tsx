@@ -1,5 +1,5 @@
 import type { ComponentType } from 'react'
-import { Link, Navigate, type RouteObject } from 'react-router'
+import { Link, Navigate, useLocation, type RouteObject } from 'react-router'
 import { ActivatePage } from '@/features/auth/pages/ActivatePage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
@@ -41,6 +41,13 @@ function NoEncontrada() {
       />
     </div>
   )
+}
+
+// «Mis permisos» ya no es una sección del menú: se pide desde cada acción y el historial vive en Configuración. El enlace
+// viejo (/permisos?solicitar=…) sigue funcionando.
+function RedirigirASolicitudes() {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/ajustes/solicitudes', search }} replace />
 }
 
 // Las pantallas se cargan bajo demanda, salvo la landing, el login y el registro (puertas de
@@ -86,6 +93,10 @@ const paginas = {
   hoy: perezosa(() => import('@/features/habits/pages/HoyPage'), 'HoyPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
+  documentos: perezosa(
+    () => import('@/features/documentos/pages/DocumentosPage'),
+    'DocumentosPage',
+  ),
   misPermisos: perezosa(
     () => import('@/features/permissions/pages/MyPermissionsPage'),
     'MyPermissionsPage',
@@ -230,6 +241,14 @@ export const rutas: RouteObject[] = [
                     },
                     ...paginas.perfilSalud,
                   },
+                  {
+                    path: 'solicitudes',
+                    handle: {
+                      titulo: 'Solicitudes',
+                      descripcion: 'Los permisos que pediste y cómo van.',
+                    },
+                    ...paginas.misPermisos,
+                  },
                   // Descargar, decidir y retirarse no deben exigir dar más datos primero.
                   {
                     path: 'privacidad',
@@ -265,7 +284,8 @@ export const rutas: RouteObject[] = [
                     handle: { titulo: 'Detalle del hábito' },
                     ...paginas.habito,
                   },
-                  { path: 'permisos', handle: { titulo: 'Mis permisos' }, ...paginas.misPermisos },
+                  { path: 'permisos', element: <RedirigirASolicitudes /> },
+                  { path: 'documentos', handle: { titulo: 'Mis archivos' }, ...paginas.documentos },
                 ],
               },
             ],
@@ -287,11 +307,6 @@ export const rutas: RouteObject[] = [
               },
               { path: 'admin/auditoria', handle: { titulo: 'Auditoría' }, ...paginas.auditoria },
             ],
-          },
-          {
-            path: 'documentos',
-            handle: { titulo: 'Documentos' },
-            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.documentos} />,
           },
           {
             path: 'notificaciones',

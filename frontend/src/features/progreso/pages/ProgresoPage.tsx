@@ -53,38 +53,11 @@ export function ProgresoPage() {
       <div className="space-y-6">
         <PesoCard periodo={periodo} finDelPlan={fin} />
 
-        <div className="grid items-start gap-6 lg:grid-cols-2">
-          <MedidasCard />
-          <FotosCard />
-        </div>
+        <MedidasCard />
 
         <ConstanciaYLogros />
       </div>
     </>
-  )
-}
-
-// Fotos (§5.4): vive en el Manejador de documentos (RF-DOC-01), que aún no existe.
-function FotosCard() {
-  return (
-    <Card>
-      <CardBody>
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <h2 className="text-lg font-bold">Fotos de progreso</h2>
-          <Badge tono="aviso" icono="calendario">
-            Próximamente
-          </Badge>
-        </div>
-        <p className="mb-3 flex items-center gap-1.5 text-xs text-atenuado">
-          <Icono nombre="candado" className="size-3.5" />
-          Solo tú las verás.
-        </p>
-        <p className="text-sm text-texto-2">
-          Podrás guardar fotos privadas y compararlas antes y después. Se habilitará cuando el
-          servidor entregue el manejo de documentos.
-        </p>
-      </CardBody>
-    </Card>
   )
 }
 
