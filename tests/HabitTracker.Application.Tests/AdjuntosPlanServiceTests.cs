@@ -56,6 +56,9 @@ public class AdjuntosPlanServiceTests
             Task.FromResult(Existentes.TryGetValue(documentoId, out var d) && d.Dueno == usuarioId && !d.Eliminado
                 ? new DocumentoResumen(documentoId, "informe.pdf", "application/pdf", 1234, Ahora)
                 : null);
+        public Task<IReadOnlyList<DocumentoResumen>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<DocumentoResumen>>([.. Existentes.Where(e => e.Value.Dueno == usuarioId && !e.Value.Eliminado)
+                .Select(e => new DocumentoResumen(e.Key, "informe.pdf", "application/pdf", 1234, Ahora))]);
     }
 
     private sealed class Permisos : IPermisoService

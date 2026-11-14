@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using HabitTracker.Application.DTOs;
@@ -16,6 +18,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/my-plans")]
 [Authorize(Roles = "Estandar")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class MyPlansController(IPlanUsuarioService planes) : ControllerBase
 {

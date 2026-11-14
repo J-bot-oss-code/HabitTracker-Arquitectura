@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.Security.Claims;
 using HabitTracker.Application.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +15,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/my-plans")]
 [Authorize(Roles = "Estandar")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class AdjuntosPlanController(IAdjuntosPlanService adjuntos) : ControllerBase
 {

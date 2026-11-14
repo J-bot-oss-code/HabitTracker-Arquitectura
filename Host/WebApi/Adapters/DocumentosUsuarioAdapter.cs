@@ -22,4 +22,8 @@ public sealed class DocumentosUsuarioAdapter(IDocumentoService documentos) : IDo
             return null;
         }
     }
+
+    public async Task<IReadOnlyList<DocumentoResumen>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+        [.. (await documentos.ListarAsync(usuarioId, esAdministrador: false, cancellationToken))
+            .Select(d => new DocumentoResumen(d.Id, d.Nombre, d.Tipo, d.TamanoBytes, d.FechaSubidaUtc))];
 }

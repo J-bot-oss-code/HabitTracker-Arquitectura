@@ -40,6 +40,8 @@ builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDat
 
 // Límite de peticiones por IP en activación, login, registro y recuperación de contraseña (RD-06).
 builder.Services.AddLimitacionDePeticiones(builder.Configuration);
+builder.Services.AddReenvioDeCabeceras(builder.Configuration);
+builder.Services.AddSaludDelServicio();
 
 // CORS: solo los orígenes de Cors:OrigenesPermitidos (el frontend). Sin orígenes configurados no se permite ninguno.
 builder.Services.AddCorsDelFrontend(builder.Configuration);
@@ -99,14 +101,19 @@ if (!app.Configuration.GetValue<bool>("Https:RedireccionDesactivada"))
     app.UseHttpsRedirection();
 }
 
+// Antes que todo lo que lee la IP del cliente (el limitador de peticiones); sin proxies configurados no hace nada.
+app.UseReenvioDeCabeceras();
+
 app.UseCorsDelFrontend(app.Configuration);
 
-app.UseRateLimiter();
-
+// Después de autenticar, para limitar por persona los endpoints con sesión; antes de la lista negra, para que un
+// token inválido repetido no consulte la base sin tope.
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseMiddleware<TokenBlacklistMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapSaludDelServicio();
 
 app.Run();

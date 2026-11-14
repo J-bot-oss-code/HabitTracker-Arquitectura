@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using AccessControl.Application.DTOs;
@@ -10,6 +12,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/admin/usuarios")]
 [Authorize(Roles = "Administrador")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class AdminUsuariosController : ControllerBase
 {
     private readonly IUsuarioService _usuarioService;

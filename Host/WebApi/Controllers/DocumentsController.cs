@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.Security.Claims;
 using DocumentManager.Application.DTOs;
 using DocumentManager.Application.Interfaces;
@@ -15,6 +17,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/documents")]
 [Authorize]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class DocumentsController : ControllerBase
 {
     // Un poco más que el máximo del archivo (10 MB) para dejar sitio a los bytes del multipart.
@@ -29,6 +32,7 @@ public class DocumentsController : ControllerBase
 
     /// <summary>Sube un documento (RF-DOC-01). Guarda nombre, tipo, tamaño, fecha UTC y quién lo subió.</summary>
     [HttpPost]
+    [EnableRateLimiting(LimitacionDePeticionesExtensions.Subidas)]
     [Consumes("multipart/form-data")]
     [RequestSizeLimit(LimiteCuerpoBytes)]
     [ProducesResponseType(typeof(DocumentoDto), StatusCodes.Status201Created)]

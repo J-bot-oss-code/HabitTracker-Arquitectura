@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using HabitTracker.Application.DTOs;
@@ -14,6 +16,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/habits/plan-del-dia")]
 [Authorize(Roles = "Estandar")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class PlanDelDiaController : ControllerBase
 {
     private readonly IPlanDelDiaService _service;

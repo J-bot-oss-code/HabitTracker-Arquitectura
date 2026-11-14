@@ -10,6 +10,9 @@ public interface IDocumentosUsuario
 {
     /// <summary>El archivo, o <c>null</c> si no existe, fue eliminado o no es de esa persona.</summary>
     Task<DocumentoResumen?> ObtenerAsync(Guid documentoId, Guid usuarioId, CancellationToken cancellationToken = default);
+
+    /// <summary>Todos los archivos vigentes de esa persona en una sola consulta (para listar sin una consulta por archivo).</summary>
+    Task<IReadOnlyList<DocumentoResumen>> ListarAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 }
 
 public sealed record AdjuntoConPlan(AdjuntoPlan Adjunto, string PlanNombre, EstadoPlanUsuario Estado);
