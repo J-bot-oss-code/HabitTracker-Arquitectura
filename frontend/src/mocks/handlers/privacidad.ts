@@ -221,7 +221,9 @@ export const privacidadHandlers = [
             .filter((p) => p.usuarioId === u.id)
             .map((p) => ({
               ...p,
-              archivosVinculados: db.adjuntos.filter((a) => a.planUsuarioId === p.id).map((a) => a.documentoId),
+              archivosVinculados: db.adjuntos
+                .filter((a) => a.planUsuarioId === p.id)
+                .map((a) => a.documentoId),
             })),
           logros: [],
         },
