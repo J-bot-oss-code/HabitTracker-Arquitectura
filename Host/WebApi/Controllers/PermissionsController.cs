@@ -86,15 +86,9 @@ public class PermissionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ObtenerPorId(Guid id)
     {
-        try
-        {
-            var resultado = await _service.ObtenerPorIdAsync(id, ObtenerEmail(), ObtenerRol());
-            return Ok(resultado);
-        }
-        catch (InvalidOperationException ex) when (EsNoEncontrado(ex))
-        {
-            return NoEncontrado(ex.Message);
-        }
+        // El 404 de una solicitud que no existe lo responde el middleware (SolicitudNoEncontradaException).
+        var resultado = await _service.ObtenerPorIdAsync(id, ObtenerEmail(), ObtenerRol());
+        return Ok(resultado);
     }
 
     /// <summary>Aprueba una solicitud pendiente (RF-GP-03, RF-GP-05, RF-GP-07).</summary>
@@ -106,15 +100,8 @@ public class PermissionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Aprobar(Guid id)
     {
-        try
-        {
-            await _service.AprobarAsync(new AprobarSolicitudCommand(id, ObtenerEmail()));
-            return Ok(new { mensaje = "Solicitud aprobada y aplicada correctamente." });
-        }
-        catch (InvalidOperationException ex) when (EsNoEncontrado(ex))
-        {
-            return NoEncontrado(ex.Message);
-        }
+        await _service.AprobarAsync(new AprobarSolicitudCommand(id, ObtenerEmail()));
+        return Ok(new { mensaje = "Solicitud aprobada y aplicada correctamente." });
     }
 
     /// <summary>Rechaza una solicitud pendiente (RF-GP-04, RF-GP-07).</summary>
@@ -126,15 +113,8 @@ public class PermissionsController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Rechazar(Guid id, [FromBody] RechazarPermisoRequest request)
     {
-        try
-        {
-            await _service.RechazarAsync(new RechazarSolicitudCommand(id, ObtenerEmail(), request.MotivoRechazo));
-            return Ok(new { mensaje = "Solicitud rechazada correctamente." });
-        }
-        catch (InvalidOperationException ex) when (EsNoEncontrado(ex))
-        {
-            return NoEncontrado(ex.Message);
-        }
+        await _service.RechazarAsync(new RechazarSolicitudCommand(id, ObtenerEmail(), request.MotivoRechazo));
+        return Ok(new { mensaje = "Solicitud rechazada correctamente." });
     }
 
     private string ObtenerEmail() =>
@@ -144,19 +124,12 @@ public class PermissionsController : ControllerBase
     private string ObtenerRol() =>
         User.FindFirstValue(ClaimTypes.Role)
         ?? throw new UnauthorizedAccessException("Sesión inválida.");
-
-    private static bool EsNoEncontrado(InvalidOperationException ex) =>
-        ex.Message.Contains("no existe", StringComparison.OrdinalIgnoreCase);
-
-    private ObjectResult NoEncontrado(string detalle) => NotFound(new ProblemDetails
-    {
-        Status = StatusCodes.Status404NotFound,
-        Title = "No encontrado.",
-        Detail = detalle,
-        Instance = HttpContext.TraceIdentifier
-    });
 }
 
-public record CrearPermisoRequest(string PermisoSolicitado);
+/// <summary>La clave del permiso es un nombre con puntos (<c>Habits.AdvancedReconfig</c>), no texto libre (RD-07).</summary>
+public record CrearPermisoRequest(
+    [param: Required, StringLength(256, MinimumLength = 3), RegularExpression(@"^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$",
+        ErrorMessage = "El permiso no es válido.")]
+    string PermisoSolicitado);
 
 public record RechazarPermisoRequest(string MotivoRechazo);

@@ -29,6 +29,8 @@ public sealed class RecursoNoEncontradoException(string codigo, string mensaje) 
     public const string PlanNoEncontrado = "plan_no_encontrado";
     /// <summary>No existe un plan en curso o terminado de esta persona con ese id (o es de otra persona).</summary>
     public const string PlanUsuarioNoEncontrado = "plan_usuario_no_encontrado";
+    /// <summary>El archivo no existe, fue eliminado o no es de esta persona (para el vínculo con un plan).</summary>
+    public const string DocumentoNoEncontrado = "documento_no_encontrado";
 }
 
 /// <summary>Una regla de negocio rechaza la operación (HTTP 400). Ejemplos: <c>fecha_futura</c>, <c>meta_no_encontrada</c>.</summary>
@@ -49,6 +51,10 @@ public sealed class ReglaNegocioException(string codigo, string mensaje) : Habit
     public const string PlanAunNoTermina = "plan_aun_no_termina";
     public const string AjusteNoDisponible = "ajuste_no_disponible";
     public const string VersionMinimaNoDisponible = "version_minima_no_disponible";
+    /// <summary>Solo se adjuntan archivos a un plan en curso.</summary>
+    public const string PlanNoEnCurso = "plan_no_en_curso";
+    public const string AdjuntoDuplicado = "adjunto_duplicado";
+    public const string LimiteAdjuntos = "limite_adjuntos";
 }
 
 /// <summary>
@@ -59,4 +65,14 @@ public sealed class ConsentimientoSaludRequeridoException()
     : HabitTrackerException(ConsentimientoSaludRequerido, "Falta el consentimiento para usar tus datos de salud.")
 {
     public const string ConsentimientoSaludRequerido = "consentimiento_salud_requerido";
+}
+
+/// <summary>
+/// La operación necesita un permiso aprobado por un Administrador (HTTP 409, <c>documento_requiere_permiso</c>): quitar o
+/// eliminar un archivo que está en un plan en curso. El cliente ofrece pedir el permiso.
+/// </summary>
+public sealed class PermisoRequeridoException()
+    : HabitTrackerException(DocumentoRequierePermiso, "Este archivo está en un plan en curso: pide permiso para eliminarlo.")
+{
+    public const string DocumentoRequierePermiso = "documento_requiere_permiso";
 }

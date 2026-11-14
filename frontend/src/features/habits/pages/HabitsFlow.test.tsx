@@ -68,14 +68,43 @@ describe('hábitos', () => {
     expect(screen.getByRole('button', { name: 'Reanudar' })).toBeInTheDocument()
   })
 
-  it('sin el permiso aplicado, la reconfiguración pide solicitarlo', async () => {
-    const { user, router } = renderApp(`/habitos/${LEER}`, { como: 'estandar' })
+  it('sin el permiso aplicado, la reconfiguración deja pedirlo ahí mismo y luego dice que está en revisión', async () => {
+    const { user } = renderApp(`/habitos/${LEER}`, { como: 'estandar' })
     expect(await screen.findByText('Necesitas un permiso')).toBeInTheDocument()
-    await user.click(screen.getByRole('link', { name: 'Solicitar permiso' }))
-    expect(await screen.findByRole('combobox', { name: 'Permiso' })).toHaveValue(
-      'Habits.AdvancedReconfig',
+
+    await user.click(screen.getByRole('button', { name: 'Pedir permiso' }))
+
+    expect(
+      await screen.findByText(/Ya lo pediste: un Administrador lo está revisando/),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Ver mis solicitudes' })).toHaveAttribute(
+      'href',
+      '/ajustes/solicitudes',
     )
-    expect(router.state.location.pathname).toBe('/permisos')
+    expect(screen.queryByRole('button', { name: 'Pedir permiso' })).not.toBeInTheDocument()
+    expect(
+      db.solicitudes.some(
+        (s) => s.permisoSolicitado === 'Habits.AdvancedReconfig' && s.estado === 'Pendiente',
+      ),
+    ).toBe(true)
+  })
+
+  it('si ya hay una solicitud pendiente, no ofrece pedirla otra vez', async () => {
+    db.solicitudes.push({
+      id: crypto.randomUUID(),
+      solicitante: 'estandar@demo.com',
+      permisoSolicitado: 'Habits.AdvancedReconfig',
+      estado: 'Pendiente',
+      aprobador: null,
+      fechaCreacion: new Date().toISOString(),
+      fechaResolucion: null,
+      motivoRechazo: null,
+    })
+
+    renderApp(`/habitos/${LEER}`, { como: 'estandar' })
+
+    expect(await screen.findByText(/Ya lo pediste/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Pedir permiso' })).not.toBeInTheDocument()
   })
 
   it('muestra un aviso cuando el hábito no existe', async () => {

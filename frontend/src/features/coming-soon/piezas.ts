@@ -11,23 +11,6 @@ export interface PiezaPendiente {
 }
 
 export const PIEZAS_PENDIENTES = {
-  documentos: {
-    clave: 'documentos',
-    titulo: 'Documentos',
-    descripcion:
-      'Sube, lista, descarga y elimina (de forma lógica) documentos. Solo el dueño o un Administrador acceden a cada uno.',
-    entrega: 'Pieza 3 · Manejador de documentos (Asignación 3)',
-    requisitos: [
-      {
-        id: 'RF-DOC-01',
-        texto: 'Subir un documento registrando nombre, tipo, tamaño, fecha y quién lo subió.',
-      },
-      { id: 'RF-DOC-02', texto: 'Listar los documentos que el usuario tiene permitido ver.' },
-      { id: 'RF-DOC-03', texto: 'Descargar un documento (solo dueño o Administrador).' },
-      { id: 'RF-DOC-04', texto: 'Eliminar un documento de forma lógica, no física.' },
-      { id: 'RF-NEG-10', texto: 'Adjuntar documentos a un hábito o meta (opcional).' },
-    ],
-  },
   notificaciones: {
     clave: 'notificaciones',
     titulo: 'Notificaciones',

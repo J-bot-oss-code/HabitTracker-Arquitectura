@@ -5,6 +5,7 @@ using DocumentManager.Application.Exceptions;
 using HabitTracker.Application.Exceptions;
 using HabitTracker.Domain.Excepciones;
 using Microsoft.AspNetCore.Mvc;
+using Permissions.Application.Exceptions;
 
 namespace WebApi.Middlewares;
 
@@ -120,6 +121,29 @@ public class GlobalExceptionMiddleware
             // el frontend toma un 404 vacío como "endpoint inexistente" (esNoDisponible).
             _logger.LogInformation("Recurso del módulo de negocio no encontrado: {Codigo}.", ex.Codigo);
             await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", ex.Message, ex.Codigo);
+        }
+        catch (DocumentoProtegidoException ex)
+        {
+            // Debe ir antes del catch de InvalidOperationException (es su clase base).
+            _logger.LogInformation("Eliminación de documento vetada: requiere permiso.");
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, "Se necesita un permiso.", ex.Message, "documento_requiere_permiso");
+        }
+        catch (PermisoRequeridoException ex)
+        {
+            // Debe ir antes del catch de HabitTrackerException (es su subclase).
+            _logger.LogInformation("Operación sobre un archivo de un plan en curso: requiere permiso.");
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, "Se necesita un permiso.", ex.Message, ex.Codigo);
+        }
+        catch (SolicitudNoEncontradaException ex)
+        {
+            // Debe ir antes del catch de InvalidOperationException (es su clase base). Siempre con cuerpo, como el resto de 404.
+            _logger.LogInformation("Solicitud de permiso no encontrada.");
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", ex.Message, SolicitudNoEncontradaException.Codigo);
+        }
+        catch (SolicitudDuplicadaException ex)
+        {
+            _logger.LogInformation("Solicitud de permiso duplicada.");
+            await WriteProblemAsync(context, HttpStatusCode.Conflict, "Solicitud duplicada.", ex.Message, SolicitudDuplicadaException.Codigo);
         }
         catch (ConsentimientoSaludRequeridoException ex)
         {

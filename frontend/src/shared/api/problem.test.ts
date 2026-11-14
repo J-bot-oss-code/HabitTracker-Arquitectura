@@ -60,6 +60,27 @@ describe('mensajeDeError con datos de salud sin permiso', () => {
   })
 })
 
+describe('mensajeDeError con permisos y archivos', () => {
+  it.each([
+    ['solicitud_duplicada', 409, /solicitud de este permiso en marcha/],
+    ['solicitud_no_encontrada', 404, /esa solicitud/],
+    ['documento_requiere_permiso', 409, /Pide permiso para eliminarlo/],
+    ['documento_no_encontrado', 404, /ese archivo/],
+    ['plan_no_en_curso', 400, /plan que esté en curso/],
+    ['adjunto_duplicado', 400, /ya está en este plan/],
+    ['limite_adjuntos', 400, /hasta 10 archivos/],
+  ])('%s se explica en español y sin culpa', (codigo, status, esperado) => {
+    // El detalle del servidor no se usa: el texto por código dice qué hacer.
+    const error = new ApiError(status, { title: 'x', detail: 'Texto del servidor.', codigo })
+    expect(mensajeDeError(error)).toMatch(esperado)
+  })
+
+  it('un código que es una propiedad de Object no se toma por uno conocido', () => {
+    const error = new ApiError(400, { detail: 'Texto del servidor.', codigo: 'constructor' })
+    expect(mensajeDeError(error)).toBe('Texto del servidor.')
+  })
+})
+
 describe('esNoDisponible (contratos propuestos)', () => {
   it('un 404 sin cuerpo es un endpoint que el backend aún no tiene', () => {
     expect(esNoDisponible(new ApiError(404, null))).toBe(true)

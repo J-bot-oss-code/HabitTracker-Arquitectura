@@ -132,6 +132,10 @@ export function autenticar(
 export const esTexto = (v: unknown, min: number, max: number): v is string =>
   typeof v === 'string' && v.trim().length >= min && v.trim().length <= max
 
+// Las rutas {id:guid} del backend no atienden un id que no sea GUID: responden 404 sin cuerpo.
+export const esGuid = (v: unknown): v is string =>
+  typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
+
 export const esCorreo = (v: unknown): v is string =>
   esTexto(v, 3, 150) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 

@@ -11,12 +11,12 @@ describe('rutas protegidas y navegación por rol', () => {
   })
 
   it('tras iniciar sesión vuelve a la ruta que se pidió', async () => {
-    const { user, router } = renderApp('/permisos')
+    const { user, router } = renderApp('/ajustes/solicitudes')
     await user.type(await screen.findByLabelText('Correo'), 'estandar@demo.com')
     await user.type(screen.getByLabelText('Contraseña'), 'Demo1234')
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
-    expect(await screen.findByRole('heading', { name: 'Mis permisos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/permisos')
+    expect(await screen.findByRole('heading', { name: 'Solicitudes' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/ajustes/solicitudes')
   })
 
   it('no redirige fuera de la app aunque el destino previo lo intente', async () => {
@@ -56,7 +56,7 @@ describe('rutas protegidas y navegación por rol', () => {
     // Simula una revocación (p. ej. el Administrador forzó un restablecimiento).
     db.usuarios.find((u) => u.correo === 'estandar@demo.com')!.sesionesValidasDesde =
       Date.now() + 1000
-    await user.click(screen.getByRole('link', { name: 'Mis permisos' }))
+    await user.click(screen.getByRole('link', { name: 'Progreso' }))
     expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
   })
 

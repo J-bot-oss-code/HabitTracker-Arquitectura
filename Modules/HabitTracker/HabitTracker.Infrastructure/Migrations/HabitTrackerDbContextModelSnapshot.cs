@@ -322,6 +322,33 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.ToTable("PerfilesUsuario", (string)null);
                 });
 
+            modelBuilder.Entity("HabitTracker.Domain.Planes.AdjuntoPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AdjuntadoEnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DocumentoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PlanUsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanUsuarioId", "DocumentoId")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId", "DocumentoId");
+
+                    b.ToTable("AdjuntosPlan", (string)null);
+                });
+
             modelBuilder.Entity("HabitTracker.Domain.Planes.PlanPlantilla", b =>
                 {
                     b.Property<Guid>("Id")
@@ -637,6 +664,15 @@ namespace HabitTracker.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Habito");
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.AdjuntoPlan", b =>
+                {
+                    b.HasOne("HabitTracker.Domain.Planes.PlanUsuario", null)
+                        .WithMany()
+                        .HasForeignKey("PlanUsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HabitTracker.Domain.Planes.PlanPlantilla", b =>

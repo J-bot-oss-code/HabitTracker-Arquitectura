@@ -7,6 +7,10 @@
 
 | Controller | Verbo | Ruta | Acceso |
 |---|---|---|---|
+| AdjuntosPlanController | GET | `/api/my-plans/attachments` | rol Estandar |
+| AdjuntosPlanController | GET | `/api/my-plans/{id:guid}/attachments` | rol Estandar |
+| AdjuntosPlanController | POST | `/api/my-plans/{id:guid}/attachments` | rol Estandar |
+| AdjuntosPlanController | DELETE | `/api/my-plans/{id:guid}/attachments/{documentoId:guid}` | rol Estandar |
 | AdminUsuariosController | GET | `/api/admin/usuarios` | rol Administrador |
 | AdminUsuariosController | PATCH | `/api/admin/usuarios/{id:guid}/rol` | rol Administrador |
 | AdminUsuariosController | PATCH | `/api/admin/usuarios/{id:guid}/estado` | rol Administrador |
@@ -83,33 +87,35 @@
 
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
 ## Proyectos de prueba (backend)
 
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
-| AccessControl.Application.Tests | 27 | 270 | 41 |
+| AccessControl.Application.Tests | 27 | 271 | 41 |
 | AccessControl.Infrastructure.Tests | 8 | 62 | 7 |
 | DocumentManager.Api.Tests | 4 | 31 | 6 |
-| DocumentManager.Application.Tests | 1 | 30 | 3 |
+| DocumentManager.Application.Tests | 1 | 34 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 5 | 34 | 11 |
-| HabitTracker.Application.Tests | 5 | 93 | 7 |
-| HabitTracker.Domain.Tests | 9 | 138 | 26 |
-| HabitTracker.Integration.Tests | 9 | 57 | 4 |
-| Permissions.Application.Tests | 1 | 7 | 1 |
+| HabitTracker.Api.Tests | 7 | 40 | 13 |
+| HabitTracker.Application.Tests | 6 | 105 | 7 |
+| HabitTracker.Domain.Tests | 10 | 141 | 27 |
+| HabitTracker.Integration.Tests | 10 | 61 | 4 |
+| Permissions.Application.Tests | 1 | 11 | 2 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
-| Permissions.Infrastructure.Tests | 2 | 6 | 1 |
-| **Total** | | **773** | **112** |
+| Permissions.Infrastructure.Tests | 2 | 7 | 1 |
+| **Total** | | **808** | **116** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 ## Adaptadores del Host (puertos entre módulos)
 
 - `ConsentimientoSaludAdapter.cs`: `class ConsentimientoSaludAdapter(IConsentimientoService consentimientos) : IConsentimientoSalud`
+- `DocumentosUsuarioAdapter.cs`: `class DocumentosUsuarioAdapter(IDocumentoService documentos) : IDocumentosUsuario`
+- `GuardaEliminacionDocumentoAdapter.cs`: `class GuardaEliminacionDocumentoAdapter(`
 - `ParticipanteDocumentos.cs`: `class ParticipanteDocumentos(IDocumentoService servicio) : IParticipanteDatosUsuario`
 - `ParticipanteHabitos.cs`: `class ParticipanteHabitos(IHabitoService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePerfilSalud.cs`: `class ParticipantePerfilSalud(IDatosPerfilSaludService servicio) : IParticipanteDatosUsuario`
@@ -128,10 +134,11 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `auditoria`: 9 archivos
 - `auth`: 27 archivos
 - `coming-soon`: 2 archivos
+- `documentos`: 11 archivos
 - `habits`: 26 archivos
-- `mis-planes`: 8 archivos
+- `mis-planes`: 10 archivos
 - `perfil`: 11 archivos
-- `permissions`: 13 archivos
+- `permissions`: 14 archivos
 - `planes`: 11 archivos
 - `privacidad`: 10 archivos
 - `progreso`: 11 archivos

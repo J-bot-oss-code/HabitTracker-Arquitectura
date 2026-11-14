@@ -49,6 +49,16 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
   transicion_plan_invalida: 'Ese cambio no se puede hacer con el estado actual del plan.',
   version_minima_no_disponible: 'Este hábito no tiene versión mínima.',
   plan_usuario_no_encontrado: 'No encontramos este plan.',
+  // Permisos y archivos (Manejador de documentos + adjuntos de plan).
+  solicitud_duplicada:
+    'Ya tienes una solicitud de este permiso en marcha. Te avisaremos cuando se resuelva.',
+  solicitud_no_encontrada: 'No encontramos esa solicitud.',
+  documento_requiere_permiso:
+    'Este archivo está en un plan en curso. Pide permiso para eliminarlo y, cuando lo aprueben, podrás hacerlo.',
+  documento_no_encontrado: 'No encontramos ese archivo.',
+  plan_no_en_curso: 'Solo puedes añadir archivos a un plan que esté en curso.',
+  adjunto_duplicado: 'Ese archivo ya está en este plan.',
+  limite_adjuntos: 'Un plan admite hasta 10 archivos. Quita alguno para añadir otro.',
 }
 
 // RD-08: al usuario solo le llegan mensajes comprensibles, nunca detalles internos.
