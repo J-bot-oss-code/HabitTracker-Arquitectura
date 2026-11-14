@@ -121,4 +121,16 @@ public class AdjuntosPlanControllerTests
         Assert.Equal(400, status);
         Assert.Equal(codigo, cuerpo.GetProperty("codigo").GetString());
     }
+
+    [Fact]
+    [Trait("Requirement", "RD-07")]
+    public void RD_07_Adjuntar_SinDocumentoId_EsUnaPeticionInvalida()
+    {
+        var p = typeof(AdjuntarArchivoRequest).GetConstructors().Single().GetParameters().Single();
+        var atributos = p.GetCustomAttributes<System.ComponentModel.DataAnnotations.ValidationAttribute>();
+        var contexto = new System.ComponentModel.DataAnnotations.ValidationContext(new object()) { MemberName = p.Name };
+
+        Assert.False(System.ComponentModel.DataAnnotations.Validator.TryValidateValue(null!, contexto, [], atributos));
+        Assert.True(System.ComponentModel.DataAnnotations.Validator.TryValidateValue(Guid.NewGuid(), contexto, [], atributos));
+    }
 }

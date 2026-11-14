@@ -150,6 +150,7 @@ public sealed record PlanExportadoDto(
     DateTime? ModoSuaveHasta,
     string? HoraRecordatorio,
     bool RecordatoriosActivos,
-    IReadOnlyList<PausaExportadaDto> Pausas);
+    IReadOnlyList<PausaExportadaDto> Pausas,
+    IReadOnlyList<Guid> ArchivosVinculados);
 
 public sealed record DatosPlanesDto(IReadOnlyList<PlanExportadoDto> Planes, IReadOnlyList<LogroDto> Logros);

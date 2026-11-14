@@ -408,3 +408,11 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
 - **Decisión de producto:** DocumentManager no recomienda ni lee archivos (una sola responsabilidad); las recomendaciones siguen con el perfil y el cuestionario de salud.
 - **Verificación:** backend 1268 pruebas, frontend 911. Mutación: 7 de 8 reglas detectadas y la octava cubierta con una prueba nueva. **Contra la API real** apareció un bug que las pruebas unitarias no veían: con `[property: …]` ASP.NET lanzaba al enlazar `CrearPermisoRequest` y toda solicitud respondía 400. Otro bug lo halló el escritor de pruebas: `estadoDe` comparaba una clave en minúsculas con otra con mayúscula inicial y el estado del permiso siempre salía «ninguno».
 - **Lecciones:** (1) un ciclo de inyección Manejador → guarda → adjuntos → Manejador se rompe haciendo que la guarda use el repositorio; (2) un script de edición con muchos reemplazos encadenados falla a medias: mejor ediciones directas y pequeñas.
+
+## Deuda técnica de Mis planes y archivos (`fix/deuda-mis-planes-y-archivos`, 14-11-2026)
+
+- **Alcance:** solo HabitTracker, sin tocar Notificaciones, Auditoría ni Reportes (esperan las prácticas del maestro) ni los archivos de defectos de las prácticas.
+- **Archivos:** `GET api/my-plans/attachments` descarta los eliminados; `adjuntar` sin `documentoId` responde 400 (`Guid?` con `[param: Required]`); la descarga de datos lleva `archivosVinculados` por plan.
+- **Mis planes:** pausar sin motivo (`motivo_pausa_requerido`) y ajustar con `Pausar` (`ajuste_no_disponible`) responden con código; `PUT .../reminder` rechaza planes terminados (`transicion_plan_invalida`); terminar un plan en pausa conservando los hábitos los deja activos (los que la persona pausó por su cuenta siguen igual).
+- **Plantilla de PR:** ahora son las 4 secciones vacías.
+- **Se deja:** el límite de 3 planes sin transacción y la zona horaria desconocida (se valida al guardar el perfil; el fallo real es tzdata en Docker, Fase 6).

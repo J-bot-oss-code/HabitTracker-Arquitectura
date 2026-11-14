@@ -58,10 +58,16 @@ public sealed class AdjuntosPlanService(
     public async Task<IReadOnlyList<VinculoDocumentoDto>> ListarVinculosAsync(Guid usuarioId, CancellationToken cancellationToken = default)
     {
         Guardas.ExigirIdentidad(usuarioId);
-        var vinculos = await adjuntos.ListarDeUsuarioAsync(usuarioId, cancellationToken);
-        return [.. vinculos.Select(v => new VinculoDocumentoDto(
-            v.Adjunto.DocumentoId, v.Adjunto.PlanUsuarioId, v.PlanNombre,
-            v.Estado is EstadoPlanUsuario.Activo or EstadoPlanUsuario.Pausado))];
+        var lista = new List<VinculoDocumentoDto>();
+        foreach (var v in await adjuntos.ListarDeUsuarioAsync(usuarioId, cancellationToken))
+        {
+            // Un archivo eliminado ya no pide permiso ni aparece: su vínculo viejo se limpia al adjuntar otro.
+            if (await documentos.ObtenerAsync(v.Adjunto.DocumentoId, usuarioId, cancellationToken) is null) continue;
+            lista.Add(new VinculoDocumentoDto(
+                v.Adjunto.DocumentoId, v.Adjunto.PlanUsuarioId, v.PlanNombre,
+                v.Estado is EstadoPlanUsuario.Activo or EstadoPlanUsuario.Pausado));
+        }
+        return lista;
     }
 
     public async Task AdjuntarAsync(Guid usuarioId, Guid planId, Guid documentoId, CancellationToken cancellationToken = default)

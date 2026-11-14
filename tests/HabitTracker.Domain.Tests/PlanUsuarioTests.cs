@@ -217,6 +217,17 @@ public class PlanUsuarioTests
 
     [Fact]
     [Trait("Requirement", "RF-NEG-02")]
+    public void RF_NEG_02_Plan_Recordatorio_UnPlanTerminadoNoLoAdmite()
+    {
+        var plan = PlanUsuario.Iniciar(Usuario, Plantilla(), null, Ahora);
+        plan.Cancelar(Ahora);
+
+        var ex = Assert.Throws<ReglaNegocioException>(() => plan.ConfigurarRecordatorio(new TimeOnly(7, 30), activos: true));
+        Assert.Equal(ReglaNegocioException.TransicionPlanInvalida, ex.Codigo);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
     public void RF_NEG_02_Plan_Recordatorio_ActivarExigeUnaHora()
     {
         var plan = PlanUsuario.Iniciar(Usuario, Plantilla(), null, Ahora);

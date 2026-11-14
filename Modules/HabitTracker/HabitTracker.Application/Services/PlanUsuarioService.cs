@@ -137,7 +137,7 @@ public sealed class PlanUsuarioService(
         {
             case EstadoPlanUsuario.Pausado:
                 if (command.MotivoPausa is not { } motivo)
-                    throw new ArgumentException("Elige el motivo de la pausa.", nameof(command));
+                    throw new ReglaNegocioException(ReglaNegocioException.MotivoPausaRequerido, "Elige el motivo de la pausa.");
                 plan.Pausar(motivo, ahora);
                 Para(delPlan, EstadoHabito.Activo, h => h.PausarPorPlan(usuarioId));
                 break;
@@ -179,7 +179,7 @@ public sealed class PlanUsuarioService(
                 break;
             default:
                 // Pausar es una transición (con su motivo): va por CambiarEstadoAsync.
-                throw new ArgumentException("Ese ajuste no existe.", nameof(command));
+                throw new ReglaNegocioException(ReglaNegocioException.AjusteNoDisponible, "Ese ajuste no está disponible.");
         }
 
         await unitOfWork.SaveChangesAsync(cancellationToken);
@@ -217,11 +217,16 @@ public sealed class PlanUsuarioService(
     }
 
     // Al terminar el plan no se borra nada. Si la persona conserva los hábitos, siguen activos como hábitos de siempre y
-    // mantienen su vínculo con el plan (el historial del plan y su récord no se pierden); si no, quedan en pausa.
+    // mantienen su vínculo con el plan (el historial del plan y su récord no se pierden); si no, quedan en pausa. Si el plan
+    // estaba en pausa, los hábitos que él pausó vuelven (los que la persona pausó por su cuenta siguen como los dejó).
     private static void PausarSiNoSeConservan(IReadOnlyList<Habito> habitos, Guid usuarioId, bool conservar)
     {
         if (conservar)
+        {
+            foreach (var habito in habitos)
+                habito.ReanudarPorPlan(usuarioId);
             return;
+        }
         Para(habitos, EstadoHabito.Activo, h => h.PausarPorPlan(usuarioId));
     }
 
