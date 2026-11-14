@@ -215,6 +215,16 @@ export const privacidadHandlers = [
         habitos: db.habitos.filter((h) => h.usuarioId === u.id).map(habitoADto),
         permisos: db.solicitudes.filter((s) => s.solicitante.toLowerCase() === u.correo),
         documentos: [],
+        // ParticipantePlanes: los planes con los archivos vinculados (los archivos mismos van en `documentos`).
+        planes: {
+          planes: db.planesUsuario
+            .filter((p) => p.usuarioId === u.id)
+            .map((p) => ({
+              ...p,
+              archivosVinculados: db.adjuntos.filter((a) => a.planUsuarioId === p.id).map((a) => a.documentoId),
+            })),
+          logros: [],
+        },
         // ParticipantePerfilSalud: el cuestionario va descifrado para su dueño.
         perfilYSalud: datosPerfilSalud(u.id),
       },

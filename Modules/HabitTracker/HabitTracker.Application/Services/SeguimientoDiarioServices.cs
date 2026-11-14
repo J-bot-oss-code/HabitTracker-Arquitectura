@@ -243,19 +243,22 @@ public interface IDatosPlanesService
     Task EliminarAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 }
 
-public sealed class DatosPlanesService(IPlanUsuarioRepository planes, ILogroUsuarioRepository logros) : IDatosPlanesService
+public sealed class DatosPlanesService(IPlanUsuarioRepository planes, ILogroUsuarioRepository logros, IAdjuntoPlanRepository adjuntos) : IDatosPlanesService
 {
     public async Task<DatosPlanesDto> ExportarAsync(Guid usuarioId, CancellationToken cancellationToken = default)
     {
         Guardas.ExigirIdentidad(usuarioId);
         var lista = await planes.ListarDeUsuarioAsync(usuarioId, cancellationToken);
         var propios = await logros.ListarAsync(usuarioId, cancellationToken);
+        // Los archivos mismos van en la sección de documentos; aquí solo a qué plan está vinculado cada uno.
+        var vinculos = (await adjuntos.ListarDeUsuarioAsync(usuarioId, cancellationToken)).ToLookup(v => v.Adjunto.PlanUsuarioId, v => v.Adjunto.DocumentoId);
 
         return new DatosPlanesDto(
             [.. lista.Select(p => new PlanExportadoDto(
                 p.Id, p.Slug, p.Nombre, p.Estado, p.FechaInicio, p.FechaFinPrevista, p.Extensiones, p.ModoSuaveHasta,
                 p.HoraRecordatorio?.ToString("HH:mm"), p.RecordatoriosActivos,
-                [.. p.Pausas.Select(x => new PausaExportadaDto(x.InicioUtc, x.FinUtc, x.Motivo))]))],
+                [.. p.Pausas.Select(x => new PausaExportadaDto(x.InicioUtc, x.FinUtc, x.Motivo))],
+                [.. vinculos[p.Id]]))],
             [.. propios.Select(l => new LogroDto(l.Clave, l.ObtenidoEn, l.VistoEn is not null))]);
     }
 

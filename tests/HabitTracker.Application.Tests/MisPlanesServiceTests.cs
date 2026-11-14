@@ -28,6 +28,22 @@ public class MisPlanesServiceTests
         public override DateTimeOffset GetUtcNow() => new(Ahora, TimeSpan.Zero);
     }
 
+    private sealed class AdjuntosFalsos : IAdjuntoPlanRepository
+    {
+        public List<AdjuntoPlan> Lista { get; } = [];
+        public Func<Guid, PlanUsuario?> PlanDe { get; set; } = _ => null;
+        public Task<IReadOnlyList<AdjuntoPlan>> ListarDePlanAsync(Guid planId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AdjuntoPlan>>([.. Lista.Where(a => a.PlanUsuarioId == planId && a.UsuarioId == usuarioId)]);
+        public Task<IReadOnlyList<AdjuntoConPlan>> ListarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<AdjuntoConPlan>>([.. Lista.Where(a => a.UsuarioId == usuarioId)
+                .Select(a => new AdjuntoConPlan(a, PlanDe(a.PlanUsuarioId)!.Nombre, PlanDe(a.PlanUsuarioId)!.Estado))]);
+        public Task<AdjuntoPlan?> ObtenerAsync(Guid planId, Guid documentoId, Guid usuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(Lista.FirstOrDefault(a => a.PlanUsuarioId == planId && a.DocumentoId == documentoId && a.UsuarioId == usuarioId));
+        public Task AgregarAsync(AdjuntoPlan adjunto, CancellationToken cancellationToken = default) { Lista.Add(adjunto); return Task.CompletedTask; }
+        public Task QuitarAsync(AdjuntoPlan adjunto, CancellationToken cancellationToken = default) { Lista.Remove(adjunto); return Task.CompletedTask; }
+        public Task<bool> DocumentoEnPlanEnCursoAsync(Guid documentoId, Guid usuarioId, CancellationToken cancellationToken = default) => Task.FromResult(false);
+    }
+
     private sealed class Planes : IPlanUsuarioRepository
     {
         public List<PlanUsuario> Lista { get; } = [];
@@ -196,6 +212,7 @@ public class MisPlanesServiceTests
         public HoyService Hoy { get; }
         public ResumenProgresoService Resumen { get; }
         public DatosPlanesService Datos { get; }
+        public AdjuntosFalsos Adjuntos { get; } = new();
 
         public Escenario(bool consiente = false, PerfilUsuario? perfil = null, CuestionarioSalud? cuestionario = null,
             List<PlanPlantilla>? catalogo = null, bool sinPerfil = false)
@@ -208,7 +225,7 @@ public class MisPlanesServiceTests
             var logrosServicio = new LogrosService(Logros, Reloj);
             Hoy = new HoyService(Planes, plantillas, Habitos, perfiles, logrosServicio, new Mensajes(), Reloj);
             Resumen = new ResumenProgresoService(Planes, Habitos, perfiles, logrosServicio, Logros, new Mensajes(), Unidad, Reloj);
-            Datos = new DatosPlanesService(Planes, Logros);
+            Datos = new DatosPlanesService(Planes, Logros, Adjuntos);
         }
 
         public Task<PlanUsuarioDto> Inscribir(string slug = "basico", Ancla? ancla = null, TimeOnly? hora = null, Guid? usuario = null) =>
@@ -395,8 +412,8 @@ public class MisPlanesServiceTests
         var plan = await e.Inscribir();
         var guardados = e.Unidad.Guardados;
 
-        await Assert.ThrowsAsync<ArgumentException>(() =>
-            e.Servicio.CambiarEstadoAsync(Usuario, plan.Id, new CambiarEstadoPlanCommand(EstadoPlanUsuario.Pausado, null, false)));
+        Assert.Equal(ReglaNegocioException.MotivoPausaRequerido, await CodigoDe(
+            e.Servicio.CambiarEstadoAsync(Usuario, plan.Id, new CambiarEstadoPlanCommand(EstadoPlanUsuario.Pausado, null, false))));
 
         Assert.Equal(EstadoPlanUsuario.Activo, e.Planes.Lista[0].Estado);
         Assert.All(e.Habitos.Lista, h => Assert.Equal(EstadoHabito.Activo, h.Estado));
@@ -449,6 +466,21 @@ public class MisPlanesServiceTests
         Assert.All(e.Habitos.Lista, h => Assert.Equal(plan.Id, h.PlanUsuarioId));
         Assert.All(e.Habitos.Lista, h => Assert.Equal(conservar ? EstadoHabito.Activo : EstadoHabito.Pausado, h.Estado));
         Assert.Equal(2, dto.Habitos.Count);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-02")]
+    public async Task RF_NEG_02_Estado_CancelarUnPlanEnPausaConservandoLosHabitos_LosDejaActivos()
+    {
+        var e = new Escenario();
+        var plan = await e.Inscribir();
+        e.Habito(plan.Id, "Estirar").Pausar(Usuario); // pausado a propósito: no vuelve
+        await e.Servicio.CambiarEstadoAsync(Usuario, plan.Id, new CambiarEstadoPlanCommand(EstadoPlanUsuario.Pausado, MotivoPausa.Viaje, false));
+
+        await e.Servicio.CambiarEstadoAsync(Usuario, plan.Id, new CambiarEstadoPlanCommand(EstadoPlanUsuario.Cancelado, null, true));
+
+        Assert.Equal(EstadoHabito.Activo, e.Habito(plan.Id, "Respirar").Estado);
+        Assert.Equal(EstadoHabito.Pausado, e.Habito(plan.Id, "Estirar").Estado);
     }
 
     [Fact]
@@ -558,7 +590,8 @@ public class MisPlanesServiceTests
         var e = new Escenario();
         var plan = await e.Inscribir();
 
-        await Assert.ThrowsAsync<ArgumentException>(() => e.Servicio.AjustarAsync(Usuario, plan.Id, new AjustarPlanCommand(TipoAjuste.Pausar)));
+        Assert.Equal(ReglaNegocioException.AjusteNoDisponible,
+            await CodigoDe(e.Servicio.AjustarAsync(Usuario, plan.Id, new AjustarPlanCommand(TipoAjuste.Pausar))));
     }
 
     [Fact]
@@ -827,11 +860,15 @@ public class MisPlanesServiceTests
         Avanzar(e, plan.Id, "Respirar", 0);
         await e.Hoy.ObtenerHoyAsync(Usuario);
         await e.Servicio.CambiarEstadoAsync(Usuario, plan.Id, new CambiarEstadoPlanCommand(EstadoPlanUsuario.Pausado, MotivoPausa.Trabajo, false));
+        var documento = Guid.NewGuid();
+        e.Adjuntos.PlanDe = _ => e.Planes.Lista[0];
+        e.Adjuntos.Lista.Add(new AdjuntoPlan(plan.Id, Usuario, documento, Lunes));
 
         var exportado = await e.Datos.ExportarAsync(Usuario);
 
         var exportadoPlan = Assert.Single(exportado.Planes);
         Assert.Equal(MotivoPausa.Trabajo, Assert.Single(exportadoPlan.Pausas).Motivo);
+        Assert.Equal(documento, Assert.Single(exportadoPlan.ArchivosVinculados));
         Assert.NotEmpty(exportado.Logros);
         Assert.Empty((await e.Datos.ExportarAsync(Otro)).Planes);
 

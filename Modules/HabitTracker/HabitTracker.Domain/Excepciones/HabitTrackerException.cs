@@ -50,6 +50,8 @@ public sealed class ReglaNegocioException(string codigo, string mensaje) : Habit
     public const string TransicionPlanInvalida = "transicion_plan_invalida";
     public const string PlanAunNoTermina = "plan_aun_no_termina";
     public const string AjusteNoDisponible = "ajuste_no_disponible";
+    /// <summary>Pausar un plan exige elegir el motivo.</summary>
+    public const string MotivoPausaRequerido = "motivo_pausa_requerido";
     public const string VersionMinimaNoDisponible = "version_minima_no_disponible";
     /// <summary>Solo se adjuntan archivos a un plan en curso.</summary>
     public const string PlanNoEnCurso = "plan_no_en_curso";

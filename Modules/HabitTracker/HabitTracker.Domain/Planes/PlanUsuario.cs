@@ -201,6 +201,9 @@ public sealed class PlanUsuario
 
     public void ConfigurarRecordatorio(TimeOnly? hora, bool activos)
     {
+        if (!EstaEnCurso)
+            throw new ReglaNegocioException(ReglaNegocioException.TransicionPlanInvalida,
+                "Solo un plan en curso tiene recordatorio.");
         if (activos && hora is null && HoraRecordatorio is null)
             throw new ArgumentException("Elige a qué hora quieres el recordatorio.", nameof(hora));
 

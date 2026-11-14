@@ -45,6 +45,7 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
   perfil_no_encontrado: 'Antes de empezar un plan, completa tu perfil.',
   plan_aun_no_termina: 'Todavía no llegas al final del plan. Puedes cancelarlo si quieres parar.',
   limite_extensiones: 'Ya alargaste este plan dos veces. Puedes pausarlo si necesitas un respiro.',
+  motivo_pausa_requerido: 'Elige el motivo de la pausa.',
   ajuste_no_disponible: 'Ese ajuste no está disponible ahora.',
   transicion_plan_invalida: 'Ese cambio no se puede hacer con el estado actual del plan.',
   version_minima_no_disponible: 'Este hábito no tiene versión mínima.',

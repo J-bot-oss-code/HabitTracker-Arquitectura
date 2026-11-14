@@ -73,7 +73,7 @@ public class MisPlanesPersistenciaTests
             new PlanUsuarioService(planes, plantillas, habitos, perfiles, cuestionarios, new ConConsentimiento(), unidad, reloj),
             new HoyService(planes, plantillas, habitos, perfiles, logros, mensajes, reloj),
             new ResumenProgresoService(planes, habitos, perfiles, logros, logrosRepo, mensajes, unidad, reloj),
-            new DatosPlanesService(planes, logrosRepo),
+            new DatosPlanesService(planes, logrosRepo, new AdjuntoPlanRepository(contexto)),
             new HabitoService(habitos, unidad, new PermisoNulo(), new MetaRepository(contexto), reloj));
     }
 

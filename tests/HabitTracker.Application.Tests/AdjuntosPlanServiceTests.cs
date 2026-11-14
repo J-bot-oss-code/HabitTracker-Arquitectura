@@ -289,4 +289,17 @@ public class AdjuntosPlanServiceTests
         Assert.False(await e.Adjuntos.DocumentoEnPlanEnCursoAsync(doc, Usuario));
         Assert.False(Assert.Single(await e.Servicio.ListarVinculosAsync(Usuario)).EnCurso);
     }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-10")]
+    public async Task RF_NEG_10_Vinculos_UnArchivoEliminado_YaNoApareceNiPidePermiso()
+    {
+        var e = new Escenario();
+        var doc = e.Documentos.Nuevo(Usuario);
+        await e.Servicio.AdjuntarAsync(Usuario, e.Plan.Id, doc);
+
+        e.Documentos.Existentes[doc] = (Usuario, true);
+
+        Assert.Empty(await e.Servicio.ListarVinculosAsync(Usuario));
+    }
 }

@@ -35,7 +35,7 @@ public class AdjuntosPlanController(IAdjuntosPlanService adjuntos) : ControllerB
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Adjuntar(Guid id, [FromBody] AdjuntarArchivoRequest request, CancellationToken cancellationToken)
     {
-        await adjuntos.AdjuntarAsync(UsuarioId(), id, request.DocumentoId, cancellationToken);
+        await adjuntos.AdjuntarAsync(UsuarioId(), id, request.DocumentoId!.Value, cancellationToken);
         return NoContent();
     }
 
@@ -59,4 +59,5 @@ public class AdjuntosPlanController(IAdjuntosPlanService adjuntos) : ControllerB
         User.FindFirstValue(ClaimTypes.Email) ?? throw new UnauthorizedAccessException("Sesión inválida.");
 }
 
-public record AdjuntarArchivoRequest([Required] Guid DocumentoId);
+// Nullable para que un cuerpo sin `documentoId` sea 400 (un Guid no nulo llegaría como Guid.Empty y daría 404).
+public record AdjuntarArchivoRequest([param: Required] Guid? DocumentoId);
