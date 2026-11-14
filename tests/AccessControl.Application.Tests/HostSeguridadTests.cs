@@ -152,6 +152,8 @@ public class HostSeguridadTests
     [InlineData("RefreshPorMinuto", "0")]
     [InlineData("GooglePorMinuto", "-1")]
     [InlineData("PrivacidadPorMinuto", "0")]
+    [InlineData("UsuarioPorMinuto", "0")]
+    [InlineData("SubidasPorMinuto", "-2")]
     public void RD_07_UnTopeDeCeroOMenos_DetieneElArranqueEnLugarDeBloquearElEndpoint(string clave, string valor)
     {
         var servicios = new ServiceCollection().AddLimitacionDePeticiones(Config(($"RateLimit:{clave}", valor)));
@@ -161,5 +163,102 @@ public class HostSeguridadTests
             () => proveedor.GetRequiredService<IOptions<RateLimiterOptions>>().Value);
 
         Assert.Contains(clave, error.Message);
+    }
+
+    // ---------------- Endpoints con sesión: límite por persona (RD-06) ----------------
+
+    [Fact]
+    public void RD_06_ElLimitePorPersonaUsaLaIdentidadDeLaSesion_YSinSesionLaIp()
+    {
+        var conSesion = new DefaultHttpContext
+        {
+            User = new System.Security.Claims.ClaimsPrincipal(new System.Security.Claims.ClaimsIdentity(
+                [new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "abc")], "Bearer"))
+        };
+        conSesion.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("10.0.0.1");
+        var sinSesion = new DefaultHttpContext();
+        sinSesion.Connection.RemoteIpAddress = System.Net.IPAddress.Parse("10.0.0.1");
+
+        Assert.Equal("u:abc", LimitacionDePeticionesExtensions.ClaveDePersona(conSesion));
+        Assert.Equal("10.0.0.1", LimitacionDePeticionesExtensions.ClaveDePersona(sinSesion));
+    }
+
+    [Theory]
+    [InlineData(typeof(HabitsController))]
+    [InlineData(typeof(MyPlansController))]
+    [InlineData(typeof(AdjuntosPlanController))]
+    [InlineData(typeof(TodayController))]
+    [InlineData(typeof(ProgressController))]
+    [InlineData(typeof(ProfileController))]
+    [InlineData(typeof(PlanDelDiaController))]
+    [InlineData(typeof(DocumentsController))]
+    [InlineData(typeof(PermissionsController))]
+    [InlineData(typeof(AdminUsuariosController))]
+    public void RD_06_LosControllersConSesion_TienenLimiteDePeticiones(Type controlador)
+    {
+        var limite = Assert.Single(controlador.GetCustomAttributes(typeof(EnableRateLimitingAttribute), inherit: false)
+            .Cast<EnableRateLimitingAttribute>());
+
+        Assert.Equal(LimitacionDePeticionesExtensions.Usuario, limite.PolicyName);
+    }
+
+    [Fact]
+    public void RD_06_SubirUnDocumento_TieneElTopeDeSubidasMasEstricto()
+    {
+        var subir = typeof(DocumentsController).GetMethods().Single(m => m.GetCustomAttributes(typeof(HttpPostAttribute), false).Length > 0);
+
+        var limite = Assert.Single(subir.GetCustomAttributes(typeof(EnableRateLimitingAttribute), false).Cast<EnableRateLimitingAttribute>());
+
+        Assert.Equal(LimitacionDePeticionesExtensions.Subidas, limite.PolicyName);
+    }
+
+    // ---------------- Detrás de un proxy: solo se confía en los configurados (RD-06, RD-07) ----------------
+
+    [Fact]
+    public void RD_06_SinProxiesConfigurados_NoSeConfiaEnNingunaCabeceraReenviada()
+    {
+        var servicios = new ServiceCollection().AddReenvioDeCabeceras(Config());
+
+        var opciones = servicios.BuildServiceProvider().GetService<IOptions<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>>();
+
+        // Sin configuración no se registra nada: un cliente no puede falsificar su IP con X-Forwarded-For.
+        Assert.Null(opciones);
+    }
+
+    [Fact]
+    public void RD_06_ConProxiesConfigurados_SoloSeConfiaEnEsosYEnSusCabecerasDeIpYEsquema()
+    {
+        var servicios = new ServiceCollection().AddReenvioDeCabeceras(Config(("ProxiesConfiables:0", "172.18.0.2")));
+
+        var opciones = servicios.BuildServiceProvider().GetRequiredService<IOptions<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>>().Value;
+
+        Assert.Equal(System.Net.IPAddress.Parse("172.18.0.2"), Assert.Single(opciones.KnownProxies));
+        Assert.Empty(opciones.KnownIPNetworks);
+        Assert.Equal(
+            Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto,
+            opciones.ForwardedHeaders);
+    }
+
+    [Theory]
+    [InlineData("*")]
+    [InlineData("no-es-una-ip")]
+    [InlineData("172.18.0.0/16")]
+    public void RD_07_UnProxyQueNoEsUnaIp_DetieneElArranque(string proxy)
+    {
+        var error = Assert.Throws<InvalidOperationException>(
+            () => ReenvioDeCabecerasExtensions.LeerProxies(Config(("ProxiesConfiables:0", proxy))));
+
+        Assert.Contains("ProxiesConfiables", error.Message);
+    }
+
+    [Fact]
+    public void RD_06_UnProxyVacio_EquivaleASinProxyYNoDetieneElArranque()
+    {
+        // docker-compose pasa ProxiesConfiables__0 aunque PROXY_CONFIABLE esté vacío.
+        var cfg = Config(("ProxiesConfiables:0", ""));
+
+        Assert.Empty(ReenvioDeCabecerasExtensions.LeerProxies(cfg));
+        Assert.Null(new ServiceCollection().AddReenvioDeCabeceras(cfg).BuildServiceProvider()
+            .GetService<IOptions<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>>());
     }
 }

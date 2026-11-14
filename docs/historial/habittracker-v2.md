@@ -416,3 +416,14 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
 - **Mis planes:** pausar sin motivo (`motivo_pausa_requerido`) y ajustar con `Pausar` (`ajuste_no_disponible`) responden con código; `PUT .../reminder` rechaza planes terminados (`transicion_plan_invalida`); terminar un plan en pausa conservando los hábitos los deja activos (los que la persona pausó por su cuenta siguen igual).
 - **Plantilla de PR:** ahora son las 4 secciones vacías.
 - **Se deja:** el límite de 3 planes sin transacción y la zona horaria desconocida (se valida al guardar el perfil; el fallo real es tzdata en Docker, Fase 6).
+
+## Producción del corte vertical, parte sin Auditoría ni Métricas (`chore/habittracker-produccion`, 14-11-2026)
+
+- **Alcance:** lo transversal de la Fase 6 que no toca Notificaciones, Auditoría ni Reportes (`IAuditoriaService` y `api/admin/metrics/adherence` esperan sus prácticas; el piloto depende de ambas y de un hospedaje).
+- **Límites de peticiones:** políticas `usuario` (120/min) y `subidas` (10/min) por **persona**, no por IP; `UseRateLimiter` pasa después de `UseAuthentication` y antes de la lista negra. Las llevan los 10 controllers con sesión (`DocumentsController` solo gana el límite: su contrato de la P4 no cambia) y una prueba por reflexión vigila que no se pierdan. Contra la API real: 10 subidas y la 11.ª y 12.ª dan 429, y otra persona conserva su cupo.
+- **Healthcheck:** `GET /health` anónimo, solo «Healthy»/«Unhealthy», comprueba los dos contextos. En el compose se usa un socket de `bash` (la imagen no trae curl).
+- **Proxies:** `ProxiesConfiables` (IP; lista vacía = no se confía en nada; una IP inválida detiene el arranque) activa `UseForwardedHeaders` solo para esos proxies. No se probó contra un proxy real.
+- **N+1:** la revisión de `Hoy`, el resumen y `my-plans` no encontró consultas por elemento ni índices que falten (por eso no hay migración `IndicesConsultasFrecuentes`). Sí había uno nuevo: listar vínculos consultaba cada archivo por separado; ahora `IDocumentosUsuario.ListarAsync` trae todos en una consulta.
+- **Docker:** `tzdata` explícito en la imagen. Docker no estaba disponible en esta sesión: el compose y el Dockerfile se validan en el CI (Trivy) pero no se levantaron.
+- **Documentación:** `docs/maquina-de-estados.md` con la máquina del plan.
+- **No se hizo (queda en la Fase 6 completa):** E2E en Edge, `claude-security` sobre lo nuevo, auditoría, métricas, piloto y hospedaje.

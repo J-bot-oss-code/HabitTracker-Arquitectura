@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.Security.Claims;
 using HabitTracker.Application.DTOs;
 using HabitTracker.Application.Services;
@@ -12,6 +14,7 @@ namespace WebApi.Controllers;
 /// </summary>
 [ApiController]
 [Authorize(Roles = "Estandar")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class TodayController(IHoyService hoy, IResumenProgresoService resumen) : ControllerBase
 {

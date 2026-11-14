@@ -21,8 +21,11 @@ WORKDIR /app
 # Parches de seguridad del sistema base. La imagen oficial de Microsoft se reconstruye con retraso respecto
 # a los avisos de Ubuntu, y el CI (Trivy) bloquea las vulnerabilidades altas con parche disponible (RD-10).
 # Se hace como root, antes de "USER app", y se borra la caché de apt para no engordar la imagen.
+# tzdata: las horas de los planes se calculan en la zona de cada persona (America/Santo_Domingo…); sin la base de zonas
+# horarias caerían a UTC sin avisar. La imagen la trae, pero se pide aquí para no depender de ello.
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Carpeta de los archivos de documentos. En docker-compose.yml se monta aquí un VOLUMEN CON NOMBRE:

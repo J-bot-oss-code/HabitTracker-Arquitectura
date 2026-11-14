@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using HabitTracker.Application.DTOs;
@@ -17,6 +19,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/profile")]
 [Authorize(Roles = "Estandar")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class ProfileController(IPerfilService perfiles, ICuestionarioSaludService cuestionarios) : ControllerBase
 {
     /// <summary>Perfil de la persona. 404 <c>perfil_no_encontrado</c> si aún no hizo el onboarding.</summary>

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +12,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/permissions")]
 [Authorize]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class PermissionsController : ControllerBase
 {
     private readonly ISolicitudPermisoService _service;

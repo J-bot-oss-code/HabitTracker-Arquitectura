@@ -45,29 +45,23 @@ public sealed class AdjuntosPlanService(
         Guardas.ExigirIdentidad(usuarioId);
         await ObtenerPlanAsync(usuarioId, planId, cancellationToken);
 
-        var lista = new List<AdjuntoPlanDto>();
-        foreach (var adjunto in await adjuntos.ListarDePlanAsync(planId, usuarioId, cancellationToken))
-        {
-            // Un archivo eliminado ya no aparece (el vínculo viejo se limpia al adjuntar otro).
-            if (await documentos.ObtenerAsync(adjunto.DocumentoId, usuarioId, cancellationToken) is { } d)
-                lista.Add(new AdjuntoPlanDto(d.Id, d.Nombre, d.Tipo, d.TamanoBytes, d.FechaSubidaUtc, adjunto.AdjuntadoEnUtc));
-        }
-        return lista;
+        // Una consulta de archivos para todos los vínculos. Un archivo eliminado ya no aparece (el vínculo viejo se limpia al adjuntar otro).
+        var vigentes = (await documentos.ListarAsync(usuarioId, cancellationToken)).ToDictionary(d => d.Id);
+        return [.. (await adjuntos.ListarDePlanAsync(planId, usuarioId, cancellationToken))
+            .Where(a => vigentes.ContainsKey(a.DocumentoId))
+            .Select(a => { var d = vigentes[a.DocumentoId]; return new AdjuntoPlanDto(d.Id, d.Nombre, d.Tipo, d.TamanoBytes, d.FechaSubidaUtc, a.AdjuntadoEnUtc); })];
     }
 
     public async Task<IReadOnlyList<VinculoDocumentoDto>> ListarVinculosAsync(Guid usuarioId, CancellationToken cancellationToken = default)
     {
         Guardas.ExigirIdentidad(usuarioId);
-        var lista = new List<VinculoDocumentoDto>();
-        foreach (var v in await adjuntos.ListarDeUsuarioAsync(usuarioId, cancellationToken))
-        {
-            // Un archivo eliminado ya no pide permiso ni aparece: su vínculo viejo se limpia al adjuntar otro.
-            if (await documentos.ObtenerAsync(v.Adjunto.DocumentoId, usuarioId, cancellationToken) is null) continue;
-            lista.Add(new VinculoDocumentoDto(
+        // Un archivo eliminado ya no pide permiso ni aparece: su vínculo viejo se limpia al adjuntar otro.
+        var vigentes = (await documentos.ListarAsync(usuarioId, cancellationToken)).Select(d => d.Id).ToHashSet();
+        return [.. (await adjuntos.ListarDeUsuarioAsync(usuarioId, cancellationToken))
+            .Where(v => vigentes.Contains(v.Adjunto.DocumentoId))
+            .Select(v => new VinculoDocumentoDto(
                 v.Adjunto.DocumentoId, v.Adjunto.PlanUsuarioId, v.PlanNombre,
-                v.Estado is EstadoPlanUsuario.Activo or EstadoPlanUsuario.Pausado));
-        }
-        return lista;
+                v.Estado is EstadoPlanUsuario.Activo or EstadoPlanUsuario.Pausado))];
     }
 
     public async Task AdjuntarAsync(Guid usuarioId, Guid planId, Guid documentoId, CancellationToken cancellationToken = default)
