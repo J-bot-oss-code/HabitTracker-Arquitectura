@@ -35,7 +35,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **1268** pruebas (medido el 13-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Backend:** `dotnet test` ejecuta **1272** pruebas (medido el 14-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
 - **Frontend:** `cd frontend && npm test` ejecuta **911** pruebas en 62 archivos (medido el 13-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
@@ -67,13 +67,12 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 6. Deuda técnica conocida
 
-1. Archivos vinculados, detalles por pulir: el permiso `Documents.DeleteLinked.{id}` no se consume (queda Aplicada y un duplicado se rechaza); el Administrador elimina sin pasar por la guarda (intencional); `GET api/my-plans/attachments` no filtra los archivos eliminados; `adjuntar` sin `documentoId` responde 404 y no 400; la descarga de datos no incluye los vínculos archivo-plan (los archivos sí, en su sección).
+1. Archivos vinculados, decisiones de producto que se dejan así: el permiso `Documents.DeleteLinked.{id}` no se consume (queda Aplicada y un duplicado se rechaza) y el Administrador elimina sin pasar por la guarda.
 2. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
 3. Dentro de Docker, `RemoteIpAddress` es la IP de la pasarela, así que todos los clientes comparten el cupo del limitador de peticiones (hasta configurar `ForwardedHeaders` con `KnownProxies`). Desde la Fase 3 importa más: la política `catalogo` recibe todo el tráfico anónimo de la landing. *(Fase 6.)*
 4. `webapi` no tiene healthcheck. *(Fase 6.)*
-5. El límite de 3 planes en curso se comprueba en el servicio: dos peticiones simultáneas podrían pasarlo (solo el mismo plan repetido lo impide la base). `MarcarLogrosVistos` marca todos los logros y una zona horaria desconocida cae a UTC sin avisar (tzdata en Docker, Fase 6).
-6. Mis planes, detalles del backend por pulir: `celebracionSemana` no tiene marca de «visto» (el frontend lo recuerda en `sessionStorage`); `ResumenProgresoDto.racha` mezcla días y semanas; algunos 400 salen sin `codigo` (pausar sin motivo, ajustar con `Pausar`); `PUT .../reminder` acepta planes terminados; cancelar un plan en pausa con `conservarHabitos` deja los hábitos en pausa. El mock de privacidad no incluye la sección `planes` de la descarga.
-7. `.github/PULL_REQUEST_TEMPLATE.md` contiene una PR rellenada en lugar de una plantilla con las 4 secciones.
+5. El límite de 3 planes en curso se comprueba en el servicio: dos peticiones simultáneas podrían pasarlo (solo el mismo plan repetido lo impide la base). `MarcarLogrosVistos` marca todos los logros y una zona horaria que el sistema no conoce cae a UTC sin avisar (al guardar el perfil sí se valida; en Docker falta tzdata, Fase 6).
+6. Mis planes, detalles del backend por pulir: `celebracionSemana` no tiene marca de «visto» (el frontend lo recuerda en `sessionStorage`) y `ResumenProgresoDto.racha` mezcla días y semanas (cambiarlos cambia el contrato del frontend: con el piloto).
 
 ## 7. Flujo de trabajo
 
