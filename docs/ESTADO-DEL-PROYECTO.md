@@ -35,7 +35,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **1272** pruebas (medido el 14-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Backend:** `dotnet test` ejecuta **1292** pruebas (medido el 14-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
 - **Frontend:** `cd frontend && npm test` ejecuta **911** pruebas en 62 archivos (medido el 13-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
@@ -63,14 +63,15 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
   - Principios P1–P8.
   - El piloto (Fase 6) decide las Fases 7–9.
 - **Adherencia (Fase 4a):** `CalculadoraProgreso` es la única definición de racha y cumplimiento y mide por el **día local** del perfil (`CumpleMetaFinal` sigue en UTC, regla de la P3). Un plan con tareas diarias se mide en días y uno solo semanal, en semanas; un día sin registro no corta la racha y dos seguidos sí; las pausas no cuentan. Los ajustes se sugieren, nunca se aplican solos, y los logros no reciben peso ni medidas.
+- **Producción (14-11-2026):** los endpoints con sesión tienen límite de peticiones **por persona** (`usuario` 120/min y `subidas` 10/min para documentos; `RateLimit:*`), el limitador corre después de autenticar, `GET /health` (anónimo, sin detalles) comprueba la base de datos y el compose lo usa como healthcheck. Sin `PROXY_CONFIABLE` no se confía en `X-Forwarded-For`.
 - **Archivos y permisos (13-11-2026):** la persona controla sus archivos y los elimina cuando quiera; **solo los vinculados a un plan en curso** (Activo o En pausa) piden un permiso **por archivo** (`Documents.DeleteLinked.{id sin guiones}`), que se pide en la propia pantalla y aprueba un Administrador. Quitar el vínculo con el plan en curso pide el mismo permiso (si no, sería la forma de esquivarlo). Los archivos se vinculan a **planes**, no a hábitos (`AdjuntoPlan`, tope de 10 por plan, en cascada con el plan). La regla la compone el Host (`GuardaEliminacionDocumentoAdapter`) y el Manejador de documentos sigue con una sola responsabilidad: no lee archivos ni recomienda; las recomendaciones siguen con el método actual. «Mis permisos» salió del menú: el permiso se pide donde se necesita y el historial vive en Configuración › Solicitudes. Sin fotos del cuerpo en Progreso (P4).
 
 ## 6. Deuda técnica conocida
 
 1. Archivos vinculados, decisiones de producto que se dejan así: el permiso `Documents.DeleteLinked.{id}` no se consume (queda Aplicada y un duplicado se rechaza) y el Administrador elimina sin pasar por la guarda.
 2. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
-3. Dentro de Docker, `RemoteIpAddress` es la IP de la pasarela, así que todos los clientes comparten el cupo del limitador de peticiones (hasta configurar `ForwardedHeaders` con `KnownProxies`). Desde la Fase 3 importa más: la política `catalogo` recibe todo el tráfico anónimo de la landing. *(Fase 6.)*
-4. `webapi` no tiene healthcheck. *(Fase 6.)*
+3. Detrás de un proxy inverso, `RemoteIpAddress` es la IP del proxy y los endpoints anónimos (`catalogo`, `login`…) comparten el cupo por IP: se resuelve con `PROXY_CONFIABLE` (`ProxiesConfiables__0`, ver README). Los endpoints con sesión ya se limitan por persona.
+4. Sin E2E en Edge (puppeteer-core), sin `claude-security` sobre lo nuevo y sin el «latido del worker» en el healthcheck (no hay worker de recordatorios). *(Fase 6 y Fase 5.)*
 5. El límite de 3 planes en curso se comprueba en el servicio: dos peticiones simultáneas podrían pasarlo (solo el mismo plan repetido lo impide la base). `MarcarLogrosVistos` marca todos los logros y una zona horaria que el sistema no conoce cae a UTC sin avisar (al guardar el perfil sí se valida; en Docker falta tzdata, Fase 6).
 6. Mis planes, detalles del backend por pulir: `celebracionSemana` no tiene marca de «visto» (el frontend lo recuerda en `sessionStorage`) y `ResumenProgresoDto.racha` mezcla días y semanas (cambiarlos cambia el contrato del frontend: con el piloto).
 
