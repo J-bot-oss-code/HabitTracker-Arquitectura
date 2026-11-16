@@ -15,7 +15,7 @@ RUN for intento in 1 2 3; do \
 RUN dotnet publish Host/WebApi/WebApi.csproj -c Release -o /app/publish --no-restore
 
 # ---------- Etapa 2: imagen final, solo el runtime ----------
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.15 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:11.0.0 AS final
 WORKDIR /app
 
 # Parches de seguridad del sistema base. La imagen oficial de Microsoft se reconstruye con retraso respecto
