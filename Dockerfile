@@ -1,6 +1,6 @@
 # ---------- Etapa 1: compilar y publicar ----------
 # La imagen del SDK (grande) solo se usa aquí; no llega a la imagen final.
-FROM mcr.microsoft.com/dotnet/sdk:10.0.404 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0.100 AS build
 WORKDIR /src
 
 # Se copia el repositorio (.dockerignore deja fuera bin/, obj/, .git/, frontend/, tests/ y .env).
