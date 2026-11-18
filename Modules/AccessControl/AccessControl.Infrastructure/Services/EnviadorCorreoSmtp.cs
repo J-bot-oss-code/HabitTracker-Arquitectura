@@ -61,6 +61,50 @@ public class EnviadorCorreoSmtp(IConfiguration configuration, ILogger<EnviadorCo
         return texto.Length <= 500 ? texto : texto[..500];
     }
 
+    public sealed record OpcionesSmtp(string Host, int Puerto, bool Ssl, string? Usuario, string? Clave, string Remitente);
+
+    /// <summary>
+    /// RF-NOT-13 / RD-10: el servidor de correo se configura solo con variables de entorno: <c>SMTP_HOST</c> y <c>SMTP_PORT</c>
+    /// (obligatorias), <c>SMTP_SSL</c> (true por defecto), <c>SMTP_USER</c> y <c>SMTP_PASS</c> (ambas o ninguna: un servidor de
+    /// pruebas como Mailpit no pide credenciales) y <c>SMTP_FROM</c> (por defecto, el usuario).
+    /// </summary>
+    public static OpcionesSmtp LeerOpciones(IConfiguration configuration)
+    {
+        var host = configuration["SMTP_HOST"]?.Trim();
+        var puertoTexto = configuration["SMTP_PORT"]?.Trim();
+        var usuario = configuration["SMTP_USER"]?.Trim();
+        var clave = configuration["SMTP_PASS"];
+
+        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(puertoTexto))
+        {
+            throw new InvalidOperationException("Falta configuración SMTP (SMTP_HOST y SMTP_PORT).");
+        }
+
+        if (!int.TryParse(puertoTexto, out var puerto) || puerto is < 1 or > 65535)
+        {
+            throw new InvalidOperationException("SMTP_PORT no es un puerto válido.");
+        }
+
+        var sslTexto = configuration["SMTP_SSL"]?.Trim();
+        var ssl = string.IsNullOrEmpty(sslTexto) || (bool.TryParse(sslTexto, out var valor)
+            ? valor
+            : throw new InvalidOperationException("SMTP_SSL debe ser true o false."));
+
+        if (string.IsNullOrWhiteSpace(usuario) != string.IsNullOrEmpty(clave))
+        {
+            throw new InvalidOperationException("SMTP_USER y SMTP_PASS van juntas: define las dos o ninguna.");
+        }
+
+        var autenticado = !string.IsNullOrWhiteSpace(usuario);
+        var remitente = configuration["SMTP_FROM"]?.Trim();
+        if (string.IsNullOrWhiteSpace(remitente))
+        {
+            remitente = autenticado ? usuario! : "no-responder@habittracker.local";
+        }
+
+        return new OpcionesSmtp(host, puerto, ssl, autenticado ? usuario : null, autenticado ? clave : null, remitente);
+    }
+
     public async Task EnviarAsync(string destinatario, string asunto, string cuerpoHtml, CancellationToken cancellationToken)
     {
         if (DebeEscribirEnConsola(configuration))
@@ -74,30 +118,19 @@ public class EnviadorCorreoSmtp(IConfiguration configuration, ILogger<EnviadorCo
             return;
         }
 
-        // RF-NOT-13 / RD-10: credenciales obligatoriamente desde configuración (variables de entorno).
-        var host = configuration["SMTP_HOST"];
-        var portRaw = configuration["SMTP_PORT"];
-        var user = configuration["SMTP_USER"];
-        var pass = configuration["SMTP_PASS"];
+        var opciones = LeerOpciones(configuration);
 
-        if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(portRaw)
-            || string.IsNullOrWhiteSpace(user) || string.IsNullOrWhiteSpace(pass))
+        using var client = new SmtpClient(opciones.Host, opciones.Puerto)
         {
-            throw new InvalidOperationException("Falta configuración SMTP (SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS).");
-        }
-
-        if (!int.TryParse(portRaw, out var port))
-        {
-            throw new InvalidOperationException("SMTP_PORT no es un puerto válido.");
-        }
-
-        using var client = new SmtpClient(host, port)
-        {
-            Credentials = new NetworkCredential(user, pass),
-            EnableSsl = true
+            EnableSsl = opciones.Ssl,
+            Timeout = (int)TimeSpan.FromSeconds(10).TotalMilliseconds
         };
+        if (opciones.Usuario is not null)
+        {
+            client.Credentials = new NetworkCredential(opciones.Usuario, opciones.Clave);
+        }
 
-        using var message = new MailMessage(user, destinatario, asunto, cuerpoHtml)
+        using var message = new MailMessage(opciones.Remitente, destinatario, asunto, cuerpoHtml)
         {
             IsBodyHtml = true
         };
