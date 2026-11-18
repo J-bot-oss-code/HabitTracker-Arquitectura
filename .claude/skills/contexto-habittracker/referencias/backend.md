@@ -11,7 +11,8 @@
 | HabitTracker (negocio) | Hábitos (meta opcional, errores con código), perfil en dos niveles, cuestionario de salud **cifrado**, peso y medidas, catálogo de planes, **Mis planes** (pausas, ajustes, logros, mensajes) y `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
 | DocumentManager | Completo (RF-DOC-01..05) | `DocumentManagerDbContext` | su `DependencyInjection/` en Infrastructure |
 | Notifications | Completo (P5): `Notificacion`, `PreferenciaNotificaciones`, canal interno + correo por la cola | `NotificationsDbContext` | `Modules/Notifications/Notifications.Infrastructure/DependencyInjection/` y adaptadores en `Host/WebApi/Adapters` |
-| Auditing, Reports | Solo `.csproj` vacíos | — | — |
+| Reports | Completo (P5): sin base de datos; `ReportesService` valida el rango y el alcance por rol sobre dos puertos | — | `Host/WebApi/Program.cs` y adaptadores en `Host/WebApi/Adapters` |
+| Auditing | Solo `.csproj` vacíos | — | — |
 
 - Los cuatro contextos usan la misma cadena `ConnectionStrings:AccessControl` (SQL Server) y la tabla `__EFMigrationsHistory` por defecto.
 - `Host/WebApi/Program.cs` registra los adaptadores entre módulos, `JsonStringEnumConverter` (los enums viajan como texto) y llama a `InicializarBaseDeDatosAsync`.
@@ -143,3 +144,9 @@ Contextos: `ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContex
 - **Cola** (AccessControl.Infrastructure/Services): `ProcesadorColaCorreos` (reclamo atómico, recuperación de `Procesando`, espera configurable), `EnviadorCorreoSmtp` (`LeerOpciones`: `SMTP_HOST/PORT/SSL/USER/PASS/FROM`) y `ColaCorreosAdmin`. `EmailSenderWorker` solo llama al procesador cada 15 s. `CorreoEnCola.MaxIntentos = 3`.
 - **Correo en el contenedor:** Mailpit (`:8025`); el `.env.example` apunta a él. Para volver a la consola, `SMTP_HOST` vacío.
 - Criterios de aceptación: `docs/criterios-notificaciones-reportes.md`. Detalle: `docs/historial/practica-5.md`.
+
+## Reportes (P5)
+
+- **API:** `GET api/reports/permissions` (Core: solicitudes por estado, `GROUP BY` en la base) y `GET api/reports/adherence` (negocio: constancia por plan). `desde` y `hasta` obligatorios (máx. 366 días); el rol del token decide el alcance (Estándar: lo suyo; Administrador: todos, agregado y sin datos personales).
+- **Piezas:** `Reports.Application/Services/ReportesService.cs`; puertos `IFuenteSolicitudes` → `FuenteSolicitudesAdapter` (sobre `ISolicitudPermisoReportes`, clase nueva `SolicitudPermisoReportes`) e `IFuenteConstancia` → `FuenteConstanciaAdapter` (sobre `IReporteConstanciaService` de HabitTracker). La función de agregación es `CalculadoraConstancia` (dominio, pura).
+- Detalle: `docs/historial/practica-5.md`; criterios: `docs/criterios-notificaciones-reportes.md`.

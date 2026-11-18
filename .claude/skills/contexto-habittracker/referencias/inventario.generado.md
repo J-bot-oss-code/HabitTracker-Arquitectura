@@ -85,6 +85,8 @@
 | ProgressController | POST | `/api/progress/weights` | rol Estandar |
 | ProgressController | GET | `/api/progress/measurements` | rol Estandar |
 | ProgressController | POST | `/api/progress/measurements` | rol Estandar |
+| ReportsController | GET | `/api/reports/permissions` | autenticado |
+| ReportsController | GET | `/api/reports/adherence` | autenticado |
 | TodayController | GET | `//api/today` | rol Estandar |
 | TodayController | GET | `//api/progress/summary` | rol Estandar |
 | TodayController | POST | `//api/progress/achievements/seen` | rol Estandar |
@@ -109,16 +111,18 @@
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
 | HabitTracker.Api.Tests | 7 | 41 | 13 |
 | HabitTracker.Application.Tests | 7 | 111 | 7 |
-| HabitTracker.Domain.Tests | 10 | 142 | 27 |
-| HabitTracker.Integration.Tests | 10 | 61 | 4 |
+| HabitTracker.Domain.Tests | 11 | 151 | 27 |
+| HabitTracker.Integration.Tests | 11 | 69 | 4 |
 | Notifications.Api.Tests | 3 | 20 | 2 |
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
 | Notifications.Infrastructure.Tests | 1 | 4 | 0 |
 | Permissions.Application.Tests | 2 | 18 | 2 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
-| Permissions.Infrastructure.Tests | 2 | 7 | 1 |
-| **Total** | | **894** | **123** |
+| Permissions.Infrastructure.Tests | 3 | 13 | 1 |
+| Reports.Api.Tests | 1 | 6 | 0 |
+| Reports.Application.Tests | 1 | 8 | 1 |
+| **Total** | | **931** | **124** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -128,6 +132,8 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `ConsentimientoSaludAdapter.cs`: `class ConsentimientoSaludAdapter(IConsentimientoService consentimientos) : IConsentimientoSalud`
 - `DirectorioUsuariosAdapter.cs`: `class DirectorioUsuariosAdapter(IUsuarioRepository usuarios) : IDirectorioUsuarios`
 - `DocumentosUsuarioAdapter.cs`: `class DocumentosUsuarioAdapter(IDocumentoService documentos) : IDocumentosUsuario`
+- `FuenteConstanciaAdapter.cs`: `class FuenteConstanciaAdapter(IReporteConstanciaService constancia) : IFuenteConstancia`
+- `FuenteSolicitudesAdapter.cs`: `class FuenteSolicitudesAdapter(ISolicitudPermisoReportes permisos) : IFuenteSolicitudes`
 - `GuardaEliminacionDocumentoAdapter.cs`: `class GuardaEliminacionDocumentoAdapter(`
 - `NotificadorPermisosAdapter.cs`: `class NotificadorPermisosAdapter(INotificacionService notificaciones, IDirectorioUsuarios directorio) : INotificadorPermisos`
 - `NotificadorUsuarioAdapter.cs`: `class NotificadorUsuarioAdapter(INotificacionService notificaciones, IDirectorioUsuarios directorio) : INotificadorUsuario`
