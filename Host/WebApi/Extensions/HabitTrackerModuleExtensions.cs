@@ -60,6 +60,8 @@ public static class HabitTrackerModuleExtensions
 
         // Archivos vinculados a un plan (RF-NEG-10). IDocumentosUsuario y la guarda de eliminar los resuelven adaptadores del Host.
         services.AddScoped<IAdjuntoPlanRepository, AdjuntoPlanRepository>();
+        services.AddScoped<IReporteConstanciaRepository, ReporteConstanciaRepository>();
+        services.AddScoped<IReporteConstanciaService, ReporteConstanciaService>();
         services.AddScoped<IAdjuntosPlanService, AdjuntosPlanService>();
 
         // Plan del día: usa la API externa de clima (la clave llega por la variable OPENWEATHER_API_KEY).

@@ -14,7 +14,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 | HabitTracker (negocio) | Hábitos (`Planificado → Activo ⇄ Pausado → Completado`, 6 endpoints en `api/habits`), perfil en dos niveles, cuestionario de salud cifrado y progreso corporal (`api/profile`, `api/progress`), catálogo de planes y recomendador (`api/plans`), Mis planes con pausas, ajustes, logros y mensajes (`api/my-plans`, `api/today`, `api/progress/summary`), y `plan-del-dia`. **En evolución:** plan v2, Fases 0 a 4 hechas; el perfil ya no guarda plan de interés (`MetaSlug` e `InicioPlan` salieron en la 4b) | `docs/historial/habittracker-v2.md` |
 | DocumentManager | Completo para la P4 (RF-DOC-01 a 05). Un punto de extensión (`IGuardaEliminacionDocumento`) deja que el Host vete eliminar un archivo en uso (409 `documento_requiere_permiso`); sin guarda todo sigue igual | `docs/historial/practica-4.md` |
 | Notifications | Completo para la P5 (RF-NOT-01 a 13): bandeja interna y correo por la cola, con ganchos opcionales en Permisos y en los logros de HabitTracker. Cola de correos con reclamo atómico, recuperación, máximo de 3 intentos y consulta del Administrador | `docs/historial/practica-5.md` |
-| Auditing, Reports | Solo esqueleto (proyectos vacíos). Reports es lo que sigue en la P5 | — |
+| Reports | Completo para la P5 (RF-REP-01 a 05): permisos por estado (Core) y constancia por plan (negocio), con rango obligatorio y alcance por rol. Sin base de datos propia | `docs/historial/practica-5.md` |
+| Auditing | Solo esqueleto (proyectos vacíos) | — |
 | Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`) y Mis planes (empezar un plan, «Archivos del plan», Hoy desde `api/today`, `/mis-planes/:id`, celebración semanal y logros del servidor en Progreso), «Mis archivos» (`/documentos`) y Configuración › Solicitudes. Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
 | CI | `ci-ok` y `seguridad-ok` obligatorios en `develop` y `main` | `docs/historial/ci.md` |
 
@@ -36,7 +37,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **1389** pruebas (medido el 18-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Backend:** `dotnet test` ejecuta **1432** pruebas (medido el 18-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
 - **Frontend:** `cd frontend && npm test` ejecuta **911** pruebas en 62 archivos (medido el 13-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
@@ -98,7 +99,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 9. Próximos pasos
 
-- **Práctica 5 en curso:** Notificaciones y cola hechas (PR de esta rama); siguen Reportes (RF-REP-01 a 05), el frontend de la bandeja, la cola y los reportes, y el tag `practica-5` con la revisión acumulada desde Docker.
+- **Práctica 5 en curso:** Notificaciones, cola y Reportes hechos en el backend; siguen el frontend de la bandeja, la cola y los reportes, y el tag `practica-5` con la revisión acumulada desde Docker.
 - **Fase 5 detenida** hasta entregar las prácticas de Auditoría y Reportes (rama `feature/habittracker-correo-accion`, sin push; sus rutas deben pasar de `api/notifications/*` a `api/reminders/*` y la entrega irá detrás de `INotificadorUsuario`).
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
   - Fases 0 a 4 hechas → Fase 5, el corte vertical (siguiente: recordatorios y check-in por correo, `RegistroDiario.Origen` y `ClaveIdempotencia`);
