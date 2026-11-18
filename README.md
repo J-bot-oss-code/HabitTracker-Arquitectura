@@ -237,6 +237,38 @@ Los textos del logro celebran la conducta y nunca mencionan peso, cuerpo ni culp
 4. `GET /api/admin/email-queue?estado=Fallido` muestra el correo con `intentos: 3` y `ultimoError`. Una cuarta ejecución no lo toca.
 5. Con `docker compose start mailpit`, los correos nuevos vuelven a enviarse.
 
+## Reportes
+
+Dos reportes con **agregación real** (devuelven valores agrupados, no el listado de registros). Ambos piden sesión (`Authorization: Bearer <token>`) y **exigen un rango de fechas**: `desde` y `hasta`, en formato `AAAA-MM-DD`, UTC, **ambos días incluidos**, con un máximo de 366 días. Sin fechas, con `desde` posterior a `hasta` o con un rango más largo responden `400`. Dos rangos distintos dan resultados distintos sobre los mismos datos (RF-REP-05); un rango sin datos devuelve cero filas, no un error.
+
+**Módulos.** `Modules/Reports` valida el rango y decide el alcance según el rol del token; no tiene base de datos propia. Pide los datos a Permisos y a HabitTracker por puertos (`IFuenteSolicitudes`, `IFuenteConstancia`) que el Host conecta con adaptadores en `Host/WebApi/Adapters`.
+
+### Los dos reportes
+
+| Reporte | Ruta | Qué responde | Cómo agrega |
+|---|---|---|---|
+| **Core (RF-REP-01):** solicitudes de permiso por estado y período | `GET /api/reports/permissions?desde=2026-11-02&hasta=2026-11-08` | Cuántas solicitudes creadas en el rango hay en cada estado (`Pendiente`, `Aplicada`, `Rechazada`…) y el total | `GROUP BY` del estado en la base de datos: una fila por estado |
+| **Negocio (RF-REP-02):** constancia por plan | `GET /api/reports/adherence?desde=2026-11-02&hasta=2026-11-08` | **«¿Qué tan constante fui en cada plan durante este período?»** Por plan: días con avance, días en que solo hizo la versión mínima, días del rango en que el plan estuvo en marcha y el porcentaje de constancia | Función propia `CalculadoraConstancia` (HabitTracker): una fila por plan, no una por avance. Mide por el **día local** de la persona y no cuenta los días de pausa ni los planes cancelados |
+
+### Qué ve cada rol (RF-REP-04)
+
+- **Estándar:** solo lo suyo. En permisos, sus solicitudes; en constancia, sus planes (`alcance: "propio"`). El rol sale del token: no hay forma de pedir los datos de otra persona.
+- **Administrador:** `alcance: "todos"`. En permisos, las solicitudes de todas las personas; en constancia, el **agregado por plan del catálogo** (cuántas personas y los promedios de días), **sin nombres ni correos**, medido por día UTC.
+
+### Cómo consultarlos con dos rangos
+
+```bash
+# 1) Inicia sesión y guarda el token (Estándar o Administrador)
+curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"admin@ejemplo.com","password":"Ejemplo_Admin_2026!"}'
+
+# 2) Un rango con datos y otro sin ellos: el resultado cambia
+curl -s "http://localhost:8080/api/reports/permissions?desde=2026-11-01&hasta=2026-11-30" -H "Authorization: Bearer <token>"
+curl -s "http://localhost:8080/api/reports/permissions?desde=2025-01-01&hasta=2025-01-31" -H "Authorization: Bearer <token>"
+```
+
+Para ver datos en el reporte del negocio: con un Estándar, inscríbete a un plan (`PUT /api/profile` con `{"perfilLaboral":"OficinaDiurna","zonaHoraria":"America/Santo_Domingo","avisoSaludAceptado":true}` y `POST /api/my-plans` con `{"slug":"mi-dia-oficina"}`), registra un avance en uno de sus hábitos (`POST /api/habits/{habitoId}/progress`) y consulta `GET /api/reports/adherence` con un rango que incluya hoy. En Swagger (`/swagger`), las dos rutas están en `Reports`.
+
 ## 🚀 Compilación y Ejecución
 
 Para trabajar con este proyecto, asegúrate de tener instalado el SDK de .NET 10 o superior.
