@@ -194,6 +194,7 @@ public class HostSeguridadTests
     [InlineData(typeof(DocumentsController))]
     [InlineData(typeof(PermissionsController))]
     [InlineData(typeof(AdminUsuariosController))]
+    [InlineData(typeof(AdminColaCorreosController))]
     public void RD_06_LosControllersConSesion_TienenLimiteDePeticiones(Type controlador)
     {
         var limite = Assert.Single(controlador.GetCustomAttributes(typeof(EnableRateLimitingAttribute), inherit: false)

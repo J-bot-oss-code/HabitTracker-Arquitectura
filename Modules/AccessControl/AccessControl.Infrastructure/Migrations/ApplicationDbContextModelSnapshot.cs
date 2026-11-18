@@ -109,6 +109,8 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Estado");
+
                     b.ToTable("CorreosEnCola");
                 });
 
