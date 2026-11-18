@@ -37,7 +37,7 @@ services:
     image: axllent/mailpit:v1.32.0
     restart: unless-stopped
     ports:
-      - "8025:8025"
+      - "127.0.0.1:8025:8025"
 
   # --------------------------------------------------------------------------
   # La aplicación. Con la interfaz de Mailpit, es el único servicio que publica puertos en el equipo.
