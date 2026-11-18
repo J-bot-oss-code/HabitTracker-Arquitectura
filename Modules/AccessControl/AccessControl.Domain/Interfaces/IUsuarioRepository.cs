@@ -42,4 +42,7 @@ public interface IUsuarioRepository
     /// <summary>Cuántos administradores activos hay. Sirve para no dejar nunca al sistema sin ninguno (RF-CA-08, RF-CA-20).</summary>
     Task<int> ContarAdministradoresActivosAsync();
 
+    /// <summary>Los administradores con la cuenta activa (RF-NOT-01: a ellos se les avisa de una solicitud nueva).</summary>
+    Task<IReadOnlyList<Usuario>> ListarAdministradoresActivosAsync();
+
 }
