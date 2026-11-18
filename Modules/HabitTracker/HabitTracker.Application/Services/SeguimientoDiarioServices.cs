@@ -5,6 +5,7 @@ using HabitTracker.Domain.Entities;
 using HabitTracker.Domain.Motivacion;
 using HabitTracker.Domain.Perfil;
 using HabitTracker.Domain.Planes;
+using Microsoft.Extensions.Logging;
 
 namespace HabitTracker.Application.Services;
 
@@ -18,7 +19,11 @@ public interface ILogrosService
         Guid usuarioId, IReadOnlyList<ProgresoDePlan> progresos, IReadOnlyList<Habito> habitos, CancellationToken cancellationToken = default);
 }
 
-public sealed class LogrosService(ILogroUsuarioRepository logros, TimeProvider? reloj = null) : ILogrosService
+public sealed class LogrosService(
+    ILogroUsuarioRepository logros,
+    TimeProvider? reloj = null,
+    INotificadorUsuario? notificador = null,
+    ILogger<LogrosService>? logger = null) : ILogrosService
 {
     private readonly TimeProvider _reloj = reloj ?? TimeProvider.System;
 
@@ -44,9 +49,29 @@ public sealed class LogrosService(ILogroUsuarioRepository logros, TimeProvider? 
         // la segunda no falla ni duplica. Se devuelve el estado real de la base, no el que se esperaba.
         var ahora = Guardas.Ahora(_reloj);
         foreach (var clave in nuevos)
-            await logros.AgregarSiNoExisteAsync(new LogroUsuario(usuarioId, clave, ahora), cancellationToken);
+        {
+            // Solo avisa quien lo guardó: con dos consultas a la vez, la otra recibe «false» y no duplica el aviso (RF-NOT-03).
+            if (await logros.AgregarSiNoExisteAsync(new LogroUsuario(usuarioId, clave, ahora), cancellationToken))
+                await AvisarAsync(usuarioId, clave, cancellationToken);
+        }
 
         return [.. await logros.ListarAsync(usuarioId, cancellationToken)];
+    }
+
+    // El logro ya está guardado: si el aviso falla se registra y se sigue, la consulta de Hoy no puede fallar por esto.
+    private async Task AvisarAsync(Guid usuarioId, ClaveLogro clave, CancellationToken cancellationToken)
+    {
+        if (notificador is null)
+            return;
+
+        try
+        {
+            await notificador.LogroObtenidoAsync(usuarioId, clave, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger?.LogWarning(ex, "No se pudo enviar el aviso del logro {Clave}.", clave);
+        }
     }
 }
 
