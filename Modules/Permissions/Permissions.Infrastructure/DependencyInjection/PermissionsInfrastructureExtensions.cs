@@ -23,6 +23,7 @@ public static class PermissionsInfrastructureExtensions
 
         services.AddDbContext<PermissionsDbContext>(options => options.UseSqlServer(connectionString));
         services.AddScoped<ISolicitudPermisoRepository, SolicitudPermisoRepository>();
+        services.AddScoped<ISolicitudPermisoReportes, SolicitudPermisoReportes>();
         services.AddScoped<ISolicitudPermisoService, SolicitudPermisoService>();
 
         return services;
