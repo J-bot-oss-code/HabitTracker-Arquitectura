@@ -53,6 +53,7 @@
     <Project Path="tests/Notifications.Application.Tests/Notifications.Application.Tests.csproj" />
     <Project Path="tests/Notifications.Domain.Tests/Notifications.Domain.Tests.csproj" />
     <Project Path="tests/Notifications.Infrastructure.Tests/Notifications.Infrastructure.Tests.csproj" />
+    <Project Path="tests/Reports.Api.Tests/Reports.Api.Tests.csproj" />
     <Project Path="tests/Reports.Application.Tests/Reports.Application.Tests.csproj" />
     <Project Path="tests/Permissions.Application.Tests/Permissions.Application.Tests.csproj" />
     <Project Path="tests/Permissions.Domain.Tests/Permissions.Domain.Tests.csproj" />

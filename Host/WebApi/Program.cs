@@ -33,6 +33,11 @@ builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermis
 // Los logros que gana la persona en HabitTracker se le avisan por el mismo motor.
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuario, NotificadorUsuarioAdapter>();
 
+// Reportes (Pieza 5 del Core) no tiene base de datos propia: agrega lo que le dan Permisos y HabitTracker por estos adaptadores.
+builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteSolicitudes, FuenteSolicitudesAdapter>();
+builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteConstancia, FuenteConstanciaAdapter>();
+builder.Services.AddScoped<Reports.Application.Interfaces.IReportesService, Reports.Application.Services.ReportesService>();
+
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 

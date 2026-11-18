@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\Modules\HabitTracker\HabitTracker.Infrastructure\HabitTracker.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Notifications\Notifications.Infrastructure\Notifications.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Permissions\Permissions.Infrastructure\Permissions.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Reports\Reports.Application\Reports.Application.csproj" />
   </ItemGroup>
 
 </Project>
