@@ -1,9 +1,9 @@
-using AccessControl.Infrastructure.Workers;
+using AccessControl.Infrastructure.Services;
 using Microsoft.Extensions.Configuration;
 
 namespace AccessControl.Application.Tests;
 
-public class EmailSenderWorkerModoConsolaTests
+public class EnviadorCorreoSmtpModoConsolaTests
 {
     private static IConfiguration Config(params (string Clave, string? Valor)[] valores) =>
         new ConfigurationBuilder()
@@ -21,7 +21,7 @@ public class EmailSenderWorkerModoConsolaTests
     {
         var config = Config(("CORREO_MODO", modo), ("SMTP_HOST", host));
 
-        Assert.True(EmailSenderWorker.DebeEscribirEnConsola(config));
+        Assert.True(EnviadorCorreoSmtp.DebeEscribirEnConsola(config));
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public class EmailSenderWorkerModoConsolaTests
             <div style="font-size:22px;letter-spacing:3px;color:#0f766e;">048213</div></body></html>
             """;
 
-        var resumen = EmailSenderWorker.ResumirCuerpo(html);
+        var resumen = EnviadorCorreoSmtp.ResumirCuerpo(html);
 
         Assert.Equal("Enlace: http://localhost:8080/api/auth/activate?correo=a%40b.com&codigo=048213 | Código: 048213", resumen);
         Assert.DoesNotContain("\n", resumen);
@@ -46,15 +46,15 @@ public class EmailSenderWorkerModoConsolaTests
     {
         const string html = """<p>Usa este código</p><div style="letter-spacing:3px;">K7Q2ZP</div>""";
 
-        Assert.Equal("Código: K7Q2ZP", EmailSenderWorker.ResumirCuerpo(html));
+        Assert.Equal("Código: K7Q2ZP", EnviadorCorreoSmtp.ResumirCuerpo(html));
     }
 
     [Fact]
     [Trait("Requirement", "RF-CA-01")]
     public void RF_CA_01_ResumirCuerpo_SinEnlaceNiCodigo_DevuelveElTextoSinEtiquetas()
     {
-        Assert.Equal("Hola mundo", EmailSenderWorker.ResumirCuerpo("<p>Hola</p>\n<b>mundo</b>"));
-        Assert.Equal(string.Empty, EmailSenderWorker.ResumirCuerpo("  "));
+        Assert.Equal("Hola mundo", EnviadorCorreoSmtp.ResumirCuerpo("<p>Hola</p>\n<b>mundo</b>"));
+        Assert.Equal(string.Empty, EnviadorCorreoSmtp.ResumirCuerpo("  "));
     }
 
     [Theory]
@@ -67,6 +67,6 @@ public class EmailSenderWorkerModoConsolaTests
     {
         var config = Config(("CORREO_MODO", modo), ("SMTP_HOST", host));
 
-        Assert.False(EmailSenderWorker.DebeEscribirEnConsola(config));
+        Assert.False(EnviadorCorreoSmtp.DebeEscribirEnConsola(config));
     }
 }
