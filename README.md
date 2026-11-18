@@ -468,7 +468,7 @@ Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflow
 | Workflow | Trabajo | Qué verifica | Bloquea el merge si… |
 |---|---|---|---|
 | `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 347 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
-| `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 452 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica |
+| `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 452 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica en una dependencia de producción (`npm audit --omit=dev`) |
 | `ci.yml` | Reglas del repositorio | formato de los commits (`tipo: descripción en español [RF-XX-NN, RD-NN]`), RD-03, RD-05, RD-08, RD-10 y RD-11, ShellCheck de los scripts | un commit o el código incumple la regla |
 | `seguridad.yml` | CodeQL (C#, JS/TS, Actions) | análisis estático con las consultas `security-extended` | la regla de *code scanning* del repositorio detecta una alerta alta o crítica |
 | `seguridad.yml` | Secretos | gitleaks sobre los commits de la PR (y sobre todo el historial en push y cada lunes) | aparece una credencial |
@@ -504,7 +504,7 @@ dotnet test HabitTrackerSystem.slnx -c Release --no-build
 # Frontend (desde frontend/)
 npm ci --ignore-scripts && npm audit signatures
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run build
-npm audit --audit-level=high
+npm audit --audit-level=high --omit=dev   # producción: bloquea; sin --omit=dev incluye las herramientas de desarrollo (solo aviso)
 
 # Reglas del repositorio (Git Bash o Linux; requieren git y bash)
 bash scripts/ci/pruebas-verificar-commits.sh
@@ -519,6 +519,7 @@ bash scripts/ci/verificar-commits.sh <base> HEAD     # p. ej. develop HEAD
 No se suprime nada en masa. Una excepción siempre lleva su motivo escrito:
 
 - **Secreto falso positivo:** se acota en `.gitleaks.toml` (valor y archivo exactos) o se añade su *fingerprint* a `.gitleaksignore` con un comentario `# motivo`. Si el secreto es **real**, se rota en el proveedor; no se reescribe la historia (rompería las etiquetas de entrega).
+- **Vulnerabilidad de una herramienta de desarrollo de npm sin parche:** `npm audit` bloquea solo las dependencias de producción (`--omit=dev`); las de desarrollo se auditan aparte en un paso que avisa sin bloquear. Se anota aquí con la fecha y se revierte cuando haya parche. Vigente desde el 18-11-2026: `picomatch` ≤ 4.0.7 (GHSA-fc5q-39xc-vjpf, ReDoS por extglobs repetidos, severidad alta) lo traen `vite`, `vitest` y `typescript-eslint` al compilar y probar; no llega al navegador ni se ejecuta con datos del usuario, y no existe versión corregida (la última publicada es la 4.0.7).
 - **Vulnerabilidad de la imagen sin parche:** línea `CVE-...` en `.trivyignore` con el motivo y la fecha de revisión.
 - **Regla del compilador:** `[SuppressMessage("Security", "CAxxxx", Justification = "...")]` en el sitio exacto, nunca bajar la severidad de toda la categoría.
 - **Alerta de CodeQL:** descartar en GitHub (*Security → Code scanning → Dismiss*) indicando el motivo, y anotarlo en `docs/ESTADO-DEL-PROYECTO.md`.
