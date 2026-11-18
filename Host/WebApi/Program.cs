@@ -3,6 +3,7 @@ using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
 using DocumentManager.Infrastructure.DependencyInjection;
+using Notifications.Infrastructure.DependencyInjection;
 using Permissions.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,9 @@ builder.Services.AddPermissionsInfrastructure(builder.Configuration);
 
 // Módulo Manejador de Documentos (Pieza 3 del Core; persistencia y almacenamiento propios).
 builder.Services.AddDocumentManagerModule(builder.Configuration);
+
+// Módulo de Notificaciones (Pieza 4 del Core): bandeja interna y correo por la cola de Control de Acceso.
+builder.Services.AddNotificationsModule(builder.Configuration);
 
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
