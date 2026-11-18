@@ -27,6 +27,9 @@ builder.Services.AddNotificationsModule(builder.Configuration);
 builder.Services.AddScoped<Notifications.Application.Interfaces.IDirectorioUsuarios, DirectorioUsuariosAdapter>();
 builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, ColaCorreosAdapter>();
 
+// Los avisos de Permisos (solicitud creada y resuelta) llegan al motor de Notificaciones por este adaptador.
+builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermisos, NotificadorPermisosAdapter>();
+
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 
