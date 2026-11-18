@@ -49,6 +49,7 @@
     <Project Path="tests/HabitTracker.Application.Tests/HabitTracker.Application.Tests.csproj" />
     <Project Path="tests/HabitTracker.Domain.Tests/HabitTracker.Domain.Tests.csproj" />
     <Project Path="tests/HabitTracker.Integration.Tests/HabitTracker.Integration.Tests.csproj" />
+    <Project Path="tests/Notifications.Api.Tests/Notifications.Api.Tests.csproj" />
     <Project Path="tests/Notifications.Application.Tests/Notifications.Application.Tests.csproj" />
     <Project Path="tests/Notifications.Domain.Tests/Notifications.Domain.Tests.csproj" />
     <Project Path="tests/Notifications.Infrastructure.Tests/Notifications.Infrastructure.Tests.csproj" />

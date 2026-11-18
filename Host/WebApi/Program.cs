@@ -23,6 +23,10 @@ builder.Services.AddDocumentManagerModule(builder.Configuration);
 // Módulo de Notificaciones (Pieza 4 del Core): bandeja interna y correo por la cola de Control de Acceso.
 builder.Services.AddNotificationsModule(builder.Configuration);
 
+// Notificaciones se conecta a Control de Acceso (usuarios y cola de correos) solo por puertos y estos adaptadores.
+builder.Services.AddScoped<Notifications.Application.Interfaces.IDirectorioUsuarios, DirectorioUsuariosAdapter>();
+builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, ColaCorreosAdapter>();
+
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 
@@ -41,6 +45,7 @@ builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDat
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePlanes>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePermisos>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteDocumentos>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteNotificaciones>();
 
 // Límite de peticiones por IP en activación, login, registro y recuperación de contraseña (RD-06).
 builder.Services.AddLimitacionDePeticiones(builder.Configuration);
