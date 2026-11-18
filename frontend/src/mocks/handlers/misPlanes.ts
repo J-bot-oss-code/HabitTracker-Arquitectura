@@ -97,7 +97,7 @@ function formatoDe(zona: string): Intl.DateTimeFormat | null {
 }
 
 // Número de día (días desde 1970-01-01) del día local al que pertenece el instante.
-function diaLocal(zona: string, instante: number): number {
+export function diaLocal(zona: string, instante: number): number {
   const formato = zona === 'UTC' ? null : formatoDe(zona)
   if (!formato) return Math.floor(instante / DIA_MS)
   const partes = formato.formatToParts(new Date(instante))
@@ -105,7 +105,7 @@ function diaLocal(zona: string, instante: number): number {
   return Date.UTC(parte('year'), parte('month') - 1, parte('day')) / DIA_MS
 }
 
-const zonaDe = (usuarioId: string) => db.perfiles.get(usuarioId)?.zonaHoraria ?? 'UTC'
+export const zonaDe = (usuarioId: string) => db.perfiles.get(usuarioId)?.zonaHoraria ?? 'UTC'
 // 1970-01-01 fue jueves. Lunes de la semana (lunes a domingo) del día.
 const inicioDeSemana = (dia: number) => dia - ((((dia + 4) % 7) + 6) % 7)
 const fechaDe = (dia: number) => new Date(dia * DIA_MS)
