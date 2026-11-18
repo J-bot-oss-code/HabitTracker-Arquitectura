@@ -11,6 +11,8 @@
 | AdjuntosPlanController | GET | `/api/my-plans/{id:guid}/attachments` | rol Estandar |
 | AdjuntosPlanController | POST | `/api/my-plans/{id:guid}/attachments` | rol Estandar |
 | AdjuntosPlanController | DELETE | `/api/my-plans/{id:guid}/attachments/{documentoId:guid}` | rol Estandar |
+| AdminColaCorreosController | GET | `/api/admin/email-queue` | rol Administrador |
+| AdminColaCorreosController | POST | `/api/admin/email-queue/process` | rol Administrador |
 | AdminUsuariosController | GET | `/api/admin/usuarios` | rol Administrador |
 | AdminUsuariosController | PATCH | `/api/admin/usuarios/{id:guid}/rol` | rol Administrador |
 | AdminUsuariosController | PATCH | `/api/admin/usuarios/{id:guid}/estado` | rol Administrador |
@@ -52,6 +54,10 @@
 | MyPlansController | POST | `/api/my-plans/{id:guid}/transition` | rol Estandar |
 | MyPlansController | POST | `/api/my-plans/{id:guid}/adjust` | rol Estandar |
 | MyPlansController | PUT | `/api/my-plans/{id:guid}/reminder` | rol Estandar |
+| NotificationsController | GET | `/api/notifications` | autenticado |
+| NotificationsController | POST | `/api/notifications/{id:guid}/read` | autenticado |
+| NotificationsController | GET | `/api/notifications/preferences` | autenticado |
+| NotificationsController | PUT | `/api/notifications/preferences` | autenticado |
 | PermissionsController | POST | `/api/permissions` | autenticado |
 | PermissionsController | GET | `/api/permissions` | autenticado |
 | PermissionsController | GET | `/api/permissions/effective/{permiso}` | autenticado |
@@ -85,39 +91,49 @@
 
 ## Migraciones por contexto
 
-- **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta
+- **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado
 - **DocumentManager:** AgregarTablaDocumentos
 - **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan
+- **Notifications:** CrearNotificaciones
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
 ## Proyectos de prueba (backend)
 
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
-| AccessControl.Application.Tests | 27 | 276 | 43 |
-| AccessControl.Infrastructure.Tests | 8 | 62 | 7 |
+| AccessControl.Application.Tests | 29 | 282 | 44 |
+| AccessControl.Infrastructure.Tests | 11 | 78 | 8 |
 | DocumentManager.Api.Tests | 4 | 31 | 6 |
 | DocumentManager.Application.Tests | 1 | 34 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
 | HabitTracker.Api.Tests | 7 | 41 | 13 |
-| HabitTracker.Application.Tests | 6 | 107 | 7 |
+| HabitTracker.Application.Tests | 7 | 111 | 7 |
 | HabitTracker.Domain.Tests | 10 | 142 | 27 |
 | HabitTracker.Integration.Tests | 10 | 61 | 4 |
-| Permissions.Application.Tests | 1 | 11 | 2 |
+| Notifications.Api.Tests | 3 | 20 | 2 |
+| Notifications.Application.Tests | 1 | 12 | 0 |
+| Notifications.Domain.Tests | 1 | 8 | 1 |
+| Notifications.Infrastructure.Tests | 1 | 4 | 0 |
+| Permissions.Application.Tests | 2 | 18 | 2 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 2 | 7 | 1 |
-| **Total** | | **817** | **118** |
+| **Total** | | **894** | **123** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 ## Adaptadores del Host (puertos entre módulos)
 
+- `ColaCorreosAdapter.cs`: `class ColaCorreosAdapter(IEmailQueue cola) : IColaCorreos`
 - `ConsentimientoSaludAdapter.cs`: `class ConsentimientoSaludAdapter(IConsentimientoService consentimientos) : IConsentimientoSalud`
+- `DirectorioUsuariosAdapter.cs`: `class DirectorioUsuariosAdapter(IUsuarioRepository usuarios) : IDirectorioUsuarios`
 - `DocumentosUsuarioAdapter.cs`: `class DocumentosUsuarioAdapter(IDocumentoService documentos) : IDocumentosUsuario`
 - `GuardaEliminacionDocumentoAdapter.cs`: `class GuardaEliminacionDocumentoAdapter(`
+- `NotificadorPermisosAdapter.cs`: `class NotificadorPermisosAdapter(INotificacionService notificaciones, IDirectorioUsuarios directorio) : INotificadorPermisos`
+- `NotificadorUsuarioAdapter.cs`: `class NotificadorUsuarioAdapter(INotificacionService notificaciones, IDirectorioUsuarios directorio) : INotificadorUsuario`
 - `ParticipanteDocumentos.cs`: `class ParticipanteDocumentos(IDocumentoService servicio) : IParticipanteDatosUsuario`
 - `ParticipanteHabitos.cs`: `class ParticipanteHabitos(IHabitoService servicio) : IParticipanteDatosUsuario`
+- `ParticipanteNotificaciones.cs`: `class ParticipanteNotificaciones(INotificacionService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePerfilSalud.cs`: `class ParticipantePerfilSalud(IDatosPerfilSaludService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePermisos.cs`: `class ParticipantePermisos(ISolicitudPermisoService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePlanes.cs`: `class ParticipantePlanes(IDatosPlanesService servicio) : IParticipanteDatosUsuario`
