@@ -209,4 +209,27 @@ public sealed class UsuarioRepositoryTests : IDisposable
         var guardado = (await new UsuarioRepository(lectura).GetByIdAsync(usuario.Id))!;
         Assert.Equal("999999", guardado.TokenAcceso!.Valor);
     }
+
+    [Fact]
+    [Trait("Requirement", "RF-NOT-01")]
+    public async Task RF_NOT_01_ListarAdministradoresActivosDevuelveSoloAdministradoresConLaCuentaActiva()
+    {
+        var adminActivo = new Usuario("Admin", new Email("admin@ejemplo.com"), "hash", Rol.Administrador);
+        adminActivo.Activar();
+        var adminPendiente = new Usuario("Admin2", new Email("admin2@ejemplo.com"), "hash", Rol.Administrador); // sin activar
+        var estandarActivo = new Usuario("Ana", new Email("ana@ejemplo.com"), "hash", Rol.Estandar);
+        estandarActivo.Activar();
+        using (var contexto = NuevoContexto())
+        {
+            var repo = new UsuarioRepository(contexto);
+            await repo.SaveAsync(adminActivo);
+            await repo.SaveAsync(adminPendiente);
+            await repo.SaveAsync(estandarActivo);
+        }
+
+        using var lectura = NuevoContexto();
+        var lista = await new UsuarioRepository(lectura).ListarAdministradoresActivosAsync();
+
+        Assert.Equal(adminActivo.Id, Assert.Single(lista).Id);
+    }
 }

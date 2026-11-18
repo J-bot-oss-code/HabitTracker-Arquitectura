@@ -1,4 +1,4 @@
-# HabitTracker Nexus - composición completa: la API y su base de datos.
+# HabitTracker Nexus - composición completa: la API, su base de datos y un servidor de correo de prueba.
 #
 #   copy .env.example .env        (Windows)   |   cp .env.example .env   (Linux / macOS)
 #   docker compose up --build
@@ -29,7 +29,18 @@ services:
       start_period: 20s
 
   # --------------------------------------------------------------------------
-  # La aplicación. Es el ÚNICO servicio que publica un puerto en el equipo.
+  # Servidor de correo de PRUEBA (Mailpit): recibe lo que envía la API y no entrega nada a Internet.
+  # Los correos se ven en http://localhost:8025. Su SMTP (puerto 1025) solo es accesible dentro de la composición.
+  # Para provocar un fallo de envío: docker compose stop mailpit. Para correo real, rellena los SMTP_* del .env.
+  # --------------------------------------------------------------------------
+  mailpit:
+    image: axllent/mailpit:v1.32.0
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8025:8025"
+
+  # --------------------------------------------------------------------------
+  # La aplicación. Con la interfaz de Mailpit, es el único servicio que publica puertos en el equipo.
   # --------------------------------------------------------------------------
   webapi:
     build: .
@@ -37,6 +48,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     ports:
       - "8080:8080"
     environment:
@@ -61,6 +74,8 @@ services:
       SMTP_PORT: ${SMTP_PORT:-}
       SMTP_USER: ${SMTP_USER:-}
       SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SSL: ${SMTP_SSL:-}
+      SMTP_FROM: ${SMTP_FROM:-}
 
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
 

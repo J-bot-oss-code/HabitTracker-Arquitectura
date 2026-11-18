@@ -10,7 +10,8 @@
 | Permissions | Completo (`Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`) | `PermissionsDbContext` | `Modules/Permissions/Permissions.Infrastructure/DependencyInjection/` |
 | HabitTracker (negocio) | Hábitos (meta opcional, errores con código), perfil en dos niveles, cuestionario de salud **cifrado**, peso y medidas, catálogo de planes, **Mis planes** (pausas, ajustes, logros, mensajes) y `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
 | DocumentManager | Completo (RF-DOC-01..05) | `DocumentManagerDbContext` | su `DependencyInjection/` en Infrastructure |
-| Auditing, Notifications, Reports | Solo `.csproj` vacíos | — | — |
+| Notifications | Completo (P5): `Notificacion`, `PreferenciaNotificaciones`, canal interno + correo por la cola | `NotificationsDbContext` | `Modules/Notifications/Notifications.Infrastructure/DependencyInjection/` y adaptadores en `Host/WebApi/Adapters` |
+| Auditing, Reports | Solo `.csproj` vacíos | — | — |
 
 - Los cuatro contextos usan la misma cadena `ConnectionStrings:AccessControl` (SQL Server) y la tabla `__EFMigrationsHistory` por defecto.
 - `Host/WebApi/Program.cs` registra los adaptadores entre módulos, `JsonStringEnumConverter` (los enums viajan como texto) y llama a `InicializarBaseDeDatosAsync`.
@@ -134,3 +135,11 @@ Contextos: `ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContex
 - `Permissions`: `SolicitudNoEncontradaException` (404 `solicitud_no_encontrada`) y `SolicitudDuplicadaException` (409 `solicitud_duplicada`), mapeadas en `GlobalExceptionMiddleware`; `CrearPermisoRequest` valida la clave con `[param: …]` (con `[property: …]` ASP.NET lanza).
 - `DocumentManager.Application`: `IGuardaEliminacionDocumento` (opcional en `DocumentoService`) y `DocumentoProtegidoException` (409 `documento_requiere_permiso`); el Administrador no pasa por la guarda.
 - `HabitTracker`: `AdjuntoPlan` + `AdjuntosPlanService` (`api/my-plans/{id}/attachments`, `GET api/my-plans/attachments`), puertos `IDocumentosUsuario` (adaptador `DocumentosUsuarioAdapter`) y `IAdjuntoPlanRepository`; `PermisoRequeridoException` (409). La guarda compuesta `GuardaEliminacionDocumentoAdapter` usa el **repositorio**, no el servicio, para no cerrar un ciclo de inyección.
+
+## Notificaciones y cola de correos (P5)
+
+- **Ganchos** (parámetro opcional del constructor, sin tocar las suites de las prácticas): `INotificadorPermisos` (Permissions.Application → `NotificadorPermisosAdapter`) e `INotificadorUsuario` (HabitTracker.Application, solo cuando un logro se guarda por primera vez → `NotificadorUsuarioAdapter`). Puertos de Notifications: `IColaCorreos` → `ColaCorreosAdapter` e `IDirectorioUsuarios` → `DirectorioUsuariosAdapter`.
+- **API:** `api/notifications` (`GET`, `POST {id}/read`, `GET/PUT preferences`) y `api/admin/email-queue` (`GET ?estado=`, `POST process`, solo Administrador).
+- **Cola** (AccessControl.Infrastructure/Services): `ProcesadorColaCorreos` (reclamo atómico, recuperación de `Procesando`, espera configurable), `EnviadorCorreoSmtp` (`LeerOpciones`: `SMTP_HOST/PORT/SSL/USER/PASS/FROM`) y `ColaCorreosAdmin`. `EmailSenderWorker` solo llama al procesador cada 15 s. `CorreoEnCola.MaxIntentos = 3`.
+- **Correo en el contenedor:** Mailpit (`:8025`); el `.env.example` apunta a él. Para volver a la consola, `SMTP_HOST` vacío.
+- Criterios de aceptación: `docs/criterios-notificaciones-reportes.md`. Detalle: `docs/historial/practica-5.md`.

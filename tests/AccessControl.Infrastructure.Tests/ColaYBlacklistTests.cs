@@ -115,7 +115,7 @@ public sealed class ColaYBlacklistTests : IDisposable
         }
 
         using var lectura = NuevoContexto();
-        var candidatos = await lectura.CorreosEnCola.Where(EmailSenderWorker.CandidatosDeEnvio)
+        var candidatos = await lectura.CorreosEnCola.Where(ProcesadorColaCorreos.CandidatosDeEnvio)
             .Select(c => c.Destinatario).OrderBy(d => d).ToListAsync();
 
         Assert.Equal(["fallido1@ejemplo.com", "fallido2@ejemplo.com", "pendiente@ejemplo.com"], candidatos);

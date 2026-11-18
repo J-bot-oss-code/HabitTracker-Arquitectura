@@ -13,6 +13,8 @@ public class CorreoEnCola
     /// <summary>Intentos de envío antes de rendirse; el worker lo usa para no volver a leer los correos agotados.</summary>
     public const int MaxIntentos = 3;
 
+    public const int LongitudMaximaError = 500;
+
     public Guid Id { get; private set; }
     public string Destinatario { get; private set; } = string.Empty;
     public string Asunto { get; private set; } = string.Empty;
@@ -86,7 +88,8 @@ public class CorreoEnCola
         }
 
         Intentos++;
-        UltimoError = error;
+        // Un mensaje de error largo (o con detalles del servidor) no debe llenar la tabla ni mostrarse entero.
+        UltimoError = error.Length <= LongitudMaximaError ? error : error[..LongitudMaximaError];
         FechaUltimoIntento = DateTime.UtcNow;
         Estado = EstadoCorreo.Fallido;
     }
@@ -106,17 +109,21 @@ public class CorreoEnCola
         Estado = EstadoCorreo.Pendiente;
     }
 
-    public bool PuedeReintentarse(DateTime ahora)
+    /// <summary>
+    /// Backoff exponencial: tras cada fallo se espera <c>esperaBase × 2^intentos</c> antes de reintentar (1 minuto de base por
+    /// defecto: 2 y 4 minutos). Con una base de 0 los reintentos son inmediatos (pruebas y demostraciones).
+    /// </summary>
+    public bool PuedeReintentarse(DateTime ahora, TimeSpan? esperaBase = null)
     {
         if (Estado == EstadoCorreo.Pendiente)
         {
             return true;
         }
 
-        // Backoff exponencial: tras cada fallo se espera 2^intentos minutos antes de reintentar.
         if (Estado == EstadoCorreo.Fallido && Intentos < MaxIntentos && FechaUltimoIntento.HasValue)
         {
-            return FechaUltimoIntento.Value.AddMinutes(Math.Pow(2, Intentos)) <= ahora;
+            var espera = (esperaBase ?? TimeSpan.FromMinutes(1)) * Math.Pow(2, Intentos);
+            return FechaUltimoIntento.Value.Add(espera) <= ahora;
         }
 
         return false;

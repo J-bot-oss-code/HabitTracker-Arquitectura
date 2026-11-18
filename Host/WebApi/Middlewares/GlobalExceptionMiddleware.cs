@@ -5,6 +5,7 @@ using DocumentManager.Application.Exceptions;
 using HabitTracker.Application.Exceptions;
 using HabitTracker.Domain.Excepciones;
 using Microsoft.AspNetCore.Mvc;
+using Notifications.Application.Exceptions;
 using Permissions.Application.Exceptions;
 
 namespace WebApi.Middlewares;
@@ -139,6 +140,11 @@ public class GlobalExceptionMiddleware
             // Debe ir antes del catch de InvalidOperationException (es su clase base). Siempre con cuerpo, como el resto de 404.
             _logger.LogInformation("Solicitud de permiso no encontrada.");
             await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", ex.Message, SolicitudNoEncontradaException.Codigo);
+        }
+        catch (NotificacionNoEncontradaException ex)
+        {
+            _logger.LogInformation("Notificación no encontrada.");
+            await WriteProblemAsync(context, HttpStatusCode.NotFound, "No encontrado.", ex.Message, NotificacionNoEncontradaException.Codigo);
         }
         catch (SolicitudDuplicadaException ex)
         {

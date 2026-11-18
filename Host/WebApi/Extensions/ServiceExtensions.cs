@@ -110,6 +110,9 @@ public static class ServiceExtensions
 
         services.AddAuthorization();
 
+        services.AddScoped<IEnviadorCorreo, EnviadorCorreoSmtp>();
+        services.AddScoped<ProcesadorColaCorreos>();
+        services.AddScoped<IColaCorreosAdmin, ColaCorreosAdmin>();
         services.AddHostedService<EmailSenderWorker>();
 
         return services;

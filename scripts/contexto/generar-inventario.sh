@@ -94,7 +94,7 @@ generar() {
 
   echo "## Workers (BackgroundService)"
   echo
-  git ls-files 'Modules/*.cs' 'Host/*.cs' | sort | xargs grep -l ': BackgroundService' 2>/dev/null | while read -r w; do echo "- \`$w\`"; done
+  git ls-files 'Modules/*.cs' 'Host/*.cs' | sort | { xargs grep -l ': BackgroundService' 2>/dev/null || true; } | while read -r w; do echo "- \`$w\`"; done
   echo
 
   echo "## Frontend: features"

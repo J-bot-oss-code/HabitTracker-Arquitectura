@@ -61,7 +61,7 @@ docker compose up --build
 - **Swagger (para probar la API):** `http://localhost:8080/swagger` (botón *Authorize* → `Bearer {token}`).
 - **Detener el proyecto:** `Ctrl+C` en la terminal donde corre, o desde otra terminal `docker compose down`. Esto **conserva** los datos. Solo `docker compose down -v` borra los volúmenes y empieza de cero.
 
-Solo la aplicación publica un puerto (el `8080`). La base de datos **no** es accesible desde fuera de la composición: la API la encuentra por el nombre del servicio (`Server=db`), no por `localhost`.
+La aplicación publica el puerto `8080` y Mailpit su interfaz web, el `8025`. La base de datos **no** es accesible desde fuera de la composición: la API la encuentra por el nombre del servicio (`Server=db`), no por `localhost`.
 
 ### Datos de partida
 
@@ -72,20 +72,20 @@ Los valores del `.env.example` son de ejemplo para esta demostración; cámbialo
 | Administrador inicial | `admin@ejemplo.com` / `Ejemplo_Admin_2026!` (variables `ADMIN_CORREO` y `ADMIN_CLAVE`) |
 | Meta de demostración (para crear hábitos) | `5f1c0a00-0000-4000-8000-000000000002` |
 
-### Correos (activación de cuenta y recuperación de contraseña)
+### Correos (activación de cuenta, recuperación de contraseña y notificaciones)
 
-No hay un servidor de correo en la composición. Con `CORREO_MODO=consola` y `SMTP_HOST` vacío (valores del `.env.example`) el sistema **escribe el correo en el log** en lugar de enviarlo. Para leerlo:
+La composición incluye **Mailpit**, un servidor de correo **de prueba**: recibe lo que envía la API y **no entrega nada a Internet**. Con el `.env.example` tal cual (`SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `SMTP_SSL=false`) todos los correos salen por la cola hacia Mailpit y se leen en **`http://localhost:8025`**:
 
-```bash
-docker compose logs webapi | findstr "CORREO"            # Windows CMD
-docker compose logs webapi | Select-String "CORREO"      # PowerShell
-docker compose logs webapi | grep CORREO                 # Linux / macOS
-```
-
-- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada (un escáner de correos no puede activar la cuenta ni gastar intentos), la activación ocurre al pulsar el botón. También puedes enviar `{"correo":"...","codigo":"123456"}` a `POST /api/auth/activate`. El código se valida siempre junto al correo; tras **5 códigos incorrectos** se invalida y hay que pedir otro con `POST /api/auth/resend-activation` (como máximo uno por minuto). Activación y reenvío admiten como máximo 30 peticiones por minuto desde una misma IP (después responden `429`).
+- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada por sí solo.
 - **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
+- **Notificaciones:** cada notificación llega también por correo (ver la sección `Notificaciones`).
 
-Si rellenas los cuatro `SMTP_*` del `.env`, los correos se envían de verdad. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
+Los correos tardan hasta 15 segundos en salir (el proceso que los envía corre a ese ritmo). Para no esperar, un Administrador ejecuta `POST /api/admin/email-queue/process`.
+
+Otras formas de recibirlos:
+
+- **Modo consola:** deja `SMTP_HOST` **vacío** y `CORREO_MODO=consola`: el correo se escribe en el log en lugar de enviarse (`docker compose logs webapi | grep CORREO`, o `findstr "CORREO"` en CMD y `Select-String "CORREO"` en PowerShell).
+- **Correo real:** rellena `SMTP_HOST`, `SMTP_PORT`, `SMTP_SSL=true`, `SMTP_USER` y `SMTP_PASS` (y `SMTP_FROM` si quieres otro remitente) en el `.env`. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
 
 ### Los datos sobreviven
 
@@ -187,12 +187,55 @@ El nombre con el que se guarda cada archivo en el volumen es un GUID generado po
 
 Con el proyecto levantado (`http://localhost:8080/swagger`), los seis frentes:
 
-1. **Registro con activación por correo:** `POST /api/auth/register` → leer el código de 6 dígitos en `docker compose logs webapi` → `POST /api/auth/activate` con `{"correo":"...","codigo":"..."}` (o abrir el enlace del correo).
+1. **Registro con activación por correo:** `POST /api/auth/register` → leer el código de 6 dígitos en Mailpit (`http://localhost:8025`) → `POST /api/auth/activate` con `{"correo":"...","codigo":"..."}` (o abrir el enlace del correo).
 2. **Inicio y cierre de sesión:** `POST /api/auth/login` (`{"email","password"}`) → `GET /api/auth/me` → `POST /api/auth/logout` → `GET /api/auth/me` responde `401`.
 3. **Estándar contra una operación de Administrador:** con el token de un usuario Estándar, `GET /api/admin/usuarios` responde `403`.
-4. **Recuperación de contraseña:** `POST /api/auth/forgot-password` → leer el código en el log → `POST /api/auth/reset-password`.
+4. **Recuperación de contraseña:** `POST /api/auth/forgot-password` → leer el código en Mailpit (`http://localhost:8025`) → `POST /api/auth/reset-password`.
 5. **Gestión de permisos:** `POST /api/permissions` (`{"permisoSolicitado":"Habits.AdvancedReconfig"}`); con el token del Administrador inicial, `POST /api/permissions/{id}/approve` o `/reject` (`{"motivoRechazo":"..."}`). Resolver dos veces, o aprobar una solicitud propia, se rechaza (`400`).
 6. **Módulo de negocio (hábitos):** con un usuario Estándar, `POST /api/habits` usando como `metaId` la Meta de demostración; `POST /api/habits/{id}/transition` con `{"nuevoEstado":"Activo"}` funciona y `{"nuevoEstado":"Completado"}` desde `Planificado` se rechaza (`400`).
+
+## Notificaciones
+
+Cada aviso del sistema llega por **dos canales**: la **bandeja interna** (`/api/notifications`) y un **correo** que sale por la cola de correos (RF-NOT-06). Cada persona puede desactivar el correo y conservar la bandeja interna (RF-NOT-07). Todas las operaciones piden sesión (`Authorization: Bearer <token>`).
+
+**Módulos.** `Modules/Notifications` guarda las notificaciones y la preferencia de correo; Permisos y HabitTracker solo exponen un punto de extensión opcional (`INotificadorPermisos`, `INotificadorUsuario`) y el Host los conecta con adaptadores en `Host/WebApi/Adapters`. La cola y su proceso de envío siguen en Control de Acceso.
+
+### Eventos y cómo provocarlos
+
+| Evento | Quién recibe la notificación | Cómo provocarlo |
+|---|---|---|
+| Una persona crea una solicitud de permiso (RF-NOT-01) | **Todos los Administradores activos**, y nadie más | Un Estándar: `POST /api/permissions` con `{"permisoSolicitado":"Habits.AdvancedReconfig"}` |
+| Un Administrador aprueba o rechaza la solicitud (RF-NOT-02) | **Solo quien la hizo**, con el resultado y, si se rechazó, el motivo | `POST /api/permissions/{id}/approve`, o `POST /api/permissions/{id}/reject` con `{"motivoRechazo":"Falta justificación"}` |
+| **Evento del negocio (RF-NOT-03):** la persona gana un logro de constancia en HabitTracker | Solo ella (por ejemplo «Primer avance») | Con un Estándar: crea un hábito (`POST /api/habits`, `metaId` `5f1c0a00-0000-4000-8000-000000000002`), actívalo (`POST /api/habits/{id}/transition` con `{"nuevoEstado":"Activo"}`), registra un avance (`POST /api/habits/{id}/progress` con `{"cantidad":1,"fechaUtc":"<ahora en UTC>"}`) y consulta Hoy (`GET /api/today`): ahí se evalúan los logros y se avisa. Consultar Hoy otra vez **no** repite el aviso |
+
+Los textos del logro celebran la conducta y nunca mencionan peso, cuerpo ni culpa.
+
+### Endpoints
+
+| Ruta | Rol | Qué hace |
+|---|---|---|
+| `GET /api/notifications?soloNoLeidas=true` | Cualquiera con sesión | Mis notificaciones, de la más reciente a la más antigua, con `leida` (RF-NOT-04). Nunca las de otra persona |
+| `POST /api/notifications/{id}/read` | Cualquiera con sesión | La marca como leída (`204`). Una ajena responde `403` y no cambia (RF-NOT-05); una inexistente, `404` |
+| `GET/PUT /api/notifications/preferences` | Cualquiera con sesión | `{"correoActivo": true|false}`. Con `false`, las notificaciones siguen apareciendo en la bandeja y **no se encola ningún correo** (RF-NOT-07) |
+| `GET /api/admin/email-queue?estado=Pendiente\|Procesando\|Enviado\|Fallido` | Administrador | La cola: destinatario, asunto, estado, intentos, fechas y último error, sin el cuerpo (RF-NOT-11). Un Estándar recibe `403` |
+| `POST /api/admin/email-queue/process` | Administrador | Ejecuta una pasada del procesador y devuelve `{enviados, fallidos, recuperados}` (RF-NOT-09) |
+
+### La cola de correos
+
+- **Se encola, no se envía en la operación (RF-NOT-08):** crear una solicitud o registrarse responde `201` aunque el servidor de correo esté apagado; el correo queda `Pendiente`.
+- **Un proceso independiente (RF-NOT-09):** el servicio en segundo plano `EmailSenderWorker` envía los pendientes cada 15 segundos. Para ejecutarlo a pedido: `POST /api/admin/email-queue/process` como Administrador.
+- **Reintentos limitados (RF-NOT-10): el máximo es 3 intentos.** Tras cada fallo espera `base × 2^intentos` (con la base de `Correo__EsperaReintentoSegundos`, 60 s por defecto) y, agotados los 3, el correo queda **`Fallido`** con su `ultimoError`; no se reintenta más ni se borra.
+- **Estado de cada correo (RF-NOT-11):** `Pendiente`, `Procesando`, `Enviado` o `Fallido`, con intentos, fechas y último error.
+- **Un correo enviado no se reenvía (RF-NOT-12):** cada correo se reclama con un solo `UPDATE` condicionado a su estado, así que ejecutar el procesador dos veces seguidas (o dos procesos a la vez) no duplica ningún envío. Un correo que quedó en `Procesando` por una caída se recupera pasados `Correo__MinutosParaRecuperar` (10 por defecto) y cuenta como un intento fallido.
+- **Credenciales por variables de entorno (RF-NOT-13):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_SSL`, `SMTP_USER`, `SMTP_PASS` y `SMTP_FROM`; ninguna está en el repositorio (`.env.example` las trae sin secretos).
+
+### Cómo provocar un fallo de envío
+
+1. Apaga el servidor de correo: `docker compose stop mailpit`.
+2. Provoca un evento (por ejemplo, un Estándar crea una solicitud de permiso): responde `201` y el correo queda `Pendiente` (`GET /api/admin/email-queue?estado=Pendiente`).
+3. Ejecuta el procesador tres veces (`POST /api/admin/email-queue/process`) esperando entre cada una lo que marque la espera de reintento. Para no esperar, arranca con `Correo__EsperaReintentoSegundos=0` en el `.env`.
+4. `GET /api/admin/email-queue?estado=Fallido` muestra el correo con `intentos: 3` y `ultimoError`. Una cuarta ejecución no lo toca.
+5. Con `docker compose start mailpit`, los correos nuevos vuelven a enviarse.
 
 ## 🚀 Compilación y Ejecución
 
@@ -585,7 +628,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
 * **Inicio de sesión, claims y expiración:** ejecuta `POST /api/auth/login` con las credenciales de una cuenta activa; autoriza Swagger con el JWT recibido y ejecuta `GET /api/auth/me` para comprobar el id, correo y rol autenticados. Inspecciona localmente el payload del JWT y confirma que contiene los datos de identidad y una expiración futura (`exp`). No publiques el JWT. Ejecuta `POST /api/auth/logout`; el mismo token debe quedar invalidado y `GET /api/auth/me` debe responder `401`.
 *   **Registro y rechazo controlado:** Usa `POST /api/auth/register` con una clave menor a 8 caracteres o sin números. Recibirás un error 400 controlado.
 *   **Encolado de correos (Sin SMTP):** Si el servidor SMTP no está configurado o falla, el registro (201 Created) y la recuperación de clave terminan con éxito. Los correos quedan pendientes en la tabla/cola interna.
-*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026","consentimientos":{"terminosVersion":"v2.1","privacidadVersion":"v1.4","marketing":false}}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, `docker compose logs webapi`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
+*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026","consentimientos":{"terminosVersion":"v2.1","privacidadVersion":"v1.4","marketing":false}}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, en Mailpit: `http://localhost:8025`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
 
     ```sql
     SELECT TokenAcceso, Vencimiento

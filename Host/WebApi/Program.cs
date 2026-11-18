@@ -3,6 +3,7 @@ using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
 using DocumentManager.Infrastructure.DependencyInjection;
+using Notifications.Infrastructure.DependencyInjection;
 using Permissions.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +19,19 @@ builder.Services.AddPermissionsInfrastructure(builder.Configuration);
 
 // Módulo Manejador de Documentos (Pieza 3 del Core; persistencia y almacenamiento propios).
 builder.Services.AddDocumentManagerModule(builder.Configuration);
+
+// Módulo de Notificaciones (Pieza 4 del Core): bandeja interna y correo por la cola de Control de Acceso.
+builder.Services.AddNotificationsModule(builder.Configuration);
+
+// Notificaciones se conecta a Control de Acceso (usuarios y cola de correos) solo por puertos y estos adaptadores.
+builder.Services.AddScoped<Notifications.Application.Interfaces.IDirectorioUsuarios, DirectorioUsuariosAdapter>();
+builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, ColaCorreosAdapter>();
+
+// Los avisos de Permisos (solicitud creada y resuelta) llegan al motor de Notificaciones por este adaptador.
+builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermisos, NotificadorPermisosAdapter>();
+
+// Los logros que gana la persona en HabitTracker se le avisan por el mismo motor.
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuario, NotificadorUsuarioAdapter>();
 
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
@@ -37,6 +51,7 @@ builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDat
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePlanes>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePermisos>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteDocumentos>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteNotificaciones>();
 
 // Límite de peticiones por IP en activación, login, registro y recuperación de contraseña (RD-06).
 builder.Services.AddLimitacionDePeticiones(builder.Configuration);
