@@ -45,3 +45,9 @@
   - Es seguro porque `main` solo recibe promociones de `develop`, que ya pasaron todos los checks allí.
 - **Validador de commits:** `scripts/ci/verificar-commits.sh` omite los commits ya publicados en `origin/main`. Hacía falta porque al sincronizar `main → develop` entraba el commit antiguo `69a85a5` («eliminar .mds redundantes», del 28-10), que no cumple el formato y no se puede reescribir. Los commits nuevos se validan igual; lo cubren 3 casos nuevos de `pruebas-verificar-commits.sh` con un repositorio temporal.
 - **Promover desde ahora:** PR `develop → main` directa (skill `flujo-pr`). Tras cada promoción, `main` lleva un commit de merge más que `develop`, sin cambios de archivos; ya no bloquea nada.
+
+## Aviso de `picomatch` sin parche (18-11-2026)
+
+- **Qué pasó:** apareció el aviso GHSA-fc5q-39xc-vjpf (ReDoS en `picomatch` ≤ 4.0.7, severidad alta) y `npm audit --audit-level=high` empezó a fallar en todas las PR, aunque solo cambiaran documentos. La última versión publicada de `picomatch` es la 4.0.7: no hay parche, y `npm audit fix --force` solo proponía bajar `vitest` a 3.1.4.
+- **Decisión (aprobada por el dueño del repositorio):** el paso de producción pasa a `npm audit --audit-level=high --omit=dev` y bloquea igual; un paso nuevo audita también las herramientas de desarrollo con `continue-on-error`, para que el aviso siga visible. `picomatch` solo lo usan `vite`, `vitest` y `typescript-eslint` al compilar y probar.
+- **Revertir:** cuando salga una versión corregida, subir `picomatch` por una PR de seguridad y volver a un solo paso `npm audit --audit-level=high`.
