@@ -47,4 +47,7 @@ public interface IDirectorioUsuarios
 
     /// <summary>La persona con ese correo, o <c>null</c> si no existe o su cuenta no está activa.</summary>
     Task<DestinatarioNotificacion?> ObtenerPorCorreoAsync(string correo, CancellationToken cancellationToken = default);
+
+    /// <summary>La persona con ese identificador, o <c>null</c> si no existe o su cuenta no está activa.</summary>
+    Task<DestinatarioNotificacion?> ObtenerPorIdAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 }

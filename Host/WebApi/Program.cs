@@ -30,6 +30,9 @@ builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, Co
 // Los avisos de Permisos (solicitud creada y resuelta) llegan al motor de Notificaciones por este adaptador.
 builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermisos, NotificadorPermisosAdapter>();
 
+// Los logros que gana la persona en HabitTracker se le avisan por el mismo motor.
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuario, NotificadorUsuarioAdapter>();
+
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 

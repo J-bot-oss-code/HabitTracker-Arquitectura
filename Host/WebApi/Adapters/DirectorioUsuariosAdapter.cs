@@ -14,6 +14,12 @@ public sealed class DirectorioUsuariosAdapter(IUsuarioRepository usuarios) : IDi
     public async Task<IReadOnlyList<DestinatarioNotificacion>> ListarAdministradoresActivosAsync(CancellationToken cancellationToken = default) =>
         [.. (await usuarios.ListarAdministradoresActivosAsync()).Select(u => new DestinatarioNotificacion(u.Id, u.Correo.Valor))];
 
+    public async Task<DestinatarioNotificacion?> ObtenerPorIdAsync(Guid usuarioId, CancellationToken cancellationToken = default)
+    {
+        var usuario = await usuarios.GetByIdAsync(usuarioId);
+        return usuario is { Activo: true } ? new DestinatarioNotificacion(usuario.Id, usuario.Correo.Valor) : null;
+    }
+
     public async Task<DestinatarioNotificacion?> ObtenerPorCorreoAsync(string correo, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(correo))
