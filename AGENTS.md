@@ -2,6 +2,13 @@
 
 .NET 10 modular monolith (Clean Architecture). Single host `Host/WebApi` + modules under `Modules/`.
 
+## Propósito del proyecto
+
+**HabitTracker Nexus** ayuda a una persona a **mantener hábitos con constancia, sin culpa**: planes guiados, check-in diario con versión mínima y mensajes de motivación. La app protege los datos de salud (cifrado en reposo, consentimiento) y nunca mide ni recompensa el cuerpo.
+
+- **Lenguaje y framework:** C# / .NET 10 (ASP.NET Core Web API, EF Core, SQL Server) y un frontend React + Vite + TypeScript en `frontend/`.
+- **Módulos del Core:** Control de Acceso, Permisos, Manejador de documentos, Notificaciones (con la cola de correos), Reportes y Auditoría. **Módulo de negocio:** HabitTracker.
+
 **Al iniciar una sesión, usar la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/SKILL.md`). Es un mapa corto del repositorio (módulos, endpoints, puertos, pruebas, frontend, requisitos RF/RD, recetas y principios de producto) que evita leer el repo entero o los PDF. Después, `docs/ESTADO-DEL-PROYECTO.md` (estado actual, ≤120 líneas). La historia por fases está en `docs/historial/` y solo se lee bajo demanda.
 
 Al cerrar cada entrega:
@@ -23,9 +30,19 @@ Al cerrar cada entrega:
 - `dotnet build HabitTrackerSystem.slnx`
 - `dotnet test` — xUnit + Moq suites in `tests/`; no API or external DB needed (SQLite in memory).
 - `dotnet run --project Host/WebApi/WebApi.csproj` (`http://localhost:5246`, Swagger at `/swagger`). Secrets (connection string, `JwtSettings:*`, SMTP) via User Secrets/env vars — see README.
-- Migrations: `dotnet ef database update --project Modules/<M>/<M>.Infrastructure --startup-project Host/WebApi --context <Ctx>` (`ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext`).
+- Migrations: `dotnet ef database update --project Modules/<M>/<M>.Infrastructure --startup-project Host/WebApi --context <Ctx>` (`ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext`, `DocumentManagerDbContext`).
+- **Contenedor (todo el sistema):** `copy .env.example .env` y `docker compose up --build` → `http://localhost:8080`. Los datos de los documentos y las claves de cifrado viven en volúmenes con nombre: `docker compose down` (sin `-v`) no los borra.
+- **Frontend:** `cd frontend && npm ci && npm test` (sin backend, API simulada con MSW), `npm run lint`, `npx tsc -b`, `npm run build`. Contra la API real: `VITE_API_URL=http://localhost:5246 npx vite --port 5174`.
 - Tags `practica-N` / `practica-N-defecto-M` are graded deliverables — never move or rewrite them.
 - CI (`.github/workflows/ci.yml` and `seguridad.yml`): required checks are `ci-ok` and `seguridad-ok`; high/critical findings block the merge. Run locally with `bash scripts/ci/verificar-reglas-rd.sh`, `bash scripts/ci/verificar-commits.sh <base> HEAD` and `bash scripts/ci/pruebas-verificar-commits.sh` (RD-03/05/08/10/11 and the commit format are checked automatically). `Directory.Build.props` turns the .NET security analyzers (`analizadores-seguridad.globalconfig`) and NuGetAudit NU1903/NU1904 into build errors — fix the cause; never lower the severity of a whole category. Exceptions need a written justification (see README › Integración continua).
+
+## Restricciones para el agente (obligatorias)
+
+- **Secretos:** nunca abras, leas ni imprimas `.env` ni `mis-valores-reales.env` (están fuera de git a propósito). Nunca escribas credenciales, claves ni contraseñas en el código, los commits, los logs, las pruebas ni la documentación; usa variables de entorno y `.env.example` con valores vacíos (RD-10).
+- **No tocar:** los tags `practica-*` y `asignacion-*` (ni sus ramas), las migraciones ya creadas (se añaden migraciones nuevas), `.github/workflows/`, `analizadores-seguridad.globalconfig`, `Directory.Build.props` y los archivos con defectos plantados de las prácticas (`SolicitudPermiso.cs`, `TransicionesSolicitudPermiso.cs`, `HabitoService.cs`, `Habito.cs`, `TransicionesHabito.cs`).
+- **Alcance:** cada módulo se comunica con otro solo por interfaces de `Application` y adaptadores en `Host/WebApi/Adapters`; ningún módulo lee las tablas de otro. Un cambio nuevo no puede romper las pruebas existentes: `dotnet test` debe seguir en verde.
+- **Commits y PR:** en español, con identificadores RF/RD de 2 dígitos; nunca push directo a `develop` ni a `main` (rama de trabajo y PR). No fusiones ni etiquetes sin que el usuario lo pida.
+- **Criterios primero:** el trabajo de Notificaciones y Reportes se acepta contra `docs/criterios-notificaciones-reportes.md`, que se escribió antes del código.
 
 ## Architecture rules (from `.github/copilot/agents/`)
 
