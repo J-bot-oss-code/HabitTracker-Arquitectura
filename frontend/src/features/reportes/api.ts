@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api/http'
 import type { RangoReporte, ReporteConstanciaDto, ReportePermisosDto } from './types'
 
@@ -26,6 +26,7 @@ export function usePermisosReporte(rango: RangoReporte | null) {
     queryKey: reportesKeys.permisos(rango ?? SIN_RANGO),
     queryFn: () => reportesApi.permisos(rango!),
     enabled: rango !== null,
+    placeholderData: keepPreviousData,
   })
 }
 
@@ -34,5 +35,6 @@ export function useConstanciaReporte(rango: RangoReporte | null) {
     queryKey: reportesKeys.constancia(rango ?? SIN_RANGO),
     queryFn: () => reportesApi.constancia(rango!),
     enabled: rango !== null,
+    placeholderData: keepPreviousData,
   })
 }
