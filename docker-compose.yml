@@ -76,6 +76,8 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_SSL: ${SMTP_SSL:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # Espera base entre reintentos de un correo que falló (segundos; reintentos a base×2 y base×4). 0 = reintentar ya.
+      Correo__EsperaReintentoSegundos: ${CORREO_ESPERA_REINTENTO_SEGUNDOS:-60}
 
       OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
 
