@@ -89,6 +89,23 @@ public sealed class NotificacionRepositoryTests : IDisposable
         Assert.Single(await repo.ListarDeUsuarioAsync(Beto, false));
     }
 
+    // Asignación 3 — hallazgo 3: dos PUT simultáneos de una persona sin preferencia chocaban en la clave y uno daba 500.
+    [Fact]
+    [Trait("Requirement", "RF-NOT-07")]
+    public async Task Hallazgo3_AgregarLaPreferenciaCuandoOtraPeticionYaLaCreo_ActualizaEnVezDeFallar()
+    {
+        using var primera = NuevoContexto();
+        var repoPrimera = new PreferenciaNotificacionesRepository(primera);
+        Assert.Null(await repoPrimera.ObtenerAsync(Ana)); // la primera petición ve que no existe...
+        using (var segunda = NuevoContexto()) // ...y la segunda la crea antes de que la primera guarde
+            await new PreferenciaNotificacionesRepository(segunda).AgregarAsync(new PreferenciaNotificaciones(Ana, correoActivo: true));
+
+        await repoPrimera.AgregarAsync(new PreferenciaNotificaciones(Ana, correoActivo: false));
+
+        using var lectura = NuevoContexto();
+        Assert.False((await new PreferenciaNotificacionesRepository(lectura).ObtenerAsync(Ana))!.CorreoActivo);
+    }
+
     [Fact]
     [Trait("Requirement", "RF-NOT-07")]
     public async Task RF_NOT_07_LaPreferenciaSeGuardaSeActualizaYSeBorra()
