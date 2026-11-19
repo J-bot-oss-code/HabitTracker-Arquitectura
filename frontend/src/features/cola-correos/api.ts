@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/http'
 import type { CorreoColaDto, EstadoCorreo, ResultadoColaDto } from './types'
 
@@ -21,6 +21,7 @@ export function useColaCorreos(estado?: EstadoCorreo) {
     queryKey: colaCorreosKeys.lista(estado),
     queryFn: () => colaCorreosApi.listar(estado),
     staleTime: 0,
+    placeholderData: keepPreviousData,
   })
 }
 
