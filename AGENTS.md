@@ -73,3 +73,11 @@ Al cerrar cada entrega:
   - RD-10: Credenciales y claves en variables de entorno, nunca hardcodeadas.
   - RD-11: Fechas con DateTime.UtcNow en todo el sistema.
   - RD-12: Cada pieza con al menos una prueba que corre sin la app completa.
+
+## Lecciones de la Asignación 3 (auditoría de la P5)
+
+- **Un estado terminal guarda su fecha** (cancelado, rechazado, completado) y los reportes lo cuentan hasta ahí; no desaparece de lo que se mide.
+- **Lo que se «deja fuera a propósito» no se acepta con un aviso en el historial:** se convierte en un criterio escrito o se corrige. Una prueba que da por buena esa omisión no es evidencia.
+- **Una deuda anotada que contradice un RF o un criterio es un hallazgo:** se corrige, no se deja en el ESTADO.
+- **Todo «leer y, si no existe, insertar» tolera la carrera** (clave única y, si choca, actualizar), y los criterios nuevos llevan un caso de dos peticiones simultáneas y uno de borde (estado terminal, rango vacío).
+- Los criterios definen cada número que se muestra (p. ej. `intentos` cuenta cada envío intentado) y no solo el camino de fallo.

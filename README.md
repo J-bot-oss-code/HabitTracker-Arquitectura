@@ -248,7 +248,7 @@ Dos reportes con **agregación real** (devuelven valores agrupados, no el listad
 | Reporte | Ruta | Qué responde | Cómo agrega |
 |---|---|---|---|
 | **Core (RF-REP-01):** solicitudes de permiso por estado y período | `GET /api/reports/permissions?desde=2026-11-02&hasta=2026-11-08` | Cuántas solicitudes creadas en el rango hay en cada estado (`Pendiente`, `Aplicada`, `Rechazada`…) y el total | `GROUP BY` del estado en la base de datos: una fila por estado |
-| **Negocio (RF-REP-02):** constancia por plan | `GET /api/reports/adherence?desde=2026-11-02&hasta=2026-11-08` | **«¿Qué tan constante fui en cada plan durante este período?»** Por plan: días con avance, días en que solo hizo la versión mínima, días del rango en que el plan estuvo en marcha y el porcentaje de constancia | Función propia `CalculadoraConstancia` (HabitTracker): una fila por plan, no una por avance. Mide por el **día local** de la persona y no cuenta los días de pausa ni los planes cancelados |
+| **Negocio (RF-REP-02):** constancia por plan | `GET /api/reports/adherence?desde=2026-11-02&hasta=2026-11-08` | **«¿Qué tan constante fui en cada plan durante este período?»** Por plan: días con avance, días en que solo hizo la versión mínima, días del rango en que el plan estuvo en marcha y el porcentaje de constancia | Función propia `CalculadoraConstancia` (HabitTracker): una fila por plan, no una por avance. Mide por el **día local** de la persona y no cuenta los días de pausa. Un plan cancelado cuenta hasta el día en que se canceló |
 
 ### Qué ve cada rol (RF-REP-04)
 
@@ -292,7 +292,13 @@ Ejecuta toda la suite de pruebas unitarias con:
 dotnet test
 ```
 
-La suite prueba directamente las capas de aplicación, dominio e infraestructura: no inicia la API ni necesita una base de datos externa. Las pruebas de persistencia usan SQLite en memoria.
+La suite prueba directamente las capas de aplicación, dominio e infraestructura: no inicia la API ni necesita una base de datos externa. Las pruebas de persistencia usan SQLite en memoria. Hoy son **1435 pruebas** y ese único comando las ejecuta todas desde un clon limpio.
+
+**Asignación 3 (auditoría de la P5).** Cada hallazgo corregido tiene una prueba de regresión cuyo nombre empieza por `Hallazgo{N}_` y que falla sobre el código anterior a su corrección (ver `docs/bitacora-asignacion-3.md`, «Cómo verificar cada hallazgo»). Para correr solo esas:
+
+```bash
+dotnet test --filter "FullyQualifiedName~Hallazgo"
+```
 
 > **Nota (Windows):** clona el repositorio en una ruta corta (por ejemplo `C:/src/HabitTracker`). Con rutas de más de 260 caracteres, la DLL nativa de SQLite (`e_sqlite3`) no se carga y las pruebas de persistencia fallan con "The filename or extension is too long".
 
@@ -542,8 +548,8 @@ Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflow
 
 | Workflow | Trabajo | Qué verifica | Bloquea el merge si… |
 |---|---|---|---|
-| `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 347 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
-| `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 452 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica en una dependencia de producción (`npm audit --omit=dev`) |
+| `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 1435 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
+| `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 1033 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica en una dependencia de producción (`npm audit --omit=dev`) |
 | `ci.yml` | Reglas del repositorio | formato de los commits (`tipo: descripción en español [RF-XX-NN, RD-NN]`), RD-03, RD-05, RD-08, RD-10 y RD-11, ShellCheck de los scripts | un commit o el código incumple la regla |
 | `seguridad.yml` | CodeQL (C#, JS/TS, Actions) | análisis estático con las consultas `security-extended` | la regla de *code scanning* del repositorio detecta una alerta alta o crítica |
 | `seguridad.yml` | Secretos | gitleaks sobre los commits de la PR (y sobre todo el historial en push y cada lunes) | aparece una credencial |

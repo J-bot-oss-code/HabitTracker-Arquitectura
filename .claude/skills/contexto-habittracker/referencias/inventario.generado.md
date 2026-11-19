@@ -95,7 +95,7 @@
 
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan
 - **Notifications:** CrearNotificaciones
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
@@ -104,7 +104,7 @@
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
 | AccessControl.Application.Tests | 29 | 282 | 44 |
-| AccessControl.Infrastructure.Tests | 11 | 78 | 8 |
+| AccessControl.Infrastructure.Tests | 11 | 79 | 8 |
 | DocumentManager.Api.Tests | 4 | 31 | 6 |
 | DocumentManager.Application.Tests | 1 | 34 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
@@ -112,17 +112,17 @@
 | HabitTracker.Api.Tests | 7 | 41 | 13 |
 | HabitTracker.Application.Tests | 7 | 111 | 7 |
 | HabitTracker.Domain.Tests | 11 | 151 | 27 |
-| HabitTracker.Integration.Tests | 11 | 69 | 4 |
+| HabitTracker.Integration.Tests | 11 | 70 | 4 |
 | Notifications.Api.Tests | 3 | 20 | 2 |
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
-| Notifications.Infrastructure.Tests | 1 | 4 | 0 |
+| Notifications.Infrastructure.Tests | 1 | 5 | 0 |
 | Permissions.Application.Tests | 2 | 18 | 2 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **931** | **124** |
+| **Total** | | **934** | **124** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
