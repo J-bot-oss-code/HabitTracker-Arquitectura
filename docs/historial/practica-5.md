@@ -39,3 +39,10 @@
 - **Se deja fuera a propósito:** los planes cancelados (no guardan la fecha en que se dejaron) y una cohorte mínima en el agregado (se anota para la Fase 6, con las métricas).
 - **Verificación:** 14 pruebas del servicio, 8 de persistencia con SQLite, 9 de la calculadora, 6 de repositorio de permisos, 6 del Host. **Contra la API real:** 20 de 20 comprobaciones (una fila por estado, Estándar solo lo suyo, otro rango da otro resultado, rangos inválidos → 400, sin token → 401, agregado del Administrador sin datos personales).
 - **Lección:** `SelectMany` con un `Where` anidado necesita `APPLY` y SQLite no lo traduce; un JOIN explícito funciona en las dos bases.
+
+## Frontend
+
+- **Contrato** (`frontend-api-contract`): tipos y hooks en `features/notificaciones`, `features/cola-correos` y `features/reportes` (rango con zod espejo de `ValidarRango`), y handlers MSW que replican los controllers: avisos al crear y resolver solicitudes, logros con el texto de `NotificadorUsuarioAdapter`, cola con reintentos y tope de 3, reportes con la misma agregación (redondeo de .NET).
+- **Pantallas** (`frontend-ui-builder` con `frontend-design`, «la hoja del día»): bandeja `/notificaciones` con globo de sin leer en el menú, Configuración › Notificaciones (interruptor de correo), `/admin/cola-correos` (tabla en escritorio y tarjetas en móvil, «Procesar ahora» que explica el resultado) y `/reportes` (atajos de 7 y 30 días, el 0 % sin culpa, el Administrador con titular neutro y sin datos personales). Sale `coming-soon`.
+- **Revisión:** `frontend-design-critic` (1 bloqueante, «hasta3 veces», y 5 importantes: foco al marcar, titular del Administrador, cifras en el Resumen, «recuperados» en lenguaje claro, conservar los datos al cambiar el rango), `frontend-test-writer` (de 993 a 1033 pruebas) y `frontend-reviewer` (los mocks no felicitaban logros ni recortaban textos; referencias colgadas en los agentes).
+- **Lección:** una prueba que cuenta «7 días» falla de noche en Santo Domingo, porque el rango es UTC y la constancia se mide por el día local.
