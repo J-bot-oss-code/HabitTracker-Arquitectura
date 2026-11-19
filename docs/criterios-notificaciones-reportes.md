@@ -118,3 +118,19 @@ Desde un clon limpio, con `copy .env.example .env` y `docker compose up --build`
 5. módulo de negocio: una operación válida funciona y la transición prohibida de la máquina de estados se rechaza (400);
 6. un documento subido sobrevive a `docker compose down` (sin `-v`) y a volver a levantar.
 - **Se comprueba:** con `dotnet test` en verde (nada previo falla) y siguiendo el README al pie de la letra.
+
+## 5. Casos límite (Asignación 3)
+Añadidos tras la auditoría de la P5 (`docs/bitacora-asignacion-3.md`): son los casos que estos criterios no cubrían y por los que pasaron tres defectos. Cada uno tiene su prueba `Hallazgo{N}_*`.
+
+### RF-REP-02 — Un plan cancelado cuenta hasta el día en que se canceló (hallazgo 1)
+- **Dado** un plan que empezó el día 13 y se canceló el día 14, con avance los dos días,
+- **cuando** se consulta `GET api/reports/adherence` con un rango que incluye esos días,
+- **entonces** el plan aparece con 2 días en el rango y 2 con avance, tanto para su dueña como en el agregado del Administrador. Un plan cancelado antes de que se guardara la fecha de cancelación no se puede medir y no aparece.
+- **Se comprueba:** `GET api/reports/adherence` antes y después de `POST api/my-plans/{id}/transition` con `Cancelado`: la fila no desaparece.
+
+### RF-NOT-11 — `intentos` cuenta cada envío intentado, también el que sale bien (hallazgo 2)
+- **Dado** un correo que sale bien al primer intento, **entonces** `GET api/admin/email-queue` lo muestra `Enviado` con `intentos: 1`; si falló una vez y luego salió, `2`; con 3 fallos, `3` y `Fallido` (RF-NOT-10 no cambia).
+
+### RF-NOT-07 — Dos peticiones simultáneas de la misma persona nunca dan 500 (hallazgo 3)
+- **Dado** una persona sin preferencia guardada, **cuando** envía dos `PUT api/notifications/preferences` a la vez, **entonces** ninguna responde 500 y queda el último valor pedido.
+- **Se comprueba:** varias peticiones en paralelo contra la API (`curl.exe -Z`) y el log sin `DbUpdateException`.

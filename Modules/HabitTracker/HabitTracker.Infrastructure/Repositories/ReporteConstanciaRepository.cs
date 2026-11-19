@@ -12,7 +12,9 @@ public sealed class ReporteConstanciaRepository(HabitTrackerDbContext contexto) 
     {
         var planes = await contexto.PlanesUsuario
             .AsNoTracking()
-            .Where(p => p.Estado != EstadoPlanUsuario.Cancelado && p.FechaInicio < hastaUtcExclusivo && p.FechaFinPrevista >= desdeUtc)
+            // La fecha de fin real la ajusta FinEfectivo después; aquí solo se acota. Un cancelado sin fecha no se puede medir.
+            .Where(p => (p.Estado != EstadoPlanUsuario.Cancelado || p.FechaCancelacion != null)
+                        && p.FechaInicio < hastaUtcExclusivo && p.FechaFinPrevista >= desdeUtc)
             .ToListAsync(cancellationToken); // las pausas vienen con el plan
         if (planes.Count == 0)
         {
@@ -33,7 +35,7 @@ public sealed class ReporteConstanciaRepository(HabitTrackerDbContext contexto) 
 
         var porPlan = avances.ToLookup(a => a.PlanId);
         return [.. planes.Select(p => new PlanParaReporte(
-            p.Id, p.UsuarioId, p.Nombre, p.FechaInicio, p.FechaFinPrevista,
+            p.Id, p.UsuarioId, p.Nombre, p.FechaInicio, p.FinEfectivo,
             [.. p.Pausas.Select(x => new PausaParaReporte(x.InicioUtc, x.FinUtc))],
             [.. porPlan[p.Id].Select(a => new AvanceParaReporte(a.Fecha, a.EsVersionMinima))]))];
     }
