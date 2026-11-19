@@ -2,6 +2,7 @@
 // o en las pruebas; nunca sustituye la persistencia real (RD-09 lo cumple el backend).
 import type { Periodicidad, EstadoHabito } from '@/features/habits/types'
 import type { EventoAuditoriaDto } from '@/features/auditoria/types'
+import type { CorreoColaDto } from '@/features/cola-correos/types'
 import type { DocumentoDto } from '@/features/documentos/types'
 import type {
   ClaveLogro,
@@ -9,6 +10,7 @@ import type {
   MotivoPausa,
   OrigenPlan,
 } from '@/features/mis-planes/types'
+import type { NotificacionDto } from '@/features/notificaciones/types'
 import type { ConsentimientosDto, CuestionarioSaludDto, PerfilDto } from '@/features/perfil/types'
 import type { Ancla } from '@/features/planes/types'
 import type { MedicionDto, PesosDto } from '@/features/progreso/types'
@@ -138,6 +140,11 @@ export interface BajaProgramadaMock {
   borradoEn: string
 }
 
+// Una notificación interna con su dueña (la API solo muestra las propias).
+export interface NotificacionMock extends NotificacionDto {
+  usuarioId: string
+}
+
 // Una sesión abierta en un dispositivo (SesionUsuario): el refresh token rotativo la sostiene.
 export interface SesionMock {
   id: string
@@ -172,6 +179,10 @@ interface Db {
   mediciones: Map<string, MedicionDto[]>
   auditoria: EventoAuditoriaDto[]
   bajas: Map<string, BajaProgramadaMock>
+  // Notificaciones (la más reciente primero), preferencia de correo por usuario (true si falta) y cola de correos.
+  notificaciones: NotificacionMock[]
+  preferenciasCorreo: Map<string, boolean>
+  correos: CorreoColaDto[]
 }
 
 export const db: Db = {
@@ -194,6 +205,9 @@ export const db: Db = {
   mediciones: new Map(),
   auditoria: [],
   bajas: new Map(),
+  notificaciones: [],
+  preferenciasCorreo: new Map(),
+  correos: [],
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -584,6 +598,9 @@ export function reiniciarDb() {
     evento(9, 4, 'estandar@demo.com', 'DescargaDatos', 'Cuenta'),
   ]
   db.bajas = new Map()
+  db.notificaciones = []
+  db.preferenciasCorreo = new Map()
+  db.correos = []
 
   // Ana ya tiene otras sesiones abiertas (otros dispositivos) para poder probar «Sesiones activas».
   db.sesiones = [

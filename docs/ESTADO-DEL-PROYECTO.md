@@ -16,7 +16,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 | Notifications | Completo para la P5 (RF-NOT-01 a 13): bandeja interna y correo por la cola, con ganchos opcionales en Permisos y en los logros de HabitTracker. Cola de correos con reclamo atómico, recuperación, máximo de 3 intentos y consulta del Administrador | `docs/historial/practica-5.md` |
 | Reports | Completo para la P5 (RF-REP-01 a 05): permisos por estado (Core) y constancia por plan (negocio), con rango obligatorio y alcance por rol. Sin base de datos propia | `docs/historial/practica-5.md` |
 | Auditing | Solo esqueleto (proyectos vacíos) | — |
-| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`) y Mis planes (empezar un plan, «Archivos del plan», Hoy desde `api/today`, `/mis-planes/:id`, celebración semanal y logros del servidor en Progreso), «Mis archivos» (`/documentos`) y Configuración › Solicitudes. Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
+| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`) y Mis planes (empezar un plan, «Archivos del plan», Hoy desde `api/today`, `/mis-planes/:id`, celebración semanal y logros del servidor en Progreso), «Mis archivos» (`/documentos`), Configuración › Solicitudes y la P5: Notificaciones (bandeja, globo y preferencia de correo), Cola de correos y Reportes. Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
 | CI | `ci-ok` y `seguridad-ok` obligatorios en `develop` y `main` | `docs/historial/ci.md` |
 
 ## 2. Tags de entrega (no mover ni reescribir)
@@ -38,7 +38,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 3. Pruebas
 
 - **Backend:** `dotnet test` ejecuta **1432** pruebas (medido el 18-11-2026) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
-- **Frontend:** `cd frontend && npm test` ejecuta **911** pruebas en 62 archivos (medido el 13-11-2026) sin backend (MSW).
+- **Frontend:** `cd frontend && npm test` ejecuta **1033** pruebas en 69 archivos (medido el 18-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
 ## 4. Entorno local
@@ -99,7 +99,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 9. Próximos pasos
 
-- **Práctica 5 en curso:** Notificaciones, cola y Reportes hechos en el backend; siguen el frontend de la bandeja, la cola y los reportes, y el tag `practica-5` con la revisión acumulada desde Docker.
+- **Práctica 5 en curso:** backend y frontend hechos (Notificaciones, cola y Reportes); falta la revisión acumulada desde Docker (clon limpio, `.env.example`, los seis frentes) y el tag `practica-5`, que pone el usuario.
 - **Fase 5 detenida** hasta entregar las prácticas de Auditoría y Reportes (rama `feature/habittracker-correo-accion`, sin push; sus rutas deben pasar de `api/notifications/*` a `api/reminders/*` y la entrega irá detrás de `INotificadorUsuario`).
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
   - Fases 0 a 4 hechas → Fase 5, el corte vertical (siguiente: recordatorios y check-in por correo, `RegistroDiario.Origen` y `ClaveIdempotencia`);

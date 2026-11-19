@@ -18,7 +18,7 @@ español con RF/RD, flujo de ramas y PRs) están en el `AGENTS.md` de la raíz.
 src/
   app/        router (routes.tsx), guards (RequireAuth / SoloInvitados), layouts, navigation, providers
   shared/     api (http + ProblemDetails), auth (JWT, sesión, roles), config (env), lib, ui
-  features/   auth · habits · permissions · admin-users · perfil · progreso · privacidad · planes · publico · auditoria · coming-soon
+  features/   auth · habits · permissions · admin-users · perfil · progreso · privacidad · planes · publico · auditoria · notificaciones · cola-correos · reportes
               publico · perfil · progreso · privacidad · auditoria (pantallas de producto)
               cada una con types.ts · api.ts · schemas.ts · components/ · pages/ · *.test.ts(x)
   mocks/      API simulada: db.ts (memoria), http.ts (auth, ProblemDetails), handlers/, contrato.test.ts
@@ -49,14 +49,14 @@ src/
 
 ## Piezas pendientes del backend
 
-Documentos, Notificaciones, Cola de correos, Reportes y Auditoría (más RF-NEG-07/08/10) son
-pantallas "Próximamente" definidas en `features/coming-soon/piezas.ts`. Cuando el backend entregue
-una:
+Solo queda la **Auditoría** como contrato propuesto (ver más abajo). Notificaciones, Cola de correos y Reportes
+ya están conectadas a sus controllers (`features/notificaciones`, `features/cola-correos`, `features/reportes`) y no
+quedan pantallas «Próximamente»: `features/coming-soon` y `shared/ui/ComingSoon` se eliminaron. Si el backend
+entrega otra pieza, el flujo es:
 
 1. Ejecutar `frontend-api-contract` para tipar el contrato y crear los handlers MSW.
 2. Ejecutar `frontend-architect` para planificar la feature.
-3. Implementarla con `frontend-ui-builder`, registrar la ruta perezosa en `app/routes.tsx` y
-   quitar `proximamente` en `app/navigation.ts` y la entrada de `piezas.ts`.
+3. Implementarla con `frontend-ui-builder` y registrar la ruta perezosa en `app/routes.tsx`.
 4. Pasar siempre por `frontend-design-critic` y atender sus quejas (el builder lo hace como
    parte de su ciclo).
 5. Escribir las pruebas con `frontend-test-writer`.
@@ -92,8 +92,9 @@ Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs
 - Públicas: landing `/`, `/metas`, `/calculadoras` y `/legal/:documento`.
 - Alta: `/registro` con consentimientos y `/bienvenida` (onboarding).
 - Estándar: `/hoy` (inicio) y `/progreso`.
-- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
-- Administrador: `/admin` (inicio) y `/admin/auditoria`.
+- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Notificaciones (preferencia de correo) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
+- Ambos roles: `/notificaciones` (bandeja con globo de sin leer en el menú) y `/reportes` (permisos por estado y constancia por plan, con rango de fechas).
+- Administrador: `/admin` (inicio), `/admin/auditoria` y `/admin/cola-correos`.
 
 Cada pantalla pone su título de pestaña y el foco en su encabezado (`app/layout/RaizApp.tsx`). Las rutas nuevas llevan `handle: { titulo }` en `routes.tsx`.
 

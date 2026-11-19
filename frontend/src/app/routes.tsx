@@ -5,8 +5,6 @@ import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { ForgotPasswordPage, ResendActivationPage } from '@/features/auth/pages/SoloCorreoPage'
-import { ComingSoonPage } from '@/features/coming-soon/ComingSoonPage'
-import { PIEZAS_PENDIENTES } from '@/features/coming-soon/piezas'
 import { CatalogoPlanes } from '@/features/planes/components/CatalogoPlanes'
 import { LandingPage } from '@/features/publico/pages/LandingPage'
 import { useAuth } from '@/shared/auth/AuthContext'
@@ -110,6 +108,19 @@ const paginas = {
     'PermissionsInboxPage',
   ),
   usuarios: perezosa(() => import('@/features/admin-users/pages/UsersPage'), 'UsersPage'),
+  notificaciones: perezosa(
+    () => import('@/features/notificaciones/pages/NotificacionesPage'),
+    'NotificacionesPage',
+  ),
+  preferenciasNotificaciones: perezosa(
+    () => import('@/features/notificaciones/pages/PreferenciasNotificacionesPage'),
+    'PreferenciasNotificacionesPage',
+  ),
+  colaCorreos: perezosa(
+    () => import('@/features/cola-correos/pages/ColaCorreosPage'),
+    'ColaCorreosPage',
+  ),
+  reportes: perezosa(() => import('@/features/reportes/pages/ReportesPage'), 'ReportesPage'),
 }
 
 export const rutas: RouteObject[] = [
@@ -226,6 +237,14 @@ export const rutas: RouteObject[] = [
                 ...paginas.ajustesInicioSesion,
               },
               {
+                path: 'notificaciones',
+                handle: {
+                  titulo: 'Notificaciones',
+                  descripcion: 'Elige si los avisos también te llegan por correo.',
+                },
+                ...paginas.preferenciasNotificaciones,
+              },
+              {
                 path: 'apariencia',
                 handle: { titulo: 'Apariencia', descripcion: 'Elige cómo se ve la aplicación.' },
                 ...paginas.apariencia,
@@ -303,7 +322,7 @@ export const rutas: RouteObject[] = [
               {
                 path: 'admin/cola-correos',
                 handle: { titulo: 'Cola de correos' },
-                element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.colaCorreos} />,
+                ...paginas.colaCorreos,
               },
               { path: 'admin/auditoria', handle: { titulo: 'Auditoría' }, ...paginas.auditoria },
             ],
@@ -311,13 +330,9 @@ export const rutas: RouteObject[] = [
           {
             path: 'notificaciones',
             handle: { titulo: 'Notificaciones' },
-            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.notificaciones} />,
+            ...paginas.notificaciones,
           },
-          {
-            path: 'reportes',
-            handle: { titulo: 'Reportes' },
-            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.reportes} />,
-          },
+          { path: 'reportes', handle: { titulo: 'Reportes' }, ...paginas.reportes },
         ],
       },
     ],

@@ -1,14 +1,17 @@
 import { adminUsersHandlers } from './adminUsers'
 import { authHandlers } from './auth'
+import { colaCorreosHandlers } from './colaCorreos'
 import { documentosHandlers } from './documentos'
 import { habitsHandlers } from './habits'
 import { misPlanesHandlers } from './misPlanes'
+import { notificacionesHandlers } from './notificaciones'
 import { planesHandlers } from './planes'
 import { perfilHandlers } from './perfil'
 import { permissionsHandlers } from './permissions'
 import { privacidadHandlers } from './privacidad'
 import { progresoHandlers } from './progreso'
 import { propuestasHandlers } from './propuestas'
+import { reportesHandlers } from './reportes'
 
 export const handlers = [
   ...authHandlers,
@@ -23,6 +26,10 @@ export const handlers = [
   // Mis planes, Hoy y el resumen de constancia (HabitTracker v2, Fase 4).
   ...misPlanesHandlers,
   ...permissionsHandlers,
+  // Notificaciones, cola de correos y reportes (Práctica 5).
+  ...notificacionesHandlers,
+  ...colaCorreosHandlers,
+  ...reportesHandlers,
   ...adminUsersHandlers,
   // Centro de privacidad real (consentimientos, baja de cuenta y descarga de datos).
   ...privacidadHandlers,

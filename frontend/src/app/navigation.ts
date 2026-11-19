@@ -6,7 +6,6 @@ export interface ItemNavegacion {
   etiqueta: string
   icono: NombreIcono
   roles: Rol[]
-  proximamente?: boolean
   // Solo coincide con la ruta exacta (/admin no debe marcarse activa en /admin/usuarios).
   fin?: boolean
 }
@@ -28,21 +27,18 @@ export const NAVEGACION: ItemNavegacion[] = [
     etiqueta: 'Notificaciones',
     icono: 'notificaciones',
     roles: ['Estandar', 'Administrador'],
-    proximamente: true,
   },
   {
     a: '/reportes',
     etiqueta: 'Reportes',
     icono: 'reportes',
     roles: ['Estandar', 'Administrador'],
-    proximamente: true,
   },
   {
     a: '/admin/cola-correos',
     etiqueta: 'Cola de correos',
     icono: 'correo',
     roles: ['Administrador'],
-    proximamente: true,
   },
   // Cuenta, apariencia, inicio de sesión, seguridad y privacidad viven juntas en Configuración (siempre al final).
   {
@@ -106,6 +102,13 @@ export const SECCIONES_AJUSTES: SeccionAjustes[] = [
     icono: 'permisos',
     roles: ['Estandar'],
     descripcion: 'Descarga tus datos, revisa los consentimientos o retírate.',
+  },
+  {
+    a: '/ajustes/notificaciones',
+    etiqueta: 'Notificaciones',
+    icono: 'notificaciones',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Elige si los avisos también te llegan por correo.',
   },
   {
     a: '/ajustes/apariencia',

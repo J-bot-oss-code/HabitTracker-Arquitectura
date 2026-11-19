@@ -217,11 +217,11 @@ describe('Resumen del Administrador', () => {
       'href',
       '/admin/auditoria',
     )
-    expect(screen.getByText('Cola de correos y notificaciones')).toBeInTheDocument()
-    expect(screen.getByText('Próximamente')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cola de correos' })).toBeInTheDocument()
+    expect(screen.queryByText('Próximamente')).not.toBeInTheDocument()
   })
 
-  it('el menú abre con Resumen marcado solo en /admin y Auditoría ya no dice "Pronto"', async () => {
+  it('el menú abre con Resumen marcado solo en /admin y ningún ítem dice "Pronto"', async () => {
     renderApp('/admin', { como: 'admin' })
     const nav = await screen.findByRole('navigation', { name: 'Principal' })
     expect(within(nav).getByRole('link', { name: 'Resumen' })).toHaveAttribute(
@@ -230,7 +230,7 @@ describe('Resumen del Administrador', () => {
     )
     const auditoria = within(nav).getByRole('link', { name: 'Auditoría' })
     expect(auditoria).not.toHaveAttribute('aria-current')
-    expect(within(auditoria).queryByText('Pronto')).not.toBeInTheDocument()
+    expect(within(nav).queryByText('Pronto')).not.toBeInTheDocument()
   })
 
   it('en /admin/usuarios, Resumen no queda marcado', async () => {
@@ -464,11 +464,12 @@ describe('ajustes de la revisión del Paso 7', () => {
     expect((await llamar('/api/audit?desde=2026-02-28', admin)).status).toBe(200)
   })
 
-  it('el enlace a la cola de correos tiene un nombre descriptivo', async () => {
+  it('el resumen enlaza con la cola de correos', async () => {
     renderApp('/admin', { como: 'admin' })
-    expect(
-      await screen.findByRole('link', { name: 'Qué incluirá la cola de correos' }),
-    ).toHaveAttribute('href', '/admin/cola-correos')
+    expect(await screen.findByRole('link', { name: 'Abrir la cola de correos' })).toHaveAttribute(
+      'href',
+      '/admin/cola-correos',
+    )
   })
 })
 

@@ -57,6 +57,7 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
   documento_requiere_permiso:
     'Este archivo está en un plan en curso. Pide permiso para eliminarlo y, cuando lo aprueben, podrás hacerlo.',
   documento_no_encontrado: 'No encontramos ese archivo.',
+  notificacion_no_encontrada: 'No encontramos esa notificación.',
   plan_no_en_curso: 'Solo puedes añadir archivos a un plan que esté en curso.',
   adjunto_duplicado: 'Ese archivo ya está en este plan.',
   limite_adjuntos: 'Un plan admite hasta 10 archivos. Quita alguno para añadir otro.',

@@ -2,6 +2,7 @@ import { auditar } from '../auditoria'
 import { http, HttpResponse } from 'msw'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import { db } from '../db'
+import { activoPorCorreo, administradoresActivos, notificar } from '../notificar'
 import { CLAVE_PERMISO } from '@/features/permissions/schemas'
 import { autenticar, esGuid, esTexto, latencia, leerJson, problema, respuestas } from '../http'
 
@@ -47,6 +48,20 @@ const esClaveValida = (v: unknown): v is string =>
 const esPropia = (s: SolicitudPermisoDto, correo: string) =>
   s.solicitante.toLowerCase() === correo.toLowerCase()
 
+// RF-NOT-02: solo se avisa a quien la hizo (si su cuenta sigue activa).
+function avisarResolucion(solicitud: SolicitudPermisoDto, aprobada: boolean) {
+  const persona = activoPorCorreo(solicitud.solicitante)
+  if (!persona) return
+  notificar(
+    [persona],
+    'SolicitudResuelta',
+    aprobada ? 'Solicitud aprobada' : 'Solicitud rechazada',
+    aprobada
+      ? `Un Administrador aprobó tu solicitud del permiso «${solicitud.permisoSolicitado}».`
+      : `Un Administrador rechazó tu solicitud del permiso «${solicitud.permisoSolicitado}». Motivo: ${solicitud.motivoRechazo}`,
+  )
+}
+
 export const permissionsHandlers = [
   http.post('/api/permissions', async ({ request }) => {
     await latencia()
@@ -75,6 +90,13 @@ export const permissionsHandlers = [
       motivoRechazo: null,
     }
     db.solicitudes.push(solicitud)
+    // RF-NOT-01: se avisa a todos los Administradores activos.
+    notificar(
+      administradoresActivos(),
+      'SolicitudCreada',
+      'Nueva solicitud de permiso',
+      `${solicitud.solicitante} pidió el permiso «${solicitud.permisoSolicitado}». Revísala en Permisos.`,
+    )
     return HttpResponse.json({ id: solicitud.id }, { status: 201 })
   }),
 
@@ -156,6 +178,7 @@ export const permissionsHandlers = [
       aprobador: sesion.usuario.correo,
       fechaResolucion: new Date().toISOString(),
     })
+    avisarResolucion(solicitud, true)
     return respuestas.mensaje('Solicitud aprobada y aplicada.')
   }),
 
@@ -185,6 +208,7 @@ export const permissionsHandlers = [
       fechaResolucion: new Date().toISOString(),
       motivoRechazo: body.motivoRechazo.trim(),
     })
+    avisarResolucion(solicitud, false)
     return respuestas.mensaje('Solicitud rechazada.')
   }),
 ]
