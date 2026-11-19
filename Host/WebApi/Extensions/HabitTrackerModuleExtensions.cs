@@ -1,5 +1,6 @@
 using HabitTracker.Application.Interfaces;
 using HabitTracker.Application.Services;
+using HabitTracker.Infrastructure.Contenido;
 using HabitTracker.Infrastructure.DependencyInjection;
 using HabitTracker.Infrastructure.Persistence;
 using HabitTracker.Infrastructure.Repositories;
@@ -41,6 +42,27 @@ public static class HabitTrackerModuleExtensions
         services.AddScoped<ICuestionarioSaludService, CuestionarioSaludService>();
         services.AddScoped<IProgresoCorporalService, ProgresoCorporalService>();
         services.AddScoped<IDatosPerfilSaludService, DatosPerfilSaludService>();
+
+        // Catálogo de planes y recomendador (Fase 3). El contenido sale de catalogo-planes.json y lo siembra el Host al arrancar.
+        services.AddScoped<IPlanPlantillaRepository, PlanPlantillaRepository>();
+        services.AddScoped<IPlanesService, PlanesService>();
+        services.AddScoped<SembradorCatalogoPlanes>();
+
+        // Mis planes, Hoy, constancia, logros y mensajes de motivación (Fase 4). El contenido de los mensajes se lee una vez.
+        services.AddScoped<IPlanUsuarioRepository, PlanUsuarioRepository>();
+        services.AddScoped<ILogroUsuarioRepository, LogroUsuarioRepository>();
+        services.AddSingleton<ICatalogoMensajes, CatalogoMensajes>();
+        services.AddScoped<IPlanUsuarioService, PlanUsuarioService>();
+        services.AddScoped<ILogrosService, LogrosService>();
+        services.AddScoped<IHoyService, HoyService>();
+        services.AddScoped<IResumenProgresoService, ResumenProgresoService>();
+        services.AddScoped<IDatosPlanesService, DatosPlanesService>();
+
+        // Archivos vinculados a un plan (RF-NEG-10). IDocumentosUsuario y la guarda de eliminar los resuelven adaptadores del Host.
+        services.AddScoped<IAdjuntoPlanRepository, AdjuntoPlanRepository>();
+        services.AddScoped<IReporteConstanciaRepository, ReporteConstanciaRepository>();
+        services.AddScoped<IReporteConstanciaService, ReporteConstanciaService>();
+        services.AddScoped<IAdjuntosPlanService, AdjuntosPlanService>();
 
         // Plan del día: usa la API externa de clima (la clave llega por la variable OPENWEATHER_API_KEY).
         services.AddScoped<IPlanDelDiaService, PlanDelDiaService>();

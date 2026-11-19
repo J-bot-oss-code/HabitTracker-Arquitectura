@@ -21,7 +21,6 @@ internal sealed class PerfilUsuarioConfiguracion : IEntityTypeConfiguration<Perf
         builder.Property(p => p.AlturaCm).HasPrecision(6, 2);
         builder.Property(p => p.PesoKg).HasPrecision(6, 2);
         builder.Property(p => p.ObjetivoPesoKg).HasPrecision(6, 2);
-        builder.Property(p => p.MetaSlug).HasMaxLength(60);
         builder.Ignore(p => p.Imc);
     }
 }

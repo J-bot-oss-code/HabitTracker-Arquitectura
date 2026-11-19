@@ -38,31 +38,31 @@ describe('flujos de cuenta', () => {
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
     // Sin perfil, el panel lleva al onboarding con la meta del registro.
-    expect(await screen.findByRole('heading', { name: 'Tus datos básicos' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
     expect(screen.getByText('Paso 3 de 5')).toBeInTheDocument()
     await completarOnboarding(user)
+    // El plan elegido en la landing queda a un toque: la ficha del plan, para pulsar «Empezar este plan».
     expect(
-      await screen.findByRole('heading', {
-        level: 1,
-        name: /^(Buenos días|Buenas tardes|Buenas noches)/,
-      }),
+      await screen.findByRole('heading', { level: 1, name: 'Primeros 5 km' }),
     ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Empezar este plan' })).toBeInTheDocument()
 
     const nueva = db.usuarios.find((u) => u.correo === 'nueva@demo.com')
     expect(db.perfiles.get(nueva?.id ?? '')).toMatchObject({
-      edad: 31,
+      perfilLaboral: 'OficinaDiurna',
+      edad: null,
       sexo: null,
-      metaSlug: 'primeros-5-km',
       avisoSaludAceptado: true,
     })
-    // Los consentimientos del registro llegan al servidor sin volver a pedirlos.
+    // Los consentimientos del registro llegan al servidor sin volver a pedirlos. El de datos de salud no se da por
+    // hecho: se pide cuando un plan lo necesita (P1).
     expect(db.consentimientos.get(nueva?.id ?? '')).toMatchObject({
       terminosVersion: 'v2.1',
       privacidadVersion: 'v1.4',
-      datosSalud: true,
+      datosSalud: false,
       marketing: true,
     })
-  })
+  }, 20_000)
 
   it('no crea la cuenta sin los consentimientos obligatorios', async () => {
     const { user } = renderApp('/registro')
@@ -153,12 +153,13 @@ describe('flujos de cuenta', () => {
   it('muestra la meta elegida en el panel (escritorio) y sobre el formulario (móvil)', async () => {
     renderApp('/registro?meta=dormir-mejor')
     const panel = await screen.findByRole('complementary')
-    expect(within(panel).getByText('Dormir mejor')).toBeInTheDocument()
+    // El nombre llega del catálogo del servidor: aparece cuando termina de cargarlo.
+    expect(await within(panel).findByText('Dormir mejor')).toBeInTheDocument()
     expect(within(panel).getByRole('link', { name: 'Volver a explorar metas' })).toHaveAttribute(
       'href',
       '/metas',
     )
-    expect(screen.getByText(/Meta elegida:/)).toHaveTextContent('Meta elegida: Dormir mejor')
+    expect(await screen.findByText(/Meta elegida:/)).toHaveTextContent('Meta elegida: Dormir mejor')
   })
 
   it('una meta inventada en la URL no se muestra', async () => {
@@ -167,7 +168,7 @@ describe('flujos de cuenta', () => {
     expect(screen.queryByText(/Meta elegida/)).not.toBeInTheDocument()
   })
 
-  it('los datos de la calculadora llegan al registro y se recuerdan para el onboarding', async () => {
+  it('los datos de la calculadora no se guardan en el navegador al registrarse (son datos de salud)', async () => {
     const { user } = renderApp('/calculadoras')
     await user.type(await screen.findByLabelText('Edad'), '33')
     await user.selectOptions(screen.getByLabelText('Sexo'), 'hombre')
@@ -178,13 +179,10 @@ describe('flujos de cuenta', () => {
     await user.click(await screen.findByRole('link', { name: 'Guardar y crear mi plan' }))
 
     await registrarCuenta(user, 'calcula@demo.com')
-    expect(leerRegistroPendiente('calcula@demo.com')?.datosCorporales).toEqual({
-      edad: 33,
-      sexo: 'hombre',
-      alturaCm: 181,
-      pesoKg: 77,
-      actividad: 'alta',
-    })
+    expect(leerRegistroPendiente('calcula@demo.com')?.datosCorporales).toBeNull()
+    expect(localStorage.getItem('habittracker.registro-pendiente') ?? '').not.toMatch(
+      /"(edad|alturaCm|pesoKg)":\d/,
+    )
   })
 
   it('descarta datos de calculadora manipulados en el estado de navegación', async () => {

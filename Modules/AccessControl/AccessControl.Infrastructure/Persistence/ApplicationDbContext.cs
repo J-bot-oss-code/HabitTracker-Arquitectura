@@ -20,6 +20,9 @@ public class ApplicationDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        // La cola se consulta por estado en cada vuelta del procesador (Pendiente y Fallido) y desde la consulta del Administrador.
+        modelBuilder.Entity<CorreoEnCola>().HasIndex(c => c.Estado);
+
         // Historial de solo inserción de lo que cada usuario aceptó (documentos legales y consentimientos opcionales).
         modelBuilder.Entity<ConsentimientoUsuario>(entity =>
         {

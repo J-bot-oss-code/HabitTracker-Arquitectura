@@ -58,8 +58,35 @@ public class DatabaseEmailQueue : IEmailQueue
         _logger.LogInformation("Correo de activación en cola: {CorreoId}.", mensaje.Id);
     }
 
-    private static string PlantillaHtml(string titulo, string introduccion, string codigo, string despedida, string? enlaceBoton = null)
+    public async Task EncolarCorreoAsync(string destinatario, string asunto, string titulo, string mensaje)
     {
+        var correo = new CorreoEnCola(
+            destinatario,
+            $"{asunto} — HabitTracker Nexus",
+            PlantillaHtml(
+                Escapar(titulo),
+                Escapar(mensaje),
+                codigo: null,
+                "Puedes dejar de recibir estos correos desde Configuración, en la app."));
+
+        _dbContext.CorreosEnCola.Add(correo);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Correo informativo en cola: {CorreoId}.", correo.Id);
+    }
+
+    // Solo los caracteres que cambian el HTML: WebUtility.HtmlEncode también convertiría las tildes en entidades numéricas.
+    private static string Escapar(string texto) =>
+        texto.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
+
+    private static string PlantillaHtml(string titulo, string introduccion, string? codigo, string despedida, string? enlaceBoton = null)
+    {
+        var caja = string.IsNullOrWhiteSpace(codigo)
+            ? string.Empty
+            : $@"<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""><tr><td align=""center"" style=""padding:8px 0 24px 0;"">
+<div style=""display:inline-block;background-color:#f0fdfa;border:2px dashed #0f766e;border-radius:8px;padding:16px 32px;font-size:22px;font-weight:bold;letter-spacing:3px;color:#0f766e;"">{codigo}</div>
+</td></tr></table>";
+
         var boton = string.IsNullOrWhiteSpace(enlaceBoton)
             ? string.Empty
             : $@"<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""><tr><td align=""center"" style=""padding:0 0 16px 0;""><a href=""{enlaceBoton}"" style=""display:inline-block;background-color:#0f766e;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 36px;border-radius:8px;"">Activar mi cuenta</a></td></tr></table>";
@@ -76,9 +103,7 @@ public class DatabaseEmailQueue : IEmailQueue
 <h2 style=""margin:0 0 16px 0;font-size:19px;color:#0f766e;"">{titulo}</h2>
 <p style=""margin:0 0 24px 0;"">{introduccion}</p>
 {boton}
-<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""><tr><td align=""center"" style=""padding:8px 0 24px 0;"">
-<div style=""display:inline-block;background-color:#f0fdfa;border:2px dashed #0f766e;border-radius:8px;padding:16px 32px;font-size:22px;font-weight:bold;letter-spacing:3px;color:#0f766e;"">{codigo}</div>
-</td></tr></table>
+{caja}
 <p style=""margin:0 0 8px 0;font-size:13px;color:#6b7280;"">{despedida}</p>
 </td></tr>
 <tr><td style=""background-color:#f4f6f8;padding:16px 32px;font-size:12px;color:#9ca3af;text-align:center;"">Este es un mensaje automático, por favor no respondas a este correo.</td></tr>

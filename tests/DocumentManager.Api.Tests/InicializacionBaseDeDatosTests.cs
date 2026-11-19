@@ -205,6 +205,8 @@ public class InicializacionBaseDeDatosTests
         }
         public Task<int> ContarAdministradoresActivosAsync() =>
             Task.FromResult(Guardados.Count(u => u.Rol == Rol.Administrador && u.Activo));
+        public Task<IReadOnlyList<Usuario>> ListarAdministradoresActivosAsync() =>
+            Task.FromResult<IReadOnlyList<Usuario>>([.. Guardados.Where(u => u.Rol == Rol.Administrador && u.Activo)]);
     }
 
     private sealed class LoggerQueGuarda : ILogger

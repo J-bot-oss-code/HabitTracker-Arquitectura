@@ -2,7 +2,8 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import { formatearFechaHora } from '@/shared/lib/fechas'
 import { EmptyState } from '@/shared/ui/Card'
-import { nombrePermiso } from '../catalogo'
+import { useDocumentos } from '@/features/documentos/api'
+import { documentoDeClave, esClaveEliminarArchivo, nombrePermiso } from '../catalogo'
 import type { SolicitudPermisoDto } from '../types'
 import { EstadoSolicitudBadge } from './EstadoSolicitudBadge'
 
@@ -25,6 +26,13 @@ export function SolicitudesTabla({
   acciones?: (s: SolicitudPermisoDto) => ReactNode
   vacio?: string
 }) {
+  // El permiso de un archivo es uno por archivo: se muestra cuál es, por su nombre.
+  const conArchivo = solicitudes.some((s) => esClaveEliminarArchivo(s.permisoSolicitado))
+  const documentos = useDocumentos(conArchivo)
+  const nombreDeArchivo = (clave: string) =>
+    documentos.data?.find((d) => d.id === documentoDeClave(clave))?.nombre ??
+    'un archivo que ya no está'
+
   if (solicitudes.length === 0) return <EmptyState titulo={vacio} icono="permisos" />
 
   const ordenadas = [...solicitudes].sort((a, b) => b.fechaCreacion.localeCompare(a.fechaCreacion))
@@ -69,6 +77,11 @@ export function SolicitudesTabla({
                 <Link to={`/permisos/${s.id}`} className="font-semibold hover:text-acento">
                   {nombrePermiso(s.permisoSolicitado)}
                 </Link>
+                {esClaveEliminarArchivo(s.permisoSolicitado) && (
+                  <div className="text-sm text-atenuado">
+                    «{nombreDeArchivo(s.permisoSolicitado)}»
+                  </div>
+                )}
                 {/* La clave técnica solo se muestra a quien administra (vista con solicitante). */}
                 {mostrarSolicitante && (
                   <div className="text-xs text-atenuado">{s.permisoSolicitado}</div>

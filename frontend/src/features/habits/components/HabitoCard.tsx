@@ -18,9 +18,7 @@ export function HabitoCard({ habito }: { habito: HabitoDto }) {
     <Link
       to={`/habitos/${habito.id}`}
       className={cn(
-        'group flex min-h-11 items-center gap-4 rounded-xl border bg-superficie p-4 transition-[border-color,box-shadow] duration-200 hover:border-acento hover:ring-1 hover:ring-acento',
-        enMarcha ? 'border-borde-fuerte' : 'border-borde',
-        habito.cumpleMetaFinal && enMarcha && 'border-exito',
+        'group flex min-h-11 items-center gap-4 border-t border-borde px-1 py-4 transition-colors hover:bg-hover',
       )}
     >
       <AnilloProgreso

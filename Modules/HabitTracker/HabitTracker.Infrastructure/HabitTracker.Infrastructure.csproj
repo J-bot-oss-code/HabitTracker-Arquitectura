@@ -19,6 +19,13 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Contenido del catálogo de planes (Fase 3): viaja dentro del ensamblado, sin rutas de disco. -->
+    <EmbeddedResource Include="Contenido\catalogo-planes.json" LogicalName="HabitTracker.Infrastructure.Contenido.catalogo-planes.json" />
+    <!-- Mensajes de motivación (Fase 4): también dentro del ensamblado. -->
+    <EmbeddedResource Include="Contenido\mensajes-motivacion.json" LogicalName="HabitTracker.Infrastructure.Contenido.mensajes-motivacion.json" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

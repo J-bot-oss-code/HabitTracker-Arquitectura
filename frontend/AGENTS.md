@@ -18,7 +18,7 @@ español con RF/RD, flujo de ramas y PRs) están en el `AGENTS.md` de la raíz.
 src/
   app/        router (routes.tsx), guards (RequireAuth / SoloInvitados), layouts, navigation, providers
   shared/     api (http + ProblemDetails), auth (JWT, sesión, roles), config (env), lib, ui
-  features/   auth · habits · permissions · admin-users · coming-soon
+  features/   auth · habits · permissions · admin-users · perfil · progreso · privacidad · planes · publico · auditoria · notificaciones · cola-correos · reportes
               publico · perfil · progreso · privacidad · auditoria (pantallas de producto)
               cada una con types.ts · api.ts · schemas.ts · components/ · pages/ · *.test.ts(x)
   mocks/      API simulada: db.ts (memoria), http.ts (auth, ProblemDetails), handlers/, contrato.test.ts
@@ -49,14 +49,14 @@ src/
 
 ## Piezas pendientes del backend
 
-Documentos, Notificaciones, Cola de correos, Reportes y Auditoría (más RF-NEG-07/08/10) son
-pantallas "Próximamente" definidas en `features/coming-soon/piezas.ts`. Cuando el backend entregue
-una:
+Solo queda la **Auditoría** como contrato propuesto (ver más abajo). Notificaciones, Cola de correos y Reportes
+ya están conectadas a sus controllers (`features/notificaciones`, `features/cola-correos`, `features/reportes`) y no
+quedan pantallas «Próximamente»: `features/coming-soon` y `shared/ui/ComingSoon` se eliminaron. Si el backend
+entrega otra pieza, el flujo es:
 
 1. Ejecutar `frontend-api-contract` para tipar el contrato y crear los handlers MSW.
 2. Ejecutar `frontend-architect` para planificar la feature.
-3. Implementarla con `frontend-ui-builder`, registrar la ruta perezosa en `app/routes.tsx` y
-   quitar `proximamente` en `app/navigation.ts` y la entrada de `piezas.ts`.
+3. Implementarla con `frontend-ui-builder` y registrar la ruta perezosa en `app/routes.tsx`.
 4. Pasar siempre por `frontend-design-critic` y atender sus quejas (el builder lo hace como
    parte de su ciclo).
 5. Escribir las pruebas con `frontend-test-writer`.
@@ -81,9 +81,7 @@ backend (`.github/copilot/agents/`) siguen aplicando a `Host/` y `Modules/`.
 
 ## Identidad visual
 
-La fuente de verdad es la especificación `docs/mejoras/diseno-ui-web-movil.md`: diseño sobrio
-(fondo gris claro, tarjetas blancas con borde sutil, un solo acento índigo, sin degradados ni
-sombras pesadas), Plus Jakarta Sans para títulos y cifras e Inter para el cuerpo. Temas Claro,
+La identidad es «la hoja del día» (ver `src/index.css`): tinta verde abeto sobre papel, un subrayador amarillo-verde (`marcador`) solo para lo hecho, esquinas casi rectas (radios 3–9 px), listas regladas con la hora al margen en lugar de tarjetas, sin degradados ni sombras. Bricolage Grotesque en títulos y cifras y Atkinson Hyperlegible Next en el cuerpo. La especificación `docs/mejoras/diseno-ui-web-movil.md` sigue mandando en estructura y componentes; solo cambian los tokens de color, tipografía y radio. Temas Claro,
 Oscuro y Sistema sobre tokens semánticos (`src/index.css`); la equivalencia con los tokens de la
 especificación y las desviaciones por accesibilidad están en `docs/PLAN-FRONTEND-NEXUS.md`.
 
@@ -94,8 +92,9 @@ Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs
 - Públicas: landing `/`, `/metas`, `/calculadoras` y `/legal/:documento`.
 - Alta: `/registro` con consentimientos y `/bienvenida` (onboarding).
 - Estándar: `/hoy` (inicio) y `/progreso`.
-- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
-- Administrador: `/admin` (inicio) y `/admin/auditoria`.
+- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Notificaciones (preferencia de correo) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
+- Ambos roles: `/notificaciones` (bandeja con globo de sin leer en el menú) y `/reportes` (permisos por estado y constancia por plan, con rango de fechas).
+- Administrador: `/admin` (inicio), `/admin/auditoria` y `/admin/cola-correos`.
 
 Cada pantalla pone su título de pestaña y el foco en su encabezado (`app/layout/RaizApp.tsx`). Las rutas nuevas llevan `handle: { titulo }` en `routes.tsx`.
 
@@ -138,6 +137,8 @@ marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activa
   en `RUTAS_SIN_RENOVACION`: su 401 es «contraseña incorrecta», no «token vencido». Con mocks, el botón es una
   demostración (`window.prompt`) y el «ID token» es `mock-google|sub|correo|nombre|1` (`tokenDemo.ts`): nunca
   llega al backend real.
+- **Planes (conectado, HabitTracker v2 Fase 3):** `features/planes/`. El catálogo de 13 planes viene de la API: `GET /api/plans` y `/{slug}` (anónimos, caché de 5 min) y `GET /api/plans/recommended` (Estándar). Pantallas: catálogo en la landing y en `/metas` (`CatalogoPlanes`, filtros por nivel y área), detalle en `/metas/:slug` y `/planes/:slug` (aviso de seguridad, tareas con su versión mínima y guía semanal) y **Planes** `/planes` (recomendados con sus motivos y «No recomendado para ti» con su razón). La landing recibe el catálogo por una ranura (`LandingPage catalogo={…}`) porque una feature no importa componentes de otra. Un slug que llega de la URL o de `localStorage` se valida por formato (`esSlugPlan`) y, para mostrar su nombre, contra la lista del servidor (`usePlanResumen`). «Empezar este plan» abre «¿Cuándo lo harás?» (ancla y hora) y llama a `POST /api/my-plans` (`planes/components/EmpezarPlanDialogo.tsx`). El slug que la persona eligió en la landing se recuerda hasta el onboarding, que termina en la ficha de ese plan. Los hooks van siempre antes de un `return` anticipado.
+- **Mis planes (conectado, HabitTracker v2 Fase 4):** `features/mis-planes/` (`api.ts`, `types.ts`, `schemas.ts`). `GET /api/today` alimenta Hoy (`habits/components/TareaDePlanFila.tsx` con «Hecho» y «Hoy solo lo mínimo», que registra `cantidad: 1` con `esVersionMinima`; `AvisosDeHoy.tsx` con la celebración semanal y la sugerencia de ajuste, que nunca se aplica sola). Los hábitos sueltos quedan en «Otros hábitos». «Mis planes» vive arriba de `/planes` y su detalle en `/mis-planes/:id` (pausar con motivo, reanudar, ajustar, recordatorio, completar y dejar el plan con confirmación). Progreso lee `GET /api/progress/summary` (logros y «tu mes en números»). El perfil ya no tiene `metaSlug` ni `inicioPlan`. En las pruebas el plan de ejemplo no se siembra: usa `sembrarPlanDemo()` de `mocks/db.ts`. Sin rojo ni textos de culpa (P3/P4).
 - **Sesiones activas (conectado):** Configuración › Inicio de sesión › «Sesiones activas» (`features/auth/components/SesionesActivas.tsx`):
   `GET /api/auth/sesiones`, `DELETE /api/auth/sesiones/{id}` (404 si no es tuya) y `POST /api/auth/logout-todas`.
   «Cerrar las demás» cierra una por una; «Cerrar en todos los dispositivos» corta también este navegador.

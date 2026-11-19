@@ -1,12 +1,17 @@
 import { z } from 'zod'
 
-// Límites de SolicitudPermiso (Permissions.Domain): permiso ≤ 256, motivo ≤ 500.
+// Mismas reglas que CrearPermisoRequest: la clave es un nombre con puntos (Habits.AdvancedReconfig), de 3 a 256
+// caracteres. Motivo del rechazo ≤ 500 (Permissions.Domain).
+export const CLAVE_PERMISO = /^[A-Za-z][A-Za-z0-9]*(\.[A-Za-z0-9]+)+$/
+
 export const crearSolicitudSchema = z.object({
   permisoSolicitado: z
     .string()
     .trim()
     .min(1, 'Elige el permiso que necesitas.')
-    .max(256, 'El nombre del permiso es demasiado largo.'),
+    .min(3, 'El nombre del permiso es demasiado corto.')
+    .max(256, 'El nombre del permiso es demasiado largo.')
+    .regex(CLAVE_PERMISO, 'El permiso no es válido. Usa un nombre como Habits.AdvancedReconfig.'),
 })
 
 export const rechazarSchema = z.object({

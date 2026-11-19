@@ -1,8 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useLocation } from 'react-router'
 import { BandaDatosTuyos } from '../components/BandaDatosTuyos'
 import { CalculadoraCalorias } from '../components/CalculadoraCalorias'
-import { CatalogoMetas } from '../components/CatalogoMetas'
 import { ComoFunciona } from '../components/ComoFunciona'
 import { Hero } from '../components/Hero'
 
@@ -11,7 +10,8 @@ import { Hero } from '../components/Hero'
 const ANCLAS = new Set(['metas', 'calculadora', 'como-funciona'])
 
 // Inicio público (§5.1): se explora sin cuenta; elegir un plan pide registro.
-export function LandingPage() {
+// El catálogo de planes es de la feature `planes`: lo compone la ruta (app/routes.tsx) y llega por aquí.
+export function LandingPage({ catalogo }: { catalogo: ReactNode }) {
   const { hash, key } = useLocation()
 
   // React Router no desplaza a un ancla (/#como-funciona) por sí solo. Depende también de la
@@ -24,7 +24,7 @@ export function LandingPage() {
   return (
     <>
       <Hero />
-      <CatalogoMetas />
+      {catalogo}
       <CalculadoraCalorias />
       <ComoFunciona />
       <BandaDatosTuyos />

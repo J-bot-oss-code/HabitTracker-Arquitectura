@@ -37,6 +37,33 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.ToTable("EtiquetaHabito");
                 });
 
+            modelBuilder.Entity("HabitTracker.Domain.Adherencia.LogroUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Clave")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("ObtenidoEn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("VistoEn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Clave")
+                        .IsUnique();
+
+                    b.ToTable("LogrosUsuario", (string)null);
+                });
+
             modelBuilder.Entity("HabitTracker.Domain.Entities.Categoria", b =>
                 {
                     b.Property<Guid>("Id")
@@ -85,9 +112,17 @@ namespace HabitTracker.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Ancla")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<decimal>("CantidadObjetivo")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Descripcion")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Estado")
                         .IsRequired()
@@ -104,9 +139,15 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<bool>("PausadoPorPlan")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Periodicidad")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("PlanUsuarioId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Unidad")
                         .IsRequired()
@@ -116,9 +157,15 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("VersionMinima")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("MetaId");
+
+                    b.HasIndex("PlanUsuarioId");
 
                     b.HasIndex("UsuarioId");
 
@@ -187,6 +234,9 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<bool>("EsVersionMinima")
+                        .HasColumnType("bit");
+
                     b.Property<DateTime>("Fecha")
                         .HasColumnType("datetime2");
 
@@ -242,13 +292,6 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<TimeOnly?>("HoraSalidaTrabajo")
                         .HasColumnType("time");
 
-                    b.Property<DateTime?>("InicioPlan")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("MetaSlug")
-                        .HasMaxLength(60)
-                        .HasColumnType("nvarchar(60)");
-
                     b.Property<int?>("MinutosPorSesion")
                         .HasColumnType("int");
 
@@ -277,6 +320,204 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.HasKey("UsuarioId");
 
                     b.ToTable("PerfilesUsuario", (string)null);
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.AdjuntoPlan", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("AdjuntadoEnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DocumentoId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PlanUsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PlanUsuarioId", "DocumentoId")
+                        .IsUnique();
+
+                    b.HasIndex("UsuarioId", "DocumentoId");
+
+                    b.ToTable("AdjuntosPlan", (string)null);
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanPlantilla", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("bit");
+
+                    b.PrimitiveCollection<string>("Alergenos")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("AvisoSeguridad")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.PrimitiveCollection<string>("Beneficios")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.PrimitiveCollection<string>("Contraindicaciones")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Descripcion")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("EdadMaxima")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EdadMinima")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Impacto")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Intensidad")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Lugar")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Nivel")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.PrimitiveCollection<string>("PerfilesLaborales")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("RequiereCuestionario")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Resumen")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Semanas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Sexo")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<int>("VersionContenido")
+                        .HasColumnType("int");
+
+                    b.PrimitiveCollection<string>("ZonasCorporales")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Activo");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("PlanesPlantilla", (string)null);
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Extensiones")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FechaFinPrevista")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeOnly?>("HoraRecordatorio")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("ModoSuaveHasta")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MotivoPausa")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Origen")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid?>("PlanPlantillaId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("RecordatoriosActivos")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Semanas")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Estado");
+
+                    b.HasIndex("UsuarioId", "PlanPlantillaId")
+                        .IsUnique()
+                        .HasFilter("[PlanPlantillaId] IS NOT NULL AND [Estado] IN ('Activo', 'Pausado')");
+
+                    b.ToTable("PlanesUsuario", (string)null);
                 });
 
             modelBuilder.Entity("HabitTracker.Domain.Progreso.MedicionCorporal", b =>
@@ -384,6 +625,11 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasForeignKey("MetaId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("HabitTracker.Domain.Planes.PlanUsuario", null)
+                        .WithMany()
+                        .HasForeignKey("PlanUsuarioId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("Meta");
                 });
 
@@ -418,6 +664,137 @@ namespace HabitTracker.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Habito");
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.AdjuntoPlan", b =>
+                {
+                    b.HasOne("HabitTracker.Domain.Planes.PlanUsuario", null)
+                        .WithMany()
+                        .HasForeignKey("PlanUsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanPlantilla", b =>
+                {
+                    b.OwnsMany("HabitTracker.Domain.Planes.SemanaGuia", "GuiaSemanal", b1 =>
+                        {
+                            b1.Property<Guid>("PlanPlantillaId");
+
+                            b1.Property<int>("__synthesizedOrdinal")
+                                .ValueGeneratedOnAddOrUpdate();
+
+                            b1.Property<int>("Semana");
+
+                            b1.Property<string>("Texto")
+                                .IsRequired();
+
+                            b1.Property<string>("TipExtra");
+
+                            b1.HasKey("PlanPlantillaId", "__synthesizedOrdinal");
+
+                            b1.ToTable("PlanesPlantilla");
+
+                            b1
+                                .ToJson("GuiaSemanal")
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.WithOwner()
+                                .HasForeignKey("PlanPlantillaId");
+                        });
+
+                    b.OwnsMany("HabitTracker.Domain.Planes.TareaPlantilla", "Tareas", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("AnclaSugerida")
+                                .IsRequired()
+                                .HasMaxLength(30)
+                                .HasColumnType("nvarchar(30)");
+
+                            b1.Property<decimal>("Cantidad")
+                                .HasPrecision(8, 2)
+                                .HasColumnType("decimal(8,2)");
+
+                            b1.Property<string>("Instrucciones")
+                                .IsRequired()
+                                .HasMaxLength(1000)
+                                .HasColumnType("nvarchar(1000)");
+
+                            b1.Property<string>("Nombre")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.Property<int>("Orden")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("Periodicidad")
+                                .IsRequired()
+                                .HasMaxLength(30)
+                                .HasColumnType("nvarchar(30)");
+
+                            b1.Property<Guid>("PlanPlantillaId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<string>("Unidad")
+                                .IsRequired()
+                                .HasMaxLength(50)
+                                .HasColumnType("nvarchar(50)");
+
+                            b1.Property<string>("VersionMinima")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("nvarchar(200)");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("PlanPlantillaId");
+
+                            b1.ToTable("TareasPlantilla", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("PlanPlantillaId");
+                        });
+
+                    b.Navigation("GuiaSemanal");
+
+                    b.Navigation("Tareas");
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Planes.PlanUsuario", b =>
+                {
+                    b.OwnsMany("HabitTracker.Domain.Planes.PeriodoPausa", "Pausas", b1 =>
+                        {
+                            b1.Property<Guid>("Id")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.Property<DateTime?>("FinUtc")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<DateTime>("InicioUtc")
+                                .HasColumnType("datetime2");
+
+                            b1.Property<string>("Motivo")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("nvarchar(20)");
+
+                            b1.Property<Guid>("PlanUsuarioId")
+                                .HasColumnType("uniqueidentifier");
+
+                            b1.HasKey("Id");
+
+                            b1.HasIndex("PlanUsuarioId");
+
+                            b1.ToTable("PeriodosPausa", (string)null);
+
+                            b1.WithOwner()
+                                .HasForeignKey("PlanUsuarioId");
+                        });
+
+                    b.Navigation("Pausas");
                 });
 
             modelBuilder.Entity("HabitTracker.Domain.Entities.Categoria", b =>

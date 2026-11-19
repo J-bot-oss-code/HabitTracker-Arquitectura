@@ -25,7 +25,7 @@ export function PermissionDetailPage() {
   const { id = '' } = useParams()
   const { tieneRol } = useAuth()
   const solicitud = useSolicitud(id)
-  const volver = tieneRol('Administrador') ? '/admin/permisos' : '/permisos'
+  const volver = tieneRol('Administrador') ? '/admin/permisos' : '/ajustes/solicitudes'
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">

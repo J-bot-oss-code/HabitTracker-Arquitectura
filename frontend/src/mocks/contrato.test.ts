@@ -170,6 +170,46 @@ describe('contrato de la API simulada', () => {
     expect(conZ.status).toBe(204)
   })
 
+  it('un hábito suelto trae los campos de plan en null y sus registros con esVersionMinima en falso', async () => {
+    const r = await llamar(`/api/habits/${LEER}`, { token: iniciarSesionComo('estandar') })
+    const habito = await r.json()
+    expect(habito).toMatchObject({
+      planUsuarioId: null,
+      descripcion: null,
+      versionMinima: null,
+      ancla: null,
+    })
+    expect(habito.registros.length).toBeGreaterThan(0)
+    expect(
+      habito.registros.every((x: { esVersionMinima: boolean }) => x.esVersionMinima === false),
+    ).toBe(true)
+  })
+
+  it('esVersionMinima solo vale en un hábito de un plan: en uno suelto es 400 version_minima_no_disponible', async () => {
+    const token = iniciarSesionComo('estandar')
+    const fechaUtc = new Date().toISOString()
+    const minima = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token,
+      body: { cantidad: 1, fechaUtc, esVersionMinima: true },
+    })
+    expect(minima.status).toBe(400)
+    expect((await minima.json()).codigo).toBe('version_minima_no_disponible')
+    // Es opcional y falso por defecto: enviarlo en falso es lo mismo que no enviarlo.
+    const normal = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token,
+      body: { cantidad: 1, fechaUtc, esVersionMinima: false },
+    })
+    expect(normal.status).toBe(204)
+    const noBooleano = await llamar(`/api/habits/${LEER}/progress`, {
+      metodo: 'POST',
+      token,
+      body: { cantidad: 1, fechaUtc, esVersionMinima: 'si' },
+    })
+    expect(noBooleano.status).toBe(400)
+  })
+
   it('GET /api/permissions devuelve solo pendientes si se omite soloPendientes', async () => {
     const token = iniciarSesionComo('admin')
     await llamar('/api/permissions/5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c01/reject', {
@@ -181,6 +221,108 @@ describe('contrato de la API simulada', () => {
     expect(
       await (await llamar('/api/permissions?soloPendientes=false', { token })).json(),
     ).toHaveLength(1)
+  })
+
+  describe('POST /api/permissions (CrearPermisoRequest y SolicitudPermisoService)', () => {
+    const pedir = (token: string, permisoSolicitado: unknown) =>
+      llamar('/api/permissions', { metodo: 'POST', token, body: { permisoSolicitado } })
+
+    it.each([
+      'Habits.AdvancedReconfig',
+      'Documents.DeleteLinked.0b8e7a521c3d4f6e8a9b1c2d3e4f5a01',
+      'a.b',
+    ])('acepta la clave %s', async (clave) => {
+      expect((await pedir(iniciarSesionComo('estandar'), clave)).status).toBe(201)
+    })
+
+    it.each([
+      ['sin puntos', 'Habits'],
+      ['con espacios', 'Habits. Reconfig'],
+      ['con espacios en los bordes', ' Habits.Reconfig '],
+      ['empieza por punto', '.Habits.Reconfig'],
+      ['termina en punto', 'Habits.Reconfig.'],
+      ['con guion', 'Habits.Re-config'],
+      ['empieza por número', '1abc.def'],
+      ['demasiado corta', 'a.'],
+      ['de más de 256 caracteres', `a.${'b'.repeat(255)}`],
+      ['vacía', ''],
+      ['que no es texto', 42],
+    ])('una clave %s es 400 con ValidationProblemDetails', async (_caso, clave) => {
+      const r = await pedir(iniciarSesionComo('estandar'), clave)
+      expect(r.status).toBe(400)
+      expect((await r.json()).errors?.PermisoSolicitado).toEqual(['El permiso no es válido.'])
+    })
+
+    it('repetir una solicitud Pendiente es 409 solicitud_duplicada, sin mayúsculas y por persona', async () => {
+      const token = iniciarSesionComo('estandar')
+      expect((await pedir(token, 'Habits.AdvancedReconfig')).status).toBe(201)
+      const repetida = await pedir(token, 'habits.advancedreconfig')
+      expect(repetida.status).toBe(409)
+      expect(await repetida.json()).toMatchObject({
+        title: 'Solicitud duplicada.',
+        codigo: 'solicitud_duplicada',
+      })
+      // Otra persona sí puede pedir el mismo permiso (el «otro» de los datos de ejemplo ya lo tiene pendiente).
+      expect((await pedir(iniciarSesionComo('admin'), 'Habits.AdvancedReconfig')).status).toBe(201)
+      // Otro permiso de la misma persona también.
+      expect((await pedir(token, 'Habits.Otra')).status).toBe(201)
+    })
+
+    it('una solicitud Aplicada también cuenta como vigente; una Rechazada se puede volver a pedir', async () => {
+      const estandar = iniciarSesionComo('estandar')
+      const admin = iniciarSesionComo('admin')
+      const resolver = async (accion: 'approve' | 'reject') => {
+        const { id } = await (await pedir(estandar, 'Habits.AdvancedReconfig')).json()
+        return llamar(`/api/permissions/${id}/${accion}`, {
+          metodo: 'POST',
+          token: admin,
+          body: { motivoRechazo: 'Ahora no.' },
+        })
+      }
+      expect((await resolver('reject')).status).toBe(200)
+      // Rechazada: se puede pedir de nuevo; luego se aprueba y queda Aplicada.
+      expect((await resolver('approve')).status).toBe(200)
+      expect((await pedir(estandar, 'Habits.AdvancedReconfig')).status).toBe(409)
+    })
+  })
+
+  it('una solicitud que no existe es 404 con ProblemDetails y codigo solicitud_no_encontrada; un id que no es GUID, 404 sin cuerpo', async () => {
+    const admin = iniciarSesionComo('admin')
+    const inexistente = '11111111-2222-4333-8444-555555555555'
+    for (const [metodo, ruta] of [
+      ['GET', `/api/permissions/${inexistente}`],
+      ['POST', `/api/permissions/${inexistente}/approve`],
+      ['POST', `/api/permissions/${inexistente}/reject`],
+    ]) {
+      const r = await llamar(ruta, { metodo, token: admin, body: { motivoRechazo: 'No' } })
+      expect(r.status, ruta).toBe(404)
+      expect(await r.json(), ruta).toMatchObject({
+        title: 'No encontrado.',
+        codigo: 'solicitud_no_encontrada',
+      })
+    }
+    const sinGuid = await llamar('/api/permissions/no-es-guid', { token: admin })
+    expect(sinGuid.status).toBe(404)
+    expect(await sinGuid.text()).toBe('')
+  })
+
+  it('el permiso efectivo no distingue mayúsculas: solo una solicitud Aplicada lo concede', async () => {
+    const estandar = iniciarSesionComo('estandar')
+    const admin = iniciarSesionComo('admin')
+    const clave = 'Documents.DeleteLinked.0b8e7a521c3d4f6e8a9b1c2d3e4f5a01'
+    const { id } = await (
+      await llamar('/api/permissions', {
+        metodo: 'POST',
+        token: estandar,
+        body: { permisoSolicitado: clave },
+      })
+    ).json()
+    const efectivo = (permiso: string) =>
+      llamar(`/api/permissions/effective/${permiso}`, { token: estandar })
+    expect((await efectivo(clave)).status).toBe(403)
+    await llamar(`/api/permissions/${id}/approve`, { metodo: 'POST', token: admin })
+    expect((await efectivo(clave)).status).toBe(200)
+    expect((await efectivo(clave.toUpperCase())).status).toBe(200)
   })
 
   it('el logout revoca el token (blacklist)', async () => {

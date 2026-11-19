@@ -1,3 +1,6 @@
+using HabitTracker.Domain.Excepciones;
+using HabitTracker.Domain.Planes;
+
 namespace HabitTracker.Domain.Entities;
 
 public class Habito
@@ -13,6 +16,14 @@ public class Habito
     /// <summary>Meta del catálogo a la que pertenece (opcional desde HabitTracker v2: un hábito puede ir suelto).</summary>
     public Guid? MetaId { get; private set; }
     public Meta? Meta { get; private set; }
+
+    /// <summary>Plan de la persona al que pertenece (Fase 4). Nulo: un hábito suelto, como todos los anteriores.</summary>
+    public Guid? PlanUsuarioId { get; private set; }
+    /// <summary>Instrucciones copiadas de la tarea del plan.</summary>
+    public string? Descripcion { get; private set; }
+    /// <summary>"Hoy solo lo mínimo": lo que cuenta en un mal día. Nulo en un hábito suelto.</summary>
+    public string? VersionMinima { get; private set; }
+    public Ancla? Ancla { get; private set; }
 
     public ICollection<RegistroDiario> Registros { get; private set; } = new List<RegistroDiario>();
     public ICollection<Etiqueta> Etiquetas { get; private set; } = new List<Etiqueta>();
@@ -41,6 +52,44 @@ public class Habito
         MetaId = metaId;
         Estado = EstadoHabito.Planificado;
         FechaInicioCiclo = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// El hábito que nace de una tarea del plan: copia sus valores, para que un cambio en el catálogo no altere un plan en
+    /// curso, y arranca Activo (la persona acaba de elegir empezar).
+    /// </summary>
+    public static Habito DesdeTareaDePlan(Guid usuarioId, Guid planUsuarioId, TareaPlantilla tarea)
+    {
+        ArgumentNullException.ThrowIfNull(tarea);
+        var habito = new Habito(usuarioId, tarea.Nombre, tarea.Periodicidad, tarea.Cantidad, tarea.Unidad)
+        {
+            PlanUsuarioId = planUsuarioId,
+            Descripcion = tarea.Instrucciones,
+            VersionMinima = tarea.VersionMinima,
+            Ancla = tarea.AnclaSugerida,
+        };
+        habito.Activar(usuarioId);
+        return habito;
+    }
+
+    /// <summary>
+    /// Verdadero si lo pausó el plan al pausarse, no la persona. Así, al reanudar el plan solo vuelven los que el plan pausó:
+    /// un hábito que la persona dejó en pausa a propósito no se reactiva solo.
+    /// </summary>
+    public bool PausadoPorPlan { get; private set; }
+
+    /// <summary>El plan se pausa (o termina sin conservar los hábitos) y pausa este hábito.</summary>
+    public void PausarPorPlan(Guid usuarioActualId)
+    {
+        Pausar(usuarioActualId);
+        PausadoPorPlan = true;
+    }
+
+    /// <summary>El plan se reanuda: vuelve solo si lo pausó el plan.</summary>
+    public void ReanudarPorPlan(Guid usuarioActualId)
+    {
+        if (Estado == EstadoHabito.Pausado && PausadoPorPlan)
+            Activar(usuarioActualId);
     }
 
     public bool CumpleMetaFinal => CalcularCumpleMetaFinal();
@@ -111,7 +160,10 @@ public class Habito
         FechaInicioCiclo = DateTime.UtcNow;
     }
 
-    public void RegistrarAvance(Guid usuarioActualId, decimal cantidad, DateTime fechaUtc)
+    /// <param name="esVersionMinima">
+    /// "Hoy solo lo mínimo": cuenta como un día cumplido en la constancia, y solo existe en un hábito de un plan.
+    /// </param>
+    public void RegistrarAvance(Guid usuarioActualId, decimal cantidad, DateTime fechaUtc, bool esVersionMinima = false)
     {
         ValidarPropietario(usuarioActualId);
         if (Estado != EstadoHabito.Activo)
@@ -121,7 +173,11 @@ public class Habito
         if (fechaUtc.Kind != DateTimeKind.Utc)
             throw new ArgumentException("La fecha debe ser UTC.", nameof(fechaUtc));
 
-        Registros.Add(new RegistroDiario(cantidad, fechaUtc, Unidad));
+        if (esVersionMinima && VersionMinima is null)
+            throw new ReglaNegocioException(ReglaNegocioException.VersionMinimaNoDisponible,
+                "Este hábito no tiene una versión mínima.");
+
+        Registros.Add(new RegistroDiario(cantidad, fechaUtc, Unidad, esVersionMinima));
     }
 
     private void ValidarPropietario(Guid usuarioActualId)
@@ -141,5 +197,7 @@ public class Habito
         }
 
         Estado = nuevoEstado;
+        // Cualquier cambio de estado hecho directamente lo decide la persona: el plan ya no es quien lo pausó.
+        PausadoPorPlan = false;
     }
 }

@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { db } from '@/mocks/db'
+import { db, sembrarPlanDemo } from '@/mocks/db'
 import { adminHandlers } from '@/mocks/handlers/propuestas/admin'
 import { problema } from '@/mocks/http'
 import { server } from '@/mocks/server'
@@ -94,6 +94,7 @@ describe('contrato propuesto del panel de administración', () => {
   })
 
   it('las métricas son agregadas y anónimas: ningún correo ni id de persona', async () => {
+    sembrarPlanDemo()
     const r = await llamar('/api/admin/metrics', iniciarSesionComo('admin'))
     const m: MetricasDto = await r.json()
     expect(m).toMatchObject({
@@ -101,7 +102,7 @@ describe('contrato propuesto del panel de administración', () => {
       registros7d: 0,
       retencion30d: 50,
       eliminacionesEnCurso: 0,
-      planesMasIniciados: [{ slug: 'primeros-5-km', cantidad: 1 }],
+      planesMasIniciados: [{ slug: 'mi-dia-oficina', cantidad: 1 }],
     })
     expect(JSON.stringify(m)).not.toMatch(/@|demo|-0000|[0-9a-f]{8}-[0-9a-f]{4}/)
   })
@@ -194,6 +195,7 @@ describe('contrato propuesto del panel de administración', () => {
 
 describe('Resumen del Administrador', () => {
   it('muestra los indicadores, los planes y la auditoría reciente', async () => {
+    sembrarPlanDemo()
     renderApp('/admin', { como: 'admin' })
     expect(await screen.findByRole('heading', { level: 1, name: 'Resumen' })).toBeInTheDocument()
     expect(screen.getByText('Métricas agregadas y anónimas.')).toBeInTheDocument()
@@ -205,7 +207,7 @@ describe('Resumen del Administrador', () => {
     expect(within(kpis).queryByText(/Google|RF-/)).not.toBeInTheDocument()
 
     const planes = await screen.findByRole('region', { name: 'Planes más iniciados' })
-    expect(within(planes).getByText('Primeros 5 km')).toBeInTheDocument()
+    expect(within(planes).getByText('Mi día de oficina saludable')).toBeInTheDocument()
     expect(within(planes).getByText('1 inicio')).toBeInTheDocument()
 
     const tabla = await screen.findByRole('table', { name: /Eventos de auditoría/ })
@@ -215,11 +217,11 @@ describe('Resumen del Administrador', () => {
       'href',
       '/admin/auditoria',
     )
-    expect(screen.getByText('Cola de correos y notificaciones')).toBeInTheDocument()
-    expect(screen.getByText('Próximamente')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Cola de correos' })).toBeInTheDocument()
+    expect(screen.queryByText('Próximamente')).not.toBeInTheDocument()
   })
 
-  it('el menú abre con Resumen marcado solo en /admin y Auditoría ya no dice "Pronto"', async () => {
+  it('el menú abre con Resumen marcado solo en /admin y ningún ítem dice "Pronto"', async () => {
     renderApp('/admin', { como: 'admin' })
     const nav = await screen.findByRole('navigation', { name: 'Principal' })
     expect(within(nav).getByRole('link', { name: 'Resumen' })).toHaveAttribute(
@@ -228,7 +230,7 @@ describe('Resumen del Administrador', () => {
     )
     const auditoria = within(nav).getByRole('link', { name: 'Auditoría' })
     expect(auditoria).not.toHaveAttribute('aria-current')
-    expect(within(auditoria).queryByText('Pronto')).not.toBeInTheDocument()
+    expect(within(nav).queryByText('Pronto')).not.toBeInTheDocument()
   })
 
   it('en /admin/usuarios, Resumen no queda marcado', async () => {
@@ -462,11 +464,12 @@ describe('ajustes de la revisión del Paso 7', () => {
     expect((await llamar('/api/audit?desde=2026-02-28', admin)).status).toBe(200)
   })
 
-  it('el enlace a la cola de correos tiene un nombre descriptivo', async () => {
+  it('el resumen enlaza con la cola de correos', async () => {
     renderApp('/admin', { como: 'admin' })
-    expect(
-      await screen.findByRole('link', { name: 'Qué incluirá la cola de correos' }),
-    ).toHaveAttribute('href', '/admin/cola-correos')
+    expect(await screen.findByRole('link', { name: 'Abrir la cola de correos' })).toHaveAttribute(
+      'href',
+      '/admin/cola-correos',
+    )
   })
 })
 

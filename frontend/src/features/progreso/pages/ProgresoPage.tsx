@@ -1,8 +1,8 @@
 import { useState } from 'react'
-import { constanciaPorDia, logrosDe, recordsDe, useHabitos } from '@/features/habits/api'
-import { usePerfil } from '@/features/perfil/api'
-import { buscarMeta } from '@/features/publico/api'
-import { fechaLargaUtc } from '@/shared/lib/fechas'
+import { constanciaPorDia, useHabitos } from '@/features/habits/api'
+import { useMisPlanes, useResumenProgreso } from '@/features/mis-planes/api'
+import { TEXTO_LOGRO } from '@/features/mis-planes/types'
+import { fechaLargaUtc, parsearFechaUtc } from '@/shared/lib/fechas'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { CalendarioCalor, type CeldaCalor } from '@/shared/ui/CalendarioCalor'
@@ -13,7 +13,7 @@ import { Segmentado } from '@/shared/ui/Segmentado'
 import { Esqueleto } from '@/shared/ui/Spinner'
 import { MedidasCard } from '../components/MedidasCard'
 import { PesoCard } from '../components/PesoCard'
-import { etiquetaPeriodo, instanteFinDelPlan } from '../metricas'
+import { etiquetaPeriodo } from '../metricas'
 import { PERIODOS, type Periodo } from '../types'
 
 const SEMANAS_CONSTANCIA = 10
@@ -23,9 +23,12 @@ const SEMANAS_CONSTANCIA = 10
 // contratos propuestos (features/progreso/types.ts).
 export function ProgresoPage() {
   const [periodo, setPeriodo] = useState<Periodo>('3meses')
-  const perfil = usePerfil()
-  const meta = buscarMeta(perfil.data?.metaSlug)
-  const fin = instanteFinDelPlan(perfil.data?.inicioPlan, meta?.semanas)
+  // La línea de la meta de peso termina cuando termina el plan en curso que más dura.
+  const misPlanes = useMisPlanes()
+  const finales = (misPlanes.data ?? [])
+    .filter((p) => p.estado === 'Activo' || p.estado === 'Pausado')
+    .map((p) => parsearFechaUtc(p.fechaFinPrevista).getTime())
+  const fin = finales.length > 0 ? Math.max(...finales) : null
 
   return (
     <>
@@ -50,38 +53,11 @@ export function ProgresoPage() {
       <div className="space-y-6">
         <PesoCard periodo={periodo} finDelPlan={fin} />
 
-        <div className="grid items-start gap-6 lg:grid-cols-2">
-          <MedidasCard />
-          <FotosCard />
-        </div>
+        <MedidasCard />
 
         <ConstanciaYLogros />
       </div>
     </>
-  )
-}
-
-// Fotos (§5.4): vive en el Manejador de documentos (RF-DOC-01), que aún no existe.
-function FotosCard() {
-  return (
-    <Card>
-      <CardBody>
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <h2 className="text-lg font-bold">Fotos de progreso</h2>
-          <Badge tono="aviso" icono="calendario">
-            Próximamente
-          </Badge>
-        </div>
-        <p className="mb-3 flex items-center gap-1.5 text-xs text-atenuado">
-          <Icono nombre="candado" className="size-3.5" />
-          Solo tú las verás.
-        </p>
-        <p className="text-sm text-texto-2">
-          Podrás guardar fotos privadas y compararlas antes y después. Se habilitará cuando el
-          servidor entregue el manejo de documentos.
-        </p>
-      </CardBody>
-    </Card>
   )
 }
 
@@ -101,8 +77,6 @@ function ConstanciaYLogros() {
 
   const lista = habitos.data
   const dias = constanciaPorDia(lista, SEMANAS_CONSTANCIA)
-  const records = recordsDe(lista)
-  const logros = logrosDe(records)
   const hoy = dias.find((d) => d.hoy)?.fecha.getTime() ?? 0
   // Resumen de la semana en curso (las 7 últimas celdas), para quien no puede leer el mapa.
   const estaSemana = dias.slice(-7).filter((d) => d.fecha.getTime() <= hoy)
@@ -146,50 +120,67 @@ function ConstanciaYLogros() {
         </CardBody>
       </Card>
 
-      <Card>
-        <CardBody>
-          <h2 className="mb-4 text-lg font-bold">Récords y logros</h2>
-          {/* Variante compacta: tres tarjetas dentro de una tarjeta no caben en media columna. */}
-          <dl className="grid grid-cols-3 divide-x divide-borde rounded-xl border border-borde">
-            {[
-              ['Mejor racha', records.rachaMasLarga, 'días'],
-              ['Avances', records.avancesRegistrados, 'registrados'],
-              ['Completados', records.habitosCompletados, 'hábitos'],
-            ].map(([etiqueta, valor, detalle]) => (
-              <div key={etiqueta} className="min-w-0 px-3 py-3 text-center">
-                <dt className="break-words text-xs font-medium text-atenuado [overflow-wrap:anywhere]">
-                  {etiqueta}
-                </dt>
-                <dd className="cifra mt-1 text-2xl">{valor}</dd>
-                <dd className="text-xs text-atenuado">{detalle}</dd>
-              </div>
-            ))}
-          </dl>
-          <ul className="mt-5 divide-y divide-borde">
+      <LogrosYMes />
+    </div>
+  )
+}
+
+// Todo sale del servidor (GET /api/progress/summary): constancia de los planes, nunca peso ni medidas (P4).
+function LogrosYMes() {
+  const resumen = useResumenProgreso()
+  if (resumen.isPending) return <Esqueleto className="h-64" />
+  if (resumen.isError) {
+    return (
+      <ErrorCarga
+        error={resumen.error}
+        porDefecto="No se pudieron cargar tus logros."
+        alReintentar={() => resumen.refetch()}
+      />
+    )
+  }
+  const { mes, logros } = resumen.data
+  return (
+    <Card>
+      <CardBody>
+        <h2 className="mb-1 text-lg font-bold">Tu mes en números</h2>
+        <p className="mb-4 text-sm text-atenuado">
+          Lo que sumaste este mes con tus planes. Volver también cuenta.
+        </p>
+        <dl className="grid grid-cols-3 divide-x divide-borde rounded-xl border border-borde">
+          {[
+            ['Días cumplidos', mes.diasCumplidos],
+            ['Hábitos que mantienes', mes.habitosMantenidos],
+            ['Veces que volviste', mes.regresos],
+          ].map(([etiqueta, valor]) => (
+            <div key={etiqueta} className="min-w-0 px-3 py-3 text-center">
+              <dt className="break-words text-xs font-medium text-atenuado [overflow-wrap:anywhere]">
+                {etiqueta}
+              </dt>
+              <dd className="cifra mt-1 text-2xl">{valor}</dd>
+            </div>
+          ))}
+        </dl>
+        <h2 className="mb-2 mt-5 text-lg font-bold">Tus logros</h2>
+        {logros.length === 0 ? (
+          <p className="text-sm text-atenuado">
+            Tu primer logro llega con tu primer avance en un plan.
+          </p>
+        ) : (
+          <ul className="divide-y divide-borde">
             {logros.map((l) => (
               <li key={l.clave} className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
-                  <p className="font-semibold">{l.titulo}</p>
-                  <p className="text-sm text-atenuado">{l.descripcion}</p>
+                  <p className="font-semibold">{TEXTO_LOGRO[l.clave].titulo}</p>
+                  <p className="text-sm text-atenuado">{TEXTO_LOGRO[l.clave].descripcion}</p>
                 </div>
-                {l.obtenido ? (
-                  <Badge tono="exito" icono="check">
-                    Obtenido
-                  </Badge>
-                ) : (
-                  // Sin candado: en esta pantalla el candado ya significa "solo tú lo ves".
-                  <span className="shrink-0 text-right text-xs text-atenuado">
-                    <Badge tono="neutro">Bloqueado</Badge>
-                    <span className="mt-1 block">
-                      {l.actual} de {l.meta}
-                    </span>
-                  </span>
-                )}
+                <Badge tono="exito" icono="check">
+                  Obtenido
+                </Badge>
               </li>
             ))}
           </ul>
-        </CardBody>
-      </Card>
-    </div>
+        )}
+      </CardBody>
+    </Card>
   )
 }

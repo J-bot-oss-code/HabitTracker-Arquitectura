@@ -8,6 +8,12 @@ public interface IHabitoRepository
 
     Task<IReadOnlyList<Habito>> GetByUsuarioIdAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 
+    /// <summary>Los hábitos de un plan de esa persona, con sus registros y con seguimiento (para cambiarlos).</summary>
+    Task<IReadOnlyList<Habito>> GetByPlanUsuarioIdAsync(Guid usuarioId, Guid planUsuarioId, CancellationToken cancellationToken = default);
+
+    /// <summary>Todos los hábitos de la persona con sus registros, SIN seguimiento: para consultas que solo leen (Hoy, resumen).</summary>
+    Task<IReadOnlyList<Habito>> GetByUsuarioIdSoloLecturaAsync(Guid usuarioId, CancellationToken cancellationToken = default);
+
     Task AddAsync(Habito habito, CancellationToken cancellationToken = default);
 
     Task UpdateAsync(Habito habito, CancellationToken cancellationToken = default);

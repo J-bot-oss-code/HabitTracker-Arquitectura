@@ -6,6 +6,7 @@ import { auditar } from '../auditoria'
 import { db } from '../db'
 import { autenticar, esTexto, latencia, leerJson, respuestas } from '../http'
 import { aDto as habitoADto } from './habits'
+import { datosPerfilSalud } from './perfil'
 
 // Centro de privacidad real (PrivacidadController): consentimientos, baja de cuenta con periodo de gracia y
 // descarga de datos. Réplica de Host/WebApi; ver README raíz › «Baja de cuenta y descarga de datos».
@@ -214,6 +215,20 @@ export const privacidadHandlers = [
         habitos: db.habitos.filter((h) => h.usuarioId === u.id).map(habitoADto),
         permisos: db.solicitudes.filter((s) => s.solicitante.toLowerCase() === u.correo),
         documentos: [],
+        // ParticipantePlanes: los planes con los archivos vinculados (los archivos mismos van en `documentos`).
+        planes: {
+          planes: db.planesUsuario
+            .filter((p) => p.usuarioId === u.id)
+            .map((p) => ({
+              ...p,
+              archivosVinculados: db.adjuntos
+                .filter((a) => a.planUsuarioId === p.id)
+                .map((a) => a.documentoId),
+            })),
+          logros: [],
+        },
+        // ParticipantePerfilSalud: el cuestionario va descifrado para su dueño.
+        perfilYSalud: datosPerfilSalud(u.id),
       },
     })
   }),

@@ -1,5 +1,5 @@
 import { parsearFechaUtc } from '@/shared/lib/fechas'
-import { rachaMasLarga, sumasPorDia } from './hoy'
+import { sumasPorDia } from './hoy'
 import type { HabitoDto } from './types'
 
 // Métricas de la pantalla Progreso (especificación §5.4 y §6.4). Como las de "Hoy", son de
@@ -65,75 +65,4 @@ export function constanciaPorDia(
       hoy: dia === hoy,
     }
   })
-}
-
-export interface Records {
-  rachaMasLarga: number
-  avancesRegistrados: number
-  habitosCompletados: number
-}
-
-// Los avances son los registros que devuelve la API para cada hábito (historial completo).
-export function recordsDe(habitos: HabitoDto[]): Records {
-  return {
-    rachaMasLarga: rachaMasLarga(habitos),
-    avancesRegistrados: habitos.reduce((total, h) => total + h.registros.length, 0),
-    habitosCompletados: habitos.filter((h) => h.estado === 'Completado').length,
-  }
-}
-
-export interface Logro {
-  clave: string
-  titulo: string
-  descripcion: string
-  obtenido: boolean
-  // Avance hacia el logro, para decir cuánto falta ("3 de 7").
-  actual: number
-  meta: number
-}
-
-// Insignias por constancia, no por peso (docs/mejoras §4.6): ninguna premia bajar de peso.
-export function logrosDe(records: Records): Logro[] {
-  return [
-    {
-      clave: 'primer-avance',
-      titulo: 'Primer avance',
-      descripcion: 'Registraste tu primer avance.',
-      obtenido: records.avancesRegistrados >= 1,
-      actual: Math.min(records.avancesRegistrados, 1),
-      meta: 1,
-    },
-    {
-      clave: 'primera-semana',
-      titulo: 'Primera semana completa',
-      descripcion: 'Siete días seguidos cumpliendo un hábito diario.',
-      obtenido: records.rachaMasLarga >= 7,
-      actual: Math.min(records.rachaMasLarga, 7),
-      meta: 7,
-    },
-    {
-      clave: 'veinticinco-avances',
-      titulo: '25 avances',
-      descripcion: 'Registraste 25 avances en total.',
-      obtenido: records.avancesRegistrados >= 25,
-      actual: Math.min(records.avancesRegistrados, 25),
-      meta: 25,
-    },
-    {
-      clave: 'constancia-30',
-      titulo: '30 días de racha',
-      descripcion: 'Treinta días seguidos cumpliendo un hábito diario.',
-      obtenido: records.rachaMasLarga >= 30,
-      actual: Math.min(records.rachaMasLarga, 30),
-      meta: 30,
-    },
-    {
-      clave: 'meta-cumplida',
-      titulo: 'Meta cumplida',
-      descripcion: 'Completaste un hábito.',
-      obtenido: records.habitosCompletados >= 1,
-      actual: Math.min(records.habitosCompletados, 1),
-      meta: 1,
-    },
-  ]
 }

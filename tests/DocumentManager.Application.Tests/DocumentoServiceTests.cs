@@ -475,6 +475,74 @@ public class DocumentoServiceTests
 
     // ---------- Dobles en memoria (sin base de datos ni disco: RD-12) ----------
 
+    // ---------- Guarda de eliminación (punto de extensión) ----------
+
+    private sealed class GuardaFalsa(bool permite) : IGuardaEliminacionDocumento
+    {
+        public int Consultas { get; private set; }
+        public Task<bool> PermiteEliminarAsync(Guid documentoId, Guid usuarioId, CancellationToken cancellationToken = default)
+        {
+            Consultas++;
+            return Task.FromResult(permite);
+        }
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-DOC-04")]
+    public async Task RF_DOC_04_SinGuarda_ElDuenoEliminaComoSiempre()
+    {
+        var (servicio, _, _) = Crear();
+        var dto = await servicio.SubirAsync(Subida(Ana));
+
+        await servicio.EliminarAsync(dto.Id, Ana, esAdministrador: false);
+
+        await Assert.ThrowsAsync<DocumentoNoEncontradoException>(() => servicio.ObtenerAsync(dto.Id, Ana, esAdministrador: false));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-DOC-04")]
+    [Trait("Requirement", "RD-06")]
+    public async Task RF_DOC_04_ConGuardaQueVeta_ElDuenoNoElimina_YElDocumentoSigueIntacto()
+    {
+        var guarda = new GuardaFalsa(permite: false);
+        var servicio = new DocumentoService(new RepositorioEnMemoria(), new AlmacenEnMemoria(), guarda);
+        var dto = await servicio.SubirAsync(Subida(Ana));
+
+        await Assert.ThrowsAsync<DocumentoProtegidoException>(() => servicio.EliminarAsync(dto.Id, Ana, esAdministrador: false));
+
+        Assert.Equal(1, guarda.Consultas);
+        Assert.Equal(dto.Id, (await servicio.ObtenerAsync(dto.Id, Ana, esAdministrador: false)).Id);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-DOC-04")]
+    public async Task RF_DOC_04_ConGuardaQuePermite_ElDuenoElimina()
+    {
+        var servicio = new DocumentoService(new RepositorioEnMemoria(), new AlmacenEnMemoria(), new GuardaFalsa(permite: true));
+        var dto = await servicio.SubirAsync(Subida(Ana));
+
+        await servicio.EliminarAsync(dto.Id, Ana, esAdministrador: false);
+
+        await Assert.ThrowsAsync<DocumentoNoEncontradoException>(() => servicio.ObtenerAsync(dto.Id, Ana, esAdministrador: false));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-DOC-03")]
+    [Trait("Requirement", "RD-06")]
+    public async Task RF_DOC_03_ElAdministradorNoPasaPorLaGuarda_YUnAjenoSigueSiendoNoEncontrado()
+    {
+        var guarda = new GuardaFalsa(permite: false);
+        var servicio = new DocumentoService(new RepositorioEnMemoria(), new AlmacenEnMemoria(), guarda);
+        var dto = await servicio.SubirAsync(Subida(Ana));
+
+        // Un ajeno recibe el mismo 403/404 de siempre sin que la guarda llegue a decir nada.
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => servicio.EliminarAsync(dto.Id, Beto, esAdministrador: false));
+        Assert.Equal(0, guarda.Consultas);
+
+        await servicio.EliminarAsync(dto.Id, Admin, esAdministrador: true);
+        Assert.Equal(0, guarda.Consultas);
+    }
+
     private sealed class RepositorioEnMemoria : IDocumentoRepository
     {
         public List<Documento> Todos { get; } = [];

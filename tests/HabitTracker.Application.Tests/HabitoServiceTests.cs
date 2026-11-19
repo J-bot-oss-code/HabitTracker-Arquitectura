@@ -21,6 +21,12 @@ public class HabitoServiceTests
         public Task<IReadOnlyList<Habito>> GetByUsuarioIdAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
             Task.FromResult<IReadOnlyList<Habito>>(_habitos.Where(h => h.UsuarioId == usuarioId).ToList());
 
+        public Task<IReadOnlyList<Habito>> GetByPlanUsuarioIdAsync(Guid usuarioId, Guid planUsuarioId, CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<Habito>>(_habitos.Where(h => h.UsuarioId == usuarioId && h.PlanUsuarioId == planUsuarioId).ToList());
+
+        public Task<IReadOnlyList<Habito>> GetByUsuarioIdSoloLecturaAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+            GetByUsuarioIdAsync(usuarioId, cancellationToken);
+
         public Task AddAsync(Habito habito, CancellationToken cancellationToken = default)
         {
             _habitos.Add(habito);

@@ -20,6 +20,19 @@
   - **"Etiquetas de entrega":** `practica-*` y `asignacion-*` (los 16 tags de §2) no se pueden actualizar, borrar ni mover con force-push. Crear tags nuevos sigue permitido.
   - El ruleset antiguo "Proteccion de main" (id 26568693) está desactivado y sin ramas objetivo; quedó sin efecto y se puede borrar.
 - **Dependabot (desde el 04-11-2026):** PR semanales hacia `develop`. Las menores y parches van agrupadas; los saltos mayores llegan sueltos. `typescript` 7 se ignora: `typescript-eslint` declara el peer `typescript <6.1.0` y `npm ci` falla con ERESOLVE (retomar cuando lo soporte).
+- **Versiones fijas (desde el 09-11-2026):** a pedido del usuario, las dependencias se quedan en una versión exacta y segura, y solo se actualizan por seguridad o por necesidad.
+  - **Dependabot:** `open-pull-requests-limit: 0` en los 4 ecosistemas, así que ya no abre PR de versión. Las alertas siguen activas. Las *security updates* siguen desactivadas porque abrirían la PR contra `main`.
+  - **Las 11 PR abiertas (#86–#96) se cerraron sin fusionar:**
+    - Ninguna corregía una vulnerabilidad: no había alertas abiertas y `npm audit` daba 0.
+    - Cinco eran saltos mayores con riesgo: `System.Security.Cryptography.Pkcs` 9→10, `jsdom` 31, `@testing-library/jest-dom` 7 y `globals` 17.
+  - **npm:** `package.json` pasa de rangos `^` a las versiones que ya estaban instaladas según `package-lock.json`, sin actualizar ninguna, y `frontend/.npmrc` lleva `save-exact=true`. En el lock solo cambian los rangos de la raíz.
+  - **Docker y CI:** las versiones que ya se estaban usando quedan fijadas:
+    - `sdk:10.0` → `10.0.403`;
+    - `aspnet:10.0` → `10.0.14`;
+    - `mssql/server:2022-latest` → `2022-CU27-ubuntu-22.04`;
+    - `dotnet-version: 10.0.x` → `10.0.403`;
+    - `node-version: 24` → `24.22.2`, que incluye el parche de seguridad de la 24.22.1.
+  - **Primera subida por seguridad (12-11-2026):** Trivy encontró 3 vulnerabilidades altas en `Microsoft.AspNetCore.App.Runtime.linux-x64` 10.0.14 (CVE-2026-114146, CVE-2026-114147 y CVE-2026-114149; corregidas en la 10.0.15) y bloqueó todas las PR. Se subió a `aspnet:10.0.15` y a `sdk:10.0.404`, y .NET del CI a `10.0.404`: una subida de parche, solo por la vulnerabilidad.
 - **Escaneo semanal de Trivy:** puede bloquear por parches de Ubuntu publicados después del último cambio (CVE-2026-109518 de `apt`, 05-11-2026). El `Dockerfile` ejecuta `apt-get upgrade` en la etapa final como solución; por eso la imagen no es reproducible bit a bit.
 - **Pendiente:** descripción automática de las PR (Qué cambia / Por qué / Cómo probarlo / Qué NO incluye), el CD (el destino previsto es Vercel, que no hospeda .NET de forma nativa), el Dockerfile del frontend y la conexión frontend↔backend. Deuda anotada: `frontend/AGENTS.md` aún dice "backend congelado" y `.github/PULL_REQUEST_TEMPLATE.md` (§6.5) sigue siendo una PR rellenada.
 
@@ -32,3 +45,9 @@
   - Es seguro porque `main` solo recibe promociones de `develop`, que ya pasaron todos los checks allí.
 - **Validador de commits:** `scripts/ci/verificar-commits.sh` omite los commits ya publicados en `origin/main`. Hacía falta porque al sincronizar `main → develop` entraba el commit antiguo `69a85a5` («eliminar .mds redundantes», del 28-10), que no cumple el formato y no se puede reescribir. Los commits nuevos se validan igual; lo cubren 3 casos nuevos de `pruebas-verificar-commits.sh` con un repositorio temporal.
 - **Promover desde ahora:** PR `develop → main` directa (skill `flujo-pr`). Tras cada promoción, `main` lleva un commit de merge más que `develop`, sin cambios de archivos; ya no bloquea nada.
+
+## Aviso de `picomatch` sin parche (18-11-2026)
+
+- **Qué pasó:** apareció el aviso GHSA-fc5q-39xc-vjpf (ReDoS en `picomatch` ≤ 4.0.7, severidad alta) y `npm audit --audit-level=high` empezó a fallar en todas las PR, aunque solo cambiaran documentos. La última versión publicada de `picomatch` es la 4.0.7: no hay parche, y `npm audit fix --force` solo proponía bajar `vitest` a 3.1.4.
+- **Decisión (aprobada por el dueño del repositorio):** el paso de producción pasa a `npm audit --audit-level=high --omit=dev` y bloquea igual; un paso nuevo audita también las herramientas de desarrollo con `continue-on-error`, para que el aviso siga visible. `picomatch` solo lo usan `vite`, `vitest` y `typescript-eslint` al compilar y probar.
+- **Revertir:** cuando salga una versión corregida, subir `picomatch` por una PR de seguridad y volver a un solo paso `npm audit --audit-level=high`.

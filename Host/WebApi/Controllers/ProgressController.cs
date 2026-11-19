@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using System.Text.Json;
@@ -16,6 +18,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/progress")]
 [Authorize(Roles = "Estandar")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class ProgressController(IProgresoCorporalService progreso) : ControllerBase
 {
     [HttpGet("weights")]

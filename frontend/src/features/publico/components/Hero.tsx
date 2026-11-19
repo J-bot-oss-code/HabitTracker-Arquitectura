@@ -11,12 +11,9 @@ export function Hero() {
       className="grid items-center gap-10 py-10 sm:py-16 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-14"
     >
       <div>
-        <p className="inline-flex rounded-full bg-acento-suave px-3 py-1 text-sm font-semibold text-acento-fuerte">
-          Para deportistas, gimnasio y cualquiera que quiera mejorar
-        </p>
         <h1
           id="hero-titulo"
-          className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-[-0.02em] sm:text-5xl lg:text-[3.25rem]"
+          className="text-4xl font-extrabold leading-[1.08] tracking-[-0.02em] sm:text-5xl lg:text-[3.25rem]"
         >
           Convierte tu meta en un plan diario que sí puedes cumplir.
         </h1>

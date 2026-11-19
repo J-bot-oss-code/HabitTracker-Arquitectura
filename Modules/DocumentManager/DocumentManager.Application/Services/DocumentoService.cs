@@ -8,7 +8,8 @@ namespace DocumentManager.Application.Services;
 
 public sealed class DocumentoService(
     IDocumentoRepository repositorio,
-    IAlmacenamientoArchivos almacenamiento) : IDocumentoService
+    IAlmacenamientoArchivos almacenamiento,
+    IGuardaEliminacionDocumento? guarda = null) : IDocumentoService
 {
     public const long TamanoMaximoBytes = 10 * 1024 * 1024;
 
@@ -123,6 +124,12 @@ public sealed class DocumentoService(
     public async Task EliminarAsync(Guid id, Guid usuarioId, bool esAdministrador, CancellationToken cancellationToken = default)
     {
         var documento = await ObtenerAutorizadoAsync(id, usuarioId, esAdministrador, cancellationToken);
+
+        // Solo el dueño pasa por la guarda; sin ella (o con el Administrador) la regla es la de siempre.
+        if (!esAdministrador && guarda is not null && !await guarda.PermiteEliminarAsync(id, usuarioId, cancellationToken))
+        {
+            throw new DocumentoProtegidoException();
+        }
 
         // RF-DOC-04: solo se marca; el registro y el archivo permanecen.
         var resultado = documento.Eliminar(DateTime.UtcNow);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ApiError, esNoDisponible, mensajeDeError } from './problem'
+import { ApiError, esNoDisponible, MENSAJE_CONSENTIMIENTO_SALUD, mensajeDeError } from './problem'
 
 describe('mensajeDeError (RD-08)', () => {
   it('usa el primer error de validación del modelo', () => {
@@ -45,6 +45,39 @@ describe('mensajeDeError (RD-08)', () => {
     expect(mensajeDeError(new TypeError('Failed to fetch'))).toBe(
       'No se pudo contactar con el servidor.',
     )
+  })
+})
+
+describe('mensajeDeError con datos de salud sin permiso', () => {
+  it('el 409 consentimiento_salud_requerido dice dónde dar el permiso', () => {
+    const error = new ApiError(409, {
+      title: 'Falta el consentimiento.',
+      detail: 'Falta el consentimiento para usar tus datos de salud.',
+      codigo: 'consentimiento_salud_requerido',
+    })
+    expect(mensajeDeError(error)).toBe(MENSAJE_CONSENTIMIENTO_SALUD)
+    expect(MENSAJE_CONSENTIMIENTO_SALUD).toMatch(/Configuración › Perfil y salud/)
+  })
+})
+
+describe('mensajeDeError con permisos y archivos', () => {
+  it.each([
+    ['solicitud_duplicada', 409, /solicitud de este permiso en marcha/],
+    ['solicitud_no_encontrada', 404, /esa solicitud/],
+    ['documento_requiere_permiso', 409, /Pide permiso para eliminarlo/],
+    ['documento_no_encontrado', 404, /ese archivo/],
+    ['plan_no_en_curso', 400, /plan que esté en curso/],
+    ['adjunto_duplicado', 400, /ya está en este plan/],
+    ['limite_adjuntos', 400, /hasta 10 archivos/],
+  ])('%s se explica en español y sin culpa', (codigo, status, esperado) => {
+    // El detalle del servidor no se usa: el texto por código dice qué hacer.
+    const error = new ApiError(status, { title: 'x', detail: 'Texto del servidor.', codigo })
+    expect(mensajeDeError(error)).toMatch(esperado)
+  })
+
+  it('un código que es una propiedad de Object no se toma por uno conocido', () => {
+    const error = new ApiError(400, { detail: 'Texto del servidor.', codigo: 'constructor' })
+    expect(mensajeDeError(error)).toBe('Texto del servidor.')
   })
 })
 

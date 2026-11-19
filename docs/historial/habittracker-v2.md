@@ -181,3 +181,249 @@ Sin hallazgos críticos. Se corrigió en la misma rama:
 - Progreso conectado.
 - Los contratos salen de `CONTRATOS_PROPUESTOS`.
 - Los enums del backend son PascalCase (`Mujer`, `MuyAlta`, `TurnoNocturno`), y el contrato propuesto usaba minúsculas: el frontend los adopta.
+
+## Fase 2b: perfil y salud en el frontend (`feature/frontend-perfil-salud`, 08-11-2026)
+
+- **Contrato:** `features/perfil/types.ts` copia `ProfileController`: perfil en dos niveles, enums en PascalCase (`TurnoNocturno`, `Mujer`, `MuyAlta`) y cuestionario por bloques con su evaluación. Las etiquetas en español están en `features/perfil/etiquetas.ts`.
+- **Onboarding de 3 toques (P1, P2):**
+  - **Pasos:** jornada (tarjetas de radio), zona horaria (detectada con `Intl`, solo se confirma) y aviso de salud. No pide edad, peso ni el cuestionario.
+  - **Consentimiento:** ya no da por hecho `datosSalud`. Si hay que volver a pedir los documentos, conserva el valor que tenía.
+  - **Plan de la landing:** queda como interés (`metaSlug`).
+- **Configuración › Perfil y salud** (`/ajustes/perfil-salud`, solo Estándar):
+  - nivel 1 y datos opcionales (horarios, edad, sexo, altura, peso, actividad);
+  - los tres bloques del cuestionario, cada uno con su botón y su fecha;
+  - «Lo que tendremos en cuenta» (nivel de precaución y restricciones, en lenguaje llano);
+  - un aviso para activar `datosSalud` aquí mismo.
+  - «Ninguna» es exclusiva en las dos direcciones y los objetivos tienen un máximo de 3.
+- **Progreso conectado:** el 409 muestra un mensaje común (`MENSAJE_CONSENTIMIENTO_SALUD`) que dice dónde dar el permiso.
+- **Descarga de datos:** ahora es solo la del servidor (formato versión 3, con la sección `perfilYSalud`); el cliente ya no pide perfil ni progreso por su cuenta.
+- **Mocks:** `src/mocks/handlers/perfil.ts` y `progreso.ts` salen de `CONTRATOS_PROPUESTOS` y replican el backend:
+  - nivel 1 sin consentimiento y 409 solo con peso o altura;
+  - bloques validados y evaluación replicada de `EvaluadorSalud`, que con el consentimiento retirado no se usa;
+  - fechas en UTC con `Z`, `fecha_futura` y `perfil_requerido`;
+  - una medida por día y zona, y el último peso que pasa al perfil.
+- **Medido:**
+  - **Pruebas:** frontend 651 (antes 634) y backend 947 (+1 por el ajuste del consentimiento), con lint, tipos y build en verde.
+  - **Mutación:** 5 reglas rotas a propósito y todas hacen fallar al menos una prueba:
+    - el onboarding vuelve a dar por hecho `datosSalud`;
+    - «Ninguna» deja de ser exclusiva (sobrevivió al primer intento y se reforzó la prueba);
+    - el 409 no explica dónde dar el permiso;
+    - se exige el consentimiento aunque el peso no cambie, en el backend y en el mock.
+  - **Contra la API real**, en una base aislada que ya se borró: **13 de 13**. El backend acepta tal cual los cuerpos que arma el frontend:
+    - el perfil del onboarding, con todo en `null` salvo el nivel 1;
+    - las horas `HH:mm` de un `input type=time`;
+    - los tres bloques del cuestionario;
+    - el peso con `toISOString()`;
+    - y responde la descarga con `perfilYSalud`.
+- **Revisión (`frontend-reviewer`):** sin bloqueantes. Se corrigió en esta rama:
+  - **Alto: el registro guardaba en `localStorage` el peso, la altura, la edad y el sexo de la calculadora,** que el onboarding ya no usa. Ahora no se guardan (`datosCorporales: null`) y hay una prueba de ello.
+  - **Alto: con el permiso retirado no se podía cambiar la jornada,** porque el formulario reenvía el peso guardado.
+    - El backend (`PerfilService`) ahora exige el consentimiento solo si el peso o la altura **cambian** (con su prueba), y el mock hace lo mismo.
+  - **Medio: valores por defecto peligrosos.**
+    - El aviso «Permitir usar mis datos de salud» solo aparece con los consentimientos ya leídos y con versiones aceptadas: nunca acepta en nombre de la persona una versión legal que no vio.
+    - El onboarding no envía consentimientos sin haberlos leído antes, así no retira uno que existía.
+  - **Medio: fidelidad.**
+    - Las fechas usan `formatearFecha` (RD-11).
+    - El mock ordena las restricciones y los alérgenos como el backend (por el valor del enum).
+  - **Bajo:**
+    - el mock conserva el registro del mismo día al reemplazar un peso;
+    - la descarga del mock deja el nombre vacío y la sincronización del peso actualiza `actualizadoEn`;
+    - `replaceAll` en los nombres de las zonas;
+    - `aria-describedby` en los errores de las opciones.
+  - **Pruebas nuevas:**
+    - el mensaje del 409;
+    - `fecha_futura` y `perfil_requerido`;
+    - el onboarding que conserva `datosSalud`;
+    - el orden de la evaluación.
+  - **Pendiente bajo:**
+    - En el mock, el orden «validación → consentimiento» no es exacto en todos los casos.
+    - El foco no va a los errores de guardado del cuestionario.
+
+## Fase 3a: catálogo de planes y recomendador en el backend (`feature/habittracker-catalogo-planes`, 09-11-2026)
+
+- **Dominio (`Domain/Planes/`):**
+  - `PlanPlantilla` + `TareaPlantilla`, con `VersionMinima` y `AnclaSugerida` en cada tarea y `GuiaSemanal` con `TipExtra`.
+  - Las invariantes de seguridad del contenido están en el constructor. Un plan se rechaza si:
+    - usa datos de nivel 2 sin `RequiereCuestionario`;
+    - es un Básico de peso o de intensidad alta;
+    - sus semanas no encajan con su nivel;
+    - es un Regular sin guía para cada semana;
+    - tiene una tarea de agua por encima de 20 vasos o 5 litros al día.
+  - `ReglasSeguridadPlanes` es la única definición de "no apto". `SituacionPersona.Crear` deja fuera el cuestionario sin el consentimiento, pero la edad sigue protegiendo.
+  - `RecomendadorPlanes` y `VariantesMiDia`: "Mi día" de la jornada siempre primero; sin cuestionario, primero lo que no pide preguntas.
+- **Contenido:** `catalogo-planes.json` con los 13 planes del plan, embebido. `LectorCatalogoPlanes` es estricto y `SembradorCatalogoPlanes` hace un upsert en cada arranque y nunca borra.
+- **API:**
+  - `GET /api/plans` y `GET /api/plans/{slug}`: anónimos, con caché pública de 5 minutos y la política `catalogo` (60 por minuto y por IP).
+  - `GET /api/plans/recommended`: rol `Estandar`, con `no-store`.
+- **Migración `AgregarCatalogoPlanes`:** `PlanesPlantilla` (listas como JSON con enums como texto) y `TareasPlantilla` (`Guid` propio).
+  - Aplicada a la base local `HabitTracker` después del respaldo `HabitTracker_antes_catalogo_20261109.bak`.
+- **Decisiones tomadas al implementar:**
+  - **Un Regular dura de 3 a 12 semanas, no de 4 a 12:** `reducir-estres` (21 días) es Regular en el plan.
+  - **Los días de la semana y la hora sugerida de cada tarea no se modelan:** el ancla los reemplaza y el `ResolvedorAncla` de la Fase 4 calcula la hora (YAGNI).
+  - **Las variantes de "Mi día" de otras jornadas no se recomiendan,** pero siguen en el catálogo.
+  - **Sin edad ni sexo en el perfil,** un plan que los restringe se recomienda con un aviso para completarlos; la inscripción (Fase 4) decidirá.
+  - **La palabra «peso» se permite en los planes** («tu propio peso», «peso muerto»). Siguen prohibidas kg, calorías, dieta, IMC y las palabras de culpa.
+- **Verificación:**
+  - **Pruebas:** backend 1029 (antes 947), con build sin avisos.
+  - **Prueba de contenido:**
+    - los 13 slugs;
+    - el cuestionario cuando hay datos de nivel 2;
+    - los topes del agua, y el aviso médico con los riñones;
+    - la versión mínima y el ancla;
+    - las palabras prohibidas (encontró «Nada está prohibido» en el JSON y se reescribió).
+  - **Mutación:** 6 reglas rotas a propósito, y todas hacen fallar al menos una prueba:
+    - un plan de nivel 2 sin cuestionario;
+    - un alérgeno del plan ignorado;
+    - "Mi día" deja de ir primero;
+    - se lee el cuestionario sin consentimiento;
+    - el sembrador no retira;
+    - el agua sin tope.
+  - **Contra la API real**, en una base aislada que ya se borró: **33 de 33**, más un reinicio que confirma la siembra idempotente (0 nuevos, 13 planes y 33 tareas). Se comprobaron:
+    - la caché y el 429;
+    - el 404 con código;
+    - "Mi día" de turno nocturno primero;
+    - el no apto con embarazo;
+    - el aviso de agua con hipertensión.
+- **Revisión RD-01..RD-12 (`core-transversal-reviewer`):** sin bloqueantes ni altos. Se corrigió en esta rama:
+  - **Medio: un error de un endpoint público quedaba en caché 5 minutos.** `[ResponseCache]` fija la cabecera antes de la acción, así que un 404 o un 500 salían con `public,max-age=300`. Ahora `GlobalExceptionMiddleware` responde todo error con `no-store`, con su prueba.
+  - **Bajo:**
+    - si falta la migración, la API no arranca; ahora el log dice qué hacer;
+    - una `GuiaSemanal` NULL en la base ya no da un 500.
+  - **Pendiente bajo:**
+    - Detrás de un proxy, el límite por IP del catálogo es compartido (deuda 3 del ESTADO, Fase 6).
+    - Un plan retirado que vuelve al JSON con una versión menor la baja; se acepta porque el JSON manda.
+- **Lección:** un script de mutación que restaura el archivo original con `mv` le deja una fecha anterior a la de la DLL y la compilación incremental no lo recompila. Después de mutar, hay que compilar con `--no-incremental`.
+
+## Fase 3b: catálogo de planes y recomendados en el frontend (`feature/frontend-catalogo-planes`, 12-11-2026)
+
+- **Nueva feature `features/planes`:**
+  - **Contrato y datos:**
+    - `types.ts` copia los DTO de `PlansController`;
+    - `etiquetas.ts` trae los textos en español;
+    - `api.ts` ofrece `usePlanes`, `usePlan`, `usePlanResumen` y `useRecomendados`.
+  - **Pantallas:**
+    - `CatalogoPlanes` (filtros por nivel y área): lo usan la landing, `/metas` y `/planes`.
+    - `PlanDetallePage` en `/metas/:slug` y `/planes/:slug`: aviso de seguridad, tareas con su versión mínima y guía semanal.
+    - `PlanesPage` en `/planes`: «Tu día de trabajo saludable» primero, recomendados con sus motivos y «No recomendado para ti» con su razón.
+  - **Hoy:** quien aún no tiene hábitos ve «Empezar mi día saludable» con la variante de su jornada.
+  - **Menú:** «Planes» solo para el rol Estándar.
+- **Catálogo estático eliminado** (`publico/catalogo.ts`, `CatalogoMetas`, `TarjetaMeta`). Sus consumidores usan ahora la API:
+  - **Panel del alta y `ResumenAdminPage`:** `usePlanResumen`.
+  - **`HoyPage` y `ProgresoPage`:** `usePlanResumen`, para mostrar la semana del plan.
+  - **Slugs de la URL o de `localStorage`:** se validan por formato (`esSlugPlan`).
+  - **Landing:** recibe el catálogo por una ranura (`LandingPage catalogo={…}`), porque una feature no importa componentes de otra.
+- **«Elegir este plan»:** guarda el plan como interés (`metaSlug`) reenviando el perfil vigente, hasta que la Fase 4 traiga la inscripción real.
+  - Antes de enviar se pide el perfil al servidor, para no pisar un peso registrado hace un momento.
+  - El botón no se habilita mientras no se sepa si el plan es para la persona, porque el servidor aún no lo impone.
+- **Mock de los planes:** replica `RecomendadorPlanes` y `ReglasSeguridadPlanes`. Sus datos se generaron del `catalogo-planes.json` y `mocks/planes.test.ts` los compara con el JSON del backend.
+- **Verificación:**
+  - **Pruebas:** frontend 692 (antes 651) con lint, tipos y build en verde. Pasan tres veces seguidas.
+  - **Mutación:** 11 reglas rotas a propósito y todas hacen fallar al menos una prueba.
+    - Tres sobrevivieron al primer intento y destaparon huecos: el slug con mayúsculas, la tarjeta de Hoy comprobada antes de que la consulta resolviera y el cuestionario leído sin consentimiento.
+    - Se reforzaron las pruebas, no el código.
+  - **Contra la API real**, en una base aislada que ya se borró: **27 de 27 respuestas idénticas** a las del mock.
+    - 9 personas con distintos perfiles, cuestionarios y condiciones (embarazo, hipertensión, «sí» en la revisión de seguridad, IMC bajo, menor de edad…).
+    - El catálogo, los 13 detalles y 4 filtros.
+- **Revisiones (`frontend-reviewer` y `frontend-design-critic`):** sin bloqueantes. Se corrigió en esta rama:
+  - **Medio (reviewer):**
+    - elegir un plan podía pisar un peso recién registrado;
+    - se podía elegir un plan sin saber si era apto;
+    - la prueba de contenido fallaba si no estaba el JSON del backend.
+  - **Alto (diseño):**
+    - «no recomendado» sonaba a prohibición; ahora usa un tono de cuidado;
+    - la acción principal de Hoy es un botón;
+    - el catálogo completo marca los planes no recomendados.
+  - **Medio (diseño):** nivel con etiqueta visible, aviso de cuántos planes se muestran y estados vacíos separados.
+  - **Pendiente:**
+    - filtros del catálogo en la URL;
+    - unificar «meta» y «plan» en los textos;
+    - confirmar antes de cambiar de plan, porque reinicia la semana del plan;
+    - foco tras elegir un plan y título de pestaña con el nombre del plan.
+- **Lección de entorno:** Vitest falla en todas las suites si la terminal abre `frontend/` con la unidad en minúscula (`c:\`), porque carga `vitest` dos veces. Se ejecuta desde `C:\` en mayúscula.
+
+## Fase 4a: mis planes, check-in diario y adherencia en el backend (`feature/habittracker-mis-planes`, 12-11-2026)
+
+- **Dominio:**
+  - `Planes/PlanUsuario.cs`: el plan de una persona, su `PeriodoPausa` (inicio, fin y motivo) y `TransicionesPlanUsuario`, **el único punto de la máquina**: `Activo ⇄ Pausado`, y `Completado` (solo desde Activo y al llegar a su fin) o `Cancelado` como terminales. Extender y activar el modo suave no son transiciones.
+  - `Planes/ResolvedorAncla.cs`: ancla + jornada → hora local sugerida (el turno nocturno tiene sus valores).
+  - `Adherencia/CalculadoraProgreso.cs`, **la única definición de racha y cumplimiento**:
+    - un plan con al menos una tarea diaria se mide en días; uno que solo tiene tareas semanales se mide en **semanas** (`UnidadSeguimiento.Semanas`): los días vacíos entre sesiones son lo esperado, no un fallo;
+    - un día o una semana sin registro no corta la racha y dos seguidos sí; una pausa justificada no cuenta ni corta;
+    - el modo suave convierte la versión mínima en un día completo.
+  - `Adherencia/SugeridorAjuste.cs` (4 o más días sin registro en los últimos 7 → modo suave, extender o pausar; **nunca se aplica solo**), `CalculadoraLogros.cs` (su firma no recibe peso ni medidas) y `Motivacion/SelectorMensajesMotivacion.cs` (determinista con FNV-1a sobre el `Guid` del usuario y el día local; con 2 o más días sin registro, mensaje de regreso).
+  - `Habito` gana `PlanUsuarioId`, `Descripcion`, `VersionMinima`, `Ancla` y `PausadoPorPlan`: al reanudar un plan solo vuelven los hábitos que el plan pausó. `RegistroDiario` gana `EsVersionMinima`.
+- **Application:** `IPlanUsuarioService`, `IHoyService`, `IResumenProgresoService`, `ILogrosService` e `IDatosPlanesService` (exportar y borrar), con los puertos de `IPlanUsuarioPuertos.cs`. `ConflictoDeUnicidadException` es la excepción propia de Application para una violación de unicidad, de modo que el servicio no conoce a EF.
+- **Infrastructure:** `mensajes-motivacion.json` (33 mensajes en 6 categorías, recurso embebido, ≤160 caracteres) y `CatalogoMensajes`; repositorios de planes y logros; `HabitTrackerUnitOfWork` traduce la violación de un índice único a `ConflictoDeUnicidadException`.
+- **API (rol `Estandar`, identidad del token, 404 con cuerpo para lo ajeno):**
+  - `POST /api/my-plans` (201), `GET /api/my-plans`, `GET /api/my-plans/{id}`, `POST .../transition`, `POST .../adjust` y `PUT .../reminder`;
+  - `GET /api/today`, `GET /api/progress/summary` y `POST /api/progress/achievements/seen`;
+  - `POST /api/habits/{id}/progress` acepta `esVersionMinima`.
+  - `ParticipantePlanes` (sección `planes`) exporta y borra los planes, las pausas y los logros con la descarga y la baja de cuenta.
+- **Migración `AgregarPlanesUsuario`:** `PlanesUsuario`, `PeriodosPausa` y `LogrosUsuario` (único por persona y clave), las columnas nuevas de `Habitos` (FK a `PlanesUsuario` en `SetNull`) y `RegistrosDiarios.EsVersionMinima`.
+- **Decisiones tomadas al implementar:**
+  - **La adherencia se mide por el día local,** con la zona del perfil. `Habito.CumpleMetaFinal` sigue usando el día UTC (regla de la P3, no se toca); la diferencia solo afecta a la transición del hábito a Completado y queda documentada.
+  - **Las pausas se miden en días locales,** y `Reanudar` agrega al final del plan exactamente los mismos días que `CalculadoraProgreso` deja fuera.
+  - **Un plan de N semanas dura N×7 días:** el último día es el fin previsto menos uno.
+  - **Terminar un plan no borra nada.** Con `conservarHabitos`, los hábitos siguen activos y **conservan su vínculo con el plan**, para no perder su historial ni su récord; sin él, quedan en pausa.
+  - **"Hoy solo lo mínimo"** registra `Cantidad = 1` con `EsVersionMinima = true`: la invariante `Cantidad > 0` de la P3 se mantiene.
+  - **Un plan solo se puede tener una vez en curso:** un índice único filtrado (`UsuarioId`, `PlanPlantillaId` donde el estado es Activo o Pausado) lo garantiza en la base; un plan terminado no impide empezarlo de nuevo.
+  - **Un logro se gana una sola vez:** inserción idempotente (`INSERT … WHERE NOT EXISTS`) más el índice único.
+  - **Sin clima en `GET /api/today`:** el perfil no guarda ciudad. `plan-del-dia` y sus pruebas no cambian.
+- **Verificación:**
+  - **Pruebas:** backend 1214 (antes 1029), con build sin avisos.
+  - **Mutación:** 28 reglas rotas a propósito y todas hacen fallar al menos una prueba: racha tolerante, tope de 2 extensiones, logros sin peso, determinismo del mensaje, umbral del sugeridor, plan no apto, límite de planes, aislamiento entre personas, pausas locales, índice único, conservar los hábitos, etc.
+    - Dos sobrevivieron al principio y destaparon huecos: el día en que se reanuda una pausa y el resumen de un lunes sin sesiones. Se reforzaron las pruebas, no el código.
+    - Un mutante del servicio de logros es equivalente a propósito: la inserción idempotente y el índice único se respaldan entre sí.
+  - **Contra la API real**, en una base SQL Server aislada que ya se borró: **58 de 58** (planes, límites, pausas, ajustes, aislamiento entre personas, exportación y lo que queda en la base).
+- **Lecciones:**
+  - `sqlcmd` necesita `-I` (`QUOTED_IDENTIFIER ON`) para borrar o modificar filas de una tabla con un índice filtrado.
+  - Las pruebas de dominio que fijaron la semántica diaria de un plan semanal tuvieron que reescribirse: el diseño nuevo mide por semanas.
+- **Pendiente aceptado:**
+  - el límite de 3 planes en curso se comprueba en el servicio y una carrera de dos peticiones podría pasarlo (solo el plan repetido lo impide la base);
+  - `MarcarLogrosVistos` marca todos los logros;
+  - una zona horaria desconocida cae a UTC sin avisar (tzdata en la imagen Docker, Fase 6).
+
+## Fase 4b: Mis planes, Hoy y logros en el frontend (`feature/frontend-mis-planes`, 12-11-2026)
+
+- **Backend (commit aparte):** `MetaSlug` e `InicioPlan` salen del perfil (dominio, DTO, petición, EF) con la migración `QuitarMetaSlugDelPerfil`. Un cliente antiguo que aún envíe `metaSlug` no falla: el campo se ignora.
+- **Contrato:** `features/mis-planes/` (tipos, cliente, zod) y el mock MSW de `my-plans`, `today` y `progress/summary`, que porta `CalculadoraProgreso`, `SugeridorAjuste`, `CalculadoraLogros` y `ResolvedorAncla`. `shared/api/clavesSeguimiento.ts` rompe el ciclo entre `habits` y `mis-planes`.
+- **Pantallas:**
+  - «Empezar este plan» con «¿Cuándo lo harás?» (ancla y hora);
+  - Hoy desde `api/today` con «Hecho», «Hoy solo lo mínimo» (cantidad 1, como decide el backend), mensaje del día, sugerencia de ajuste y celebración semanal una sola vez (se recuerda en `sessionStorage` porque el backend no marca «visto»);
+  - Mis planes en `/planes` y detalle en `/mis-planes/:id`: pausar con motivo, reanudar, ajustar, recordatorio, completar (solo al llegar al final) y «Dejar este plan» con confirmación;
+  - Progreso con los logros y «tu mes en números» del servidor.
+- **Decisiones:**
+  - el plan elegido en la landing ya no se guarda como interés: el onboarding termina en la ficha del plan y gana a la ruta pedida;
+  - el plan de ejemplo no se siembra en las pruebas (`sembrarPlanDemo()`), para no tocar las suites existentes;
+  - KISS: se borró el cálculo de logros del navegador, `solicitudDePerfil` e `instanteFinDelPlan`.
+- **Revisión:** `frontend-reviewer` aprobó sin bloqueantes. `frontend-design-critic` pidió carga y error de Hoy, el aviso de ajuste con margen, tono de aviso (no rojo) para las reglas esperadas, «Dejar este plan» en lugar de un segundo «Cancelar» y ocultar «Completar» antes del final: se atendió. Quedan anotados sin hacer, por KISS: foco tras «Hecho», una sola tabla de estados, tarjeta entera clicable y esqueletos con `role="status"`.
+- **Verificación:** backend 1218 pruebas; frontend 795 en 57 archivos; typecheck, lint y build limpios. Contra la API real (SQL Server aislado, ya borrado): migración aplicada sin las columnas, inscribirse, `plan_ya_activo`, Hoy con el estado `Minimo`, ajustar, pausar con y sin motivo, `plan_aun_no_termina`, resumen y logros vistos.
+- **Lección:** `prettier --write` sobre carpetas enteras reformatea los finales de línea de archivos que no se tocaron (CRLF en Windows); formatea solo lo que cambias.
+
+## Permisos y documentos integrados al negocio (`feature/permisos-y-documentos-en-contexto`, 13-11-2026)
+
+- **Motivo:** los módulos del Core ya existían pero no tenían lugar en el producto. «Mis permisos» ocupaba el menú para un solo permiso real y los documentos no tenían pantalla.
+- **Permisos:** sin duplicados vigentes (409), 404 con código (se cierra la deuda de `EsNoEncontrado`) y la clave validada. En la web, el permiso se pide donde se necesita (`ReconfigurarHabito`) y el historial pasa a Configuración › Solicitudes.
+- **Documentos:** el Manejador gana solo un punto de extensión. HabitTracker vincula archivos a **planes** (`AdjuntoPlan`, migración `AgregarAdjuntosPlan`) y el Host compone la regla «libre salvo plan en curso, entonces permiso por archivo». «Mis archivos» (`/documentos`) y «Archivos del plan» son pantallas nuevas; sale la tarjeta de fotos de Progreso.
+- **Decisión de producto:** DocumentManager no recomienda ni lee archivos (una sola responsabilidad); las recomendaciones siguen con el perfil y el cuestionario de salud.
+- **Verificación:** backend 1268 pruebas, frontend 911. Mutación: 7 de 8 reglas detectadas y la octava cubierta con una prueba nueva. **Contra la API real** apareció un bug que las pruebas unitarias no veían: con `[property: …]` ASP.NET lanzaba al enlazar `CrearPermisoRequest` y toda solicitud respondía 400. Otro bug lo halló el escritor de pruebas: `estadoDe` comparaba una clave en minúsculas con otra con mayúscula inicial y el estado del permiso siempre salía «ninguno».
+- **Lecciones:** (1) un ciclo de inyección Manejador → guarda → adjuntos → Manejador se rompe haciendo que la guarda use el repositorio; (2) un script de edición con muchos reemplazos encadenados falla a medias: mejor ediciones directas y pequeñas.
+
+## Deuda técnica de Mis planes y archivos (`fix/deuda-mis-planes-y-archivos`, 14-11-2026)
+
+- **Alcance:** solo HabitTracker, sin tocar Notificaciones, Auditoría ni Reportes (esperan las prácticas del maestro) ni los archivos de defectos de las prácticas.
+- **Archivos:** `GET api/my-plans/attachments` descarta los eliminados; `adjuntar` sin `documentoId` responde 400 (`Guid?` con `[param: Required]`); la descarga de datos lleva `archivosVinculados` por plan.
+- **Mis planes:** pausar sin motivo (`motivo_pausa_requerido`) y ajustar con `Pausar` (`ajuste_no_disponible`) responden con código; `PUT .../reminder` rechaza planes terminados (`transicion_plan_invalida`); terminar un plan en pausa conservando los hábitos los deja activos (los que la persona pausó por su cuenta siguen igual).
+- **Plantilla de PR:** ahora son las 4 secciones vacías.
+- **Se deja:** el límite de 3 planes sin transacción y la zona horaria desconocida (se valida al guardar el perfil; el fallo real es tzdata en Docker, Fase 6).
+
+## Producción del corte vertical, parte sin Auditoría ni Métricas (`chore/habittracker-produccion`, 14-11-2026)
+
+- **Alcance:** lo transversal de la Fase 6 que no toca Notificaciones, Auditoría ni Reportes (`IAuditoriaService` y `api/admin/metrics/adherence` esperan sus prácticas; el piloto depende de ambas y de un hospedaje).
+- **Límites de peticiones:** políticas `usuario` (120/min) y `subidas` (10/min) por **persona**, no por IP; `UseRateLimiter` pasa después de `UseAuthentication` y antes de la lista negra. Las llevan los 10 controllers con sesión (`DocumentsController` solo gana el límite: su contrato de la P4 no cambia) y una prueba por reflexión vigila que no se pierdan. Contra la API real: 10 subidas y la 11.ª y 12.ª dan 429, y otra persona conserva su cupo.
+- **Healthcheck:** `GET /health` anónimo, solo «Healthy»/«Unhealthy», comprueba los dos contextos. En el compose se usa un socket de `bash` (la imagen no trae curl).
+- **Proxies:** `ProxiesConfiables` (IP; lista vacía = no se confía en nada; una IP inválida detiene el arranque) activa `UseForwardedHeaders` solo para esos proxies. No se probó contra un proxy real.
+- **N+1:** la revisión de `Hoy`, el resumen y `my-plans` no encontró consultas por elemento ni índices que falten (por eso no hay migración `IndicesConsultasFrecuentes`). Sí había uno nuevo: listar vínculos consultaba cada archivo por separado; ahora `IDocumentosUsuario.ListarAsync` trae todos en una consulta.
+- **Docker:** `tzdata` explícito en la imagen. Docker no estaba disponible en esta sesión: el compose y el Dockerfile se validan en el CI (Trivy) pero no se levantaron.
+- **Documentación:** `docs/maquina-de-estados.md` con la máquina del plan.
+- **No se hizo (queda en la Fase 6 completa):** E2E en Edge, `claude-security` sobre lo nuevo, auditoría, métricas, piloto y hospedaje.

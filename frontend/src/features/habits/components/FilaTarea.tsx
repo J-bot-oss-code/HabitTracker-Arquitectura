@@ -46,7 +46,7 @@ export function FilaTarea({
     <li className="flex items-center gap-3 py-3">
       {hecha ? (
         <span role="img" aria-label="Hecha" className="grid size-11 shrink-0 place-items-center">
-          <span className="grid size-7 place-items-center rounded-lg bg-acento text-acento-texto">
+          <span className="grid size-7 place-items-center rounded-lg bg-marcador text-marcador-texto">
             <Icono nombre="check" className="size-5" />
           </span>
         </span>

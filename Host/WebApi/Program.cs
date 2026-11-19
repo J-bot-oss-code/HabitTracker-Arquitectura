@@ -3,6 +3,7 @@ using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
 using DocumentManager.Infrastructure.DependencyInjection;
+using Notifications.Infrastructure.DependencyInjection;
 using Permissions.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -19,11 +20,32 @@ builder.Services.AddPermissionsInfrastructure(builder.Configuration);
 // Módulo Manejador de Documentos (Pieza 3 del Core; persistencia y almacenamiento propios).
 builder.Services.AddDocumentManagerModule(builder.Configuration);
 
+// Módulo de Notificaciones (Pieza 4 del Core): bandeja interna y correo por la cola de Control de Acceso.
+builder.Services.AddNotificationsModule(builder.Configuration);
+
+// Notificaciones se conecta a Control de Acceso (usuarios y cola de correos) solo por puertos y estos adaptadores.
+builder.Services.AddScoped<Notifications.Application.Interfaces.IDirectorioUsuarios, DirectorioUsuariosAdapter>();
+builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, ColaCorreosAdapter>();
+
+// Los avisos de Permisos (solicitud creada y resuelta) llegan al motor de Notificaciones por este adaptador.
+builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermisos, NotificadorPermisosAdapter>();
+
+// Los logros que gana la persona en HabitTracker se le avisan por el mismo motor.
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuario, NotificadorUsuarioAdapter>();
+
+// Reportes (Pieza 5 del Core) no tiene base de datos propia: agrega lo que le dan Permisos y HabitTracker por estos adaptadores.
+builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteSolicitudes, FuenteSolicitudesAdapter>();
+builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteConstancia, FuenteConstanciaAdapter>();
+builder.Services.AddScoped<Reports.Application.Interfaces.IReportesService, Reports.Application.Services.ReportesService>();
+
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
 
 // Adaptador de IConsentimientoSalud para HabitTracker (consentimiento datosSalud de Control de Acceso).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IConsentimientoSalud, ConsentimientoSaludAdapter>();
+// Archivos vinculados a planes: HabitTracker ve los documentos por un puerto y el Manejador de documentos consulta una guarda al eliminar.
+builder.Services.AddScoped<HabitTracker.Application.Interfaces.IDocumentosUsuario, DocumentosUsuarioAdapter>();
+builder.Services.AddScoped<DocumentManager.Application.Interfaces.IGuardaEliminacionDocumento, GuardaEliminacionDocumentoAdapter>();
 
 // Cifrado en reposo de los datos de salud: claves persistentes en DATAPROTECTION_KEYS_PATH (obligatorio fuera de Development).
 builder.Services.AddProteccionDeDatos(builder.Configuration, builder.Environment);
@@ -31,11 +53,15 @@ builder.Services.AddProteccionDeDatos(builder.Configuration, builder.Environment
 // Datos de cada módulo en la descarga de datos y en la baja de cuenta de Control de Acceso (sin que éste los conozca).
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteHabitos>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePerfilSalud>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePlanes>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePermisos>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteDocumentos>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteNotificaciones>();
 
 // Límite de peticiones por IP en activación, login, registro y recuperación de contraseña (RD-06).
 builder.Services.AddLimitacionDePeticiones(builder.Configuration);
+builder.Services.AddReenvioDeCabeceras(builder.Configuration);
+builder.Services.AddSaludDelServicio();
 
 // CORS: solo los orígenes de Cors:OrigenesPermitidos (el frontend). Sin orígenes configurados no se permite ninguno.
 builder.Services.AddCorsDelFrontend(builder.Configuration);
@@ -69,6 +95,9 @@ var app = builder.Build();
 // Migraciones y datos semilla (solo si BaseDeDatos:MigrarAlIniciar=true; la composición de Docker lo activa).
 await app.InicializarBaseDeDatosAsync();
 
+// Catálogo de planes de HabitTracker (siempre: es contenido del código, no datos de demostración).
+await app.SembrarCatalogoPlanesAsync();
+
 // Middleware global de excepciones al inicio del pipeline (RD-07, RD-08).
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
@@ -92,14 +121,19 @@ if (!app.Configuration.GetValue<bool>("Https:RedireccionDesactivada"))
     app.UseHttpsRedirection();
 }
 
+// Antes que todo lo que lee la IP del cliente (el limitador de peticiones); sin proxies configurados no hace nada.
+app.UseReenvioDeCabeceras();
+
 app.UseCorsDelFrontend(app.Configuration);
 
-app.UseRateLimiter();
-
+// Después de autenticar, para limitar por persona los endpoints con sesión; antes de la lista negra, para que un
+// token inválido repetido no consulte la base sin tope.
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseMiddleware<TokenBlacklistMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapSaludDelServicio();
 
 app.Run();

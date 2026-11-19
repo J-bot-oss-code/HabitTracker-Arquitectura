@@ -1,46 +1,23 @@
 import { z } from 'zod'
-import { METAS_CATALOGO } from '@/features/publico/api'
-import { LIMITES_CORPORALES, NIVELES_ACTIVIDAD, SEXOS } from '@/features/publico/types'
+import { LIMITES_CORPORALES } from '@/features/publico/types'
+import {
+  ACTIVIDADES_PERFIL,
+  ALERGIAS,
+  CONDICIONES,
+  EXPERIENCIAS,
+  LUGARES,
+  MAXIMO_OBJETIVOS,
+  OBJETIVOS,
+  PERFILES_LABORALES,
+  SEXOS_PERFIL,
+  ZONAS_CORPORALES,
+} from './types'
 
-// Límite propuesto para el backend (mejora futura): el perfil y el plan aún no existen en
-// Host/WebApi. Los corporales son los mismos de la calculadora pública.
+// Mismos límites que PerfilUsuario en el backend (HabitTracker.Domain/Perfil).
 export const LIMITES_PLAN = {
   diasPorSemana: { min: 1, max: 7 },
   minutosPorSesion: { min: 10, max: 180 },
 } as const
-
-const entero = (campo: string, { min, max }: { min: number; max: number }, unidad: string) =>
-  z
-    .number({ error: `Escribe ${campo}.` })
-    .int(`Escribe ${campo} sin decimales.`)
-    .min(min, `Debe ser al menos ${min} ${unidad}.`)
-    .max(max, `Debe ser como máximo ${max} ${unidad}.`)
-
-const decimal = (campo: string, { min, max }: { min: number; max: number }, unidad: string) =>
-  z
-    .number({ error: `Escribe ${campo}.` })
-    .min(min, `Debe ser al menos ${min} ${unidad}.`)
-    .max(max, `Debe ser como máximo ${max} ${unidad}.`)
-
-// "no-decir" se envía como null: el sexo es opcional (minimización, docs/mejoras §7.2).
-export const OPCIONES_SEXO = [...SEXOS, 'no-decir'] as const
-export const SIN_META = 'despues'
-
-export const datosBasicosSchema = z.object({
-  edad: entero('tu edad', LIMITES_CORPORALES.edad, 'años'),
-  sexo: z.enum(OPCIONES_SEXO, { error: 'Elige una opción.' }),
-  alturaCm: decimal('tu altura', LIMITES_CORPORALES.alturaCm, 'cm'),
-  pesoKg: decimal('tu peso', LIMITES_CORPORALES.pesoKg, 'kg'),
-})
-
-export const actividadSchema = z.object({
-  actividad: z.enum(NIVELES_ACTIVIDAD, { error: 'Elige tu nivel de actividad.' }),
-  diasPorSemana: entero('los días', LIMITES_PLAN.diasPorSemana, 'días'),
-  minutosPorSesion: entero('los minutos', LIMITES_PLAN.minutosPorSesion, 'minutos'),
-  metaSlug: z.enum([SIN_META, ...METAS_CATALOGO.map((m) => m.slug)], {
-    error: 'Elige una meta o "Elegir más tarde".',
-  }),
-})
 
 // Casilla obligatoria: empieza en false (nada marcado por defecto) y solo vale true.
 const aceptado = (mensaje: string) => z.boolean().refine((v) => v, { error: mensaje })
@@ -62,17 +39,21 @@ export const avisoSaludSchema = z.object({
   avisoSalud: aceptado(MENSAJES_CONSENTIMIENTO.avisoSalud),
 })
 
-export type DatosBasicosForm = z.infer<typeof datosBasicosSchema>
-export type ActividadForm = z.infer<typeof actividadSchema>
 export type ConsentimientoForm = z.infer<typeof consentimientoSchema>
 
-// Onboarding (pasos 3 a 5 del alta). Un solo formulario; cada paso valida sus campos. Si el
-// registro se hizo en otro dispositivo, aquí se vuelven a pedir los consentimientos.
+const perfilLaboral = z.enum(PERFILES_LABORALES, { error: 'Elige cómo es tu jornada.' })
+const zonaHoraria = z
+  .string()
+  .trim()
+  .min(1, 'Elige tu zona horaria.')
+  .max(64, 'La zona horaria no es válida.')
+
+// Onboarding de 3 toques (P1): jornada → zona horaria → aviso de salud. Sin datos de salud.
 export function onboardingSchema(pedirConsentimiento: boolean) {
   return z
     .object({
-      ...datosBasicosSchema.shape,
-      ...actividadSchema.shape,
+      perfilLaboral,
+      zonaHoraria,
       ...avisoSaludSchema.shape,
       terminos: z.boolean(),
       privacidad: z.boolean(),
@@ -101,7 +82,87 @@ export type OnboardingForm = z.infer<ReturnType<typeof onboardingSchema>>
 
 // Campos de cada paso, en orden (para validar paso a paso con trigger).
 export const CAMPOS_POR_PASO = [
-  ['edad', 'sexo', 'alturaCm', 'pesoKg'],
-  ['actividad', 'diasPorSemana', 'minutosPorSesion', 'metaSlug'],
+  ['perfilLaboral'],
+  ['zonaHoraria'],
   ['avisoSalud', 'terminos', 'privacidad', 'marketing'],
 ] as const satisfies readonly (readonly (keyof OnboardingForm)[])[]
+
+// --- Configuración › Perfil y salud ---
+
+// Un campo numérico vacío llega como NaN (valueAsNumber): es "sin dato" (null), no un error.
+const numeroOpcional = (
+  campo: string,
+  { min, max }: { min: number; max: number },
+  entero = false,
+) =>
+  z.preprocess(
+    (v) => (typeof v === 'number' && Number.isNaN(v) ? null : v),
+    z
+      .number({ error: `Escribe ${campo}.` })
+      .min(min, `Debe ser al menos ${min}.`)
+      .max(max, `Debe ser como máximo ${max}.`)
+      .refine((n) => !entero || Number.isInteger(n), `Escribe ${campo} sin decimales.`)
+      .nullable(),
+  )
+
+// "" (sin elegir) se envía como null.
+const opcional = <T extends readonly [string, ...string[]]>(valores: T) =>
+  z.preprocess((v) => (v === '' ? null : v), z.enum(valores).nullable())
+
+const hora = z.preprocess(
+  (v) => (v === '' ? null : v),
+  z
+    .string()
+    .regex(/^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/, 'Escribe la hora como HH:mm.')
+    .nullable(),
+)
+
+export const perfilSchema = z.object({
+  perfilLaboral,
+  zonaHoraria,
+  horaEntradaTrabajo: hora,
+  horaSalidaTrabajo: hora,
+  horaDespertar: hora,
+  horaDormir: hora,
+  edad: numeroOpcional('tu edad', LIMITES_CORPORALES.edad, true),
+  sexo: opcional(SEXOS_PERFIL),
+  alturaCm: numeroOpcional('tu altura', LIMITES_CORPORALES.alturaCm),
+  pesoKg: numeroOpcional('tu peso', LIMITES_CORPORALES.pesoKg),
+  actividad: opcional(ACTIVIDADES_PERFIL),
+  diasPorSemana: numeroOpcional('los días', LIMITES_PLAN.diasPorSemana, true),
+  minutosPorSesion: numeroOpcional('los minutos', LIMITES_PLAN.minutosPorSesion, true),
+})
+
+export type PerfilForm = z.input<typeof perfilSchema>
+export type PerfilValidado = z.output<typeof perfilSchema>
+
+export const objetivosSchema = z
+  .object({
+    objetivos: z
+      .array(z.enum(OBJETIVOS))
+      .min(1, 'Elige al menos un objetivo.')
+      .max(MAXIMO_OBJETIVOS, `Elige como máximo ${MAXIMO_OBJETIVOS} objetivos.`),
+    zonas: z.array(z.enum(ZONAS_CORPORALES)),
+    experiencia: z.enum(EXPERIENCIAS, { error: 'Elige tu experiencia.' }),
+    lugar: z.enum(LUGARES, { error: 'Elige dónde entrenarías.' }),
+  })
+  // Igual que el dominio: las zonas solo aplican a "definir o tonificar".
+  .transform((d) => (d.objetivos.includes('DefinirTonificar') ? d : { ...d, zonas: [] }))
+
+// "Ninguna" es exclusiva: no se combina con otras opciones (mismo criterio que el backend).
+const listaConNinguna = <T extends readonly ['Ninguna', ...string[]]>(valores: T, campo: string) =>
+  z
+    .array(z.enum(valores))
+    .min(1, `Marca al menos una opción en ${campo} (o "Ninguna").`)
+    .refine(
+      (l) => !l.includes('Ninguna') || l.length === 1,
+      '"Ninguna" no se combina con otras opciones.',
+    )
+
+export const condicionesSchema = z.object({
+  condiciones: listaConNinguna(CONDICIONES, 'condiciones'),
+  alergias: listaConNinguna(ALERGIAS, 'alergias'),
+})
+
+export type ObjetivosForm = z.input<typeof objetivosSchema>
+export type CondicionesForm = z.input<typeof condicionesSchema>

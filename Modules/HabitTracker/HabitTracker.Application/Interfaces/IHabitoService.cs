@@ -22,8 +22,12 @@ public interface IHabitoService
     /// <summary>Aplica una transición de la máquina de estados (las reglas viven en <c>TransicionesHabito</c>).</summary>
     Task CambiarEstadoAsync(Guid habitoId, EstadoHabito nuevoEstado, Guid usuarioActualId, CancellationToken cancellationToken = default);
 
-    /// <summary>Registra avance en un hábito Activo. Rechaza fechas futuras (<c>fecha_futura</c>).</summary>
-    Task RegistrarAvanceAsync(Guid habitoId, decimal cantidad, DateTime fechaUtc, Guid usuarioActualId, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Registra avance en un hábito Activo. Rechaza fechas futuras (<c>fecha_futura</c>). Con <paramref name="esVersionMinima"/>
+    /// ("Hoy solo lo mínimo") el hábito debe ser de un plan (<c>version_minima_no_disponible</c>).
+    /// </summary>
+    Task RegistrarAvanceAsync(Guid habitoId, decimal cantidad, DateTime fechaUtc, Guid usuarioActualId,
+        bool esVersionMinima = false, CancellationToken cancellationToken = default);
 
     /// <summary>Reconfigura la meta del hábito; exige el permiso aplicado <c>Habits.AdvancedReconfig</c>.</summary>
     Task ReconfigurarHabitoAsync(Guid habitoId, Periodicidad periodicidad, decimal cantidadObjetivo, string unidad,

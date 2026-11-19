@@ -94,7 +94,6 @@ export function AuditoriaPage() {
   return (
     <>
       <PageHeader
-        rotulo="Administración"
         titulo="Auditoría"
         descripcion="Quién hizo qué y cuándo. El registro es de solo lectura: no se modifica ni se elimina desde la aplicación."
         acciones={

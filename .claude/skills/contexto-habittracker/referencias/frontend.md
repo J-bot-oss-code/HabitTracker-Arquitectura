@@ -5,6 +5,7 @@
 ## Stack y comandos
 
 - React 19, Vite, TypeScript estricto, React Router 7, TanStack Query 5, react-hook-form + zod, Tailwind 4, MSW 2 y Vitest + Testing Library.
+- En Windows, ejecuta los comandos desde una terminal con la unidad en mayúscula (`C:\…`): con `c:\…` Vitest falla en todas las suites («failed to find the runner»).
 - Comandos: `npm test`, `npm run lint`, `npm run typecheck`, `npm run build` y `npm run format:check`. Este último falla en Windows por CRLF; en el CI pasa.
 - Variables (`src/shared/config/env.ts`):
   - `VITE_USE_MOCKS`: `false` para usar el backend real;
@@ -22,29 +23,37 @@
 - `src/shared/auth/tokenStorage.ts` guarda el token de acceso **en memoria**; la sesión larga la sostiene la cookie HttpOnly.
 - `src/shared/lib/fechas.ts`: fechas UTC. Las de los hábitos llegan con `Z`; `parsearFechaUtc` acepta también fechas sin zona.
 - `src/app/guards.tsx`: `RequierePerfil` lleva a `/bienvenida` si `GET /api/profile` responde 404 **con** ProblemDetails. Envuelve `/hoy`, `/progreso`, `/habitos` y `/permisos`.
-- `src/app/navigation.ts` define las secciones de Configuración (`/ajustes`: Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos, Apariencia). No hay sección de Notificaciones ni de Perfil todavía.
+- `src/app/navigation.ts` define el menú (Estándar: Hoy, Mis hábitos, **Planes** —con «Mis planes» arriba—, Progreso, **Mis archivos**; los permisos viven en Configuración › Solicitudes) y las secciones de Configuración (`/ajustes`: Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos, Apariencia, **Notificaciones** con la preferencia de correo). El menú de ambos roles tiene **Notificaciones** (con el globo de sin leer) y **Reportes**; el Administrador, además, **Cola de correos**.
 
 ## Features relevantes para el negocio
 
 | Feature | Qué hay | Backend |
 |---|---|---|
 | `habits` | Lista, crear (sin meta), detalle (`GET /api/habits/{id}`), transiciones, avance, reconfigurar, **Hoy** (`hoy.ts`) y métricas de racha y logros calculadas en el navegador (`estados.ts`, `progreso.ts`) | Real: `/api/habits` |
-| `perfil` | Onboarding `/bienvenida` (edad, sexo, altura, peso, actividad, días, minutos, `metaSlug`, aviso de salud) | **Propuesto**: `/api/profile` |
-| `progreso` | Peso, medidas, constancia, récords y logros | **Propuesto**: `/api/progress/weights` y `/measurements` |
-| `publico` | Landing, catálogo **estático** de 6 metas (`catalogo.ts`, `slug` estable), calculadora de calorías y textos legales (`legal.ts`: términos `v2.1` y privacidad `v1.4`) | Ninguno |
+| `perfil` | Onboarding de **3 toques** `/bienvenida` (jornada → zona horaria → aviso de salud; no pide datos de salud), Configuración › **Perfil y salud** `/ajustes/perfil-salud` (perfil nivel 2 y cuestionario por bloques, aviso para activar `datosSalud`) | Real: `/api/profile`, `/api/profile/health/*` |
+| `progreso` | Peso, medidas, constancia, récords y logros | Real: `/api/progress/weights` y `/measurements` |
+| `planes` | Catálogo de 13 planes (`CatalogoPlanes` con filtros por nivel y área), detalle `/metas/:slug` y `/planes/:slug` (aviso de seguridad, tareas con versión mínima, guía semanal, «Empezar este plan» con su diálogo «¿Cuándo lo harás?»), página **Planes** `/planes` (recomendados con sus motivos y «No recomendado para ti» con su razón) y `usePlanResumen(slug)` para quien solo necesita nombre y duración | Real: `/api/plans`, `/api/plans/{slug}`, `/api/plans/recommended` |
+| `mis-planes` | `api.ts`, `types.ts` y `schemas.ts` de `api/my-plans`, `api/today` y `api/progress/summary`; página `/mis-planes/:id` (`MiPlanPage`). Hoy usa `TareaDePlanFila` y `AvisosDeHoy` (en `habits`); Progreso y Planes leen sus hooks | Real: `/api/my-plans`, `/api/today`, `/api/progress/summary` |
+| `publico` | Landing (el catálogo le llega por una ranura: `LandingPage catalogo={…}`), calculadora de calorías y textos legales (`legal.ts`: términos `v2.1` y privacidad `v1.4`) | Ninguno |
 | `privacidad` | Consentimientos (incluido `datosSalud`), baja y descarga | Real: `/api/privacy/*` |
 | `auth` | Registro con consentimientos, activación con código, login, Google y sesiones | Real: `/api/auth/*` |
+| `documentos` | «Mis archivos» `/documentos` (subir, descargar, eliminar), `BotonEliminarArchivo` (pide el permiso por archivo cuando está en un plan en curso), adjuntos de plan (`useAdjuntosDePlan`…) y `permisoArchivo.ts`; «Archivos del plan» vive en `mis-planes/components/ArchivosDelPlan.tsx` | Real: `/api/documents`, `/api/my-plans/{id}/attachments` |
 | `auditoria` | Resumen y auditoría del Administrador | **Propuesto**: `/api/admin/metrics` y `/api/audit` |
-| `coming-soon` | Notificaciones, cola de correos, reportes y documentos (`piezas.ts`, con sus RF) | — |
+| `notificaciones` | Bandeja `/notificaciones` (filtro de sin leer, marcar como leída), `GloboNoLeidas` en el menú y Configuración › Notificaciones (`/ajustes/notificaciones`) | Real: `/api/notifications` |
+| `cola-correos` | `/admin/cola-correos` (estado, intentos de 3, último error, «Procesar ahora») y sus cifras en el Resumen | Real: `/api/admin/email-queue` |
+| `reportes` | `/reportes`: rango con zod (máx. 366 días), solicitudes por estado y constancia por plan; el Administrador ve el agregado | Real: `/api/reports/*` |
 
-Slugs del catálogo: `primeros-5-km`, `ganar-masa-muscular`, `perder-grasa-sostenible`, `fuerza-en-casa`, `dormir-mejor` y `reducir-estres`.
+Slugs del catálogo (13, de la API): los 6 Regulares `perder-grasa-sostenible`, `reducir-estres`, `dormir-mejor`, `primeros-5-km`, `ganar-masa-muscular` y `fuerza-en-casa`, y los 7 Básicos `mi-dia-oficina`, `mi-dia-turno-nocturno`, `mi-dia-trabajo-fisico`, `hidratacion-con-calor`, `caminar-para-empezar`, `respiracion-anti-estres` y `desconexion-digital-nocturna`.
+- **No hay catálogo estático:** un slug que llega de la URL o de `localStorage` se valida por formato (`esSlugPlan`) y, para mostrar su nombre, contra la lista del servidor (`usePlanResumen`). Un hook nunca va después de un `return` anticipado (`HoyPage` lo rompió una vez).
+- **Mis planes en pruebas:** el plan de ejemplo (`mi-dia-oficina`) solo se siembra fuera de las pruebas; una prueba que lo necesite llama `sembrarPlanDemo()`. El perfil ya no tiene `metaSlug`.
+- **El mock de los planes** (`mocks/handlers/planes.ts`) replica `RecomendadorPlanes` y `ReglasSeguridadPlanes`; sus datos (`planesData.ts`) son una copia de `catalogo-planes.json` que `mocks/planes.test.ts` compara con el JSON del backend. Si cambia el contenido allí, se regenera la copia (no se edita a mano).
 
 ## Contratos propuestos (sin backend)
 
 - Se declaran en `src/mocks/handlers/propuestas/*.ts`, se registran en `CONTRATOS_PROPUESTOS` (`propuestas/index.ts`) y se apuntan en "Pendientes para el backend" de `frontend/docs/PLAN-FRONTEND-NEXUS.md`.
 - Una prueba (`src/mocks/propuestas.test.ts`) exige que los handlers y el registro coincidan y que ninguna propuesta pise una ruta real.
 - Cuando el backend implementa un contrato, sale del registro y su handler pasa a `src/mocks/handlers/<feature>.ts`, replicando las reglas del backend.
-- Los handlers propuestos de perfil y progreso responden **409** sin el consentimiento `datosSalud`.
+- Perfil y progreso ya son handlers reales (`src/mocks/handlers/perfil.ts` y `progreso.ts`): 409 `consentimiento_salud_requerido` (`mensajeDeError` explica dónde dar el permiso), enums del perfil en PascalCase y la evaluación de salud replicada de `EvaluadorSalud`. La descarga de datos es solo la del servidor (sección `perfilYSalud`).
 
 ## Peculiaridades del contrato
 

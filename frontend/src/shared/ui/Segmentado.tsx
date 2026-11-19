@@ -29,7 +29,7 @@ export function Segmentado<T extends string | boolean>({
           aria-pressed={o.valor === valor}
           onClick={() => alCambiar(o.valor)}
           className={cn(
-            'min-h-11 rounded-full border px-4 text-sm font-semibold transition-colors',
+            'min-h-11 rounded-md border px-4 text-sm font-semibold transition-colors',
             o.valor === valor
               ? 'border-acento bg-acento-suave text-acento-fuerte'
               : 'border-borde-fuerte bg-superficie text-texto-2 hover:border-acento',

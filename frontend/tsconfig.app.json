@@ -17,8 +17,8 @@
     "types": ["vite/client", "@testing-library/jest-dom/vitest"],
 
     /* Alias */
-    "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] },
+    // Sin baseUrl (obsoleto en TypeScript 6): las rutas de paths son relativas a este archivo.
+    "paths": { "@/*": ["./src/*"] },
 
     /* Linting */
     "strict": true,

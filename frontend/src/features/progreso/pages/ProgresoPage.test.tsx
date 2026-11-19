@@ -1,12 +1,15 @@
 import { screen, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
-import { describe, expect, it } from 'vitest'
-import { db } from '@/mocks/db'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { db, sembrarPlanDemo } from '@/mocks/db'
 import { problema } from '@/mocks/http'
 import { server } from '@/mocks/server'
 import { iniciarSesionComo, renderApp } from '@/test/render'
 
 const url = (ruta: string) => `${window.location.origin}${ruta}`
+
+// La línea de la meta de peso termina cuando termina el plan en curso.
+beforeEach(() => sembrarPlanDemo())
 
 describe('pantalla Progreso', () => {
   it('muestra peso, medidas, fotos, constancia, récords y logros de Ana', async () => {
@@ -27,11 +30,12 @@ describe('pantalla Progreso', () => {
     expect(within(cintura).getByText('78 cm')).toBeInTheDocument()
     expect(within(cintura).getByText('−4 cm')).toBeInTheDocument()
 
-    expect(screen.getByRole('heading', { name: 'Fotos de progreso' })).toBeInTheDocument()
+    // Las fotos del cuerpo no son parte de Progreso (P4: se motiva la conducta, nunca el cuerpo).
+    expect(screen.queryByText('Fotos de progreso')).not.toBeInTheDocument()
     expect(screen.getAllByText('Solo tú ves tu peso.').length).toBeGreaterThan(0)
     expect(await screen.findByRole('list', { name: 'Constancia por día' })).toBeInTheDocument()
-    expect(await screen.findByText('Mejor racha')).toBeInTheDocument()
-    expect(screen.getByText('Primer avance')).toBeInTheDocument()
+    expect(await screen.findByText('Tu mes en números')).toBeInTheDocument()
+    expect(screen.getByText('Primer paso')).toBeInTheDocument()
   })
 
   it('el selector de periodo filtra el peso y marca el activo con aria-pressed', async () => {
@@ -110,7 +114,7 @@ describe('pantalla Progreso', () => {
     const dialogo = await screen.findByRole('dialog', { name: 'Registrar peso' })
     await user.click(within(dialogo).getByRole('button', { name: 'Guardar peso' }))
     expect(
-      await within(dialogo).findByText(/Acepta el tratamiento de datos de salud/),
+      await within(dialogo).findByText(/necesitamos tu permiso para usar tus datos de salud/),
     ).toBeInTheDocument()
   })
 
@@ -275,8 +279,27 @@ describe('casos límite de la pantalla Progreso', () => {
     await user.type(within(dialogo).getByLabelText(/^Medida/), '75')
     await user.click(within(dialogo).getByRole('button', { name: 'Guardar medición' }))
     expect(
-      await within(dialogo).findByText(/Acepta el tratamiento de datos de salud/),
+      await within(dialogo).findByText(/necesitamos tu permiso para usar tus datos de salud/),
     ).toBeInTheDocument()
+  })
+
+  it('una fecha futura es 400 fecha_futura y un objetivo sin perfil es 400 perfil_requerido', async () => {
+    const token = iniciarSesionComo('estandar')
+    const enviar = (body: unknown) =>
+      fetch(`${window.location.origin}/api/progress/weights`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      })
+    const manana = new Date(Date.now() + 86_400_000).toISOString()
+    const futura = await enviar({ fecha: manana, pesoKg: 70 })
+    expect(futura.status).toBe(400)
+    expect((await futura.json()).codigo).toBe('fecha_futura')
+
+    db.perfiles.delete(db.usuarios[0].id)
+    const sinPerfil = await enviar({ fecha: new Date().toISOString(), pesoKg: 70, objetivoKg: 65 })
+    expect(sinPerfil.status).toBe(400)
+    expect((await sinPerfil.json()).codigo).toBe('perfil_requerido')
   })
 
   it('rechaza fechas de antes del año 2000', async () => {
@@ -289,16 +312,20 @@ describe('casos límite de la pantalla Progreso', () => {
     expect(r.status).toBe(400)
   })
 
-  it('guarda las fechas con desfase como instante UTC', async () => {
+  it('como el backend, solo acepta fechas en UTC con "Z" (el frontend envía toISOString)', async () => {
     const token = iniciarSesionComo('estandar')
-    const r = await fetch(`${window.location.origin}/api/progress/weights`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ fecha: '2026-11-01T22:00:00-05:00', pesoKg: 70 }),
-    })
+    const enviar = (fecha: string) =>
+      fetch(`${window.location.origin}/api/progress/weights`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ fecha, pesoKg: 70 }),
+      })
+    expect((await enviar('2026-11-01T22:00:00-05:00')).status).toBe(400)
+    const r = await enviar('2001-03-04T03:00:00.000Z')
+    expect(r.status).toBe(201)
     const cuerpo = await r.json()
     expect(
-      cuerpo.registros.some((p: { fecha: string }) => p.fecha === '2026-11-02T03:00:00.000Z'),
+      cuerpo.registros.some((p: { fecha: string }) => p.fecha === '2001-03-04T03:00:00.000Z'),
     ).toBe(true)
   })
 })
@@ -327,12 +354,12 @@ describe('ajustes de la ronda 2 de crítica', () => {
     expect(fin(recortada.getAttribute('aria-label') ?? '')).toBe(fin(nombre3m))
   })
 
-  it('los logros bloqueados dicen cuánto falta, sin el candado de privacidad', async () => {
+  it('los logros son los del servidor y solo hablan de constancia', async () => {
     renderApp('/progreso', { como: 'estandar' })
-    const fila = (await screen.findByText('30 días de racha')).closest('li')
-    expect(fila).not.toBeNull()
-    expect(within(fila as HTMLElement).getByText('Bloqueado')).toBeInTheDocument()
-    expect(within(fila as HTMLElement).getByText(/^\d+ de 30$/)).toBeInTheDocument()
+    expect(await screen.findByText('Primera semana')).toBeInTheDocument()
+    expect(screen.getByText('25 avances')).toBeInTheDocument()
+    expect(screen.getAllByText('Obtenido').length).toBeGreaterThanOrEqual(3)
+    expect(screen.getByText('Días cumplidos')).toBeInTheDocument()
   })
 
   it('el mapa de constancia lleva los días de la semana y el resumen de esta semana', async () => {

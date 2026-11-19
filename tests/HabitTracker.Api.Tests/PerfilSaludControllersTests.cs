@@ -100,6 +100,32 @@ public class PerfilSaludControllersTests
         Assert.Equal(NivelActividad.MuyAlta, request.Actividad);
     }
 
+    [Theory]
+    [InlineData(typeof(GuardarPerfilRequest))]
+    [InlineData(typeof(PerfilDto))]
+    [InlineData(typeof(DatosPerfil))]
+    [InlineData(typeof(PerfilUsuario))]
+    [Trait("Requirement", "RF-NEG-02")]
+    public void RF_NEG_02_Perfil_ElPlanDeInteresSalioDelContrato(Type tipo)
+    {
+        // Desde la Fase 4b los planes que sigue la persona viven en PlanUsuario (api/my-plans), no en el perfil.
+        var nombres = tipo.GetProperties().Select(p => p.Name).ToArray();
+
+        Assert.DoesNotContain("MetaSlug", nombres);
+        Assert.DoesNotContain("InicioPlan", nombres);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-07")]
+    public void RD_07_Perfil_UnClienteAntiguoQueEnviaMetaSlug_SeLeeSinFallar()
+    {
+        var request = JsonSerializer.Deserialize<GuardarPerfilRequest>(
+            "{\"perfilLaboral\":\"Remoto\",\"zonaHoraria\":\"America/Santo_Domingo\",\"avisoSaludAceptado\":true," +
+            "\"metaSlug\":\"dormir-mejor\"}", Opciones())!;
+
+        Assert.Equal(PerfilLaboral.Remoto, request.PerfilLaboral);
+    }
+
     [Fact]
     [Trait("Requirement", "RD-08")]
     public async Task RD_08_SinConsentimientoDeSalud_Responde409ConCodigo()

@@ -67,25 +67,6 @@ public class PerfilSaludTests
 
     [Fact]
     [Trait("Requirement", "RF-NEG-02")]
-    public void RF_NEG_02_Perfil_CambiarPlanDeInteres_ReiniciaInicioPlanSoloSiCambia()
-    {
-        // Arrange
-        var perfil = PerfilUsuario.Crear(Usuario, Nivel1() with { MetaSlug = "dormir-mejor" }, Ahora);
-        var inicio = perfil.InicioPlan;
-
-        // Act
-        perfil.Actualizar(Nivel1() with { MetaSlug = "dormir-mejor" }, Ahora.AddDays(2));
-        var mismoPlan = perfil.InicioPlan;
-        perfil.Actualizar(Nivel1() with { MetaSlug = "reducir-estres" }, Ahora.AddDays(3));
-
-        // Assert
-        Assert.Equal(Ahora, inicio);
-        Assert.Equal(inicio, mismoPlan);
-        Assert.Equal(Ahora.AddDays(3), perfil.InicioPlan);
-    }
-
-    [Fact]
-    [Trait("Requirement", "RF-NEG-02")]
     public void RF_NEG_02_Perfil_PesoOAltura_SonDatosDeSalud()
     {
         Assert.True((Nivel1() with { PesoKg = 70 }).TraeDatosDeSalud);

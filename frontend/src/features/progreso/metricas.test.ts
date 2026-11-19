@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   filasDeMedidas,
-  instanteFinDelPlan,
   lineaDelPlan,
   pesosDelPeriodo,
   puntosReales,
@@ -59,12 +58,6 @@ describe('resumen y línea del plan', () => {
     expect(lineaDelPlan(reales, 66, null)).toBeUndefined()
     expect(lineaDelPlan(reales, 66, reales[0].t - DIA)).toBeUndefined()
     expect(lineaDelPlan([], 66, fin)).toBeUndefined()
-  })
-
-  it('el fin del plan es el inicio más las semanas de la meta', () => {
-    expect(instanteFinDelPlan('2026-10-19T00:00:00Z', 8)).toBe(Date.UTC(2026, 11, 14))
-    expect(instanteFinDelPlan(null, 8)).toBeNull()
-    expect(instanteFinDelPlan('2026-10-19T00:00:00Z', undefined)).toBeNull()
   })
 })
 

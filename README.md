@@ -61,7 +61,7 @@ docker compose up --build
 - **Swagger (para probar la API):** `http://localhost:8080/swagger` (botón *Authorize* → `Bearer {token}`).
 - **Detener el proyecto:** `Ctrl+C` en la terminal donde corre, o desde otra terminal `docker compose down`. Esto **conserva** los datos. Solo `docker compose down -v` borra los volúmenes y empieza de cero.
 
-Solo la aplicación publica un puerto (el `8080`). La base de datos **no** es accesible desde fuera de la composición: la API la encuentra por el nombre del servicio (`Server=db`), no por `localhost`.
+La aplicación publica el puerto `8080` y Mailpit su interfaz web, el `8025`. La base de datos **no** es accesible desde fuera de la composición: la API la encuentra por el nombre del servicio (`Server=db`), no por `localhost`.
 
 ### Datos de partida
 
@@ -72,20 +72,20 @@ Los valores del `.env.example` son de ejemplo para esta demostración; cámbialo
 | Administrador inicial | `admin@ejemplo.com` / `Ejemplo_Admin_2026!` (variables `ADMIN_CORREO` y `ADMIN_CLAVE`) |
 | Meta de demostración (para crear hábitos) | `5f1c0a00-0000-4000-8000-000000000002` |
 
-### Correos (activación de cuenta y recuperación de contraseña)
+### Correos (activación de cuenta, recuperación de contraseña y notificaciones)
 
-No hay un servidor de correo en la composición. Con `CORREO_MODO=consola` y `SMTP_HOST` vacío (valores del `.env.example`) el sistema **escribe el correo en el log** en lugar de enviarlo. Para leerlo:
+La composición incluye **Mailpit**, un servidor de correo **de prueba**: recibe lo que envía la API y **no entrega nada a Internet**. Con el `.env.example` tal cual (`SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `SMTP_SSL=false`) todos los correos salen por la cola hacia Mailpit y se leen en **`http://localhost:8025`**:
 
-```bash
-docker compose logs webapi | findstr "CORREO"            # Windows CMD
-docker compose logs webapi | Select-String "CORREO"      # PowerShell
-docker compose logs webapi | grep CORREO                 # Linux / macOS
-```
-
-- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada (un escáner de correos no puede activar la cuenta ni gastar intentos), la activación ocurre al pulsar el botón. También puedes enviar `{"correo":"...","codigo":"123456"}` a `POST /api/auth/activate`. El código se valida siempre junto al correo; tras **5 códigos incorrectos** se invalida y hay que pedir otro con `POST /api/auth/resend-activation` (como máximo uno por minuto). Activación y reenvío admiten como máximo 30 peticiones por minuto desde una misma IP (después responden `429`).
+- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada por sí solo.
 - **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
+- **Notificaciones:** cada notificación llega también por correo (ver la sección `Notificaciones`).
 
-Si rellenas los cuatro `SMTP_*` del `.env`, los correos se envían de verdad. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
+Los correos tardan hasta 15 segundos en salir (el proceso que los envía corre a ese ritmo). Para no esperar, un Administrador ejecuta `POST /api/admin/email-queue/process`.
+
+Otras formas de recibirlos:
+
+- **Modo consola:** deja `SMTP_HOST` **vacío** y `CORREO_MODO=consola`: el correo se escribe en el log en lugar de enviarse (`docker compose logs webapi | grep CORREO`, o `findstr "CORREO"` en CMD y `Select-String "CORREO"` en PowerShell).
+- **Correo real:** rellena `SMTP_HOST`, `SMTP_PORT`, `SMTP_SSL=true`, `SMTP_USER` y `SMTP_PASS` (y `SMTP_FROM` si quieres otro remitente) en el `.env`. Es un canal de desarrollo: en producción no deben escribirse enlaces ni códigos en el log.
 
 ### Los datos sobreviven
 
@@ -100,7 +100,7 @@ Prueba de persistencia: sube un documento, ejecuta `docker compose down` (**sin*
 
 ### Notas
 
-- La composición está pensada para **una sola réplica** de la API y para demostración o uso local: el contenedor escucha HTTP sin TLS. Para otro uso, ponle un proxy con HTTPS delante y define `SWAGGER_HABILITADO=false`.
+- La composición está pensada para **una sola réplica** de la API y para demostración o uso local: el contenedor escucha HTTP sin TLS. Para otro uso, ponle un proxy con HTTPS delante y define `SWAGGER_HABILITADO=false`. Con proxy, define `PROXY_CONFIABLE` con su IP para que los límites de peticiones vean la IP real del cliente (vacío = no se confía en `X-Forwarded-For`). `GET /health` (anónimo, solo «Healthy» o «Unhealthy») comprueba la base de datos y es el healthcheck del contenedor.
 - Si el puerto `8080` ya está ocupado, libéralo antes de arrancar.
 - SQL Server solo tiene imagen `linux/amd64`; en Mac con chip Apple se ejecuta emulado y tarda más.
 - Evita los caracteres `$`, `;`, `=` y comillas en los valores del `.env`.
@@ -187,12 +187,87 @@ El nombre con el que se guarda cada archivo en el volumen es un GUID generado po
 
 Con el proyecto levantado (`http://localhost:8080/swagger`), los seis frentes:
 
-1. **Registro con activación por correo:** `POST /api/auth/register` → leer el código de 6 dígitos en `docker compose logs webapi` → `POST /api/auth/activate` con `{"correo":"...","codigo":"..."}` (o abrir el enlace del correo).
+1. **Registro con activación por correo:** `POST /api/auth/register` → leer el código de 6 dígitos en Mailpit (`http://localhost:8025`) → `POST /api/auth/activate` con `{"correo":"...","codigo":"..."}` (o abrir el enlace del correo).
 2. **Inicio y cierre de sesión:** `POST /api/auth/login` (`{"email","password"}`) → `GET /api/auth/me` → `POST /api/auth/logout` → `GET /api/auth/me` responde `401`.
 3. **Estándar contra una operación de Administrador:** con el token de un usuario Estándar, `GET /api/admin/usuarios` responde `403`.
-4. **Recuperación de contraseña:** `POST /api/auth/forgot-password` → leer el código en el log → `POST /api/auth/reset-password`.
+4. **Recuperación de contraseña:** `POST /api/auth/forgot-password` → leer el código en Mailpit (`http://localhost:8025`) → `POST /api/auth/reset-password`.
 5. **Gestión de permisos:** `POST /api/permissions` (`{"permisoSolicitado":"Habits.AdvancedReconfig"}`); con el token del Administrador inicial, `POST /api/permissions/{id}/approve` o `/reject` (`{"motivoRechazo":"..."}`). Resolver dos veces, o aprobar una solicitud propia, se rechaza (`400`).
 6. **Módulo de negocio (hábitos):** con un usuario Estándar, `POST /api/habits` usando como `metaId` la Meta de demostración; `POST /api/habits/{id}/transition` con `{"nuevoEstado":"Activo"}` funciona y `{"nuevoEstado":"Completado"}` desde `Planificado` se rechaza (`400`).
+
+## Notificaciones
+
+Cada aviso del sistema llega por **dos canales**: la **bandeja interna** (`/api/notifications`) y un **correo** que sale por la cola de correos (RF-NOT-06). Cada persona puede desactivar el correo y conservar la bandeja interna (RF-NOT-07). Todas las operaciones piden sesión (`Authorization: Bearer <token>`).
+
+**Módulos.** `Modules/Notifications` guarda las notificaciones y la preferencia de correo; Permisos y HabitTracker solo exponen un punto de extensión opcional (`INotificadorPermisos`, `INotificadorUsuario`) y el Host los conecta con adaptadores en `Host/WebApi/Adapters`. La cola y su proceso de envío siguen en Control de Acceso.
+
+### Eventos y cómo provocarlos
+
+| Evento | Quién recibe la notificación | Cómo provocarlo |
+|---|---|---|
+| Una persona crea una solicitud de permiso (RF-NOT-01) | **Todos los Administradores activos**, y nadie más | Un Estándar: `POST /api/permissions` con `{"permisoSolicitado":"Habits.AdvancedReconfig"}` |
+| Un Administrador aprueba o rechaza la solicitud (RF-NOT-02) | **Solo quien la hizo**, con el resultado y, si se rechazó, el motivo | `POST /api/permissions/{id}/approve`, o `POST /api/permissions/{id}/reject` con `{"motivoRechazo":"Falta justificación"}` |
+| **Evento del negocio (RF-NOT-03):** la persona gana un logro de constancia en HabitTracker | Solo ella (por ejemplo «Primer avance») | Con un Estándar: crea un hábito (`POST /api/habits`, `metaId` `5f1c0a00-0000-4000-8000-000000000002`), actívalo (`POST /api/habits/{id}/transition` con `{"nuevoEstado":"Activo"}`), registra un avance (`POST /api/habits/{id}/progress` con `{"cantidad":1,"fechaUtc":"<ahora en UTC>"}`) y consulta Hoy (`GET /api/today`): ahí se evalúan los logros y se avisa. Consultar Hoy otra vez **no** repite el aviso |
+
+Los textos del logro celebran la conducta y nunca mencionan peso, cuerpo ni culpa.
+
+### Endpoints
+
+| Ruta | Rol | Qué hace |
+|---|---|---|
+| `GET /api/notifications?soloNoLeidas=true` | Cualquiera con sesión | Mis notificaciones, de la más reciente a la más antigua, con `leida` (RF-NOT-04). Nunca las de otra persona |
+| `POST /api/notifications/{id}/read` | Cualquiera con sesión | La marca como leída (`204`). Una ajena responde `403` y no cambia (RF-NOT-05); una inexistente, `404` |
+| `GET/PUT /api/notifications/preferences` | Cualquiera con sesión | `{"correoActivo": true|false}`. Con `false`, las notificaciones siguen apareciendo en la bandeja y **no se encola ningún correo** (RF-NOT-07) |
+| `GET /api/admin/email-queue?estado=Pendiente\|Procesando\|Enviado\|Fallido` | Administrador | La cola: destinatario, asunto, estado, intentos, fechas y último error, sin el cuerpo (RF-NOT-11). Un Estándar recibe `403` |
+| `POST /api/admin/email-queue/process` | Administrador | Ejecuta una pasada del procesador y devuelve `{enviados, fallidos, recuperados}` (RF-NOT-09) |
+
+### La cola de correos
+
+- **Se encola, no se envía en la operación (RF-NOT-08):** crear una solicitud o registrarse responde `201` aunque el servidor de correo esté apagado; el correo queda `Pendiente`.
+- **Un proceso independiente (RF-NOT-09):** el servicio en segundo plano `EmailSenderWorker` envía los pendientes cada 15 segundos. Para ejecutarlo a pedido: `POST /api/admin/email-queue/process` como Administrador.
+- **Reintentos limitados (RF-NOT-10): el máximo es 3 intentos.** Tras cada fallo espera `base × 2^intentos` (con la base de `CORREO_ESPERA_REINTENTO_SEGUNDOS` del `.env`, 60 s por defecto: reintentos a los 2 y a los 4 minutos) y, agotados los 3, el correo queda **`Fallido`** con su `ultimoError`; no se reintenta más ni se borra.
+- **Estado de cada correo (RF-NOT-11):** `Pendiente`, `Procesando`, `Enviado` o `Fallido`, con intentos, fechas y último error.
+- **Un correo enviado no se reenvía (RF-NOT-12):** cada correo se reclama con un solo `UPDATE` condicionado a su estado, así que ejecutar el procesador dos veces seguidas (o dos procesos a la vez) no duplica ningún envío. Un correo que quedó en `Procesando` por una caída se recupera pasados `Correo__MinutosParaRecuperar` (10 por defecto) y cuenta como un intento fallido.
+- **Credenciales por variables de entorno (RF-NOT-13):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_SSL`, `SMTP_USER`, `SMTP_PASS` y `SMTP_FROM`; ninguna está en el repositorio (`.env.example` las trae sin secretos).
+
+### Cómo provocar un fallo de envío
+
+1. Apaga el servidor de correo: `docker compose stop mailpit`.
+2. Provoca un evento (por ejemplo, un Estándar crea una solicitud de permiso): responde `201` y el correo queda `Pendiente` (`GET /api/admin/email-queue?estado=Pendiente`).
+3. Ejecuta el procesador tres veces (`POST /api/admin/email-queue/process`) esperando entre cada una lo que marque la espera de reintento. Con el valor por defecto, el correo queda `Fallido` unos 6 minutos después del primer intento (el servicio en segundo plano también lo reintenta solo). Para no esperar, pon `CORREO_ESPERA_REINTENTO_SEGUNDOS=0` en el `.env` y aplica con `docker compose up -d`.
+4. `GET /api/admin/email-queue?estado=Fallido` muestra el correo con `intentos: 3` y `ultimoError`. Una cuarta ejecución no lo toca.
+5. Con `docker compose start mailpit`, los correos nuevos vuelven a enviarse.
+
+## Reportes
+
+Dos reportes con **agregación real** (devuelven valores agrupados, no el listado de registros). Ambos piden sesión (`Authorization: Bearer <token>`) y **exigen un rango de fechas**: `desde` y `hasta`, en formato `AAAA-MM-DD`, UTC, **ambos días incluidos**, con un máximo de 366 días. Sin fechas, con `desde` posterior a `hasta` o con un rango más largo responden `400`. Dos rangos distintos dan resultados distintos sobre los mismos datos (RF-REP-05); un rango sin datos devuelve cero filas, no un error.
+
+**Módulos.** `Modules/Reports` valida el rango y decide el alcance según el rol del token; no tiene base de datos propia. Pide los datos a Permisos y a HabitTracker por puertos (`IFuenteSolicitudes`, `IFuenteConstancia`) que el Host conecta con adaptadores en `Host/WebApi/Adapters`.
+
+### Los dos reportes
+
+| Reporte | Ruta | Qué responde | Cómo agrega |
+|---|---|---|---|
+| **Core (RF-REP-01):** solicitudes de permiso por estado y período | `GET /api/reports/permissions?desde=2026-11-02&hasta=2026-11-08` | Cuántas solicitudes creadas en el rango hay en cada estado (`Pendiente`, `Aplicada`, `Rechazada`…) y el total | `GROUP BY` del estado en la base de datos: una fila por estado |
+| **Negocio (RF-REP-02):** constancia por plan | `GET /api/reports/adherence?desde=2026-11-02&hasta=2026-11-08` | **«¿Qué tan constante fui en cada plan durante este período?»** Por plan: días con avance, días en que solo hizo la versión mínima, días del rango en que el plan estuvo en marcha y el porcentaje de constancia | Función propia `CalculadoraConstancia` (HabitTracker): una fila por plan, no una por avance. Mide por el **día local** de la persona y no cuenta los días de pausa ni los planes cancelados |
+
+### Qué ve cada rol (RF-REP-04)
+
+- **Estándar:** solo lo suyo. En permisos, sus solicitudes; en constancia, sus planes (`alcance: "propio"`). El rol sale del token: no hay forma de pedir los datos de otra persona.
+- **Administrador:** `alcance: "todos"`. En permisos, las solicitudes de todas las personas; en constancia, el **agregado por plan del catálogo** (cuántas personas y los promedios de días), **sin nombres ni correos**, medido por día UTC.
+
+### Cómo consultarlos con dos rangos
+
+```bash
+# 1) Inicia sesión y guarda el token (Estándar o Administrador)
+curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" \
+  -d '{"email":"admin@ejemplo.com","password":"Ejemplo_Admin_2026!"}'
+
+# 2) Un rango con datos y otro sin ellos: el resultado cambia
+curl -s "http://localhost:8080/api/reports/permissions?desde=2026-11-01&hasta=2026-11-30" -H "Authorization: Bearer <token>"
+curl -s "http://localhost:8080/api/reports/permissions?desde=2025-01-01&hasta=2025-01-31" -H "Authorization: Bearer <token>"
+```
+
+Para ver datos en el reporte del negocio: con un Estándar, inscríbete a un plan (`PUT /api/profile` con `{"perfilLaboral":"OficinaDiurna","zonaHoraria":"America/Santo_Domingo","avisoSaludAceptado":true}` y `POST /api/my-plans` con `{"slug":"mi-dia-oficina"}`), registra un avance en uno de sus hábitos (`POST /api/habits/{habitoId}/progress`) y consulta `GET /api/reports/adherence` con un rango que incluya hoy. En Swagger (`/swagger`), las dos rutas están en `Reports`.
 
 ## 🚀 Compilación y Ejecución
 
@@ -288,7 +363,7 @@ Las reglas de salud viven en un solo punto, `EvaluadorSalud`. Traduce las respue
 
 | Endpoint (rol `Estandar`) | Qué hace |
 |---|---|
-| `GET/PUT /api/profile` | Perfil. `404 perfil_no_encontrado` antes del onboarding. Con peso o altura exige el consentimiento `datosSalud`. |
+| `GET/PUT /api/profile` | Perfil. `404 perfil_no_encontrado` antes del onboarding. Un peso o una altura **nuevos** exigen el consentimiento `datosSalud`. Reenviar los ya guardados no lo exige, así que quien retiró el permiso puede seguir cambiando su jornada. |
 | `GET /api/profile/health` | Bloques del cuestionario con su evaluación (nivel de precaución, restricciones, alérgenos y completitud). |
 | `PUT /api/profile/health/objetivos`, `/seguridad`, `/condiciones` | Guarda un bloque. En las condiciones, «Ninguna» no se combina con otras opciones. |
 | `GET/POST /api/progress/weights` | Peso, uno por día. `objetivoKg`: si se omite, se conserva; con `null`, se quita. El último peso pasa al perfil. |
@@ -303,6 +378,44 @@ La descarga de datos añade la sección `perfilYSalud`, con el cuestionario desc
 Solo se cifra el cuestionario. Peso, altura y medidas se guardan sin cifrar porque hacen falta para ordenar y graficar en el servidor; solo los ve su dueño (RD-06).
 
 Si la persona retira el consentimiento `datosSalud`, sus datos no se borran y los sigue viendo, pero la evaluación deja de usarlos (`usaDatosDeSalud: false`). Un bloque que no se pueda descifrar, por ejemplo porque se perdieron las claves, se trata como no respondido: la persona lo vuelve a responder, sin recibir un 500.
+
+**Catálogo de planes (HabitTracker v2, Fase 3).** 13 planes de lanzamiento: 7 Básicos (de 1 a 3 hábitos durante 2 a 4 semanas) y 6 Regulares (programas de 3 a 12 semanas con una guía semanal).
+- **`PlanPlantilla`** y sus **`TareaPlantilla`**. Cada tarea lleva una versión mínima ("Hoy solo lo mínimo") y un ancla de la jornada (`AlDespertar`, `AlLlegarAlTrabajo`…).
+- El contenido vive en `Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/catalogo-planes.json`, embebido en el ensamblado. `SembradorCatalogoPlanes` lo lleva a la base **en cada arranque**:
+  - un plan nuevo se agrega;
+  - uno con `versionContenido` mayor se actualiza;
+  - uno que sale del JSON se retira (`Activo = false`) y nunca se borra.
+- **Seguridad del contenido:** el dominio rechaza un plan que use datos de nivel 2 sin exigir el cuestionario, un Básico de peso o de intensidad alta, o una tarea de agua por encima de 20 vasos o 5 litros al día. Un error en el JSON detiene el arranque.
+- **`ReglasSeguridadPlanes`** es la única definición de cuándo un plan no es apto: edad o sexo del plan, planes de peso con embarazo, posparto, trastorno de la conducta alimentaria, menor de 18 o IMC bajo, intensidad con "consulta a tu médico", impacto o zona lesionada, contraindicaciones y alérgenos. Los mensajes explican la razón sin nombrar la condición.
+- **`RecomendadorPlanes`:** la variante de "Mi día de trabajo saludable" de la jornada de la persona va siempre primera (oficina, turno nocturno o trabajo físico). Sin cuestionario se ordena por la jornada, primero lo que no pide preguntas de salud; con cuestionario se afina por objetivos, lugar y experiencia.
+
+| Endpoint | Rol | Qué hace |
+|---|---|---|
+| `GET /api/plans?area=&nivel=&perfilLaboral=` | anónimo | Planes activos, Básicos primero. `Cache-Control` público de 5 minutos y límite por IP (`RateLimit:CatalogoPorMinuto`, 60 por defecto). |
+| `GET /api/plans/{slug}` | anónimo | Detalle con tareas, guía semanal y aviso de seguridad. El tip extra de cada semana no viaja: se desbloquea al seguir el plan (Fase 4). `404 plan_no_encontrado`. |
+| `GET /api/plans/recommended` | `Estandar` | Recomendados con sus motivos y advertencias, y los no aptos con su razón. `404 perfil_no_encontrado` antes del onboarding. Sin el consentimiento `datosSalud` no lee el cuestionario y recomienda por la jornada (`personalizadoConSalud: false`). |
+
+**Mis planes, check-in diario y adherencia (HabitTracker v2, Fase 4).** Una persona empieza un plan del catálogo y el sistema crea sus hábitos, mide su constancia sin castigarla y le propone ajustes.
+- **`PlanUsuario`:** `Activo ⇄ Pausado`; `Completado` (solo desde Activo, al llegar al fin) y `Cancelado` son terminales. La máquina vive en `TransicionesPlanUsuario`. Se pueden seguir hasta 3 planes a la vez y un mismo plan no se repite mientras esté en curso (lo garantiza un índice único filtrado).
+- **Pausas con motivo** (lesión, viaje, enfermedad, trabajo u otro): no cuentan para la racha y, al reanudar, el plan se alarga esos mismos días locales.
+- **`CalculadoraProgreso`** es la única definición de racha y cumplimiento, y usa el día local de la zona del perfil: un día sin registro no corta la racha y dos seguidos sí. Un plan que solo tiene tareas semanales se mide en semanas.
+- **Versión mínima:** «Hoy solo lo mínimo» registra el avance con `esVersionMinima` y cuenta como un día cumplido. Con el modo suave (7 días) cuenta como completo.
+- **Ajustes sugeridos, nunca automáticos:** con 4 o más días sin registro en los últimos 7 se ofrece el modo suave, extender una semana (máximo 2) o pausar.
+- **Logros y mensajes:** los logros premian la constancia y el regreso, y no reciben peso ni medidas. El mensaje del día sale de `mensajes-motivacion.json` (33 mensajes), es el mismo todo el día y nunca culpa.
+- **Terminar no borra:** con `conservarHabitos` los hábitos siguen activos y conservan su vínculo con el plan; si no, quedan en pausa.
+
+| Endpoint | Rol | Qué hace |
+|---|---|---|
+| `POST /api/my-plans` | `Estandar` | Empieza un plan (`{slug, ancla?, hora?}`) → 201. `400 plan_no_apto`, `cuestionario_incompleto`, `limite_planes`, `plan_ya_activo`; `409 consentimiento_salud_requerido` solo si el plan pide el cuestionario. |
+| `GET /api/my-plans`, `GET /api/my-plans/{id}` | `Estandar` | Los planes de la persona con su progreso. Un plan ajeno es `404 plan_usuario_no_encontrado`. |
+| `POST /api/my-plans/{id}/transition` | `Estandar` | `{nuevoEstado, motivoPausa?, conservarHabitos?}`. `400 transicion_plan_invalida`, `plan_aun_no_termina`. |
+| `POST /api/my-plans/{id}/adjust` | `Estandar` | `{tipo: ModoSuave \| Extender}`. `400 limite_extensiones`, `ajuste_no_disponible`. |
+| `PUT /api/my-plans/{id}/reminder` | `Estandar` | Hora y activación del recordatorio del plan. |
+| `GET /api/today` | `Estandar` | Las tareas de hoy con su ancla y estado, el mensaje del día, el tip de la semana y la sugerencia de ajuste. No depende del clima (`plan-del-dia` sigue aparte). |
+| `GET /api/progress/summary`, `POST /api/progress/achievements/seen` | `Estandar` | Racha, récord, logros y «tu mes en números»; marcar los logros como vistos. |
+| `POST /api/habits/{id}/progress` | `Estandar` | Ahora acepta `esVersionMinima`. |
+
+La descarga de datos y la baja de cuenta incluyen los planes, las pausas y los logros (sección `planes`).
 
 ## 💻 Stack Tecnológico
 
@@ -430,7 +543,7 @@ Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflow
 | Workflow | Trabajo | Qué verifica | Bloquea el merge si… |
 |---|---|---|---|
 | `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 347 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
-| `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 452 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica |
+| `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 452 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica en una dependencia de producción (`npm audit --omit=dev`) |
 | `ci.yml` | Reglas del repositorio | formato de los commits (`tipo: descripción en español [RF-XX-NN, RD-NN]`), RD-03, RD-05, RD-08, RD-10 y RD-11, ShellCheck de los scripts | un commit o el código incumple la regla |
 | `seguridad.yml` | CodeQL (C#, JS/TS, Actions) | análisis estático con las consultas `security-extended` | la regla de *code scanning* del repositorio detecta una alerta alta o crítica |
 | `seguridad.yml` | Secretos | gitleaks sobre los commits de la PR (y sobre todo el historial en push y cada lunes) | aparece una credencial |
@@ -438,7 +551,22 @@ Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflow
 | `seguridad.yml` | Imagen Docker | Trivy sobre el `Dockerfile` y la imagen de la API | hay una configuración insegura o una vulnerabilidad alta o crítica con parche disponible |
 | `seguridad.yml` | Auditoría de workflows | actionlint y zizmor sobre los propios workflows | un workflow tiene un fallo de seguridad de severidad media o mayor |
 
-Además, Dependabot abre cada lunes PR hacia `develop` con actualizaciones de NuGet, npm, Docker y GitHub Actions, y `seguridad.yml` se ejecuta también los lunes para detectar vulnerabilidades publicadas después del último cambio.
+**Versiones fijas.** Desde el 09-11-2026 cada dependencia se queda en una versión exacta y segura:
+- NuGet con versión exacta en cada `.csproj`;
+- npm sin `^` y con `save-exact=true` en `frontend/.npmrc`;
+- Docker con etiquetas exactas (`sdk:10.0.404`, `aspnet:10.0.15` y `mssql/server:2022-CU27-ubuntu-22.04`);
+- el CI con .NET `10.0.404` y Node `24.22.2`, y las Actions fijadas por SHA.
+
+Dependabot ya no abre PR por versiones nuevas (`open-pull-requests-limit: 0`). Una dependencia solo se actualiza cuando hace falta: por una vulnerabilidad o porque una función la necesita. Se sube a mano a la versión parcheada más cercana, en una rama con PR a `develop`.
+
+Las vulnerabilidades llegan por cinco vías:
+- las alertas de Dependabot;
+- NuGetAudit, que rompe el build con las altas y críticas;
+- `npm audit`;
+- dependency-review;
+- Trivy, en `seguridad.yml`, que también se ejecuta los lunes para detectar avisos publicados después del último cambio.
+
+La imagen final ejecuta `apt-get upgrade` para recibir los parches de Ubuntu.
 
 ### Reproducir las comprobaciones en local
 
@@ -451,7 +579,7 @@ dotnet test HabitTrackerSystem.slnx -c Release --no-build
 # Frontend (desde frontend/)
 npm ci --ignore-scripts && npm audit signatures
 npm run lint && npm run format:check && npm run typecheck && npm test && npm run build
-npm audit --audit-level=high
+npm audit --audit-level=high --omit=dev   # producción: bloquea; sin --omit=dev incluye las herramientas de desarrollo (solo aviso)
 
 # Reglas del repositorio (Git Bash o Linux; requieren git y bash)
 bash scripts/ci/pruebas-verificar-commits.sh
@@ -466,6 +594,7 @@ bash scripts/ci/verificar-commits.sh <base> HEAD     # p. ej. develop HEAD
 No se suprime nada en masa. Una excepción siempre lleva su motivo escrito:
 
 - **Secreto falso positivo:** se acota en `.gitleaks.toml` (valor y archivo exactos) o se añade su *fingerprint* a `.gitleaksignore` con un comentario `# motivo`. Si el secreto es **real**, se rota en el proveedor; no se reescribe la historia (rompería las etiquetas de entrega).
+- **Vulnerabilidad de una herramienta de desarrollo de npm sin parche:** `npm audit` bloquea solo las dependencias de producción (`--omit=dev`); las de desarrollo se auditan aparte en un paso que avisa sin bloquear. Se anota aquí con la fecha y se revierte cuando haya parche. Vigente desde el 18-11-2026: `picomatch` ≤ 4.0.7 (GHSA-fc5q-39xc-vjpf, ReDoS por extglobs repetidos, severidad alta) lo traen `vite`, `vitest` y `typescript-eslint` al compilar y probar; no llega al navegador ni se ejecuta con datos del usuario, y no existe versión corregida (la última publicada es la 4.0.7).
 - **Vulnerabilidad de la imagen sin parche:** línea `CVE-...` en `.trivyignore` con el motivo y la fecha de revisión.
 - **Regla del compilador:** `[SuppressMessage("Security", "CAxxxx", Justification = "...")]` en el sitio exacto, nunca bajar la severidad de toda la categoría.
 - **Alerta de CodeQL:** descartar en GitHub (*Security → Code scanning → Dismiss*) indicando el motivo, y anotarlo en `docs/ESTADO-DEL-PROYECTO.md`.
@@ -531,7 +660,7 @@ Configura `ConnectionStrings:AccessControl`, la clave JWT y aplica las tres migr
 * **Inicio de sesión, claims y expiración:** ejecuta `POST /api/auth/login` con las credenciales de una cuenta activa; autoriza Swagger con el JWT recibido y ejecuta `GET /api/auth/me` para comprobar el id, correo y rol autenticados. Inspecciona localmente el payload del JWT y confirma que contiene los datos de identidad y una expiración futura (`exp`). No publiques el JWT. Ejecuta `POST /api/auth/logout`; el mismo token debe quedar invalidado y `GET /api/auth/me` debe responder `401`.
 *   **Registro y rechazo controlado:** Usa `POST /api/auth/register` con una clave menor a 8 caracteres o sin números. Recibirás un error 400 controlado.
 *   **Encolado de correos (Sin SMTP):** Si el servidor SMTP no está configurado o falla, el registro (201 Created) y la recuperación de clave terminan con éxito. Los correos quedan pendientes en la tabla/cola interna.
-*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026","consentimientos":{"terminosVersion":"v2.1","privacidadVersion":"v1.4","marketing":false}}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, `docker compose logs webapi`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
+*   **Registro y activación por correo:** Envía `POST /api/auth/register` con `{"nombre":"Persona de prueba","correo":"persona@ejemplo.com","password":"ClaveSegura-Nexus-2026","consentimientos":{"terminosVersion":"v2.1","privacidadVersion":"v1.4","marketing":false}}`. El usuario se crea inactivo y se encola el mensaje de activación. Obtén el **código de 6 dígitos** del correo o, en desarrollo local sin SMTP, consulta `usuarios.TokenAcceso` o `CorreosEnCola.Cuerpo` en la base AccessControl (con Docker, en Mailpit: `http://localhost:8025`). Activa la cuenta con `POST /api/auth/activate` y `{"correo":"persona@ejemplo.com","codigo":"CODIGO_RECIBIDO"}`. La cuenta queda activa; reutilizar el código se rechaza.
 
     ```sql
     SELECT TokenAcceso, Vencimiento

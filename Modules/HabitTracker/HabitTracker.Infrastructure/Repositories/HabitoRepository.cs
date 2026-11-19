@@ -18,6 +18,19 @@ public sealed class HabitoRepository(HabitTrackerDbContext dbContext) : IHabitoR
             .Where(h => h.UsuarioId == usuarioId)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<Habito>> GetByPlanUsuarioIdAsync(Guid usuarioId, Guid planUsuarioId, CancellationToken cancellationToken = default) =>
+        await dbContext.Habitos
+            .Include(h => h.Registros)
+            .Where(h => h.UsuarioId == usuarioId && h.PlanUsuarioId == planUsuarioId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Habito>> GetByUsuarioIdSoloLecturaAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
+        await dbContext.Habitos
+            .AsNoTracking()
+            .Include(h => h.Registros)
+            .Where(h => h.UsuarioId == usuarioId)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(Habito habito, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(habito);

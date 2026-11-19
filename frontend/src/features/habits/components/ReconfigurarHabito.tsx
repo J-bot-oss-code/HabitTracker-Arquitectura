@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Link } from 'react-router'
-import { usePermisoEfectivo } from '@/features/permissions/api'
-import { nombrePermiso } from '@/features/permissions/catalogo'
+import { useCrearSolicitud, usePermisoEfectivo, useSolicitudes } from '@/features/permissions/api'
+import { MENSAJE_PEDIDO_ENVIADO, nombrePermiso } from '@/features/permissions/catalogo'
 import { mensajeDeError } from '@/shared/api/problem'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
@@ -17,6 +17,9 @@ import { PERIODICIDADES, PERMISO_RECONFIGURACION, type HabitoDto } from '../type
 // para orientar al usuario, pero quien lo exige es el servidor (RD-06).
 export function ReconfigurarHabito({ habito }: { habito: HabitoDto }) {
   const permiso = usePermisoEfectivo(PERMISO_RECONFIGURACION)
+  const solicitudes = useSolicitudes(true)
+  const pedir = useCrearSolicitud()
+  const { notificar } = useToast()
 
   if (habito.estado === 'Completado') {
     return <p className="text-sm text-atenuado">Un hábito completado no se puede reconfigurar.</p>
@@ -35,18 +38,49 @@ export function ReconfigurarHabito({ habito }: { habito: HabitoDto }) {
   }
 
   if (!permiso.data) {
+    // Una solicitud pendiente ya se pidió: se dice y no se ofrece pedirla otra vez (el servidor tampoco la admitiría).
+    // Solo una Pendiente: tras un rechazo se puede volver a pedir. (`useSolicitudes(true)` ya trae solo las pendientes.)
+    const pendiente = solicitudes.data?.some(
+      (s) =>
+        s.estado === 'Pendiente' &&
+        s.permisoSolicitado.toLowerCase() === PERMISO_RECONFIGURACION.toLowerCase(),
+    )
     return (
       <Alert tono="aviso" titulo="Necesitas un permiso">
         <p>
           Reconfigurar requiere el permiso «{nombrePermiso(PERMISO_RECONFIGURACION)}» aprobado por
           un Administrador.
         </p>
-        <Link
-          to={`/permisos?solicitar=${encodeURIComponent(PERMISO_RECONFIGURACION)}`}
-          className="mt-2 inline-block font-medium underline"
-        >
-          Solicitar permiso
-        </Link>
+        {pendiente || pedir.isSuccess ? (
+          <p className="mt-2 font-medium">
+            Ya lo pediste: un Administrador lo está revisando.{' '}
+            <Link to="/ajustes/solicitudes" className="underline">
+              Ver mis solicitudes
+            </Link>
+          </p>
+        ) : (
+          <div className="mt-3 space-y-2">
+            <Button
+              tamano="sm"
+              variante="secundario"
+              cargando={pedir.isPending}
+              disabled={solicitudes.isPending}
+              onClick={() =>
+                pedir.mutate(
+                  { permisoSolicitado: PERMISO_RECONFIGURACION },
+                  { onSuccess: () => notificar(MENSAJE_PEDIDO_ENVIADO) },
+                )
+              }
+            >
+              Pedir permiso
+            </Button>
+            {pedir.isError && (
+              <Alert tono="peligro">
+                {mensajeDeError(pedir.error, 'No se pudo pedir el permiso.')}
+              </Alert>
+            )}
+          </div>
+        )}
       </Alert>
     )
   }

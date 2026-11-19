@@ -28,18 +28,14 @@ export function PageHeader({
   titulo,
   descripcion,
   acciones,
-  rotulo,
 }: {
   titulo: string
   descripcion?: ReactNode
   acciones?: ReactNode
-  // Línea pequeña sobre el título, como el rótulo de un marcador.
-  rotulo?: string
 }) {
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        {rotulo && <p className="mb-1 text-sm font-medium text-atenuado">{rotulo}</p>}
         <h1 className="text-3xl font-extrabold sm:text-[2rem]">{titulo}</h1>
         {descripcion && <p className="mt-1.5 max-w-prose text-sm text-atenuado">{descripcion}</p>}
       </div>
@@ -64,10 +60,8 @@ export function EmptyState({
 }) {
   const Titulo = nivelTitulo === 1 ? 'h1' : nivelTitulo === 2 ? 'h2' : 'p'
   return (
-    <div className="rounded-2xl border border-dashed border-borde-fuerte bg-superficie px-6 py-12 text-center">
-      <span className="mx-auto mb-4 grid size-12 place-items-center rounded-full bg-acento-suave text-acento-fuerte">
-        <Icono nombre={icono} className="size-6" />
-      </span>
+    <div className="rounded-lg border border-dashed border-borde-fuerte px-6 py-12 text-center">
+      <Icono nombre={icono} className="mx-auto mb-3 size-6 text-acento" />
       <Titulo className="font-display text-lg font-bold">{titulo}</Titulo>
       {descripcion && <p className="mx-auto mt-1 max-w-md text-sm text-atenuado">{descripcion}</p>}
       {accion && <div className="mt-5">{accion}</div>}

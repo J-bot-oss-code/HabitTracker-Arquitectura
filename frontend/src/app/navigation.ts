@@ -6,7 +6,6 @@ export interface ItemNavegacion {
   etiqueta: string
   icono: NombreIcono
   roles: Rol[]
-  proximamente?: boolean
   // Solo coincide con la ruta exacta (/admin no debe marcarse activa en /admin/usuarios).
   fin?: boolean
 }
@@ -16,39 +15,30 @@ export interface ItemNavegacion {
 export const NAVEGACION: ItemNavegacion[] = [
   { a: '/hoy', etiqueta: 'Hoy', icono: 'rayo', roles: ['Estandar'] },
   { a: '/habitos', etiqueta: 'Mis hábitos', icono: 'habitos', roles: ['Estandar'] },
+  { a: '/planes', etiqueta: 'Planes', icono: 'calendario', roles: ['Estandar'] },
   { a: '/progreso', etiqueta: 'Progreso', icono: 'trofeo', roles: ['Estandar'] },
-  { a: '/permisos', etiqueta: 'Mis permisos', icono: 'permisos', roles: ['Estandar'] },
   { a: '/admin', etiqueta: 'Resumen', icono: 'reportes', roles: ['Administrador'], fin: true },
   { a: '/admin/permisos', etiqueta: 'Solicitudes', icono: 'permisos', roles: ['Administrador'] },
   { a: '/admin/usuarios', etiqueta: 'Usuarios', icono: 'usuarios', roles: ['Administrador'] },
   { a: '/admin/auditoria', etiqueta: 'Auditoría', icono: 'auditoria', roles: ['Administrador'] },
-  {
-    a: '/documentos',
-    etiqueta: 'Documentos',
-    icono: 'documentos',
-    roles: ['Estandar', 'Administrador'],
-    proximamente: true,
-  },
+  { a: '/documentos', etiqueta: 'Mis archivos', icono: 'documentos', roles: ['Estandar'] },
   {
     a: '/notificaciones',
     etiqueta: 'Notificaciones',
     icono: 'notificaciones',
     roles: ['Estandar', 'Administrador'],
-    proximamente: true,
   },
   {
     a: '/reportes',
     etiqueta: 'Reportes',
     icono: 'reportes',
     roles: ['Estandar', 'Administrador'],
-    proximamente: true,
   },
   {
     a: '/admin/cola-correos',
     etiqueta: 'Cola de correos',
     icono: 'correo',
     roles: ['Administrador'],
-    proximamente: true,
   },
   // Cuenta, apariencia, inicio de sesión, seguridad y privacidad viven juntas en Configuración (siempre al final).
   {
@@ -93,11 +83,32 @@ export const SECCIONES_AJUSTES: SeccionAjustes[] = [
     descripcion: 'Google vinculado y dispositivos con la sesión abierta.',
   },
   {
+    a: '/ajustes/perfil-salud',
+    etiqueta: 'Perfil y salud',
+    icono: 'rayo',
+    roles: ['Estandar'],
+    descripcion: 'Tu jornada, tus horarios y tu cuestionario de salud.',
+  },
+  {
+    a: '/ajustes/solicitudes',
+    etiqueta: 'Solicitudes',
+    icono: 'permisos',
+    roles: ['Estandar'],
+    descripcion: 'Los permisos que pediste y cómo van.',
+  },
+  {
     a: '/ajustes/privacidad',
     etiqueta: 'Privacidad y datos',
     icono: 'permisos',
     roles: ['Estandar'],
     descripcion: 'Descarga tus datos, revisa los consentimientos o retírate.',
+  },
+  {
+    a: '/ajustes/notificaciones',
+    etiqueta: 'Notificaciones',
+    icono: 'notificaciones',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Elige si los avisos también te llegan por correo.',
   },
   {
     a: '/ajustes/apariencia',
@@ -126,7 +137,11 @@ const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
   { patron: /^\/hoy\/?$/i, roles: ['Estandar'] },
   { patron: /^\/progreso\/?$/i, roles: ['Estandar'] },
   { patron: /^\/ajustes\/privacidad\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/ajustes\/perfil-salud\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/ajustes\/solicitudes\/?$/i, roles: ['Estandar'] },
   { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
+  { patron: /^\/documentos\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/mis-planes(\/|$)/i, roles: ['Estandar'] },
   { patron: /^\/bienvenida\/?$/i, roles: ['Estandar'] },
   { patron: /^\/permisos\/?$/i, roles: ['Estandar'] },
 ]

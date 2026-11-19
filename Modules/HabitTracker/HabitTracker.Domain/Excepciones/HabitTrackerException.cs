@@ -25,6 +25,12 @@ public sealed class RecursoNoEncontradoException(string codigo, string mensaje) 
     public const string HabitoNoEncontrado = "habito_no_encontrado";
     /// <summary>La persona aún no completó el onboarding: el frontend la lleva a <c>/bienvenida</c> (RequierePerfil).</summary>
     public const string PerfilNoEncontrado = "perfil_no_encontrado";
+    /// <summary>No hay un plan activo del catálogo con ese slug.</summary>
+    public const string PlanNoEncontrado = "plan_no_encontrado";
+    /// <summary>No existe un plan en curso o terminado de esta persona con ese id (o es de otra persona).</summary>
+    public const string PlanUsuarioNoEncontrado = "plan_usuario_no_encontrado";
+    /// <summary>El archivo no existe, fue eliminado o no es de esta persona (para el vínculo con un plan).</summary>
+    public const string DocumentoNoEncontrado = "documento_no_encontrado";
 }
 
 /// <summary>Una regla de negocio rechaza la operación (HTTP 400). Ejemplos: <c>fecha_futura</c>, <c>meta_no_encontrada</c>.</summary>
@@ -34,6 +40,23 @@ public sealed class ReglaNegocioException(string codigo, string mensaje) : Habit
     public const string MetaNoEncontrada = "meta_no_encontrada";
     /// <summary>La operación necesita el perfil (por ejemplo, fijar un peso objetivo) y todavía no existe.</summary>
     public const string PerfilRequerido = "perfil_requerido";
+    /// <summary>El plan no es para la persona (edad, sexo, intensidad, alérgenos…). Lo decide <c>ReglasSeguridadPlanes</c>.</summary>
+    public const string PlanNoApto = "plan_no_apto";
+    /// <summary>Faltan bloques del cuestionario de salud que el plan necesita.</summary>
+    public const string CuestionarioIncompleto = "cuestionario_incompleto";
+    public const string LimitePlanes = "limite_planes";
+    public const string PlanYaActivo = "plan_ya_activo";
+    public const string LimiteExtensiones = "limite_extensiones";
+    public const string TransicionPlanInvalida = "transicion_plan_invalida";
+    public const string PlanAunNoTermina = "plan_aun_no_termina";
+    public const string AjusteNoDisponible = "ajuste_no_disponible";
+    /// <summary>Pausar un plan exige elegir el motivo.</summary>
+    public const string MotivoPausaRequerido = "motivo_pausa_requerido";
+    public const string VersionMinimaNoDisponible = "version_minima_no_disponible";
+    /// <summary>Solo se adjuntan archivos a un plan en curso.</summary>
+    public const string PlanNoEnCurso = "plan_no_en_curso";
+    public const string AdjuntoDuplicado = "adjunto_duplicado";
+    public const string LimiteAdjuntos = "limite_adjuntos";
 }
 
 /// <summary>
@@ -44,4 +67,14 @@ public sealed class ConsentimientoSaludRequeridoException()
     : HabitTrackerException(ConsentimientoSaludRequerido, "Falta el consentimiento para usar tus datos de salud.")
 {
     public const string ConsentimientoSaludRequerido = "consentimiento_salud_requerido";
+}
+
+/// <summary>
+/// La operación necesita un permiso aprobado por un Administrador (HTTP 409, <c>documento_requiere_permiso</c>): quitar o
+/// eliminar un archivo que está en un plan en curso. El cliente ofrece pedir el permiso.
+/// </summary>
+public sealed class PermisoRequeridoException()
+    : HabitTrackerException(DocumentoRequierePermiso, "Este archivo está en un plan en curso: pide permiso para eliminarlo.")
+{
+    public const string DocumentoRequierePermiso = "documento_requiere_permiso";
 }

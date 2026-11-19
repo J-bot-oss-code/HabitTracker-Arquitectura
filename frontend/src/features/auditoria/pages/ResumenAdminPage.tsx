@@ -1,12 +1,12 @@
 import { Link } from 'react-router'
-import { buscarMeta } from '@/features/publico/api'
+import { useColaCorreos } from '@/features/cola-correos/api'
+import { usePlanes } from '@/features/planes/api'
 import { esNoDisponible } from '@/shared/api/problem'
-import { Badge } from '@/shared/ui/Badge'
 import { BarraProgreso } from '@/shared/ui/BarraProgreso'
 import { Button } from '@/shared/ui/Button'
 import { Card, CardBody, EmptyState, PageHeader } from '@/shared/ui/Card'
 import { ErrorCarga } from '@/shared/ui/ErrorCarga'
-import { Estadistica } from '@/shared/ui/Estadistica'
+import { Estadistica, FranjaCifras } from '@/shared/ui/Estadistica'
 import { Icono } from '@/shared/ui/Icono'
 import { Esqueleto } from '@/shared/ui/Spinner'
 import { useAuditoria, useMetricas } from '../api'
@@ -14,19 +14,23 @@ import { TablaAuditoria } from '../components/TablaAuditoria'
 import { descargarCsv, nombreCsv } from '../csv'
 import { metricasACsv } from '../metricas'
 
-const nombrePlan = (slug: string) => buscarMeta(slug)?.nombre ?? slug
-
 // Resumen (§5.6): lo primero que ve el Administrador. Son métricas agregadas y anónimas: ninguna
 // cifra permite saber qué hace una persona concreta.
 export function ResumenAdminPage() {
   const metricas = useMetricas()
   const recientes = useAuditoria({ limite: 8 })
   const m = metricas.data
+  const planes = usePlanes()
+  // La cola es de otro módulo: si su consulta falla (403, error) la tarjeta se queda solo con el enlace.
+  const cola = useColaCorreos()
+  const fallidos = cola.data?.filter((c) => c.estado === 'Fallido').length ?? 0
+  const pendientes = cola.data?.filter((c) => c.estado === 'Pendiente').length ?? 0
+  // Un plan retirado del catálogo (o con el catálogo sin cargar) se muestra por su slug.
+  const nombrePlan = (slug: string) => planes.data?.find((p) => p.slug === slug)?.nombre ?? slug
 
   return (
     <>
       <PageHeader
-        rotulo="Administración"
         titulo="Resumen"
         descripcion="Métricas agregadas y anónimas."
         acciones={
@@ -64,7 +68,7 @@ export function ResumenAdminPage() {
       ) : (
         m && (
           <>
-            <section aria-label="Indicadores" className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <FranjaCifras etiqueta="Indicadores" className="grid-cols-2 lg:grid-cols-4">
               <Estadistica
                 etiqueta="Usuarios activos"
                 icono="usuarios"
@@ -89,7 +93,7 @@ export function ResumenAdminPage() {
                 valor={m.eliminacionesEnCurso}
                 detalle="en periodo de gracia"
               />
-            </section>
+            </FranjaCifras>
 
             <section aria-labelledby="planes-titulo" className="mt-6">
               <Card>
@@ -160,25 +164,26 @@ export function ResumenAdminPage() {
         <Card>
           <CardBody className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <div className="flex flex-wrap items-center gap-3">
-                <h2 id="cola-titulo" className="text-lg font-bold">
-                  Cola de correos y notificaciones
-                </h2>
-                <Badge tono="aviso" icono="calendario">
-                  Próximamente
-                </Badge>
-              </div>
+              <h2 id="cola-titulo" className="text-lg font-bold">
+                Cola de correos
+              </h2>
               <p className="mt-1 text-sm text-atenuado">
-                Aquí verás los enviados, los reintentos y los fallidos cuando el servidor entregue
-                las notificaciones.
+                Revisa los correos enviados, los reintentos y los fallidos.
               </p>
+              {cola.data && (
+                <p className="mt-2 font-semibold">
+                  {fallidos === 0
+                    ? 'Todo en orden'
+                    : `${fallidos} ${fallidos === 1 ? 'fallido' : 'fallidos'} · ${pendientes} ${pendientes === 1 ? 'pendiente' : 'pendientes'}`}
+                </p>
+              )}
             </div>
             <Link
               to="/admin/cola-correos"
-              aria-label="Qué incluirá la cola de correos"
-              className="inline-flex min-h-11 items-center font-semibold text-acento underline-offset-4 hover:underline"
+              className="inline-flex min-h-11 items-center gap-1.5 font-semibold text-acento underline-offset-4 hover:underline"
             >
-              Qué incluirá
+              Abrir la cola de correos
+              <Icono nombre="flecha" className="size-4" />
             </Link>
           </CardBody>
         </Card>

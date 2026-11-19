@@ -35,11 +35,17 @@ Monolito modular .NET 10 (Clean Architecture) + frontend React en `frontend/`. U
 ## Reglas de oro
 
 - **Tags de entrega** (`practica-*`, `asignacion-*`, `*-defecto-*`): nunca se mueven ni se reescriben; GitHub lo impide con un ruleset.
-- **Ramas:** trabajo en `feature/`, `fix/`, `docs/`, `refactor/` o `chore/` → PR a `develop` → PR `develop → main`. `develop` y `main` rechazan el push directo. PR con la skill `flujo-pr` (4 secciones). Las PR las fusiona el usuario.
+- **Ramas:** trabajo en `feature/`, `fix/`, `docs/`, `refactor/` o `chore/` → PR a `develop`. **Solo PRs a `main` cuando el plan (`docs/plan-habittracker-v2.md`) esté listo y funcional en `develop`**; mientras tanto, ninguna PR `develop → main`. `develop` y `main` rechazan el push directo. PR con la skill `flujo-pr` (4 secciones). Las PR las fusiona el usuario.
 - **Commits** en español: `tipo(ámbito opcional): descripción [RF-XX-NN, RD-NN]`.
   - Regex del CI (`scripts/ci/verificar-commits.sh`): IDs `RF-[A-Z]+-[0-9]{2}` o `RD-[0-9]{2}`, **exactamente 2 dígitos** (`RF-NEG-02.1` falla), entre corchetes al final y separados por `, `.
   - La primera palabra no puede ser inglesa. Usa IDs **existentes** (`referencias/requisitos.md`), nunca inventados.
 - **Antes de cada commit:** revisión RD-01..RD-12 con `.github/copilot/agents/core-transversal-reviewer.agent.md`. En el frontend: `frontend-reviewer` y `frontend-design-critic`.
+- **Versiones fijas:** cada dependencia se queda en una versión exacta y segura, y solo se actualiza cuando hace falta: por una vulnerabilidad (alerta de Dependabot, NuGetAudit, `npm audit`, dependency-review o Trivy) o porque una función la necesita.
+  - Se sube a mano a la versión parcheada más cercana, en una rama con PR a `develop`.
+  - Dependabot no abre PR de versión (`open-pull-requests-limit: 0`).
+  - npm usa versiones exactas (`frontend/.npmrc` con `save-exact=true`, sin `^`).
+  - Docker y el CI usan etiquetas exactas (`sdk:10.0.404`, `aspnet:10.0.15`, `2022-CU27-ubuntu-22.04`, .NET `10.0.404` y Node `24.22.2`).
+  - Las Actions van fijadas por SHA.
 - **CI obligatorio:** `ci-ok` y `seguridad-ok`. Los analizadores de seguridad de .NET y NuGetAudit NU1903/NU1904 son errores: se arregla la causa, nunca se baja la severidad de una categoría.
 - **Capas:** `Api → Infrastructure → Application → Domain`. El dominio no tiene `ProjectReference` ni EF. Ningún módulo del Core referencia a HabitTracker (lo verifica `scripts/ci/verificar-reglas-rd.sh`).
 - **Entre módulos:** solo por puertos. La interfaz vive en el `Application` de quien la necesita y la implementa un adaptador en `Host/WebApi/Adapters/`. Ningún módulo lee tablas de otro.

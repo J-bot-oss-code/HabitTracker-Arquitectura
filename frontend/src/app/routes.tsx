@@ -1,12 +1,11 @@
 import type { ComponentType } from 'react'
-import { Link, Navigate, type RouteObject } from 'react-router'
+import { Link, Navigate, useLocation, type RouteObject } from 'react-router'
 import { ActivatePage } from '@/features/auth/pages/ActivatePage'
 import { LoginPage } from '@/features/auth/pages/LoginPage'
 import { RegisterPage } from '@/features/auth/pages/RegisterPage'
 import { ResetPasswordPage } from '@/features/auth/pages/ResetPasswordPage'
 import { ForgotPasswordPage, ResendActivationPage } from '@/features/auth/pages/SoloCorreoPage'
-import { ComingSoonPage } from '@/features/coming-soon/ComingSoonPage'
-import { PIEZAS_PENDIENTES } from '@/features/coming-soon/piezas'
+import { CatalogoPlanes } from '@/features/planes/components/CatalogoPlanes'
 import { LandingPage } from '@/features/publico/pages/LandingPage'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { EmptyState } from '@/shared/ui/Card'
@@ -42,6 +41,13 @@ function NoEncontrada() {
   )
 }
 
+// «Mis permisos» ya no es una sección del menú: se pide desde cada acción y el historial vive en Configuración. El enlace
+// viejo (/permisos?solicitar=…) sigue funcionando.
+function RedirigirASolicitudes() {
+  const { search } = useLocation()
+  return <Navigate to={{ pathname: '/ajustes/solicitudes', search }} replace />
+}
+
 // Las pantallas se cargan bajo demanda, salvo la landing, el login y el registro (puertas de
 // entrada): así cada visita descarga solo lo que usa.
 function perezosa<M>(cargar: () => Promise<M>, nombre: keyof M): Pick<RouteObject, 'lazy'> {
@@ -51,7 +57,10 @@ function perezosa<M>(cargar: () => Promise<M>, nombre: keyof M): Pick<RouteObjec
 }
 
 const paginas = {
-  metas: perezosa(() => import('@/features/publico/pages/MetasPage'), 'MetasPage'),
+  metas: perezosa(() => import('@/features/planes/pages/MetasPage'), 'MetasPage'),
+  planDetalle: perezosa(() => import('@/features/planes/pages/PlanDetallePage'), 'PlanDetallePage'),
+  planes: perezosa(() => import('@/features/planes/pages/PlanesPage'), 'PlanesPage'),
+  miPlan: perezosa(() => import('@/features/mis-planes/pages/MiPlanPage'), 'MiPlanPage'),
   calculadoras: perezosa(
     () => import('@/features/publico/pages/CalculadorasPage'),
     'CalculadorasPage',
@@ -68,6 +77,7 @@ const paginas = {
     'AjustesInicioSesionPage',
   ),
   apariencia: perezosa(() => import('./ajustes/AparienciaPage'), 'AparienciaPage'),
+  perfilSalud: perezosa(() => import('@/features/perfil/pages/PerfilSaludPage'), 'PerfilSaludPage'),
   privacidad: perezosa(
     () => import('@/features/privacidad/pages/PrivacidadPage'),
     'PrivacidadPage',
@@ -81,6 +91,10 @@ const paginas = {
   hoy: perezosa(() => import('@/features/habits/pages/HoyPage'), 'HoyPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
+  documentos: perezosa(
+    () => import('@/features/documentos/pages/DocumentosPage'),
+    'DocumentosPage',
+  ),
   misPermisos: perezosa(
     () => import('@/features/permissions/pages/MyPermissionsPage'),
     'MyPermissionsPage',
@@ -94,6 +108,19 @@ const paginas = {
     'PermissionsInboxPage',
   ),
   usuarios: perezosa(() => import('@/features/admin-users/pages/UsersPage'), 'UsersPage'),
+  notificaciones: perezosa(
+    () => import('@/features/notificaciones/pages/NotificacionesPage'),
+    'NotificacionesPage',
+  ),
+  preferenciasNotificaciones: perezosa(
+    () => import('@/features/notificaciones/pages/PreferenciasNotificacionesPage'),
+    'PreferenciasNotificacionesPage',
+  ),
+  colaCorreos: perezosa(
+    () => import('@/features/cola-correos/pages/ColaCorreosPage'),
+    'ColaCorreosPage',
+  ),
+  reportes: perezosa(() => import('@/features/reportes/pages/ReportesPage'), 'ReportesPage'),
 }
 
 export const rutas: RouteObject[] = [
@@ -104,9 +131,21 @@ export const rutas: RouteObject[] = [
       {
         index: true,
         handle: { titulo: 'Convierte tu meta en un plan diario' },
-        element: <LandingPage />,
+        element: (
+          <LandingPage
+            catalogo={
+              <CatalogoPlanes
+                base="/metas"
+                anclaId="metas"
+                titulo="Elige una meta"
+                descripcion="Explora los planes libremente. Para empezar uno, crea tu cuenta."
+              />
+            }
+          />
+        ),
       },
       { path: 'metas', handle: { titulo: 'Elige una meta' }, ...paginas.metas },
+      { path: 'metas/:slug', handle: { titulo: 'Detalle del plan' }, ...paginas.planDetalle },
       {
         path: 'calculadoras',
         handle: { titulo: 'Calculadora de calorías' },
@@ -198,6 +237,14 @@ export const rutas: RouteObject[] = [
                 ...paginas.ajustesInicioSesion,
               },
               {
+                path: 'notificaciones',
+                handle: {
+                  titulo: 'Notificaciones',
+                  descripcion: 'Elige si los avisos también te llegan por correo.',
+                },
+                ...paginas.preferenciasNotificaciones,
+              },
+              {
                 path: 'apariencia',
                 handle: { titulo: 'Apariencia', descripcion: 'Elige cómo se ve la aplicación.' },
                 ...paginas.apariencia,
@@ -205,6 +252,22 @@ export const rutas: RouteObject[] = [
               {
                 element: <RequireAuth roles={['Estandar']} />,
                 children: [
+                  {
+                    path: 'perfil-salud',
+                    handle: {
+                      titulo: 'Perfil y salud',
+                      descripcion: 'Tu jornada, tus horarios y, si un plan lo pide, tu salud.',
+                    },
+                    ...paginas.perfilSalud,
+                  },
+                  {
+                    path: 'solicitudes',
+                    handle: {
+                      titulo: 'Solicitudes',
+                      descripcion: 'Los permisos que pediste y cómo van.',
+                    },
+                    ...paginas.misPermisos,
+                  },
                   // Descargar, decidir y retirarse no deben exigir dar más datos primero.
                   {
                     path: 'privacidad',
@@ -226,6 +289,13 @@ export const rutas: RouteObject[] = [
                 element: <RequierePerfil />,
                 children: [
                   { path: 'hoy', handle: { titulo: 'Hoy' }, ...paginas.hoy },
+                  { path: 'planes', handle: { titulo: 'Planes' }, ...paginas.planes },
+                  {
+                    path: 'planes/:slug',
+                    handle: { titulo: 'Detalle del plan' },
+                    ...paginas.planDetalle,
+                  },
+                  { path: 'mis-planes/:id', handle: { titulo: 'Mi plan' }, ...paginas.miPlan },
                   { path: 'progreso', handle: { titulo: 'Tu progreso' }, ...paginas.progreso },
                   { path: 'habitos', handle: { titulo: 'Mis hábitos' }, ...paginas.habitos },
                   {
@@ -233,7 +303,8 @@ export const rutas: RouteObject[] = [
                     handle: { titulo: 'Detalle del hábito' },
                     ...paginas.habito,
                   },
-                  { path: 'permisos', handle: { titulo: 'Mis permisos' }, ...paginas.misPermisos },
+                  { path: 'permisos', element: <RedirigirASolicitudes /> },
+                  { path: 'documentos', handle: { titulo: 'Mis archivos' }, ...paginas.documentos },
                 ],
               },
             ],
@@ -251,26 +322,17 @@ export const rutas: RouteObject[] = [
               {
                 path: 'admin/cola-correos',
                 handle: { titulo: 'Cola de correos' },
-                element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.colaCorreos} />,
+                ...paginas.colaCorreos,
               },
               { path: 'admin/auditoria', handle: { titulo: 'Auditoría' }, ...paginas.auditoria },
             ],
           },
           {
-            path: 'documentos',
-            handle: { titulo: 'Documentos' },
-            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.documentos} />,
-          },
-          {
             path: 'notificaciones',
             handle: { titulo: 'Notificaciones' },
-            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.notificaciones} />,
+            ...paginas.notificaciones,
           },
-          {
-            path: 'reportes',
-            handle: { titulo: 'Reportes' },
-            element: <ComingSoonPage pieza={PIEZAS_PENDIENTES.reportes} />,
-          },
+          { path: 'reportes', handle: { titulo: 'Reportes' }, ...paginas.reportes },
         ],
       },
     ],

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.RateLimiting;
+using WebApi.Extensions;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using HabitTracker.Application.DTOs;
@@ -16,6 +18,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/habits")]
 [Authorize(Roles = "Estandar")]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class HabitsController : ControllerBase
 {
     private readonly IHabitoService _service;
@@ -75,7 +78,10 @@ public class HabitsController : ControllerBase
         return NoContent();
     }
 
-    /// <summary>Registra avance diario (RF-NEG-02.4). Una fecha futura se rechaza con <c>fecha_futura</c>.</summary>
+    /// <summary>
+    /// Registra avance diario (RF-NEG-02.4). Una fecha futura se rechaza con <c>fecha_futura</c>. <c>esVersionMinima</c>
+    /// («Hoy solo lo mínimo») solo vale en un hábito de un plan (<c>version_minima_no_disponible</c>).
+    /// </summary>
     [HttpPost("{id:guid}/progress")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -85,7 +91,7 @@ public class HabitsController : ControllerBase
     public async Task<IActionResult> RegistrarAvance(Guid id, [FromBody] RegistrarAvanceRequest request, CancellationToken cancellationToken)
     {
         var usuarioId = ObtenerUsuarioId();
-        await _service.RegistrarAvanceAsync(id, request.Cantidad, request.FechaUtc, usuarioId, cancellationToken);
+        await _service.RegistrarAvanceAsync(id, request.Cantidad, request.FechaUtc, usuarioId, request.EsVersionMinima, cancellationToken);
         return NoContent();
     }
 
@@ -127,7 +133,8 @@ public record CambiarEstadoHabitoRequest([Required] EstadoHabito NuevoEstado);
 
 public record RegistrarAvanceRequest(
     [Range(0.01, double.MaxValue)] decimal Cantidad,
-    [Required] DateTime FechaUtc);
+    [Required] DateTime FechaUtc,
+    bool EsVersionMinima = false);
 
 public record ReconfigurarRequest(
     [Required] Periodicidad Periodicidad,

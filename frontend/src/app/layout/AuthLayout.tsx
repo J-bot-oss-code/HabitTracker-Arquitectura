@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation, useSearchParams } from 'react-router'
 import { leerRegistroPendiente } from '@/features/perfil/api'
-import { buscarMeta, type MetaCatalogo } from '@/features/publico/api'
+import { usePlanResumen, type PlanResumenDto } from '@/features/planes/api'
 import { useAuth } from '@/shared/auth/AuthContext'
 import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
 import { Icono } from '@/shared/ui/Icono'
@@ -13,20 +13,22 @@ const beneficios = [
   'Descarga o borra tus datos cuando quieras',
 ] as const
 
-// Meta que acompaña el alta: la de ?meta= en el registro o la recordada del registro en el
-// onboarding. Siempre validada contra el catálogo (buscarMeta).
-function useMetaElegida(): MetaCatalogo | null {
+// Plan que acompaña el alta: el de ?meta= en el registro o el recordado del registro en el
+// onboarding. Siempre validado contra el catálogo del servidor (usePlanResumen).
+function useMetaElegida(): PlanResumenDto | undefined {
   const [params] = useSearchParams()
   const { pathname } = useLocation()
   const { usuario } = useAuth()
-  if (pathname === '/registro') return buscarMeta(params.get('meta'))
-  if (pathname === '/bienvenida' && usuario) {
-    return buscarMeta(leerRegistroPendiente(usuario.correo)?.metaSlug)
-  }
-  return null
+  const slug =
+    pathname === '/registro'
+      ? params.get('meta')
+      : pathname === '/bienvenida' && usuario
+        ? leerRegistroPendiente(usuario.correo)?.metaSlug
+        : null
+  return usePlanResumen(slug).plan
 }
 
-function PanelMeta({ meta }: { meta: MetaCatalogo }) {
+function PanelMeta({ meta }: { meta: PlanResumenDto }) {
   return (
     <div className="max-w-md space-y-6">
       <div>

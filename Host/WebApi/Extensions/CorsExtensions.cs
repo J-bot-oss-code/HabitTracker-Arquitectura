@@ -46,6 +46,8 @@ public static class CorsExtensions
             .WithOrigins(origenes)
             .WithMethods("GET", "POST", "PUT", "PATCH", "DELETE")
             .WithHeaders("Content-Type", "Authorization", "X-HabitTracker-Csrf")
+            // Sin esto el navegador no deja leer el nombre del archivo que propone el servidor al descargar un documento.
+            .WithExposedHeaders("Content-Disposition")
             .AllowCredentials()
             .SetPreflightMaxAge(TimeSpan.FromMinutes(10))));
 

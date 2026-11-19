@@ -137,6 +137,7 @@ public sealed class HabitoService(
         decimal cantidad,
         DateTime fechaUtc,
         Guid usuarioActualId,
+        bool esVersionMinima = false,
         CancellationToken cancellationToken = default)
     {
         if (usuarioActualId == Guid.Empty)
@@ -153,7 +154,7 @@ public sealed class HabitoService(
             throw new ReglaNegocioException(ReglaNegocioException.FechaFutura, "La fecha del avance no puede ser futura.");
 
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
-        habito.RegistrarAvance(usuarioActualId, cantidad, fechaUtc);
+        habito.RegistrarAvance(usuarioActualId, cantidad, fechaUtc, esVersionMinima);
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
@@ -221,5 +222,9 @@ public sealed class HabitoService(
         habito.Estado,
         habito.CumpleMetaFinal,
         habito.FechaInicioCiclo,
-        habito.Registros.Select(r => new RegistroAvanceDto(r.Id, r.Cantidad, r.Fecha, r.Unidad)).ToList());
+        habito.Registros.Select(r => new RegistroAvanceDto(r.Id, r.Cantidad, r.Fecha, r.Unidad, r.EsVersionMinima)).ToList(),
+        habito.PlanUsuarioId,
+        habito.Descripcion,
+        habito.VersionMinima,
+        habito.Ancla);
 }

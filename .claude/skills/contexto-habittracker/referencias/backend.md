@@ -1,6 +1,6 @@
 # Backend (.NET 10)
 
-> Verificado contra el código el 07-11-2026. Endpoints, migraciones y número de pruebas: `inventario.generado.md`.
+> Verificado contra el código el 12-11-2026. Endpoints, migraciones y número de pruebas: `inventario.generado.md`.
 
 ## Módulos
 
@@ -8,9 +8,11 @@
 |---|---|---|---|
 | AccessControl | Completo (registro, activación por código, JWT 15 min + refresh en cookie, Google, bloqueo, consentimientos, baja y exportación, administración, cola de correos) | `ApplicationDbContext` | `Host/WebApi/Extensions/ServiceExtensions.cs` |
 | Permissions | Completo (`Pendiente → Aprobada → Aplicada`, `Pendiente → Rechazada`) | `PermissionsDbContext` | `Modules/Permissions/Permissions.Infrastructure/DependencyInjection/` |
-| HabitTracker (negocio) | Hábitos (meta opcional, errores con código), perfil en dos niveles, cuestionario de salud **cifrado**, peso y medidas, y `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
+| HabitTracker (negocio) | Hábitos (meta opcional, errores con código), perfil en dos niveles, cuestionario de salud **cifrado**, peso y medidas, catálogo de planes, **Mis planes** (pausas, ajustes, logros, mensajes) y `plan-del-dia` (clima) | `HabitTrackerDbContext` | `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs` |
 | DocumentManager | Completo (RF-DOC-01..05) | `DocumentManagerDbContext` | su `DependencyInjection/` en Infrastructure |
-| Auditing, Notifications, Reports | Solo `.csproj` vacíos | — | — |
+| Notifications | Completo (P5): `Notificacion`, `PreferenciaNotificaciones`, canal interno + correo por la cola | `NotificationsDbContext` | `Modules/Notifications/Notifications.Infrastructure/DependencyInjection/` y adaptadores en `Host/WebApi/Adapters` |
+| Reports | Completo (P5): sin base de datos; `ReportesService` valida el rango y el alcance por rol sobre dos puertos | — | `Host/WebApi/Program.cs` y adaptadores en `Host/WebApi/Adapters` |
+| Auditing | Solo `.csproj` vacíos | — | — |
 
 - Los cuatro contextos usan la misma cadena `ConnectionStrings:AccessControl` (SQL Server) y la tabla `__EFMigrationsHistory` por defecto.
 - `Host/WebApi/Program.cs` registra los adaptadores entre módulos, `JsonStringEnumConverter` (los enums viajan como texto) y llama a `InicializarBaseDeDatosAsync`.
@@ -28,18 +30,30 @@
   - `Habito.MetaId` es opcional (`Guid?`).
   - `Perfil/PerfilUsuario.cs` (nivel 1: jornada, zona IANA y aviso; el resto, opcional), `Salud/CuestionarioSalud.cs` (3 bloques) y `Salud/EvaluadorSalud.cs`, **la única definición de las reglas de salud**: restricciones y `BloquesFaltantesPara`. `Progreso/ProgresoCorporal.cs` contiene peso y medidas, uno por día UTC.
   - `ConsentimientoSaludRequeridoException` → 409 `consentimiento_salud_requerido`. Control de Acceso tiene otra `ConsentimientoRequeridoException`: no hay que confundirlas.
+  - `Planes/` (Fase 3):
+    - `PlanPlantilla.cs`: plan, `TareaPlantilla`, `ContenidoPlan` y enums `AreaPlan`, `NivelPlan`, `IntensidadPlan`, `SexoPlan` y `Ancla`. Las invariantes de seguridad del contenido viven aquí (`NecesitaCuestionario`, topes de agua y semanas por nivel).
+    - `ReglasSeguridadPlanes.cs`: `SituacionPersona.Crear` (sin consentimiento no usa el cuestionario) y **la única definición de "no apto"** (`MotivoNoApto`). La reutiliza la inscripción de la Fase 4 (400 `plan_no_apto`).
+    - `RecomendadorPlanes.cs`: puntaje, motivos y advertencias, más `VariantesMiDia` (perfil laboral → slug de "Mi día").
+    - `PlanUsuario.cs` (Fase 4): el plan de una persona, `PeriodoPausa` y `TransicionesPlanUsuario`, **el único punto de la máquina del plan**. `Reanudar(ahora, zona)` agrega al final los días locales de la pausa (`DiasDePausa`). `ResolvedorAncla.cs`: ancla + jornada → hora local.
+  - `Adherencia/` (Fase 4): `CalculadoraProgreso` es **la única definición de racha y cumplimiento** (día local; un plan solo semanal se mide en semanas, `UnidadSeguimiento`), `SugeridorAjuste` (nunca se aplica solo) y `CalculadoraLogros` (no recibe peso ni medidas: lo comprueba una prueba por reflexión). `Motivacion/SelectorMensajesMotivacion.cs`: determinista (FNV-1a).
+  - `Habito` gana `PlanUsuarioId`, `Descripcion`, `VersionMinima`, `Ancla` y `PausadoPorPlan` (`PausarPorPlan`/`ReanudarPorPlan`/`DesdeTareaDePlan`); `RegistroDiario`, `EsVersionMinima`.
 - **Application** (`Modules/HabitTracker/HabitTracker.Application/`):
   - `Services/HabitoService.cs` implementa `Interfaces/IHabitoService.cs`. Recibe un `TimeProvider` opcional (rechazo de fechas futuras con `ToleranciaReloj` de 5 min, en el servicio y no en el dominio: las pruebas de la P3 registran fechas futuras a propósito para probar los límites del cálculo).
   - `Services/PlanDelDiaService.cs` (`IPlanDelDiaService`) con el puerto `Interfaces/IServicioClima.cs`.
   - Puertos: `IHabitoRepository`, `IMetaRepository` (solo `ExistsAsync`), `IUnitOfWork`, `IPermisoService` (→ Permissions), `IConsentimientoSalud` (→ consentimientos de Control de Acceso) e `ICifradorDatos` (`Interfaces/IPerfilSaludPuertos.cs`).
   - `Services/PerfilSaludServices.cs`: `IPerfilService`, `ICuestionarioSaludService`, `IProgresoCorporalService` e `IDatosPerfilSaludService` (exportar y borrar).
-  - `Exceptions/ClimaExceptions.cs`: las únicas excepciones propias del módulo (503 y 404).
+  - `Services/PlanesService.cs` (`IPlanesService`: listar, detalle y recomendados) con el puerto `Interfaces/IPlanPlantillaRepository.cs` (solo lectura) y `DTOs/PlanesDtos.cs`.
+  - `Services/PlanUsuarioService.cs` (`IPlanUsuarioService`: inscribirse, listar, detalle, transición, ajuste y recordatorio) y `Services/SeguimientoDiarioServices.cs` (`ILogrosService`, `IHoyService`, `IResumenProgresoService`, `IDatosPlanesService`), con `DTOs/PlanUsuarioDtos.cs` y los puertos de `Interfaces/IPlanUsuarioPuertos.cs`.
+  - `Exceptions/ClimaExceptions.cs`: excepciones de clima (503 y 404). `Exceptions/ConflictoDeUnicidadException.cs`: la violación de un índice único, traducida por el `IUnitOfWork` para que Application no conozca a EF.
 - **Infrastructure** (`Modules/HabitTracker/HabitTracker.Infrastructure/`):
   - `Persistence/HabitTrackerDbContext.cs`: `ApplyConfigurationsFromAssembly` con una clase `IEntityTypeConfiguration` por entidad en `Persistence/Configuraciones/`, y `ConfigureConventions` que guarda todo `DateTime` como `datetime2` y lo lee con `Kind=Utc` (la API devuelve `Z`). Hábito→Registros en cascada, **Hábito→Meta en `SetNull`**, textos con `HasMaxLength` y decimales `HasPrecision(18, 2)`.
   - `RegistroDiario.Id` tiene `ValueGeneratedNever()`: **toda entidad hija nueva que se añada por una colección de navegación con Id asignado en el constructor lo necesita**, o EF emite UPDATE en vez de INSERT.
   - `Clima/OpenWeatherServicioClima.cs` y `DependencyInjection/ClimaExtensions.cs`.
   - Tiene `FrameworkReference Microsoft.AspNetCore.App` (Data Protection; también trae `Hosting.Abstractions` y `Configuration`, así que no hay que añadirlos como paquete: NU1510).
+  - `Persistence/Configuraciones/PlanUsuarioConfiguracion.cs`: `PlanesUsuario` (índice único filtrado por persona y plantilla mientras el plan está Activo o Pausado), `PeriodosPausa` (`OwnsMany`, `ValueGeneratedNever`) y `LogrosUsuario` (único por persona y clave). `HabitTrackerUnitOfWork` traduce la violación de unicidad (`ViolacionesDeUnicidad`). `LogroUsuarioRepository.AgregarSiNoExisteAsync` inserta con `WHERE NOT EXISTS`. `Contenido/mensajes-motivacion.json` (33 mensajes) y `CatalogoMensajes`.
   - `Seguridad/CifradorDataProtection.cs` y `Repositories/PerfilSaludRepositories.cs`: el cuestionario se guarda en `CuestionarioSaludFila`, con cada bloque como JSON cifrado y un propósito por bloque.
+  - `Contenido/`: `catalogo-planes.json` (recurso embebido; un plan nuevo es solo JSON), `LectorCatalogoPlanes` (estricto: campo desconocido, enum inválido o slug repetido → excepción) y `SembradorCatalogoPlanes` (upsert por slug y `versionContenido`, nunca borra). Lo llama `InicializacionBaseDeDatos.SembrarCatalogoPlanesAsync` **en cada arranque**, no solo con `MigrarAlIniciar`.
+  - `Persistence/Configuraciones/PlanPlantillaConfiguracion.cs`: listas como JSON (`PrimitiveCollection` con enums como texto y `OwnsMany(...).ToJson()` para la guía) y las tareas en `TareasPlantilla` con `Guid` propio. La base no garantiza el orden de las tareas: `PlanPlantilla.Tareas` las ordena por `Orden`.
 
 ## Errores → HTTP (`Host/WebApi/Middlewares/GlobalExceptionMiddleware.cs`)
 
@@ -53,7 +67,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 | `CredencialesInvalidasException` | 401 |
 | `ProveedorExternoNoDisponibleException`, `TokenExternoInvalidoException`, `VinculacionRequeridaException`, `SesionInvalidaException`, `OperacionNoPermitidaException` | 503, 401, 409, 401 y 403, todas con `codigo` |
 | `ControlAccesoException` (base, hereda de `InvalidOperationException`) | 400 + `codigo` |
-| `ConsentimientoSaludRequeridoException` / `RecursoNoEncontradoException` / `HabitTrackerException` (HabitTracker) | 409 / 404 / 400, todas con `codigo` |
+| `ConsentimientoSaludRequeridoException` / `RecursoNoEncontradoException` (`habito_no_encontrado`, `perfil_no_encontrado`, `plan_no_encontrado`, `plan_usuario_no_encontrado`) / `HabitTrackerException` (HabitTracker) | 409 / 404 / 400, todas con `codigo` |
 | `ArgumentException` | 400 genérico |
 | `UnauthorizedAccessException` | 403 con sesión, 401 sin ella |
 | `InvalidOperationException` | 400 genérico |
@@ -66,7 +80,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 
 - **Puerto del negocio implementado en el Host:** `IPermisoService` (HabitTracker.Application) → `PermisoServiceAdapter` → `ISolicitudPermisoService` (Permissions).
 - **Consentimiento de salud:** `IConsentimientoSalud` (HabitTracker) → `Host/WebApi/Adapters/ConsentimientoSaludAdapter.cs` → `IConsentimientoService`. Una cuenta sin consentimientos equivale a no consentir.
-- **Puerto del Core implementado en el Host:** `IParticipanteDatosUsuario` (`Modules/AccessControl/AccessControl.Application/Interfaces/IParticipanteDatosUsuario.cs`, con `Seccion`, `ExportarAsync` y `EliminarAsync` idempotente). Lo implementan `ParticipanteHabitos`, `ParticipantePerfilSalud` (sección `perfilYSalud`), `ParticipantePermisos` y `ParticipanteDocumentos`, y lo usan la descarga de datos y la baja de cuenta. **Todo dato nuevo por usuario debe entrar aquí** (exportar y borrar).
+- **Puerto del Core implementado en el Host:** `IParticipanteDatosUsuario` (`Modules/AccessControl/AccessControl.Application/Interfaces/IParticipanteDatosUsuario.cs`, con `Seccion`, `ExportarAsync` y `EliminarAsync` idempotente). Lo implementan `ParticipanteHabitos`, `ParticipantePerfilSalud` (sección `perfilYSalud`), `ParticipantePlanes` (sección `planes`: planes, pausas y logros), `ParticipantePermisos` y `ParticipanteDocumentos`, y lo usan la descarga de datos y la baja de cuenta. **Todo dato nuevo por usuario debe entrar aquí** (exportar y borrar).
 - **Consentimiento:** `IConsentimientoService` (AccessControl.Application), con `DatosSalud`, `Marketing`, `CompartirCumplimiento` y `EstadisticasAnonimas`. Los mocks del frontend esperan **409** si falta `datosSalud`.
 - **Usuario** (correo, nombre, activo, baja programada): `IUsuarioRepository.GetByIdAsync` (AccessControl).
 
@@ -94,12 +108,14 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 | `Documentos:RutaAlmacenamiento`, `Swagger:Habilitado`, `Https:RedireccionDesactivada`, `BaseDeDatos:MigrarAlIniciar` | varios |
 | `SMTP_HOST/PORT/USER/PASS`, `CORREO_MODO`, `OPENWEATHER_API_KEY` | correo y clima |
 | `DATAPROTECTION_KEYS_PATH` | claves de cifrado de los datos de salud; obligatoria fuera de Development (`Host/WebApi/Extensions/ProteccionDeDatosExtensions.cs`), volumen `dataprotection-claves` en Docker |
-| `RateLimit:*` | políticas `login`, `registro`, `recuperacion`, `activacion`, `refresh`, `google` y `privacidad` (`Host/WebApi/Extensions/LimitacionDePeticionesExtensions.cs`) |
+| `RateLimit:*` | políticas `login`, `registro`, `recuperacion`, `activacion`, `refresh`, `google`, `privacidad` y `catalogo` (`Host/WebApi/Extensions/LimitacionDePeticionesExtensions.cs`) |
 
 ## Pruebas
 
 - **Proyectos:** `tests/<Módulo>.<Capa>.Tests`. HabitTracker tiene `Domain`, `Application` (dobles a mano, **sin Moq**) e `Integration` (EF Core sobre SQLite).
-  - `tests/HabitTracker.Api.Tests` prueba los controllers (`HabitsControllerTests`, `PlanDelDiaTests`) y el middleware sobre un `DefaultHttpContext`.
+  - `tests/HabitTracker.Api.Tests` prueba los controllers (`HabitsControllerTests`, `PlanDelDiaTests`, `PerfilSaludControllersTests` y `PlansControllerTests`) y el middleware sobre un `DefaultHttpContext`.
+  - **Prueba de contenido:** `tests/HabitTracker.Integration.Tests/CatalogoPlanesTests.cs` valida `catalogo-planes.json` (13 slugs, cuestionario cuando hay datos de nivel 2, topes y aviso del agua, palabras prohibidas) y el sembrador sobre SQLite.
+  - **Mis planes:** `MisPlanesPersistenciaTests` (SQLite con los repositorios y el catálogo reales: inscripción de los 13 planes, índice único, logros idempotentes, baja de cuenta), `MensajesMotivacionTests` (contenido de los mensajes) y `MisPlanesControllersTests`.
 - **Nombres:** `RF_NEG_02_CrearHabito_NombreVacio_Rechaza` con `[Trait("Requirement", "RF-NEG-02")]`, comentarios `// Arrange // Act // Assert`, `Record.ExceptionAsync` + `Assert.IsType<>` y `Assert.Equal(0, unitOfWork.SaveChangesCallCount)`.
 - **Dobles:** clases privadas anidadas (`InMemoryHabitoRepository`, `InMemoryUnitOfWork`, `FakePermisoService`). Un estado se fuerza por reflexión (`HabitoTests.cs`).
 - **SQLite:** `PrepararBaseAsync` en `tests/HabitTracker.Integration.Tests/HabitoPersistenciaTests.cs` abre `Data Source=:memory:` y llama a `EnsureCreatedAsync()` (no a las migraciones). Cada operación usa un `HabitTrackerDbContext` nuevo.
@@ -114,3 +130,23 @@ dotnet ef migrations list --project Modules/<M>/<M>.Infrastructure --startup-pro
 ```
 
 Contextos: `ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext` y `DocumentManagerDbContext`. Tras traer cambios, aplica las migraciones pendientes: sin ellas, la API responde 500.
+
+## Archivos vinculados a planes y permisos (13-11-2026)
+
+- `Permissions`: `SolicitudNoEncontradaException` (404 `solicitud_no_encontrada`) y `SolicitudDuplicadaException` (409 `solicitud_duplicada`), mapeadas en `GlobalExceptionMiddleware`; `CrearPermisoRequest` valida la clave con `[param: …]` (con `[property: …]` ASP.NET lanza).
+- `DocumentManager.Application`: `IGuardaEliminacionDocumento` (opcional en `DocumentoService`) y `DocumentoProtegidoException` (409 `documento_requiere_permiso`); el Administrador no pasa por la guarda.
+- `HabitTracker`: `AdjuntoPlan` + `AdjuntosPlanService` (`api/my-plans/{id}/attachments`, `GET api/my-plans/attachments`), puertos `IDocumentosUsuario` (adaptador `DocumentosUsuarioAdapter`) y `IAdjuntoPlanRepository`; `PermisoRequeridoException` (409). La guarda compuesta `GuardaEliminacionDocumentoAdapter` usa el **repositorio**, no el servicio, para no cerrar un ciclo de inyección.
+
+## Notificaciones y cola de correos (P5)
+
+- **Ganchos** (parámetro opcional del constructor, sin tocar las suites de las prácticas): `INotificadorPermisos` (Permissions.Application → `NotificadorPermisosAdapter`) e `INotificadorUsuario` (HabitTracker.Application, solo cuando un logro se guarda por primera vez → `NotificadorUsuarioAdapter`). Puertos de Notifications: `IColaCorreos` → `ColaCorreosAdapter` e `IDirectorioUsuarios` → `DirectorioUsuariosAdapter`.
+- **API:** `api/notifications` (`GET`, `POST {id}/read`, `GET/PUT preferences`) y `api/admin/email-queue` (`GET ?estado=`, `POST process`, solo Administrador).
+- **Cola** (AccessControl.Infrastructure/Services): `ProcesadorColaCorreos` (reclamo atómico, recuperación de `Procesando`, espera configurable), `EnviadorCorreoSmtp` (`LeerOpciones`: `SMTP_HOST/PORT/SSL/USER/PASS/FROM`) y `ColaCorreosAdmin`. `EmailSenderWorker` solo llama al procesador cada 15 s. `CorreoEnCola.MaxIntentos = 3`.
+- **Correo en el contenedor:** Mailpit (`:8025`); el `.env.example` apunta a él. Para volver a la consola, `SMTP_HOST` vacío.
+- Criterios de aceptación: `docs/criterios-notificaciones-reportes.md`. Detalle: `docs/historial/practica-5.md`.
+
+## Reportes (P5)
+
+- **API:** `GET api/reports/permissions` (Core: solicitudes por estado, `GROUP BY` en la base) y `GET api/reports/adherence` (negocio: constancia por plan). `desde` y `hasta` obligatorios (máx. 366 días); el rol del token decide el alcance (Estándar: lo suyo; Administrador: todos, agregado y sin datos personales).
+- **Piezas:** `Reports.Application/Services/ReportesService.cs`; puertos `IFuenteSolicitudes` → `FuenteSolicitudesAdapter` (sobre `ISolicitudPermisoReportes`, clase nueva `SolicitudPermisoReportes`) e `IFuenteConstancia` → `FuenteConstanciaAdapter` (sobre `IReporteConstanciaService` de HabitTracker). La función de agregación es `CalculadoraConstancia` (dominio, pura).
+- Detalle: `docs/historial/practica-5.md`; criterios: `docs/criterios-notificaciones-reportes.md`.

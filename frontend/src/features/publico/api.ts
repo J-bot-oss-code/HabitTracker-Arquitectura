@@ -1,10 +1,8 @@
 import { calculadoraSchema } from './schemas'
 import type { DatosCorporales } from './types'
 
-// Superficie del catálogo para otras features (frontend/AGENTS.md: una feature solo usa de otra
-// su api.ts/types.ts). Hoy el catálogo es estático; cuando el backend tenga plantillas de plan
-// (mejora futura), este módulo pasará a consultarlo sin que cambien quienes lo usan.
-export { buscarMeta, etiquetaArea, METAS_CATALOGO, type MetaCatalogo } from './catalogo'
+// Superficie de la parte pública para otras features (frontend/AGENTS.md: una feature solo usa de otra
+// su api.ts/types.ts). El catálogo de planes ya no vive aquí: viene de la API (features/planes).
 export { INFO_LEGAL, VERSION_PRIVACIDAD, VERSION_TERMINOS } from './legal'
 
 // Rutas de los documentos que se aceptan en el alta (ConsentFieldset).

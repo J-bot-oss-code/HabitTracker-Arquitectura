@@ -1,4 +1,5 @@
 using Permissions.Application.DTOs;
+using Permissions.Application.Exceptions;
 using Permissions.Application.Interfaces;
 using Permissions.Domain.Entities;
 using Microsoft.Extensions.Logging;
@@ -7,7 +8,8 @@ namespace Permissions.Application.Services;
 
 public sealed class SolicitudPermisoService(
     ISolicitudPermisoRepository repository,
-    ILogger<SolicitudPermisoService> logger) : ISolicitudPermisoService
+    ILogger<SolicitudPermisoService> logger,
+    INotificadorPermisos? notificador = null) : ISolicitudPermisoService
 {
     public async Task<Guid> CrearAsync(CrearSolicitudPermisoCommand command, CancellationToken cancellationToken = default)
     {
@@ -23,12 +25,21 @@ public sealed class SolicitudPermisoService(
             throw new ArgumentException("El permiso solicitado es obligatorio.", nameof(command));
         }
 
+        // Una persona no repite una solicitud que sigue vigente: espera su resolución (o ya tiene el permiso).
+        if (await repository.ExisteVigenteAsync(command.Solicitante, command.PermisoSolicitado, cancellationToken))
+        {
+            throw new SolicitudDuplicadaException();
+        }
+
         var solicitud = new SolicitudPermiso(command.Solicitante, command.PermisoSolicitado);
 
         await repository.AddAsync(solicitud, cancellationToken);
 
         // Sin el correo de la persona en el log (cs/exposure-of-sensitive-information); la solicitud queda identificada por su Id.
         logger.LogInformation("Solicitud de permiso {SolicitudId} creada.", solicitud.Id);
+
+        await AvisarAsync(
+            () => notificador!.SolicitudCreadaAsync(solicitud.Solicitante, solicitud.PermisoSolicitado, cancellationToken), solicitud.Id);
 
         return solicitud.Id;
     }
@@ -79,7 +90,7 @@ public sealed class SolicitudPermisoService(
 
         if (solicitud is null)
         {
-            throw new InvalidOperationException("La solicitud no existe.");
+            throw new SolicitudNoEncontradaException();
         }
 
         if (EsAdministrador(rolUsuario) || (EsEstandar(rolUsuario) && EsPropietario(solicitud, usuarioConsulta)))
@@ -98,7 +109,7 @@ public sealed class SolicitudPermisoService(
 
         if (solicitud is null)
         {
-            throw new InvalidOperationException("La solicitud no existe.");
+            throw new SolicitudNoEncontradaException();
         }
 
         var resultado = solicitud.Aprobar(command.Aprobador, DateTime.UtcNow);
@@ -111,6 +122,9 @@ public sealed class SolicitudPermisoService(
         await repository.UpdateAsync(solicitud, cancellationToken);
 
         logger.LogInformation("Solicitud {SolicitudId} aprobada.", solicitud.Id);
+
+        await AvisarAsync(
+            () => notificador!.SolicitudResueltaAsync(solicitud.Solicitante, solicitud.PermisoSolicitado, true, null, cancellationToken), solicitud.Id);
     }
 
     public async Task RechazarAsync(RechazarSolicitudCommand command, CancellationToken cancellationToken = default)
@@ -121,7 +135,7 @@ public sealed class SolicitudPermisoService(
 
         if (solicitud is null)
         {
-            throw new InvalidOperationException("La solicitud no existe.");
+            throw new SolicitudNoEncontradaException();
         }
 
         var resultado = solicitud.Rechazar(command.Aprobador, command.MotivoRechazo, DateTime.UtcNow);
@@ -134,6 +148,28 @@ public sealed class SolicitudPermisoService(
         await repository.UpdateAsync(solicitud, cancellationToken);
 
         logger.LogInformation("Solicitud {SolicitudId} rechazada.", solicitud.Id);
+
+        await AvisarAsync(
+            () => notificador!.SolicitudResueltaAsync(solicitud.Solicitante, solicitud.PermisoSolicitado, false, solicitud.MotivoRechazo, cancellationToken),
+            solicitud.Id);
+    }
+
+    // El aviso va DESPUÉS de guardar: si falla, la solicitud ya quedó creada o resuelta y no se deshace (se registra y se sigue).
+    private async Task AvisarAsync(Func<Task> aviso, Guid solicitudId)
+    {
+        if (notificador is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await aviso();
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "No se pudo enviar el aviso de la solicitud {SolicitudId}.", solicitudId);
+        }
     }
 
     public Task<bool> TienePermisoEfectivoAsync(

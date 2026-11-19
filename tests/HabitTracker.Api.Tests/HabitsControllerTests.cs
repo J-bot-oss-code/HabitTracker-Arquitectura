@@ -178,7 +178,7 @@ public class HabitsControllerTests
         public Task CambiarEstadoAsync(Guid habitoId, EstadoHabito nuevoEstado, Guid usuarioActualId, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
-        public Task RegistrarAvanceAsync(Guid habitoId, decimal cantidad, DateTime fechaUtc, Guid usuarioActualId, CancellationToken cancellationToken = default) =>
+        public Task RegistrarAvanceAsync(Guid habitoId, decimal cantidad, DateTime fechaUtc, Guid usuarioActualId, bool esVersionMinima = false, CancellationToken cancellationToken = default) =>
             Task.CompletedTask;
 
         public Task ReconfigurarHabitoAsync(Guid habitoId, Periodicidad periodicidad, decimal cantidadObjetivo, string unidad,

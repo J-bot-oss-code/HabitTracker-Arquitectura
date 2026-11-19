@@ -1,8 +1,6 @@
 import type { HttpHandler } from 'msw'
 import type { Rol } from '@/shared/auth/roles'
 import { adminHandlers, contratosAdmin } from './admin'
-import { contratosPerfil, perfilHandlers } from './perfil'
-import { contratosProgreso, progresoHandlers } from './progreso'
 
 // Contratos propuestos: endpoints que Host/WebApi todavía NO tiene y que el frontend necesita
 // para mostrar la aplicación como debe verse en producción (docs/mejoras). Se simulan aquí
@@ -34,10 +32,6 @@ interface ModuloPropuesto {
 }
 
 const modulos: ModuloPropuesto[] = [
-  // Paso 3: perfil del onboarding y consentimientos.
-  { contratos: contratosPerfil, handlers: perfilHandlers },
-  // Paso 5: peso y medidas.
-  { contratos: contratosProgreso, handlers: progresoHandlers },
   // Paso 7: métricas anónimas y auditoría del administrador.
   { contratos: contratosAdmin, handlers: adminHandlers },
 ]

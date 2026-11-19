@@ -55,9 +55,9 @@ Recorrido sugerido:
 
 ## Apariencia y temas
 
-Diseño sobrio según la especificación `docs/mejoras/diseno-ui-web-movil.md`: fondo gris claro, tarjetas blancas con borde sutil, un solo acento índigo, cifras KPI grandes y progreso visible. Tres temas — **Sistema** (por defecto), **Claro** y **Oscuro** — que se eligen desde el icono de la cabecera o en **Configuración → Apariencia**. La elección se guarda en el navegador y se aplica antes del primer pintado.
+Diseño sobrio según la especificación `docs/mejoras/diseno-ui-web-movil.md`: «la hoja del día»: tinta verde abeto sobre papel, un subrayador amarillo-verde solo para lo hecho, esquinas casi rectas, listas regladas con la hora al margen y cifras grandes. Tres temas — **Sistema** (por defecto), **Claro** y **Oscuro** — que se eligen desde el icono de la cabecera o en **Configuración → Apariencia**. La elección se guarda en el navegador y se aplica antes del primer pintado.
 
-Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2.2 AA (lo verifica `npm test`). Las fuentes (Plus Jakarta Sans e Inter) se empaquetan con la app: no hay peticiones a CDN externas.
+Los colores viven en tokens `--c-*` de `src/index.css` y cada tema cumple WCAG 2.2 AA (lo verifica `npm test`). Las fuentes (Bricolage Grotesque y Atkinson Hyperlegible Next) se empaquetan con la app: no hay peticiones a CDN externas.
 
 ## Configuración
 

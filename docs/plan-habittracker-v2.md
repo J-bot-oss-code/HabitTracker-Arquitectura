@@ -269,7 +269,7 @@ Guardar el nivel 1 o inscribirse en un Básico no lo pide.
 - El paso **"Tu salud"** aparece solo al activar el nivel 2. Explica por qué se pregunta cada bloque y cómo se protege.
 - Configuración › **Perfil y salud** (rectificación) y Progreso conectado.
 - Estos contratos salen de `CONTRATOS_PROPUESTOS`.
-- `metaSlug` se sigue aceptando como "interés" hasta que la Fase 4b lo reemplace por los planes reales.
+- `metaSlug` se aceptó como "interés" hasta la Fase 4b, que lo retiró del perfil (migración `QuitarMetaSlugDelPerfil`) y lo reemplazó por los planes reales.
 
 ### Pruebas
 

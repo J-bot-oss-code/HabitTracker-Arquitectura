@@ -24,14 +24,12 @@ public sealed record PerfilDto(
     NivelActividad? Actividad,
     int? DiasPorSemana,
     int? MinutosPorSesion,
-    string? MetaSlug,
-    DateTime? InicioPlan,
     DateTime ActualizadoEn)
 {
     public static PerfilDto Desde(PerfilUsuario p) => new(
         string.Empty, p.PerfilLaboral, p.ZonaHoraria, p.AvisoSaludAceptado, p.HoraEntradaTrabajo, p.HoraSalidaTrabajo,
         p.HoraDespertar, p.HoraDormir, p.Edad, p.Sexo, p.AlturaCm, p.PesoKg, p.Actividad, p.DiasPorSemana,
-        p.MinutosPorSesion, p.MetaSlug, p.InicioPlan, p.ActualizadoEn);
+        p.MinutosPorSesion, p.ActualizadoEn);
 }
 
 /// <summary>

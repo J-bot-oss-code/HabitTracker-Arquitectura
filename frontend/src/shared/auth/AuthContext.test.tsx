@@ -94,16 +94,16 @@ describe('AuthProvider: sesión con refresh token', () => {
       }),
     )
 
-    const { router } = renderApp('/permisos')
+    const { router } = renderApp('/ajustes/solicitudes')
     // La redirección de un guard sin espera ocurre de forma asíncrona: se le da tiempo a producirse.
     await new Promise((resolver) => setTimeout(resolver, 100))
 
-    expect(router.state.location.pathname).toBe('/permisos')
+    expect(router.state.location.pathname).toBe('/ajustes/solicitudes')
     expect(screen.queryByRole('heading', { name: 'Iniciar sesión' })).not.toBeInTheDocument()
 
     liberar()
-    expect(await screen.findByRole('heading', { name: 'Mis permisos' })).toBeInTheDocument()
-    expect(router.state.location.pathname).toBe('/permisos')
+    expect(await screen.findByRole('heading', { name: 'Solicitudes' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/ajustes/solicitudes')
   })
 
   it('renueva el token un poco antes de que venza y la sesión sigue abierta', async () => {

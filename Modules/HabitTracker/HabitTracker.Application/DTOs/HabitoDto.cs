@@ -1,4 +1,5 @@
 using HabitTracker.Domain.Entities;
+using HabitTracker.Domain.Planes;
 
 namespace HabitTracker.Application.DTOs;
 
@@ -11,10 +12,15 @@ public sealed record HabitoDto(
     EstadoHabito Estado,
     bool CumpleMetaFinal,
     DateTime FechaInicioCiclo,
-    IReadOnlyList<RegistroAvanceDto> Registros);
+    IReadOnlyList<RegistroAvanceDto> Registros,
+    Guid? PlanUsuarioId = null,
+    string? Descripcion = null,
+    string? VersionMinima = null,
+    Ancla? Ancla = null);
 
 public sealed record RegistroAvanceDto(
     Guid Id,
     decimal Cantidad,
     DateTime Fecha,
-    string Unidad);
+    string Unidad,
+    bool EsVersionMinima = false);
