@@ -81,3 +81,4 @@ Al cerrar cada entrega:
 - **Una deuda anotada que contradice un RF o un criterio es un hallazgo:** se corrige, no se deja en el ESTADO.
 - **Todo «leer y, si no existe, insertar» nuevo tolera la carrera** (clave única y, si choca, actualizar); los que ya existen están en la deuda del ESTADO. Los criterios nuevos llevan un caso de dos peticiones simultáneas y uno de borde (estado terminal, rango vacío).
 - Los criterios definen cada número que se muestra (p. ej. `intentos` cuenta cada envío intentado) y no solo el camino de fallo.
+- **El agente que construye no es el único que verifica.** Un «todo pasa» sobre sus propios scripts (por ejemplo 30/30 y «8/8» de la P5) solo cubre lo que mis criterios listan: la revisión final incluye casos de borde que escribo yo (estado terminal, concurrencia, números mostrados) y los ejecuto yo.
