@@ -99,7 +99,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 9. Próximos pasos
 
-- **Práctica 5 en curso:** backend y frontend hechos (Notificaciones, cola y Reportes); falta la revisión acumulada desde Docker (clon limpio, `.env.example`, los seis frentes) y el tag `practica-5`, que pone el usuario.
+- **Práctica 5 lista para entregar:** backend, frontend y revisión acumulada desde Docker con un clon limpio (30 de 30). Falta el tag `practica-5`, que pone el usuario, y entregarlo en Moodle.
 - **Fase 5 detenida** hasta entregar las prácticas de Auditoría y Reportes (rama `feature/habittracker-correo-accion`, sin push; sus rutas deben pasar de `api/notifications/*` a `api/reminders/*` y la entrega irá detrás de `INotificadorUsuario`).
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
   - Fases 0 a 4 hechas → Fase 5, el corte vertical (siguiente: recordatorios y check-in por correo, `RegistroDiario.Origen` y `ClaveIdempotencia`);

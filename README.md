@@ -224,7 +224,7 @@ Los textos del logro celebran la conducta y nunca mencionan peso, cuerpo ni culp
 
 - **Se encola, no se envía en la operación (RF-NOT-08):** crear una solicitud o registrarse responde `201` aunque el servidor de correo esté apagado; el correo queda `Pendiente`.
 - **Un proceso independiente (RF-NOT-09):** el servicio en segundo plano `EmailSenderWorker` envía los pendientes cada 15 segundos. Para ejecutarlo a pedido: `POST /api/admin/email-queue/process` como Administrador.
-- **Reintentos limitados (RF-NOT-10): el máximo es 3 intentos.** Tras cada fallo espera `base × 2^intentos` (con la base de `Correo__EsperaReintentoSegundos`, 60 s por defecto) y, agotados los 3, el correo queda **`Fallido`** con su `ultimoError`; no se reintenta más ni se borra.
+- **Reintentos limitados (RF-NOT-10): el máximo es 3 intentos.** Tras cada fallo espera `base × 2^intentos` (con la base de `CORREO_ESPERA_REINTENTO_SEGUNDOS` del `.env`, 60 s por defecto: reintentos a los 2 y a los 4 minutos) y, agotados los 3, el correo queda **`Fallido`** con su `ultimoError`; no se reintenta más ni se borra.
 - **Estado de cada correo (RF-NOT-11):** `Pendiente`, `Procesando`, `Enviado` o `Fallido`, con intentos, fechas y último error.
 - **Un correo enviado no se reenvía (RF-NOT-12):** cada correo se reclama con un solo `UPDATE` condicionado a su estado, así que ejecutar el procesador dos veces seguidas (o dos procesos a la vez) no duplica ningún envío. Un correo que quedó en `Procesando` por una caída se recupera pasados `Correo__MinutosParaRecuperar` (10 por defecto) y cuenta como un intento fallido.
 - **Credenciales por variables de entorno (RF-NOT-13):** `SMTP_HOST`, `SMTP_PORT`, `SMTP_SSL`, `SMTP_USER`, `SMTP_PASS` y `SMTP_FROM`; ninguna está en el repositorio (`.env.example` las trae sin secretos).
@@ -233,7 +233,7 @@ Los textos del logro celebran la conducta y nunca mencionan peso, cuerpo ni culp
 
 1. Apaga el servidor de correo: `docker compose stop mailpit`.
 2. Provoca un evento (por ejemplo, un Estándar crea una solicitud de permiso): responde `201` y el correo queda `Pendiente` (`GET /api/admin/email-queue?estado=Pendiente`).
-3. Ejecuta el procesador tres veces (`POST /api/admin/email-queue/process`) esperando entre cada una lo que marque la espera de reintento. Para no esperar, arranca con `Correo__EsperaReintentoSegundos=0` en el `.env`.
+3. Ejecuta el procesador tres veces (`POST /api/admin/email-queue/process`) esperando entre cada una lo que marque la espera de reintento. Con el valor por defecto, el correo queda `Fallido` unos 6 minutos después del primer intento (el servicio en segundo plano también lo reintenta solo). Para no esperar, pon `CORREO_ESPERA_REINTENTO_SEGUNDOS=0` en el `.env` y aplica con `docker compose up -d`.
 4. `GET /api/admin/email-queue?estado=Fallido` muestra el correo con `intentos: 3` y `ultimoError`. Una cuarta ejecución no lo toca.
 5. Con `docker compose start mailpit`, los correos nuevos vuelven a enviarse.
 
