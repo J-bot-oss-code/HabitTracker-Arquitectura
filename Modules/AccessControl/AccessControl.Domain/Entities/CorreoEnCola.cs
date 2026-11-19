@@ -71,6 +71,7 @@ public class CorreoEnCola
             throw new InvalidOperationException("Solo se puede marcar como enviado un correo en estado Procesando.");
         }
 
+        Intentos++; // el envío que salió bien también es un intento (RF-NOT-11)
         Estado = EstadoCorreo.Enviado;
         FechaEnvio = DateTime.UtcNow;
     }

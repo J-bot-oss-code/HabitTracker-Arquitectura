@@ -87,6 +87,21 @@ public sealed class ProcesadorColaCorreosTests : IDisposable
         Assert.Equal(["ana@ejemplo.com"], enviador.Entregados);
     }
 
+    // Asignación 3 — hallazgo 2: un correo enviado al primer intento mostraba «intentos: 0» (RF-NOT-11).
+    [Fact]
+    [Trait("Requirement", "RF-NOT-11")]
+    public async Task Hallazgo2_UnCorreoEnviadoAlPrimerIntento_RegistraEseIntento()
+    {
+        var id = Encolar();
+        using var contexto = NuevoContexto();
+
+        await Procesador(contexto, new EnviadorFalso()).ProcesarAsync(CancellationToken.None);
+
+        var correo = Leer(id);
+        Assert.Equal(EstadoCorreo.Enviado, correo.Estado);
+        Assert.Equal(1, correo.Intentos);
+    }
+
     [Fact]
     [Trait("Requirement", "RF-NOT-12")]
     public async Task RF_NOT_12_EjecutarElProcesadorDosVecesSeguidas_NoDuplicaElEnvio()
