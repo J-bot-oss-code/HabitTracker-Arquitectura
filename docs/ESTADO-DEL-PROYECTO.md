@@ -1,6 +1,6 @@
 # Estado del proyecto — contexto para nuevas sesiones
 
-> Última actualización: 12-11-2026, Fase 4b del plan HabitTracker v2 (frontend de Mis planes, Hoy y logros). Antes, ese mismo día, la Fase 4a (backend de Mis planes, check-in diario y adherencia) y la Fase 3b (frontend del catálogo) y, el 09-11-2026, la Fase 3a (backend del catálogo de 13 planes y del recomendador) y, el 08-11-2026, la Fase 2b (frontend de perfil y salud conectado) y la Fase 2a (backend de perfil, salud cifrada y progreso corporal). Antes, ese mismo día, la Fase 1 (cimientos), y el 07-11-2026 la Fase 0 (skill de contexto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
+> Última actualización: 19-11-2026, tras entregar la Práctica 5 (tag `practica-5`). Antes, el 12-11-2026, la Fase 4b del plan HabitTracker v2 (frontend de Mis planes, Hoy y logros); ese mismo día, la Fase 4a (backend de Mis planes, check-in diario y adherencia) y la Fase 3b (frontend del catálogo) y, el 09-11-2026, la Fase 3a (backend del catálogo de 13 planes y del recomendador) y, el 08-11-2026, la Fase 2b (frontend de perfil y salud conectado) y la Fase 2a (backend de perfil, salud cifrada y progreso corporal). Antes, ese mismo día, la Fase 1 (cimientos), y el 07-11-2026 la Fase 0 (skill de contexto). Este archivo describe **solo el estado actual** (tope de 120 líneas, lo vigila `scripts/ci/verificar-contexto.sh`). La historia de cada fase está en `docs/historial/`.
 > **Al iniciar una sesión, usa la skill `contexto-habittracker`** (`.claude/skills/contexto-habittracker/`): rutas, contratos, recetas y requisitos sin leer el repositorio entero. Reglas de trabajo en `AGENTS.md`; guía de uso y evaluación en `README.md`.
 
 ## 1. Resumen
@@ -71,7 +71,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 6. Deuda técnica conocida
 
 1. Archivos vinculados, decisiones de producto que se dejan así: el permiso `Documents.DeleteLinked.{id}` no se consume (queda Aplicada y un duplicado se rechaza) y el Administrador elimina sin pasar por la guarda.
-2. Un correo que queda en `Procesando` tras una caída nunca se reintenta, y `CorreosEnCola` no tiene índices. *(Fase 5.)*
+2. Notificaciones y cola (P5), detalles por pulir: `Intentos` de un correo solo cuenta los fallos; `POST api/admin/email-queue/process` no distingue «nada que hacer» de «esperando el reintento»; no hay un endpoint de conteo de no leídas (el globo del menú pide la lista cada 60 s); el reporte de constancia no incluye los planes cancelados y el agregado del Administrador no tiene cohorte mínima.
 3. Detrás de un proxy inverso, `RemoteIpAddress` es la IP del proxy y los endpoints anónimos (`catalogo`, `login`…) comparten el cupo por IP: se resuelve con `PROXY_CONFIABLE` (`ProxiesConfiables__0`, ver README). Los endpoints con sesión ya se limitan por persona.
 4. Sin E2E en Edge (puppeteer-core), sin `claude-security` sobre lo nuevo y sin el «latido del worker» en el healthcheck (no hay worker de recordatorios). *(Fase 6 y Fase 5.)*
 5. El límite de 3 planes en curso se comprueba en el servicio: dos peticiones simultáneas podrían pasarlo (solo el mismo plan repetido lo impide la base). `MarcarLogrosVistos` marca todos los logros y una zona horaria que el sistema no conoce cae a UTC sin avisar (al guardar el perfil sí se valida; en Docker falta tzdata, Fase 6).
@@ -99,11 +99,12 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 9. Próximos pasos
 
-- **Práctica 5 lista para entregar:** backend, frontend y revisión acumulada desde Docker con un clon limpio (30 de 30). Falta el tag `practica-5`, que pone el usuario, y entregarlo en Moodle.
-- **Fase 5 detenida** hasta entregar las prácticas de Auditoría y Reportes (rama `feature/habittracker-correo-accion`, sin push; sus rutas deben pasar de `api/notifications/*` a `api/reminders/*` y la entrega irá detrás de `INotificadorUsuario`).
+- **Práctica 5 entregada (19-11-2026):** tag `practica-5` sobre `main` (35d5ae8); revisión acumulada desde Docker con un clon limpio, 30 de 30 (rúbrica 8/8). No se toca el tag.
+- **Siguiente, en este orden:** Asignación 3, Asignación 4 y terminar el plan v2. Auditoría sigue siendo esqueleto: el enunciado llegará del maestro.
+- **Fase 5 pendiente** (rama local `feature/habittracker-correo-accion`, sin push, sobre un `develop` viejo: hay que rebasarla). Sus rutas deben pasar de `api/notifications/*` a `api/reminders/*` (la bandeja de la P5 ya usa `api/notifications`) y la entrega irá por la cola de correos de la P5 (`IEmailQueue.EncolarCorreoAsync`).
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
   - Fases 0 a 4 hechas → Fase 5, el corte vertical (siguiente: recordatorios y check-in por correo, `RegistroDiario.Origen` y `ClaveIdempotencia`);
   - Fase 6, producción, métricas y piloto;
   - las Fases 7–9 dependen del informe del piloto.
 - **Pendiente de decidir antes de la Fase 6:** dónde se hospeda el piloto. El CD está pendiente y Vercel no hospeda .NET.
-- **Después del módulo de negocio:** Permisos, Documentos, Notificaciones (bandeja interna y RF-NOT-06/07), Reportes (RF-NEG-08) y Auditoría.
+- **Antes de producción** (detalle en la memoria del proyecto): proveedor SMTP real en lugar de Mailpit, claves reales (`JWT_CLAVE`, `DB_PASSWORD`, `ADMIN_CLAVE`), `SWAGGER_HABILITADO=false`, `PROXY_CONFIABLE` con el proxy, respaldo aparte de la base y de `dataprotection-claves`, revertir la excepción de `npm audit` cuando haya parche de `picomatch` (`docs/historial/ci.md`), auditoría, métricas, E2E en Edge y el piloto con consentimiento (Ley 172-13).
