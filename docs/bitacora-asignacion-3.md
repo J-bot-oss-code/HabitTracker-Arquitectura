@@ -1,177 +1,65 @@
-# Bitácora — Asignación 3: auditoría de notificaciones, cola de correos y reportes
+# Bitácora — Asignación 3
 
-Tag: `asignacion-3`. Base auditada: `develop` en `b393c03` (19-11-2026), con la Práctica 5 ya entregada (`practica-5`).
+Auditoría de notificaciones, cola de correos y reportes de la Práctica 5. Base: `develop` en `b393c03`.
 
-## Cómo se auditó
+**Cómo lo hice.** Le pedí al agente que auditara contra mis criterios y que ejecutara el sistema: clon limpio, `docker compose up --build`, cuentas del README. Cada hallazgo se reprodujo antes de corregirlo; cada corrección se aceptó al ver su prueba fallar sin ella y pasar con ella (suite completa: 1436 pruebas en verde). Tras corregir, comprobé en Docker los seis frentes de la revisión acumulada de la P5 y los tres hallazgos.
 
-- **Contra qué:** `docs/criterios-notificaciones-reportes.md`, los RF-NOT y RF-REP de `docs/practica_5/practica-5.md` y los RD-02, 03, 06, 07, 08, 10 y 11.
-- **Cómo:** se leyó el código de los tres módulos y se **ejecutó el sistema**. Clon limpio de `develop` en `C:\src\ht-a3`, `copy .env.example .env` y `docker compose up --build` (Mailpit, sin correo real). Cuentas del README: `admin@ejemplo.com` y una Estándar `ana@ejemplo.com`, activada con el código leído en Mailpit. Cada hallazgo se reprodujo **antes** de corregirlo.
-- **Quién:** la auditoría y las correcciones las hizo el agente (Claude) a partir de mis instrucciones. Una corrección se dio por buena solo tras ver su prueba fallar sin ella, pasar con ella y la suite completa en verde (1436 pruebas).
+**Qué le pedí.**
+- *P5, lo único que dije sobre estas piezas:* «elabora el plan para implementarla, no olvides la verdadera vicion del proyecto pero por el momento debemos cumplir con la rubrica del maestro» y, al final, «cuando termines actua como el maestro y al final dame los resultados de las prubebas contra la rubrica de evaluacion y si pasa con 8/8». No di instrucciones detalladas por pieza; el plan y los criterios los armó el agente.
+- *Esta asignación:* «crea el plan para su implementacion … al final debes actuar como el maestro y comparar todo con la rubrica … usar la skill ponytail … kiss, yagni» y «Recuerda evitar una sobreingenieria». Aprobé el plan de 3 hallazgos: su columna «Corrección mínima» es la instrucción de corrección que se cita abajo.
 
-**Instrucciones que le di al agente en esta sesión** (literales):
-
-1. «ponte al corriente del proyecto con los md: estado del proyecto y el readmi, luego que estes al corriente iniciaremos con la asignacion 3.»
-2. «aqui esta el md de la asignacion 3, crea el plan para su implementacion incluyendo en el plan que al final debes actuar como el maestro y comparar todo con la rubrica de evaluacion y asegurar que todo pasa bien, tambien usar la skill ponytail para ahorrar token y el plan debe ser ordenado e incluir pruebas para ver que todo esta bien, recuerda kiss, yagni. no olvides espesificar en que modelo se debe hacer cada cosa para ahorrar token.»
-3. «Recuerda evitar una sobreingenieria» (rechacé el primer plan, que tenía 5 hallazgos y fases de más).
-4. Aprobé el plan reducido (3 hallazgos, una corrección mínima por cada uno). **Ese plan es la instrucción de corrección**: la columna «Corrección mínima» de cada hallazgo es lo que se le ordenó al agente, y se cita literal en cada «Corrección» de abajo.
-
-### Instrucciones literales de la sesión de la Práctica 5
-
-Rescatadas de aquella conversación (el agente de esa sesión las citó; lo anterior a su resumen interno no se puede citar literal). **No hubo ninguna instrucción mía detallada** para construir las notificaciones, la cola o los reportes, ni para escribir los criterios y `AGENTS.md`: el agente los escribió porque el enunciado (§1.1) lo exige y porque el plan aprobado tenía «PR 1 — Contexto y criterios (antes de cualquier código del motor)». Lo que sí le dije, en orden:
-
-1. «Lego el momento que estabamos esperando para poder casi terminar nuestro proyecto: nos falta la practica 5 y otras dos asignaciones que las realizaremos luego de terminar exitosamente la practica 5 y asegurar que pasamos con el maximo de puntos la rubrica de evaluacion, elabora el plan para implementarla, no olvides la verdadera vicion del proyecto pero por el momento debemos cumplir con la rubrica del maestro.»
-2. «Recuerda agregar la utilizacion de las skills y agentes que sean necesario y el uso necesario de la skills ponytail par ahorrar token y el uso de la skills de frontend desing para la web.»
-3. «Recuerda los commits atomicos»
-4. «Docker esta activo, puedes continuar, cuando termines actua como el maestro y al final dame los resultados de las prubebas contra la rubrica de evaluacion y si pasa con 8/8. luego abre la pr contra main si todo esta funcional y la puedes mergear si todo esta bien»
-
-El plan aprobado de la P5 describía el reporte del negocio así: «RF-REP-02 (negocio): «¿Qué tan constante fui en cada plan en este período?»: por plan, días con avance, días solo con la versión mínima, días del rango en curso y % de constancia». **No menciona los planes cancelados.**
-
-**Lo que esto revela sobre cómo delegué:** el plan y la «revisión como el maestro» (instrucción 4) los ejecutó el mismo agente que escribió el código, con sus propios scripts (`smoke_p5.py` 37/37, `smoke_rep.py` 20/20, `maestro.py` 30/30 y «rúbrica 8/8»). Esas comprobaciones salían de mis criterios y por eso no podían cubrir lo que mis criterios no decían. No consta ninguna ejecución mía de los tres comportamientos de esta auditoría. **Qué cambio:** `AGENTS.md`, lección «El agente que construye no es el único que verifica»: los casos de borde de la revisión final los escribo y los ejecuto yo.
-
-Además de esos mensajes, de aquella delegación quedaron escritos `AGENTS.md`, los criterios (`17e95db`, anteriores a todo el código del motor) y `docs/historial/practica-5.md`; los campos «Qué se pidió» citan esos textos.
-
-## Resumen
-
-| # | Pieza | Gravedad | Título | Incumple | Corrección | Pruebas |
+| # | Pieza | Gravedad | Hallazgo | Incumple | Commit | Prueba |
 |---|---|---|---|---|---|---|
 | 1 | Reportes | Media | Un plan cancelado desaparece del reporte de constancia | RF-REP-02 | `c7d8f67` | `Hallazgo1_*` (2) |
-| 2 | Cola de correos | Baja | Un correo enviado muestra `intentos: 0` | RF-NOT-11 | `28cf6a4` | `Hallazgo2_*` (2; la segunda en `c20008d`) |
-| 3 | Notificaciones | Baja | Dos guardados simultáneos de la preferencia dan 500 | RF-NOT-07 | `701aa7a` | `Hallazgo3_*` (1; reforzada en `63a8dee`) |
+| 2 | Cola | Baja | Un correo enviado muestra `intentos: 0` | RF-NOT-11 | `28cf6a4`, `c20008d` | `Hallazgo2_*` (2) |
+| 3 | Notificaciones | Baja | Dos guardados simultáneos de la preferencia dan 500 | RF-NOT-07 | `701aa7a`, `63a8dee` | `Hallazgo3_*` (1) |
 
-## Hallazgo 1 — Un plan cancelado desaparece del reporte de constancia (media)
+## Hallazgo 1 — Plan cancelado fuera del reporte (media)
 
-| Campo | |
-|---|---|
-| **Qué se pidió** | RF-REP-02 (P5): «Un reporte sobre tu módulo de negocio. Responde una pregunta real del dominio». Mi criterio lo concretó: «días del rango en que el plan estuvo en curso» (`criterios-notificaciones-reportes.md`, RF-REP-02). El criterio **no decía qué pasa con un plan que se cancela**. |
-| **Qué entregó el agente** | `ReporteConstanciaService` y `ReporteConstanciaRepository` filtran `Estado != Cancelado`, así que un plan que estuvo en curso dentro del rango deja de contar en cuanto se cancela, y con él sus avances. El agente lo anotó como «se deja fuera a propósito» (`docs/historial/practica-5.md`, Reportes) y escribió una prueba que da esa omisión por correcta (`RF_REP_02_UnPlanCancelado_NoEntraEnElReporte`). Ambos nacieron en `1ef78be` (18-11-2026). Lo dejó escrito en la PR del reporte («¿Qué NO incluye?»: «Los planes cancelados no entran en el reporte del negocio (no guardan la fecha en que se dejaron)…»), en el historial, en el README, en un comentario del repositorio y en el ESTADO; su premisa venía del informe de un agente de exploración («no hay marca de tiempo de cancelación»). **No lo mencionó en sus mensajes de chat** (el informe 8/8 y el cierre), solo «Deuda técnica conocida: quedó listada», así que no llegó a mi lectura rápida. |
-| **Por qué pasó** | **Criterio ausente + revisión insuficiente.** Mi criterio no cubría el estado terminal «cancelado». El defecto estaba a la vista: el historial lo llamaba «a propósito» y el ESTADO §6.2 lo listaba como detalle por pulir («el reporte de constancia no incluye los planes cancelados»), pero lo traté como decisión de producto y no como incumplimiento de RF-REP-02. Además, la prueba del agente confirmaba el defecto, así que `dotnet test` en verde me daba una falsa seguridad. Y la «revisión como el maestro» de la P5 (30/30, rúbrica 8/8) la hizo el mismo agente con su propio script, que solo comprobaba que la fila trae `porcentajeConstancia`: ningún plan cancelado. No consta ningún mensaje mío que cuestionara ese punto. |
-| **Corrección** | La hizo el agente. **Instrucción (plan aprobado):** «`PlanUsuario.FechaCancelacion` (`DateTime?`), que fija `Cancelar` y que va en una migración nueva. En los dos filtros, un cancelado con fecha cuenta hasta esa fecha.» **Devolvió** el commit `c7d8f67` (`FechaCancelacion` + `FinEfectivo`, migración `AgregarFechaCancelacionAlPlan` anulable, y los dos filtros) y reemplazó la prueba que afirmaba el defecto por dos `Hallazgo1_*`. Verificado: la causa repetida se corrigió en los dos sitios (con solo uno revertido falla solo la prueba de ese sitio). **Límite declarado:** un plan cancelado *antes* de la migración no tiene fecha y sigue fuera del reporte; no hay de dónde sacarla. |
-| **Qué cambias** | En `docs/criterios-notificaciones-reportes.md`, sección 5: *un plan cancelado cuenta hasta el día en que se canceló*. En `AGENTS.md`: *lo que se «deja fuera a propósito» se convierte en un criterio escrito o se corrige; una deuda que contradice un RF es un hallazgo.* |
+- **Qué se pidió:** RF-REP-02 y mi criterio: «días del rango en que el plan estuvo en curso». No decía qué pasa con un plan cancelado.
+- **Qué entregó el agente:** el reporte filtra `Estado != Cancelado` en el servicio y en la consulta del Administrador, y una prueba suya da esa omisión por correcta (`1ef78be`). Lo dejó escrito como «se deja fuera a propósito» en la PR, el historial y el ESTADO, pero no en el chat.
+- **Evidencia:** con un avance hoy, `GET api/reports/adherence` trae 1 fila (100 %); tras cancelar el plan trae `"filas":[]`, con el token de la persona y con el del Administrador. La prueba nueva falla antes con «The collection was empty».
+- **Por qué pasó:** criterio ausente y revisión insuficiente. Vi el aviso y lo tomé como decisión de producto; además la «revisión como el maestro» de la P5 (30/30) la hizo el propio agente y no incluía ningún plan cancelado.
+- **Corrección:** el agente, con la instrucción «`PlanUsuario.FechaCancelacion`, que fija `Cancelar` y va en una migración nueva; en los dos filtros, un cancelado con fecha cuenta hasta esa fecha». Commit `c7d8f67`. Límite: los cancelados antes de la migración no tienen fecha y siguen fuera.
+- **Qué cambio:** criterios §5 («un plan cancelado cuenta hasta el día en que se canceló») y `AGENTS.md` («lo que se deja fuera a propósito se vuelve criterio o se corrige»).
 
-Evidencia contra la API real (sobre `b393c03`, antes de corregir):
+## Hallazgo 2 — `intentos: 0` en un correo enviado (baja)
 
-```text
-GET  api/reports/adherence?desde=2026-11-19&hasta=2026-11-19      (ana, con el plan en curso y 1 avance)
-  -> "filas":[{"plan":"Mi día de oficina saludable","personas":1,"diasConAvance":1,"diasSoloMinimo":0,"diasEnRango":1,"porcentajeConstancia":100}]
-POST api/my-plans/{id}/transition {"nuevoEstado":"Cancelado","conservarHabitos":false}   -> 200
-GET  el mismo reporte (token de ana, alcance "propio")            -> "filas":[]
-GET  el mismo reporte (token del Administrador, alcance "todos")  -> "filas":[]
-```
+- **Qué se pidió:** RF-NOT-11 («estado, intentos, fechas y último error»). Mi criterio usa «intentos» sin definirlo.
+- **Qué entregó el agente:** `CorreoEnCola.MarcarEnviado` no cuenta el intento; el defecto viene de la cola de la P1 (`bf20c46`) y el agente la reutilizó. Lo vio dos veces (su consulta SQL y el informe de otro agente) y lo anotó en el ESTADO como detalle.
+- **Evidencia:** `POST api/admin/email-queue/process` → `{"enviados":1}`; `GET api/admin/email-queue?estado=Enviado` → `"estado":"Enviado","intentos":0`. La prueba falla antes con `Expected: 1  Actual: 0`.
+- **Por qué pasó:** criterio ambiguo. Solo probé el camino de fallo y dejé como deuda algo que contradecía RF-NOT-11.
+- **Corrección:** el agente, con «`Intentos++` en `MarcarEnviado`». Commits `28cf6a4` y `c20008d` (el caso «falló una vez y luego salió → 2»).
+- **Qué cambio:** criterios §5 («`intentos` cuenta cada envío intentado, también el exitoso») y `AGENTS.md` («una deuda que contradice un RF es un hallazgo»).
 
-Prueba, sobre la producción anterior: `Hallazgo1_...EnElReportePersonal` y `...EnElReporteDelAdministrador` → `Assert.Single() Failure: The collection was empty`; sobre el tag, pasan.
+## Hallazgo 3 — 500 por dos guardados simultáneos (baja)
 
-## Hallazgo 2 — Un correo enviado muestra `intentos: 0` (baja)
+- **Qué se pidió:** RF-NOT-07. Mis criterios probaban una petición de una persona; ninguno de concurrencia, que el enunciado pedía.
+- **Qué entregó el agente:** `GuardarPreferenciasAsync` lee y, si no existe, inserta; con clave primaria `UsuarioId`, dos peticiones a la vez chocan. Su prueba guarda dos veces en secuencia. Conocía el riesgo (`ReclamarAsync`, `LogrosService`) y no lo aplicó aquí.
+- **Evidencia:** 12 `PUT api/notifications/preferences` en paralelo → al menos un `500`, y el log: `Violation of PRIMARY KEY constraint 'PK_PreferenciasNotificaciones'`. La prueba falla antes con `DbUpdateException`.
+- **Por qué pasó:** criterio ausente: no trasladé «dos solicitudes simultáneas» a mis criterios.
+- **Corrección:** el agente, con «en `AgregarAsync`, si la fila ya existe se actualiza esa fila». Commits `701aa7a` y `63a8dee` (la prueba falla por aserción, no por excepción).
+- **Qué cambio:** criterios §5 («dos peticiones simultáneas nunca dan 500») y `AGENTS.md` («todo leer-e-insertar nuevo tolera la carrera»). Lección general añadida: *el agente que construye no es el único que verifica*.
 
-| Campo | |
-|---|---|
-| **Qué se pidió** | RF-NOT-11 (P5): «Cada correo registra estado (pendiente, enviado o fallido), intentos, fechas y último error». Mi criterio repite «intentos» y lo usa en RF-NOT-10 (`intentos = 3` tras fallar), pero **no define qué cuenta como intento**. |
-| **Qué entregó el agente** | `CorreoEnCola.MarcarEnviado` cambia el estado y la fecha pero no incrementa `Intentos`: solo cuentan los fallos. El defecto es anterior a la P5 (cola mínima, `bf20c46`, 22-09-2026); en la P5 el agente reutilizó la cola y no contrastó la regla con RF-NOT-11, aunque **lo vio dos veces**: su consulta `sqlcmd` mostró correos `Enviado` con 0 intentos (por ejemplo «admin2@demo.com Activa tu cuenta - HabitTracker Nexus 3 0») sin señalarlo, y el informe de su agente de contrato decía «Intentos solo cuenta fallos, no envíos exitosos; un correo Enviado con 0 intentos puede confundir en la UI». Lo anotó en el ESTADO como detalle. Sus pruebas (`ProcesadorColaCorreosTests`, `ColaCorreosAdminTests`) afirman el estado `Enviado` pero no los intentos de un correo enviado. |
-| **Por qué pasó** | **Criterio ambiguo.** «Intentos» no estaba definido, y los criterios solo probaban el camino de fallo (RF-NOT-10). Además lo había visto: `ESTADO-DEL-PROYECTO.md` §6.2 decía «`Intentos` de un correo solo cuenta los fallos» como detalle por pulir; lo dejé como deuda en vez de tratarlo como incumplimiento de RF-NOT-11. |
-| **Corrección** | La hizo el agente. **Instrucción (plan aprobado):** «`Intentos++` en `MarcarEnviado`.» **Devolvió** `28cf6a4` (una línea + `Hallazgo2_UnCorreoEnviadoAlPrimerIntento_RegistraEseIntento`) y, al revisar el criterio nuevo, `c20008d` con `Hallazgo2_UnCorreoQueFallaUnaVezYLuegoSale_CuentaLosDosIntentos`. El frontend ya mostraba «Intentos: N de 3» sin suponer cero, y RF-NOT-10 no cambia (los fallos se cuentan igual). |
-| **Qué cambias** | En los criterios: *`intentos` cuenta cada envío intentado, también el que sale bien*. En `AGENTS.md`: *los criterios definen cada número que se muestra, no solo el camino de fallo; una deuda que contradice un RF es un hallazgo.* |
+## Revisado sin hallazgo
+Rango sin datos (200, `filas: []`), `desde > hasta` y sin fechas (400), Estándar en la cola (403), notificación ajena (403 y sigue sin leer). «Sin Administrador activo» y «destinatario inválido» no se pueden provocar por la API.
 
-Evidencia contra la API real (sobre `b393c03`, antes de corregir):
+## No corregido (baja)
+El agregado del Administrador mide por día UTC y el personal por día local (RD-11), y no tiene cohorte mínima (RF-REP-04). Ambos están documentados y quedan para la Fase 6 del plan v2.
 
-```text
-POST api/auth/register (ana) -> 201
-POST api/admin/email-queue/process -> {"enviados":1,"fallidos":0,"recuperados":0}
-GET  api/admin/email-queue?estado=Enviado ->
-  [{"destinatario":"ana@ejemplo.com","estado":"Enviado","intentos":0,"fechaUltimoIntento":"2026-11-19T18:31:04.0995272","fechaEnvio":"2026-11-19T18:31:04.2273977","ultimoError":null}]
-```
-
-Prueba, sobre la producción anterior: `Expected: 1  Actual: 0` y `Expected: 2  Actual: 1`; sobre el tag, pasan.
-
-## Hallazgo 3 — Dos guardados simultáneos de la preferencia dan 500 (baja)
-
-| Campo | |
-|---|---|
-| **Qué se pidió** | RF-NOT-07 (P5): desactivar el correo sin perder el canal interno. Mis criterios probaban el efecto (no se encola, la interna queda), con una persona y una petición. **No había ningún caso de concurrencia**, que el enunciado pedía explícitamente («dos solicitudes simultáneas»). |
-| **Qué entregó el agente** | `NotificacionService.GuardarPreferenciasAsync` lee la preferencia y, si no existe, la inserta (`80dead2`). La clave primaria es `UsuarioId`, así que dos peticiones a la vez de una persona sin preferencia insertan las dos y una falla con 500. La prueba del servicio usa dobles de un solo hilo y no puede ver la carrera: `RF_NOT_07_SinPreferenciaGuardadaElCorreoEstaActivo_YGuardarDosVecesNoDuplica` guarda dos veces **en secuencia**, igual que sus pruebas de humo. Es notable que el agente **ya conocía el riesgo en esa misma práctica**: escribió `ReclamarAsync` con el comentario «de dos pasadas simultáneas solo una afecta la fila», el código existente de `LogrosService` decía «a prueba de dos peticiones simultáneas» y el ESTADO listaba «dos peticiones simultáneas podrían pasarlo» (límite de 3 planes). No lo aplicó a las preferencias. |
-| **Por qué pasó** | **Criterio ausente.** Escribí los criterios pensando en un usuario y una petición y no trasladé la concurrencia que el enunciado nombraba; el agente no la aplicó por su cuenta aunque la conocía, y su verificación (37/37) fue secuencial. |
-| **Corrección** | La hizo el agente. **Instrucción (plan aprobado):** «En `PreferenciaNotificacionesRepository.AgregarAsync`: si la fila ya existe (`DbUpdateException`), se actualiza esa fila.» **Devolvió** `701aa7a` (el cambio, sin tocar ninguna interfaz, y la prueba con la carrera simulada con dos contextos) y `63a8dee`, que la hace fallar por aserción (`Assert.Null`) en vez de por excepción. Revisado: la preferencia es la única entidad de Notificaciones con clave natural; el mismo patrón existe en el perfil de salud de HabitTracker, fuera del alcance auditado (queda como deuda en el ESTADO). |
-| **Qué cambias** | En los criterios: *dos peticiones simultáneas de la misma persona nunca dan 500*. En `AGENTS.md`: *toda operación «leer y, si no existe, insertar» nueva tolera la carrera, y los criterios nuevos llevan un caso de dos peticiones simultáneas.* |
-
-Evidencia contra la API real (sobre `b393c03`, antes de corregir):
-
-```text
-GET /api/notifications/preferences (ana, nunca guardada) -> {"correoActivo":true}
-12 x PUT /api/notifications/preferences {"correoActivo":false} en paralelo -> códigos registrados: 3 x 200, 1 x 500
-log de webapi: DbUpdateException ... SqlException: Violation of PRIMARY KEY constraint 'PK_PreferenciasNotificaciones'.
-               Cannot insert duplicate key in object 'dbo.PreferenciasNotificaciones'.
-```
-
-Prueba, sobre la producción anterior: `Assert.Null() Failure: Value is not null ... DbUpdateException ... UNIQUE constraint failed`; sobre el tag, pasa.
-
-## Después de corregir: la API real y los seis frentes
-
-Con un clon limpio de esta rama (`docker compose up --build`, la migración se aplica al arrancar) y el mismo script para todo:
-
-- **Los seis frentes de la revisión acumulada de la P5 pasan:** registro con activación por el código de Mailpit (y el código reutilizado se rechaza), sesión y 403 de un Estándar en una operación de Administrador, logout con `me` → 401, recuperación de contraseña con login con la clave nueva, permisos (aprobar, rechazar con motivo, aprobar dos veces → 400, aprobar una rechazada → 400, el Administrador no resuelve su propia solicitud → 400), hábito con `Planificado → Completado` rechazado (400) y `Planificado → Activo` (204), y un documento que sigue en el listado y se descarga tras `docker compose down` (sin `-v`) y volver a levantar.
-- **Los tres hallazgos ya no se reproducen:** ningún correo `Enviado` con `intentos: 0` (los hay con `1`); el plan cancelado sigue en el reporte personal y en el del Administrador; 12 `PUT` simultáneos de la preferencia → 12 respuestas y ninguna 500.
-- Un primer intento del frente de permisos falló por mi propio script (usé claves con espacios como «Acceso reportes»: la clave se valida y responde 400, que es lo correcto); con claves válidas (`Reports.Ver`) pasó entero.
-
-## Revisión como el maestro
-
-Un subagente (Opus) calificó la rama desde un clon limpio, con la rúbrica. Resultado: **4,5/5 estimado**; Correcciones, Auditoría y Pruebas «Logrado», y la bitácora «Parcial» por no mostrar la instrucción de corrección ni salidas pegadas. Lo que encontró y lo que se hizo:
-
-| Observación | Qué se hizo |
-|---|---|
-| Falta la instrucción de corrección y las salidas reales | Añadidas (campo «Corrección» y los bloques de evidencia de arriba) |
-| La prueba del hallazgo 3 fallaba por excepción, no por aserción | `63a8dee` |
-| El criterio «falló una vez y salió → 2» no tenía prueba | `c20008d` |
-| Dos lecciones de `AGENTS.md` prometían más de lo que cumple el código (`Completar` no guarda fecha; el patrón leer-insertar sigue en el perfil de salud) | Lecciones reescritas a lo que sí se cumple; lo existente, como deuda en el ESTADO |
-| H1 y H2 ya constaban como deuda | Reconocido en «Por qué pasó» de cada uno |
-
-## Otras decisiones de la P5 que el agente declaró (no son hallazgos reproducidos)
-
-Salen de la sesión de la P5; no se presentan como hallazgos porque ya estaban documentadas o no se pudieron reproducir, pero son parte de la imagen completa:
-
-- **Los avisos de Permisos tragan sus errores** (RF-NOT-01 y 02): si guardar la notificación falla, solo hay log y no hay reintento; fue una decisión explícita («un fallo al notificar se registra y no deshace la operación»).
-- **El logro se notifica al consultar Hoy**, no al registrar el avance (RF-NOT-03): está en el README y en el criterio, pero el evento no «dispara» solo.
-- **`POST api/admin/email-queue/process`** devuelve ceros tanto si no hay nada que hacer como si el correo espera su reintento (RF-NOT-11): deuda anotada.
-- **RF-NOT-12, una discrepancia sin causa raíz:** en la primera pasada del smoke de la P5 llegaron 3 correos a Mailpit y se esperaban 2 (36/37); la base no mostró duplicados y la segunda ejecución sobre una base nueva dio 37/37. Se atribuyó a una carrera con el worker y no se diagnosticó. **Aquí no se reprodujo** (el reclamo es atómico y hay pruebas de dos ejecuciones seguidas), así que no se declara hallazgo.
-- **Solicitud duplicada de Permisos** (`ExisteVigenteAsync` antes de `AddAsync`): el mismo patrón «leer y, si no existe, insertar» y **no hay índice único** que lo proteja, así que dos solicitudes simultáneas podrían duplicarse. Es otro módulo (Permisos) y su repositorio tiene un defecto plantado que no se puede tocar; queda como deuda en el ESTADO.
-
-## Casos que se revisaron y no son hallazgo
-
-| Caso | Qué se ejecutó | Resultado |
-|---|---|---|
-| Rango sin datos | `GET api/reports/permissions?desde=2020-01-01&hasta=2020-01-31` | 200, `filas: []`, `total: 0` |
-| `desde` posterior a `hasta`, o sin fechas | `GET api/reports/adherence` con ese rango, y sin parámetros | 400 en los dos |
-| Un Estándar en la cola | `GET api/admin/email-queue` con el token de `ana` | 403 |
-| Marcar la notificación de otra persona | `ana` crea una solicitud (201); luego `POST api/notifications/{id del Administrador}/read` con el token de `ana` | 403, y la del Administrador sigue `leida:false` |
-| Usuario sin ningún Administrador activo | No se puede provocar: lo impide `ultimo_administrador` | n/a |
-| Destinatario inválido | No se puede provocar por la API: el correo se valida al registrarse | n/a |
-| Errores con trazas, rutas o credenciales | `GlobalExceptionMiddleware` responde `ProblemDetails` genérico; no hay claves en el historial (`gitleaks` pasa) | Sin hallazgo |
-
-## Hallazgos que declaro y no corrijo (gravedad baja)
-
-- **El agregado del Administrador mide por día UTC y el personal por día local** (RD-11): un avance de noche puede caer en días distintos según el reporte. Es una decisión documentada (README, Reportes), el agregado no tiene una zona única, y corregirlo toca el repositorio y su prueba; queda para la Fase 6 del plan v2.
-- **Sin cohorte mínima en el agregado** (RF-REP-04): con una sola persona en un plan, el Administrador ve su constancia exacta, aunque sin nombre ni correo. Se resuelve con las métricas de la Fase 6.
-- **Seguimiento:** la API simulada del frontend (`mocks/handlers/reportes.ts`) todavía excluye los planes cancelados; el contrato no cambia y la app real no se ve afectada.
-
-## Cómo verificar cada hallazgo
-
-Desde un clon limpio, para cada uno: se vuelve **solo el archivo de producción** al estado anterior a su commit, las pruebas del hallazgo deben fallar, y al restaurarlo deben pasar. (Los comandos usan el tag `asignacion-3`: existe en el punto entregado.)
+## Cómo verificar
+Desde un clon con `git checkout asignacion-3`: se vuelve solo el archivo de producción al commit anterior, la prueba falla; se restaura y pasa.
 
 ```bash
-git clone https://github.com/J-bot-oss-code/HabitTracker-Arquitectura.git && cd HabitTracker-Arquitectura
-git checkout asignacion-3
-
-# Hallazgo 1  (commit c7d8f67)
 git checkout c7d8f67~1 -- Modules/HabitTracker/HabitTracker.Domain/Planes/PlanUsuario.cs Modules/HabitTracker/HabitTracker.Application/Services/ReporteConstanciaService.cs Modules/HabitTracker/HabitTracker.Infrastructure/Repositories/ReporteConstanciaRepository.cs
-dotnet test tests/HabitTracker.Integration.Tests --filter "FullyQualifiedName~Hallazgo1"   # FALLAN (2)
-git checkout asignacion-3 -- . && dotnet test tests/HabitTracker.Integration.Tests --filter "FullyQualifiedName~Hallazgo1"   # PASAN
+dotnet test tests/HabitTracker.Integration.Tests --filter "FullyQualifiedName~Hallazgo1"   # falla (2)
+git checkout asignacion-3 -- . && dotnet test tests/HabitTracker.Integration.Tests --filter "FullyQualifiedName~Hallazgo1"   # pasa
 
-# Hallazgo 2  (commit 28cf6a4)
 git checkout 28cf6a4~1 -- Modules/AccessControl/AccessControl.Domain/Entities/CorreoEnCola.cs
-dotnet test tests/AccessControl.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo2"   # FALLAN (2)
-git checkout asignacion-3 -- . && dotnet test tests/AccessControl.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo2"   # PASAN
+dotnet test tests/AccessControl.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo2"   # falla (2)
+git checkout asignacion-3 -- . && dotnet test tests/AccessControl.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo2"   # pasa
 
-# Hallazgo 3  (commit 701aa7a)
 git checkout 701aa7a~1 -- Modules/Notifications/Notifications.Infrastructure/Repositories/NotificacionRepository.cs
-dotnet test tests/Notifications.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo3"   # FALLA
-git checkout asignacion-3 -- . && dotnet test tests/Notifications.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo3"   # PASA
+dotnet test tests/Notifications.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo3"   # falla
+git checkout asignacion-3 -- . && dotnet test tests/Notifications.Infrastructure.Tests --filter "FullyQualifiedName~Hallazgo3"   # pasa
 ```
-
-Para reproducirlos contra la API real: `docker compose up --build` y los pasos de los bloques de evidencia de cada hallazgo.
