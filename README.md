@@ -292,7 +292,7 @@ Ejecuta toda la suite de pruebas unitarias con:
 dotnet test
 ```
 
-La suite prueba directamente las capas de aplicación, dominio e infraestructura: no inicia la API ni necesita una base de datos externa. Las pruebas de persistencia usan SQLite en memoria. Hoy son **1435 pruebas** y ese único comando las ejecuta todas desde un clon limpio.
+La suite prueba directamente las capas de aplicación, dominio e infraestructura: no inicia la API ni necesita una base de datos externa. Las pruebas de persistencia usan SQLite en memoria. Hoy son **1436 pruebas** y ese único comando las ejecuta todas desde un clon limpio.
 
 **Asignación 3 (auditoría de la P5).** Cada hallazgo corregido tiene una prueba de regresión cuyo nombre empieza por `Hallazgo{N}_` y que falla sobre el código anterior a su corrección (ver `docs/bitacora-asignacion-3.md`, «Cómo verificar cada hallazgo»). Para correr solo esas:
 
@@ -548,7 +548,7 @@ Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflow
 
 | Workflow | Trabajo | Qué verifica | Bloquea el merge si… |
 |---|---|---|---|
-| `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 1435 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
+| `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 1436 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
 | `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 1033 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica en una dependencia de producción (`npm audit --omit=dev`) |
 | `ci.yml` | Reglas del repositorio | formato de los commits (`tipo: descripción en español [RF-XX-NN, RD-NN]`), RD-03, RD-05, RD-08, RD-10 y RD-11, ShellCheck de los scripts | un commit o el código incumple la regla |
 | `seguridad.yml` | CodeQL (C#, JS/TS, Actions) | análisis estático con las consultas `security-extended` | la regla de *code scanning* del repositorio detecta una alerta alta o crítica |

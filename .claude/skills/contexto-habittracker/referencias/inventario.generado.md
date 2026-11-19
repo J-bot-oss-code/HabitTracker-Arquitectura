@@ -104,7 +104,7 @@
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
 | AccessControl.Application.Tests | 29 | 282 | 44 |
-| AccessControl.Infrastructure.Tests | 11 | 79 | 8 |
+| AccessControl.Infrastructure.Tests | 11 | 80 | 8 |
 | DocumentManager.Api.Tests | 4 | 31 | 6 |
 | DocumentManager.Application.Tests | 1 | 34 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
@@ -122,7 +122,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **934** | **124** |
+| **Total** | | **935** | **124** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 

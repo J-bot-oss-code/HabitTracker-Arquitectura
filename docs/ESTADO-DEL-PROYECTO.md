@@ -37,7 +37,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **1435** pruebas (medido el 19-11-2026; 3 son las de regresión `Hallazgo{N}_*` de la Asignación 3) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Backend:** `dotnet test` ejecuta **1436** pruebas (medido el 19-11-2026; 5 son las de regresión `Hallazgo{N}_*` de la Asignación 3) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
 - **Frontend:** `cd frontend && npm test` ejecuta **1033** pruebas en 69 archivos (medido el 18-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
@@ -75,7 +75,8 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 3. Detrás de un proxy inverso, `RemoteIpAddress` es la IP del proxy y los endpoints anónimos (`catalogo`, `login`…) comparten el cupo por IP: se resuelve con `PROXY_CONFIABLE` (`ProxiesConfiables__0`, ver README). Los endpoints con sesión ya se limitan por persona.
 4. Sin E2E en Edge (puppeteer-core), sin `claude-security` sobre lo nuevo y sin el «latido del worker» en el healthcheck (no hay worker de recordatorios). *(Fase 6 y Fase 5.)*
 5. El límite de 3 planes en curso se comprueba en el servicio: dos peticiones simultáneas podrían pasarlo (solo el mismo plan repetido lo impide la base). `MarcarLogrosVistos` marca todos los logros y una zona horaria que el sistema no conoce cae a UTC sin avisar (al guardar el perfil sí se valida; en Docker falta tzdata, Fase 6).
-6. Mis planes, detalles del backend por pulir: `celebracionSemana` no tiene marca de «visto» (el frontend lo recuerda en `sessionStorage`) y `ResumenProgresoDto.racha` mezcla días y semanas (cambiarlos cambia el contrato del frontend: con el piloto).
+6. «Leer y, si no existe, insertar» sin tolerar la carrera (dos peticiones simultáneas de una persona nueva darían 500): `PerfilSaludServices` (crear el perfil) y `PerfilSaludRepositories.GuardarAsync` (el cuestionario). La preferencia de notificaciones ya lo tolera (Asignación 3).
+7. Mis planes, detalles del backend por pulir: `celebracionSemana` no tiene marca de «visto» (el frontend lo recuerda en `sessionStorage`) y `ResumenProgresoDto.racha` mezcla días y semanas (cambiarlos cambia el contrato del frontend: con el piloto).
 
 ## 7. Flujo de trabajo
 
