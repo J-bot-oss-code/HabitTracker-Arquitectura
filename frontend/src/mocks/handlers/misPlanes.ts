@@ -33,6 +33,7 @@ import { MENSAJES_MOTIVACION, TIPS_EXTRA, type CategoriaMensaje } from './misPla
 import { razonesNoApto } from './planes'
 import { PLANES_MOCK } from './planesData'
 import { sinConsentimientoSalud } from './progreso'
+import { notificar, TEXTO_LOGRO } from '../notificar'
 
 // Réplica de MyPlansController y TodayController (HabitTracker v2, Fase 4) con las reglas de
 // PlanUsuarioService, PlanUsuario/TransicionesPlanUsuario, CalculadoraProgreso, SugeridorAjuste,
@@ -588,13 +589,18 @@ function sincronizarLogros(usuarioId: string, progresos: ProgresoDePlan[], ahora
   const propios = () => db.logros.filter((l) => l.usuarioId === usuarioId)
   const obtenidos = new Set(propios().map((l) => l.clave))
   for (const [clave, ganado] of condiciones) {
-    if (ganado && !obtenidos.has(clave))
+    if (ganado && !obtenidos.has(clave)) {
       db.logros.push({
         usuarioId,
         clave,
         obtenidoEn: new Date(ahora).toISOString(),
         vistoEn: null,
       })
+      // RF-NOT-03, como LogrosService + NotificadorUsuarioAdapter: solo quien acaba de ganarlo recibe el aviso.
+      const persona = db.usuarios.find((u) => u.id === usuarioId && u.activo)
+      const texto = TEXTO_LOGRO[clave]
+      if (persona && texto) notificar([persona], 'LogroObtenido', texto[0], texto[1])
+    }
   }
   return propios()
 }

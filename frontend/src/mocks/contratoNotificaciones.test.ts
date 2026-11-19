@@ -345,3 +345,39 @@ describe('cola de correos (solo Administrador)', () => {
     expect(lista[199].asunto).toBe('Correo 199')
   })
 })
+
+describe('cola de correos: privacidad (RF-NOT-10)', () => {
+  const CLAVES = [
+    'asunto',
+    'destinatario',
+    'estado',
+    'fechaCreacion',
+    'fechaEnvio',
+    'fechaUltimoIntento',
+    'id',
+    'intentos',
+    'ultimoError',
+  ]
+
+  it('no incluye el cuerpo, el motivo ni nombres: solo destinatario, asunto y estado del envío', async () => {
+    const estandar = iniciarSesionComo('estandar')
+    const admin = iniciarSesionComo('admin')
+    const id = await pedir(estandar, 'Habits.AdvancedReconfig')
+    await resolver(admin, id, 'reject', 'motivo-reservado-xyz')
+
+    const lista = await cola(admin)
+    expect(lista.map((c) => c.destinatario).sort()).toEqual(['admin@demo.com', 'estandar@demo.com'])
+    for (const correo of lista) expect(Object.keys(correo).sort()).toEqual(CLAVES)
+
+    // El texto de los avisos (que lleva el motivo, el solicitante y el permiso) no sale en la cola.
+    const texto = JSON.stringify(lista)
+    expect(texto).not.toContain('motivo-reservado-xyz')
+    expect(texto).not.toContain('rechazó tu solicitud')
+    expect(texto).not.toContain('pidió el permiso')
+    expect(texto).not.toContain('Habits.AdvancedReconfig')
+    for (const u of db.usuarios) {
+      expect(texto).not.toContain(u.nombre)
+      expect(texto).not.toContain(u.id)
+    }
+  })
+})

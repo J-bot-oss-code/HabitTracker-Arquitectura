@@ -227,3 +227,54 @@ describe('reporte de constancia por plan (RF-REP-02 y RF-REP-04)', () => {
     })
   })
 })
+
+describe('privacidad del agregado del Administrador (RF-NEG-08)', () => {
+  it('ni los permisos ni la constancia devuelven correos, nombres, identificadores ni motivos', async () => {
+    sembrarPlanDemo()
+    const original = db.planesUsuario[0]
+    db.planesUsuario.push({
+      ...original,
+      id: crypto.randomUUID(),
+      usuarioId: db.usuarios[2].id,
+      nombre: 'Otro plan',
+    })
+    db.solicitudes.push({
+      id: crypto.randomUUID(),
+      solicitante: 'estandar@demo.com',
+      permisoSolicitado: 'Habits.AdvancedReconfig',
+      estado: 'Rechazada',
+      aprobador: 'admin@demo.com',
+      fechaCreacion: new Date().toISOString(),
+      fechaResolucion: new Date().toISOString(),
+      motivoRechazo: 'motivo-reservado-xyz',
+    })
+
+    const token = iniciarSesionComo('admin')
+    const p = await permisos(token)
+    const c = await constancia(token)
+    // Hay datos de verdad que ocultar.
+    expect(p.total).toBeGreaterThan(0)
+    expect(c.filas.map((f) => f.plan).sort()).toEqual([original.nombre, 'Otro plan'].sort())
+
+    expect(Object.keys(p).sort()).toEqual(['alcance', 'desde', 'filas', 'hasta', 'total'])
+    for (const fila of p.filas) expect(Object.keys(fila).sort()).toEqual(['cantidad', 'estado'])
+    expect(Object.keys(c).sort()).toEqual(['alcance', 'desde', 'filas', 'hasta', 'pregunta'])
+    for (const fila of c.filas)
+      expect(Object.keys(fila).sort()).toEqual([
+        'diasConAvance',
+        'diasEnRango',
+        'diasSoloMinimo',
+        'personas',
+        'plan',
+        'porcentajeConstancia',
+      ])
+
+    const texto = JSON.stringify([p, c])
+    expect(texto).not.toContain('motivo-reservado-xyz')
+    for (const u of db.usuarios) {
+      expect(texto).not.toContain(u.correo)
+      expect(texto).not.toContain(u.nombre)
+      expect(texto).not.toContain(u.id)
+    }
+  })
+})
