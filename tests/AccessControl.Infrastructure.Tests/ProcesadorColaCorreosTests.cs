@@ -102,6 +102,25 @@ public sealed class ProcesadorColaCorreosTests : IDisposable
         Assert.Equal(1, correo.Intentos);
     }
 
+    // Asignación 3 — hallazgo 2: el intento fallido y el que luego sale bien cuentan los dos (criterio RF-NOT-11, caso límite).
+    [Fact]
+    [Trait("Requirement", "RF-NOT-11")]
+    public async Task Hallazgo2_UnCorreoQueFallaUnaVezYLuegoSale_CuentaLosDosIntentos()
+    {
+        var id = Encolar();
+        var enviador = new EnviadorFalso { Falla = true };
+        using (var primera = NuevoContexto())
+            await Procesador(primera, enviador).ProcesarAsync(CancellationToken.None);
+        enviador.Falla = false;
+
+        using var segunda = NuevoContexto();
+        await Procesador(segunda, enviador).ProcesarAsync(CancellationToken.None);
+
+        var correo = Leer(id);
+        Assert.Equal(EstadoCorreo.Enviado, correo.Estado);
+        Assert.Equal(2, correo.Intentos);
+    }
+
     [Fact]
     [Trait("Requirement", "RF-NOT-12")]
     public async Task RF_NOT_12_EjecutarElProcesadorDosVecesSeguidas_NoDuplicaElEnvio()
