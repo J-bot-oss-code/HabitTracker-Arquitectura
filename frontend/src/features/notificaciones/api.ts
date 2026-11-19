@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/shared/api/http'
 import type { NotificacionDto, PreferenciasNotificacionesDto } from './types'
 
@@ -26,6 +26,8 @@ export function useNotificaciones(soloNoLeidas = false, habilitado = true) {
     queryKey: notificacionesKeys.lista(soloNoLeidas),
     queryFn: () => notificacionesApi.listar(soloNoLeidas),
     enabled: habilitado,
+    // Al cambiar de filtro se sigue viendo la lista anterior (atenuada) en vez de un parpadeo de carga.
+    placeholderData: keepPreviousData,
   })
 }
 

@@ -7,6 +7,7 @@ import { cn } from '@/shared/lib/cn'
 import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
+import { GloboNoLeidas } from '@/features/notificaciones/components/GloboNoLeidas'
 import { AvisosDeCuenta } from '@/features/privacidad/components/AvisosDeCuenta'
 import { Icono } from '@/shared/ui/Icono'
 import { navegacionPara, rutaInicial } from '../navigation'
@@ -195,19 +196,7 @@ export function AppLayout() {
             >
               <Icono nombre={item.icono} className="size-5 shrink-0" />
               <span className="text-center lg:flex-1 lg:text-left">{item.etiqueta}</span>
-              {item.proximamente && (
-                <>
-                  {/* Móvil: punto de color; escritorio: etiqueta legible. */}
-                  <span
-                    aria-hidden="true"
-                    className="absolute right-2 top-1.5 size-2 rounded-full bg-aviso lg:hidden"
-                  />
-                  <span className="hidden rounded-full bg-superficie-2 px-2 text-xs font-medium text-atenuado lg:inline">
-                    Pronto
-                  </span>
-                  <span className="sr-only">(próximamente)</span>
-                </>
-              )}
+              {item.a === '/notificaciones' && <GloboNoLeidas />}
             </NavLink>
           ))}
         </nav>
