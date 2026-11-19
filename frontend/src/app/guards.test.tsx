@@ -59,11 +59,4 @@ describe('rutas protegidas y navegación por rol', () => {
     await user.click(screen.getByRole('link', { name: 'Progreso' }))
     expect(await screen.findByRole('heading', { name: 'Iniciar sesión' })).toBeInTheDocument()
   })
-
-  it('las piezas pendientes se muestran como "Próximamente"', async () => {
-    renderApp('/reportes', { como: 'estandar' })
-    expect(await screen.findByRole('heading', { name: 'Reportes' })).toBeInTheDocument()
-    expect(screen.getByText('Próximamente')).toBeInTheDocument()
-    expect(screen.getByText('RF-REP-01')).toBeInTheDocument()
-  })
 })

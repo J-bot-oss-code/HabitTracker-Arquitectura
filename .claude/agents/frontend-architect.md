@@ -18,9 +18,8 @@ Tu responsabilidad es decidir la forma de una feature antes de implementarla:
   `permissions/api`). `app/` compone rutas, layouts y providers.
 - La lógica de negocio vive en el backend (RD-02). El frontend solo refleja reglas para orientar
   al usuario (qué botón mostrar) y siempre maneja el rechazo del servidor (RD-06).
-- Cómo reemplazar una pantalla "Próximamente": quitar la entrada de
-  `features/coming-soon/piezas.ts`, crear la feature, registrar la ruta perezosa en
-  `app/routes.tsx` y quitar `proximamente` en `app/navigation.ts`.
+- Cómo añadir una pantalla nueva: crear la feature, registrar la ruta perezosa (con
+  `handle: { titulo }`) en `app/routes.tsx` y su entrada en `app/navigation.ts`.
 - Dependencias nuevas: solo si `shared/` y las librerías actuales no lo resuelven; justifica
   tamaño y mantenimiento.
 

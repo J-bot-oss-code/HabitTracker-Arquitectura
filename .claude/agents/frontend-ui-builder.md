@@ -57,7 +57,7 @@ componentes.
 ## Reglas de implementación
 
 - Reutiliza `shared/ui` (Button, Input/Select/Textarea, Card, PageHeader, EmptyState, Badge,
-  Alert, Modal, Toast, Spinner, ComingSoon) antes de crear componentes nuevos. Si uno nuevo es
+  Alert, Modal, Toast, Spinner) antes de crear componentes nuevos. Si uno nuevo es
   genérico, va a `shared/ui`; si es de una feature, a `features/<feature>/components`. Migra a
   tokens los colores fijos que encuentres al tocar un componente.
 - Formularios con react-hook-form + `zodResolver`, esquema en `schemas.ts` con los mismos
