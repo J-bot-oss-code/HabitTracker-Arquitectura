@@ -467,6 +467,9 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.Property<int>("Extensiones")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("FechaCancelacion")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("FechaFinPrevista")
                         .HasColumnType("datetime2");
 

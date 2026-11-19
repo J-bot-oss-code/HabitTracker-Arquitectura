@@ -45,7 +45,24 @@ public sealed class PreferenciaNotificacionesRepository(NotificationsDbContext d
     {
         ArgumentNullException.ThrowIfNull(preferencia);
         await dbContext.PreferenciasNotificaciones.AddAsync(preferencia, cancellationToken);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException)
+        {
+            // Una petición simultánea de la misma persona la insertó primero: se queda el último valor pedido, no un 500.
+            dbContext.Entry(preferencia).State = EntityState.Detached;
+            var existente = await dbContext.PreferenciasNotificaciones
+                .FirstOrDefaultAsync(p => p.UsuarioId == preferencia.UsuarioId, cancellationToken);
+            if (existente is null)
+            {
+                throw; // el fallo era otro: no se esconde
+            }
+
+            existente.CambiarCorreo(preferencia.CorreoActivo);
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 
     public Task GuardarCambiosAsync(CancellationToken cancellationToken = default) => dbContext.SaveChangesAsync(cancellationToken);
