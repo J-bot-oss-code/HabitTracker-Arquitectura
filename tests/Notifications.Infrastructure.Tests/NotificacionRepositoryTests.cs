@@ -100,8 +100,9 @@ public sealed class NotificacionRepositoryTests : IDisposable
         using (var segunda = NuevoContexto()) // ...y la segunda la crea antes de que la primera guarde
             await new PreferenciaNotificacionesRepository(segunda).AgregarAsync(new PreferenciaNotificaciones(Ana, correoActivo: true));
 
-        await repoPrimera.AgregarAsync(new PreferenciaNotificaciones(Ana, correoActivo: false));
+        var fallo = await Record.ExceptionAsync(() => repoPrimera.AgregarAsync(new PreferenciaNotificaciones(Ana, correoActivo: false)));
 
+        Assert.Null(fallo);
         using var lectura = NuevoContexto();
         Assert.False((await new PreferenciaNotificacionesRepository(lectura).ObtenerAsync(Ana))!.CorreoActivo);
     }
