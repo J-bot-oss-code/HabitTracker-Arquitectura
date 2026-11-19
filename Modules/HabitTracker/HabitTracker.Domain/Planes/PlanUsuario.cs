@@ -108,6 +108,8 @@ public sealed class PlanUsuario
     public int Semanas { get; private set; }
     public DateTime FechaInicio { get; private set; }
     public DateTime FechaFinPrevista { get; private set; }
+    /// <summary>Cuándo se canceló. Nulo si no se canceló o si se canceló antes de que se guardara la fecha.</summary>
+    public DateTime? FechaCancelacion { get; private set; }
     public EstadoPlanUsuario Estado { get; private set; }
     /// <summary>Motivo de la pausa vigente; nulo si el plan no está en pausa.</summary>
     public MotivoPausa? MotivoPausa { get; private set; }
@@ -117,6 +119,9 @@ public sealed class PlanUsuario
     public TimeOnly? HoraRecordatorio { get; private set; }
     public bool RecordatoriosActivos { get; private set; }
     public IReadOnlyList<PeriodoPausa> Pausas => _pausas;
+
+    /// <summary>Hasta cuándo estuvo en marcha: el fin previsto o, si se canceló antes, el día de la cancelación (RF-REP-02).</summary>
+    public DateTime FinEfectivo => FechaCancelacion is { } cancelado && cancelado < FechaFinPrevista ? cancelado : FechaFinPrevista;
 
     public int SemanasTotales => Semanas + Extensiones;
     public bool EstaEnCurso => Estado is EstadoPlanUsuario.Activo or EstadoPlanUsuario.Pausado;
@@ -172,6 +177,7 @@ public sealed class PlanUsuario
         TransicionesPlanUsuario.Validar(Estado, EstadoPlanUsuario.Cancelado, LlegoFechaFin(ahoraUtc));
         PausaAbierta()?.Cerrar(ahoraUtc);
         MotivoPausa = null;
+        FechaCancelacion = ahoraUtc;
         Estado = EstadoPlanUsuario.Cancelado;
     }
 

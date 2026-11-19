@@ -45,7 +45,8 @@ public sealed class ReporteConstanciaService(
 
         var filas = new List<FilaConstanciaDto>();
         foreach (var plan in (await planes.ListarDeUsuarioAsync(usuarioId, cancellationToken))
-                     .Where(p => p.Estado != EstadoPlanUsuario.Cancelado) // no guardan la fecha en que se dejaron
+                     // shortcut: un cancelado de antes de guardar la fecha (nula) no se puede medir y queda fuera.
+                     .Where(p => p.Estado != EstadoPlanUsuario.Cancelado || p.FechaCancelacion is not null)
                      .OrderBy(p => p.FechaInicio))
         {
             var avances = Seguimiento.HabitosDe(plan, todos)
@@ -55,7 +56,7 @@ public sealed class ReporteConstanciaService(
                 CalculadoraProgreso.DiaLocal(zona, p.InicioUtc), p.FinUtc is { } fin ? CalculadoraProgreso.DiaLocal(zona, fin) : null));
 
             var c = CalculadoraConstancia.Calcular(
-                desde, hasta, CalculadoraProgreso.DiaLocal(zona, plan.FechaInicio), CalculadoraProgreso.DiaLocal(zona, plan.FechaFinPrevista),
+                desde, hasta, CalculadoraProgreso.DiaLocal(zona, plan.FechaInicio), CalculadoraProgreso.DiaLocal(zona, plan.FinEfectivo),
                 hoy, pausas, avances);
 
             if (c.DiasEnRango > 0) // un plan que no estuvo en marcha en el rango no dice nada del rango

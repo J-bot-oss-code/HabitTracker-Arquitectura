@@ -141,16 +141,38 @@ public class ReporteConstanciaPersistenciaTests : IDisposable
         Assert.Equal("Descanso", Assert.Single(deBeto).Plan);
     }
 
+    // Asignación 3 — hallazgo 1: un plan cancelado desaparecía del reporte aunque estuvo en curso dentro del rango (RF-REP-02).
+    // Esta prueba reemplaza a «UnPlanCancelado_NoEntraEnElReporte», que daba por buena esa omisión.
+    // El plan empieza el 13 y se cancela el 14: estuvo en marcha 2 días y en los 2 hubo avance.
     [Fact]
     [Trait("Requirement", "RF-REP-02")]
-    public async Task RF_REP_02_UnPlanCancelado_NoEntraEnElReporte()
+    public async Task Hallazgo1_UnPlanCanceladoCuentaHastaElDiaQueSeCancelo_EnElReportePersonal()
     {
         await Sembrar(Ana, "Calma", [0, 1], cancelado: true);
-        await Sembrar(Ana, "Descanso", [0, 1]);
 
         await using var contexto = NuevoContexto();
+        var fila = Assert.Single(await Servicio(contexto).PersonalAsync(Ana, D(13), D(17)));
 
-        Assert.Equal("Descanso", Assert.Single(await Servicio(contexto).PersonalAsync(Ana, D(13), D(17))).Plan);
+        Assert.Equal("Calma", fila.Plan);
+        Assert.Equal(2, fila.DiasEnRango);
+        Assert.Equal(2, fila.DiasConAvance);
+        Assert.Equal(100m, fila.PorcentajeConstancia);
+    }
+
+    // Asignación 3 — hallazgo 1: la misma omisión estaba repetida en el agregado del Administrador (otro filtro, otra consulta).
+    [Fact]
+    [Trait("Requirement", "RF-REP-02")]
+    public async Task Hallazgo1_UnPlanCanceladoCuentaHastaElDiaQueSeCancelo_EnElReporteDelAdministrador()
+    {
+        await Sembrar(Ana, "Calma", [0, 1], cancelado: true);
+
+        await using var contexto = NuevoContexto();
+        var fila = Assert.Single(await Servicio(contexto).GlobalAsync(D(13), D(17)));
+
+        Assert.Equal("Calma", fila.Plan);
+        Assert.Equal(1, fila.Personas);
+        Assert.Equal(2m, fila.DiasEnRango);
+        Assert.Equal(2m, fila.DiasConAvance);
     }
 
     [Fact]
