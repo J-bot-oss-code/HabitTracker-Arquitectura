@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
+using Auditing.Infrastructure.DependencyInjection;
 using DocumentManager.Infrastructure.DependencyInjection;
 using Notifications.Infrastructure.DependencyInjection;
 using Permissions.Infrastructure.DependencyInjection;
@@ -22,6 +23,9 @@ builder.Services.AddDocumentManagerModule(builder.Configuration);
 
 // Módulo de Notificaciones (Pieza 4 del Core): bandeja interna y correo por la cola de Control de Acceso.
 builder.Services.AddNotificationsModule(builder.Configuration);
+
+// Módulo de Auditoría (Pieza 6 del Core): historial inmutable en su propia tabla; los demás módulos le escriben por puertos.
+builder.Services.AddAuditingModule(builder.Configuration);
 
 // Notificaciones se conecta a Control de Acceso (usuarios y cola de correos) solo por puertos y estos adaptadores.
 builder.Services.AddScoped<Notifications.Application.Interfaces.IDirectorioUsuarios, DirectorioUsuariosAdapter>();
