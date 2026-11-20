@@ -181,7 +181,6 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 ## Frontend: contratos propuestos (sin backend)
 
 - `GET /api/admin/metrics` (admin.ts)
-- `GET /api/audit` (admin.ts)
 
 ## Contenido del módulo de negocio
 
