@@ -40,6 +40,20 @@ public static class HabitTrackerModuleExtensions
         // un adaptador del Host, registrado en Program.cs.
         services.AddScoped<IFirmadorEnlaces, FirmadorEnlaces>();
         services.AddScoped<ICheckinCorreoService, CheckinCorreoService>();
+
+        // Recordatorios por correo (Fase 5): los enlaces cuelgan de la API (App:BaseUrl) y «Abrir la app» va a App:FrontendUrl
+        // (en producción, el mismo origen). ICanalRecordatorios lo resuelve un adaptador del Host, registrado en Program.cs.
+        var recordatorios = new OpcionesRecordatorios();
+        configuration.GetSection("Recordatorios").Bind(recordatorios);
+        recordatorios.UrlApi = configuration["App:BaseUrl"] ?? "";
+        recordatorios.UrlApp = string.IsNullOrWhiteSpace(configuration["App:FrontendUrl"]) ? recordatorios.UrlApi : configuration["App:FrontendUrl"]!;
+        services.AddSingleton(recordatorios);
+        services.AddScoped<IRecordatoriosService, RecordatoriosService>();
+        if (recordatorios.Habilitado)
+        {
+            recordatorios.Validar(); // una URL mal configurada detiene el arranque, no un correo con enlaces rotos
+            services.AddHostedService<HabitTracker.Infrastructure.Workers.RecordatoriosWorker>();
+        }
         services.AddScoped<IPerfilUsuarioRepository, PerfilUsuarioRepository>();
         services.AddScoped<ICuestionarioSaludRepository, CuestionarioSaludRepository>();
         services.AddScoped<IProgresoCorporalRepository, ProgresoCorporalRepository>();

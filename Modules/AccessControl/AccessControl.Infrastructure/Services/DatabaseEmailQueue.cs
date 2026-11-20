@@ -92,7 +92,8 @@ public class DatabaseEmailQueue : IEmailQueue
         var correo = new CorreoEnCola(
             destinatario,
             $"{asunto} — HabitTracker Nexus",
-            PlantillaHtml(Escapar(titulo), Escapar(mensaje), codigo: null, despedida, acciones));
+            // Cada salto de línea del mensaje (una lista de tareas) se ve como tal, después de escapar el texto.
+            PlantillaHtml(Escapar(titulo), Escapar(mensaje).Replace("\n", "<br>"), codigo: null, despedida, acciones));
 
         _dbContext.CorreosEnCola.Add(correo);
         await _dbContext.SaveChangesAsync();

@@ -61,6 +61,8 @@ builder.Services.AddScoped<HabitTracker.Application.Interfaces.IDocumentosUsuari
 builder.Services.AddScoped<DocumentManager.Application.Interfaces.IGuardaEliminacionDocumento, GuardaEliminacionDocumentoAdapter>();
 // Estado de las cuentas (activa y sin baja programada) para el check-in por correo de HabitTracker.
 builder.Services.AddScoped<HabitTracker.Application.Notificaciones.IEstadoCuentas, EstadoCuentasAdapter>();
+// Por dónde salen los recordatorios de HabitTracker: cuenta, preferencia de correo y cola, cada uno por su puerto.
+builder.Services.AddScoped<HabitTracker.Application.Notificaciones.ICanalRecordatorios, CanalRecordatoriosAdapter>();
 
 // Cifrado en reposo de los datos de salud: claves persistentes en DATAPROTECTION_KEYS_PATH (obligatorio fuera de Development).
 builder.Services.AddProteccionDeDatos(builder.Configuration, builder.Environment);
