@@ -19,6 +19,7 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
     private readonly IJwtProvider _jwtProvider;
     private readonly IVersionesLegales _versiones;
     private readonly ILogger<ServicioLoginExterno> _logger;
+    private readonly IAuditoriaService? _auditoria;
 
     public ServicioLoginExterno(
         IValidadorIdTokenGoogle validador,
@@ -27,8 +28,10 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
         IPasswordHasher hasher,
         IJwtProvider jwtProvider,
         IVersionesLegales versiones,
-        ILogger<ServicioLoginExterno> logger)
+        ILogger<ServicioLoginExterno> logger,
+        IAuditoriaService? auditoria = null)
     {
+        _auditoria = auditoria; // en la aplicación siempre se inyecta; sin él (algunas pruebas) no se registra la reactivación
         _validador = validador;
         _usuarios = usuarios;
         _vinculos = vinculos;
@@ -117,7 +120,8 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
         }
 
         // Quien desactivó su propia cuenta la reactiva al demostrar que es el dueño; una desactivada por un administrador no.
-        if (usuario.DesactivadaPorElUsuario)
+        var reactivada = usuario.DesactivadaPorElUsuario;
+        if (reactivada)
         {
             usuario.ReactivarTrasDesactivacion();
         }
@@ -152,6 +156,11 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
 
         usuario.RestablecerIntentos();
         await _usuarios.UpdateAsync(usuario);
+
+        if (reactivada)
+        {
+            await _auditoria.ReactivadaPorSuDuenoAsync(usuario);
+        }
 
         return new ResultadoLoginExterno(Respuesta(usuario), CuentaNueva: false);
     }
@@ -231,6 +240,7 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
             // La propia persona la había desactivado y acaba de demostrar con Google que es el dueño: se reactiva.
             usuario.ReactivarTrasDesactivacion();
             await _usuarios.UpdateAsync(usuario);
+            await _auditoria.ReactivadaPorSuDuenoAsync(usuario);
         }
     }
 

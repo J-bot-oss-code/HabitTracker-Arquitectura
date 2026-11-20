@@ -180,9 +180,9 @@ namespace AccessControl.Domain.Entities
 
         public bool EstaBloqueado() => Bloqueo.EstaBloqueado();
 
-        public void GenerarCodigoRecuperacion(string codigo, int horasValidez)
+        public void GenerarCodigoRecuperacion(string codigo, int horasValidez, bool iniciadoPorAdministrador = false)
         {
-            Recuperacion = new CodigoRecuperacion(codigo, horasValidez);
+            Recuperacion = new CodigoRecuperacion(codigo, horasValidez, iniciadoPorAdministrador);
         }
 
         public void RestablecerPassword(string nuevoHash, string codigo)

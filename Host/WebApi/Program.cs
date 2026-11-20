@@ -27,6 +27,9 @@ builder.Services.AddNotificationsModule(builder.Configuration);
 // Módulo de Auditoría (Pieza 6 del Core): historial inmutable en su propia tabla; los demás módulos le escriben por puertos.
 builder.Services.AddAuditingModule(builder.Configuration);
 
+// Control de Acceso registra sus eventos (rol, estado, contraseña) por su puerto; este adaptador los guarda en el historial.
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IAuditoriaService, AuditoriaControlAccesoAdapter>();
+
 // Notificaciones se conecta a Control de Acceso (usuarios y cola de correos) solo por puertos y estos adaptadores.
 builder.Services.AddScoped<Notifications.Application.Interfaces.IDirectorioUsuarios, DirectorioUsuariosAdapter>();
 builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, ColaCorreosAdapter>();
