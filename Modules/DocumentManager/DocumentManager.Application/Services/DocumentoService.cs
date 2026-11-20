@@ -9,7 +9,8 @@ namespace DocumentManager.Application.Services;
 public sealed class DocumentoService(
     IDocumentoRepository repositorio,
     IAlmacenamientoArchivos almacenamiento,
-    IGuardaEliminacionDocumento? guarda = null) : IDocumentoService
+    IGuardaEliminacionDocumento? guarda = null,
+    IAuditorDocumentos? auditor = null) : IDocumentoService
 {
     public const long TamanoMaximoBytes = 10 * 1024 * 1024;
 
@@ -90,6 +91,15 @@ public sealed class DocumentoService(
             throw;
         }
 
+        // RF-AUD-03: la subida queda en el historial una vez guardada (fuera del try: un fallo al registrar no borra un documento ya
+        // guardado, pero sí hace fallar la operación). shortcut: guardar y registrar no comparten transacción.
+        if (auditor is not null)
+        {
+            await auditor.RegistrarAsync(
+                command.UsuarioId, "Subida de documento", documento.Id, "No existía",
+                $"{documento.NombreOriginal} ({documento.TamanoBytes} bytes)", cancellationToken);
+        }
+
         return ADto(documento);
     }
 
@@ -144,6 +154,14 @@ public sealed class DocumentoService(
         }
 
         await repositorio.UpdateAsync(documento, cancellationToken);
+
+        // RF-AUD-03: la eliminación (lógica) también queda en el historial, la haga el dueño o un Administrador.
+        if (auditor is not null)
+        {
+            await auditor.RegistrarAsync(
+                usuarioId, "Eliminación de documento", documento.Id, $"{documento.NombreOriginal} (visible)",
+                $"{documento.NombreOriginal} (eliminado)" + (esAdministrador ? "; eliminado por un Administrador" : ""), cancellationToken);
+        }
     }
 
     /// <summary>

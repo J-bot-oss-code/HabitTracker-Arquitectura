@@ -37,6 +37,9 @@ builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, Co
 // Los avisos de Permisos (solicitud creada y resuelta) llegan al motor de Notificaciones por este adaptador.
 builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermisos, NotificadorPermisosAdapter>();
 
+// Cada subida y eliminación de documento queda en el historial de auditoría (RF-AUD-03).
+builder.Services.AddScoped<DocumentManager.Application.Interfaces.IAuditorDocumentos, AuditorDocumentosAdapter>();
+
 // Quién aprobó o rechazó cada solicitud queda en el historial de auditoría (RF-AUD-02).
 builder.Services.AddScoped<Permissions.Application.Interfaces.IAuditorPermisos, AuditorPermisosAdapter>();
 
