@@ -130,18 +130,18 @@ public class UsuarioService : IUsuarioService
             await _auditoria.ReactivadaPorSuDuenoAsync(usuario);
         }
 
-        var token = _jwtProvider.Generar(usuario);
-
-        return new UsuarioResponseDto(
-            usuario.Id,
-            usuario.NombreCompleto,
-            usuario.Correo.Valor,
-            usuario.Rol.ToString(),
-            usuario.Activo,
-            token,
-            BajaProgramadaPara: FechasUtc.ComoUtc(usuario.BajaProgramadaPara)
-        );
+        return ConSesion(usuario);
     }
+
+    /// <summary>La persona con su JWT: la respuesta del login y de la activación (que también abre la sesión).</summary>
+    private UsuarioResponseDto ConSesion(Usuario usuario) => new(
+        usuario.Id,
+        usuario.NombreCompleto,
+        usuario.Correo.Valor,
+        usuario.Rol.ToString(),
+        usuario.Activo,
+        _jwtProvider.Generar(usuario),
+        BajaProgramadaPara: FechasUtc.ComoUtc(usuario.BajaProgramadaPara));
 
     public async Task CambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId)
     {
@@ -517,7 +517,7 @@ public class UsuarioService : IUsuarioService
         }
     }
 
-    public async Task ActivarCuentaAsync(string correo, string codigo)
+    public async Task<UsuarioResponseDto> ActivarCuentaAsync(string correo, string codigo)
     {
         // RD-07: un código mal formado se rechaza ANTES de consultar la base de datos y no consume intentos.
         if (codigo is null || codigo.Length != 6 || !codigo.All(c => c >= '0' && c <= '9'))
@@ -550,6 +550,9 @@ public class UsuarioService : IUsuarioService
         await _repository.UpdateAsync(usuario);
 
         await _auditoria.ActivadaAsync(usuario);
+
+        // Quien tiene el código demostró controlar el correo, lo mismo que pide la recuperación de contraseña: entra ya.
+        return ConSesion(usuario);
     }
 
     public async Task<UsuarioResponseDto> RegistrarUsuarioAsync(RegistroRequestDto request)
