@@ -14,7 +14,7 @@ namespace WebApi.Controllers;
 /// muestra una página fija; el <b>POST</b> es el que registra, y es idempotente. Nada de lógica aquí (RD-02).
 /// </summary>
 [ApiController]
-[Route("api/notifications/checkin")]
+[Route("api/reminders/checkin")]
 [AllowAnonymous]
 [EnableRateLimiting(LimitacionDePeticionesExtensions.Checkin)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
@@ -72,7 +72,7 @@ internal static class PaginasCheckin
         $"""
         <h1>¿Ya lo hiciste?</h1>
         <p><strong>{WebUtility.HtmlEncode(info.Habito)}</strong> · {info.FechaLocal:dd/MM/yyyy}</p>
-        <form method="post" action="/api/notifications/checkin">
+        <form method="post" action="/api/reminders/checkin">
           <input type="hidden" name="token" value="{WebUtility.HtmlEncode(token)}">
           <button type="submit">Sí, ya lo hice</button>
         </form>
