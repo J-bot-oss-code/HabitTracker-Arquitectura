@@ -4,6 +4,7 @@ import { authHandlers } from './auth'
 import { colaCorreosHandlers } from './colaCorreos'
 import { documentosHandlers } from './documentos'
 import { habitsHandlers } from './habits'
+import { miActividadHandlers } from './miActividad'
 import { misPlanesHandlers } from './misPlanes'
 import { notificacionesHandlers } from './notificaciones'
 import { planesHandlers } from './planes'
@@ -34,6 +35,8 @@ export const handlers = [
   ...adminUsersHandlers,
   // Historial de auditoría (Auditing, solo lectura).
   ...auditoriaHandlers,
+  // «Mi actividad»: lo propio de la sesión, en ventanas de 7 o 30 días.
+  ...miActividadHandlers,
   // Centro de privacidad real (consentimientos, baja de cuenta y descarga de datos).
   ...privacidadHandlers,
   // Endpoints sin backend todavía (ver propuestas/index.ts).

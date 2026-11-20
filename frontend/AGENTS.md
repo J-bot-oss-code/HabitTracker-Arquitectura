@@ -92,7 +92,7 @@ Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs
 - Públicas: landing `/`, `/metas`, `/calculadoras` y `/legal/:documento`.
 - Alta: `/registro` con consentimientos y `/bienvenida` (onboarding).
 - Estándar: `/hoy` (inicio) y `/progreso`.
-- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Notificaciones (preferencia de correo) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
+- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Mi actividad (`/ajustes/actividad`, ambos roles: `GET /api/me/activity?dias=7|30`, lo propio de la sesión, con descarga CSV/JSON de todo el periodo; vive en `features/auditoria`), Notificaciones (preferencia de correo) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
 - Ambos roles: `/notificaciones` (bandeja con globo de sin leer en el menú) y `/reportes` (permisos por estado y constancia por plan, con rango de fechas).
 - Administrador: `/admin` (inicio), `/admin/auditoria` y `/admin/cola-correos`.
 

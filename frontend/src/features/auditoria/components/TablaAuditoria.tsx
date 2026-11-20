@@ -1,4 +1,5 @@
 import { parsearFechaUtc } from '@/shared/lib/fechas'
+import { cambioDeEvento } from '../detalle'
 import type { EventoAuditoriaDto } from '../types'
 
 // "1 nov 2026, 15:27": 24 horas y sin repetir "UTC" en cada fila (la cabecera ya lo dice).
@@ -8,16 +9,6 @@ const formatoCuando = new Intl.DateTimeFormat('es-DO', {
   hourCycle: 'h23',
   timeZone: 'UTC',
 })
-
-// Qué cambió: "Administrador → Estandar", o "→ desactivar" si solo hay valor nuevo. El servidor nunca manda
-// null; "-" significa sin valor (p. ej. la descarga de datos).
-const hayValor = (v: string) => v !== '' && v !== '-'
-function cambio(e: EventoAuditoriaDto): string | null {
-  if (hayValor(e.valorAnterior) && hayValor(e.valorNuevo))
-    return `${e.valorAnterior} → ${e.valorNuevo}`
-  if (hayValor(e.valorNuevo)) return `→ ${e.valorNuevo}`
-  return null
-}
 
 // Tabla de auditoría (§5.6): Acción · Quién · Cuándo (UTC) · Detalle. Lo que importa
 // va primero, así en un móvil —donde la tabla se desplaza— lo primero que se ve es qué pasó. El
@@ -60,7 +51,7 @@ export function TablaAuditoria({
         </thead>
         <tbody className="divide-y divide-borde">
           {eventos.map((e) => {
-            const detalle = cambio(e)
+            const detalle = cambioDeEvento(e)
             return (
               <tr key={e.id}>
                 <td className="whitespace-nowrap px-4 py-3 font-semibold">{e.accion}</td>

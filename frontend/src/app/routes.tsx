@@ -92,6 +92,10 @@ const paginas = {
     'ResumenAdminPage',
   ),
   auditoria: perezosa(() => import('@/features/auditoria/pages/AuditoriaPage'), 'AuditoriaPage'),
+  miActividad: perezosa(
+    () => import('@/features/auditoria/pages/MiActividadPage'),
+    'MiActividadPage',
+  ),
   hoy: perezosa(() => import('@/features/habits/pages/HoyPage'), 'HoyPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
@@ -240,6 +244,14 @@ export const rutas: RouteObject[] = [
                   descripcion: 'Con qué entras a tu cuenta y en qué dispositivos está abierta.',
                 },
                 ...paginas.ajustesInicioSesion,
+              },
+              {
+                path: 'actividad',
+                handle: {
+                  titulo: 'Mi actividad',
+                  descripcion: 'Lo que hiciste en tu cuenta. Puedes guardarlo en tu equipo.',
+                },
+                ...paginas.miActividad,
               },
               {
                 path: 'notificaciones',

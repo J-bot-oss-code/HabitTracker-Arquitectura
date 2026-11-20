@@ -60,3 +60,12 @@ export interface FiltroAuditoria {
   // 1 a 200 (50 por defecto).
   tamano?: number
 }
+
+// GET /api/me/activity (MiActividadController, cualquier rol con sesión): lo que hizo la propia persona en
+// los últimos 7 o 30 días, con la misma página que /api/audit. Solo lectura: nada se borra, el historial
+// completo sigue en la auditoría. Otro valor de `dias` es un 400.
+export type DiasActividad = 7 | 30
+export const DIAS_ACTIVIDAD: readonly DiasActividad[] = [7, 30]
+
+// Registros por página que admite el servidor como máximo (tamano: 1 a 200).
+export const TAMANO_MAXIMO_ACTIVIDAD = 200

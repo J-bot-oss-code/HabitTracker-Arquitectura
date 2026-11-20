@@ -12,7 +12,7 @@ describe('Configuración', () => {
     expect(await screen.findByText('estandar@demo.com', { selector: 'dd' })).toBeInTheDocument()
   })
 
-  it('el Estándar ve las ocho secciones y navega entre ellas', async () => {
+  it('el Estándar ve las nueve secciones y navega entre ellas', async () => {
     const { user, router } = renderApp('/ajustes/cuenta', { como: 'estandar' })
     await screen.findByRole('heading', { level: 1, name: 'Cuenta' })
     const enlaces = within(secciones())
@@ -25,6 +25,7 @@ describe('Configuración', () => {
       'Perfil y salud',
       'Solicitudes',
       'Privacidad y datos',
+      'Mi actividad',
       'Notificaciones',
       'Apariencia',
     ])
@@ -35,6 +36,15 @@ describe('Configuración', () => {
     expect(within(secciones()).getByRole('link', { name: 'Apariencia' })).toHaveAttribute(
       'aria-current',
       'page',
+    )
+  })
+
+  it('el Administrador también tiene Mi actividad (solo ve lo suyo)', async () => {
+    renderApp('/ajustes/cuenta', { como: 'admin' })
+    await screen.findByRole('heading', { level: 1, name: 'Cuenta' })
+    expect(within(secciones()).getByRole('link', { name: 'Mi actividad' })).toHaveAttribute(
+      'href',
+      '/ajustes/actividad',
     )
   })
 
@@ -76,6 +86,7 @@ describe('Configuración', () => {
     expect(nombres).toEqual([
       '/ajustes/seguridad',
       '/ajustes/inicio-sesion',
+      '/ajustes/actividad',
       '/ajustes/notificaciones',
       '/ajustes/apariencia',
     ])

@@ -103,6 +103,14 @@ export const SECCIONES_AJUSTES: SeccionAjustes[] = [
     roles: ['Estandar'],
     descripcion: 'Descarga tus datos, revisa los consentimientos o retírate.',
   },
+  // Para ambos roles: GET /api/me/activity solo devuelve lo de la propia sesión.
+  {
+    a: '/ajustes/actividad',
+    etiqueta: 'Mi actividad',
+    icono: 'auditoria',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Lo que hiciste en tu cuenta en los últimos 7 o 30 días, para guardarlo.',
+  },
   {
     a: '/ajustes/notificaciones',
     etiqueta: 'Notificaciones',

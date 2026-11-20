@@ -109,15 +109,7 @@ const PLAN_RESUMEN = [
   'beneficios',
   'requiereCuestionario',
 ]
-const NOTIFICACION = [
-  'id',
-  'tipo',
-  'titulo',
-  'mensaje',
-  'creadaEnUtc',
-  'leida',
-  'leidaEnUtc',
-]
+const NOTIFICACION = ['id', 'tipo', 'titulo', 'mensaje', 'creadaEnUtc', 'leida', 'leidaEnUtc']
 
 let ana: string
 let admin: string
@@ -190,6 +182,34 @@ describe('forma de las respuestas de administración, auditoría y reportes', ()
       'registros de auditoría',
     )
     expect(pagina).toMatchObject({ pagina: 1, tamano: 50 })
+  })
+
+  it('GET /api/me/activity es la misma página que /api/audit, solo con lo de la sesión', async () => {
+    const pagina = await json<Record<string, unknown>>('/api/me/activity?dias=30', ana)
+    forma(pagina, ['total', 'pagina', 'tamano', 'registros'], 'GET /api/me/activity')
+    formaLista(
+      pagina.registros,
+      [
+        'id',
+        'fecha',
+        'usuarioId',
+        'actor',
+        'accion',
+        'entidad',
+        'entidadId',
+        'valorAnterior',
+        'valorNuevo',
+      ],
+      'registros de mi actividad',
+    )
+    expect(pagina).toMatchObject({ pagina: 1, tamano: 50 })
+    // El Administrador también la tiene (cualquier rol con sesión), pero solo la suya.
+    const deAdmin = await json<{ registros: { actor: string }[] }>(
+      '/api/me/activity?dias=30',
+      admin,
+    )
+    expect(deAdmin.registros.length).toBeGreaterThan(0)
+    expect(deAdmin.registros.every((r) => r.actor === 'admin@demo.com')).toBe(true)
   })
 
   it('cola de correos: CorreoColaDto y ResultadoColaDto', async () => {
@@ -329,7 +349,9 @@ describe('forma de las respuestas de hábitos, planes y progreso', () => {
   })
 
   it('PlanUsuarioDto con su progreso, su sugerencia y su guía', async () => {
-    const inscrito = await json<{ id: string }>('/api/my-plans', ana, 'POST', { slug: PLAN_CON_GUIA })
+    const inscrito = await json<{ id: string }>('/api/my-plans', ana, 'POST', {
+      slug: PLAN_CON_GUIA,
+    })
     const plan = await json<Record<string, unknown>>(`/api/my-plans/${inscrito.id}`, ana)
     forma(
       plan,
@@ -426,7 +448,15 @@ describe('forma de las respuestas de hábitos, planes y progreso', () => {
     )
     formaLista(
       hoy.planes,
-      ['planId', 'nombre', 'semanaActual', 'semanasTotales', 'diasRestantes', 'racha', 'sugerencia'],
+      [
+        'planId',
+        'nombre',
+        'semanaActual',
+        'semanasTotales',
+        'diasRestantes',
+        'racha',
+        'sugerencia',
+      ],
       'planes de hoy',
     )
     expect(hoy.fecha).toMatch(/^\d{4}-\d{2}-\d{2}$/)
@@ -574,10 +604,15 @@ describe('forma de las respuestas de perfil y privacidad', () => {
       problemaOseoOArticular: false,
       soloActividadSupervisada: false,
     })
-    const salud = await json<Record<string, unknown>>('/api/profile/health/condiciones', ana, 'PUT', {
-      condiciones: ['Ninguna'],
-      alergias: ['Ninguna'],
-    })
+    const salud = await json<Record<string, unknown>>(
+      '/api/profile/health/condiciones',
+      ana,
+      'PUT',
+      {
+        condiciones: ['Ninguna'],
+        alergias: ['Ninguna'],
+      },
+    )
     forma(
       salud,
       [
@@ -690,14 +725,7 @@ describe('forma de las respuestas de perfil y privacidad', () => {
 
     const modulos = datos.modulos as Record<string, unknown>
     expect(campos(modulos)).toEqual(
-      [
-        'habitos',
-        'permisos',
-        'documentos',
-        'planes',
-        'notificaciones',
-        'perfilYSalud',
-      ].sort(),
+      ['habitos', 'permisos', 'documentos', 'planes', 'notificaciones', 'perfilYSalud'].sort(),
     )
     formaLista(modulos.habitos, HABITO, 'habitos exportados')
     formaLista(
