@@ -17,6 +17,7 @@
 | AdminUsuariosController | PATCH | `/api/admin/usuarios/{id:guid}/rol` | rol Administrador |
 | AdminUsuariosController | PATCH | `/api/admin/usuarios/{id:guid}/estado` | rol Administrador |
 | AdminUsuariosController | POST | `/api/admin/usuarios/{id:guid}/forzar-restablecimiento` | rol Administrador |
+| AuditController | GET | `/api/audit` | rol Administrador |
 | AuthController | POST | `/api/auth/register` | anónimo |
 | AuthController | POST | `/api/auth/activate` | anónimo |
 | AuthController | GET | `/api/auth/activate` | anónimo |
@@ -93,7 +94,8 @@
 
 ## Migraciones por contexto
 
-- **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado
+- **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado, AgregarOrigenDelCodigoDeRecuperacion
+- **Auditing:** CrearRegistrosAuditoria
 - **DocumentManager:** AgregarTablaDocumentos
 - **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan
 - **Notifications:** CrearNotificaciones
@@ -103,10 +105,12 @@
 
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
-| AccessControl.Application.Tests | 29 | 282 | 44 |
+| AccessControl.Application.Tests | 30 | 288 | 44 |
 | AccessControl.Infrastructure.Tests | 11 | 80 | 8 |
+| Auditing.Api.Tests | 4 | 11 | 0 |
+| Auditing.Infrastructure.Tests | 1 | 16 | 0 |
 | DocumentManager.Api.Tests | 4 | 31 | 6 |
-| DocumentManager.Application.Tests | 1 | 34 | 3 |
+| DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
 | HabitTracker.Api.Tests | 7 | 41 | 13 |
@@ -117,17 +121,20 @@
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
 | Notifications.Infrastructure.Tests | 1 | 5 | 0 |
-| Permissions.Application.Tests | 2 | 18 | 2 |
+| Permissions.Application.Tests | 3 | 22 | 2 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **935** | **124** |
+| **Total** | | **977** | **124** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 ## Adaptadores del Host (puertos entre módulos)
 
+- `AuditorDocumentosAdapter.cs`: `class AuditorDocumentosAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditorDocumentos`
+- `AuditorPermisosAdapter.cs`: `class AuditorPermisosAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditorPermisos`
+- `AuditoriaControlAccesoAdapter.cs`: `class AuditoriaControlAccesoAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditoriaService`
 - `ColaCorreosAdapter.cs`: `class ColaCorreosAdapter(IEmailQueue cola) : IColaCorreos`
 - `ConsentimientoSaludAdapter.cs`: `class ConsentimientoSaludAdapter(IConsentimientoService consentimientos) : IConsentimientoSalud`
 - `DirectorioUsuariosAdapter.cs`: `class DirectorioUsuariosAdapter(IUsuarioRepository usuarios) : IDirectorioUsuarios`

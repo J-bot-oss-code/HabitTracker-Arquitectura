@@ -2,6 +2,7 @@ using Permissions.Application.DTOs;
 using Permissions.Application.Exceptions;
 using Permissions.Application.Interfaces;
 using Permissions.Domain.Entities;
+using Permissions.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Permissions.Application.Services;
@@ -9,7 +10,8 @@ namespace Permissions.Application.Services;
 public sealed class SolicitudPermisoService(
     ISolicitudPermisoRepository repository,
     ILogger<SolicitudPermisoService> logger,
-    INotificadorPermisos? notificador = null) : ISolicitudPermisoService
+    INotificadorPermisos? notificador = null,
+    IAuditorPermisos? auditor = null) : ISolicitudPermisoService
 {
     public async Task<Guid> CrearAsync(CrearSolicitudPermisoCommand command, CancellationToken cancellationToken = default)
     {
@@ -112,6 +114,7 @@ public sealed class SolicitudPermisoService(
             throw new SolicitudNoEncontradaException();
         }
 
+        var estadoAnterior = solicitud.Estado;
         var resultado = solicitud.Aprobar(command.Aprobador, DateTime.UtcNow);
 
         if (!resultado.IsSuccess)
@@ -122,6 +125,8 @@ public sealed class SolicitudPermisoService(
         await repository.UpdateAsync(solicitud, cancellationToken);
 
         logger.LogInformation("Solicitud {SolicitudId} aprobada.", solicitud.Id);
+
+        await AuditarAsync(solicitud, command.Aprobador, "Aprobación de solicitud de permiso", estadoAnterior, motivo: null, cancellationToken);
 
         await AvisarAsync(
             () => notificador!.SolicitudResueltaAsync(solicitud.Solicitante, solicitud.PermisoSolicitado, true, null, cancellationToken), solicitud.Id);
@@ -138,6 +143,7 @@ public sealed class SolicitudPermisoService(
             throw new SolicitudNoEncontradaException();
         }
 
+        var estadoAnterior = solicitud.Estado;
         var resultado = solicitud.Rechazar(command.Aprobador, command.MotivoRechazo, DateTime.UtcNow);
 
         if (!resultado.IsSuccess)
@@ -149,9 +155,27 @@ public sealed class SolicitudPermisoService(
 
         logger.LogInformation("Solicitud {SolicitudId} rechazada.", solicitud.Id);
 
+        await AuditarAsync(solicitud, command.Aprobador, "Rechazo de solicitud de permiso", estadoAnterior, solicitud.MotivoRechazo, cancellationToken);
+
         await AvisarAsync(
             () => notificador!.SolicitudResueltaAsync(solicitud.Solicitante, solicitud.PermisoSolicitado, false, solicitud.MotivoRechazo, cancellationToken),
             solicitud.Id);
+    }
+
+    // RF-AUD-02: el registro va justo DESPUÉS de guardar la resolución y ANTES del aviso. No se traga el error: sin registro, la
+    // resolución responde fallo. shortcut: guardar y registrar no comparten transacción (viven en bases lógicas distintas).
+    private Task AuditarAsync(
+        SolicitudPermiso solicitud, string aprobador, string accion, EstadoSolicitudPermiso estadoAnterior, string? motivo,
+        CancellationToken cancellationToken)
+    {
+        if (auditor is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        var detalle = $"permiso «{solicitud.PermisoSolicitado}» de {solicitud.Solicitante}" + (motivo is null ? "" : $"; motivo: {motivo}");
+        return auditor.ResolucionRegistradaAsync(
+            aprobador, solicitud.Id, accion, estadoAnterior.ToString(), $"{solicitud.Estado} ({detalle})", cancellationToken);
     }
 
     // El aviso va DESPUÉS de guardar: si falla, la solicitud ya quedó creada o resuelta y no se deshace (se registra y se sigue).

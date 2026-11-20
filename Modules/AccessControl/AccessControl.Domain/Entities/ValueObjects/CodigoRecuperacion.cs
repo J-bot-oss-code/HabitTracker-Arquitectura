@@ -13,13 +13,16 @@ public sealed class CodigoRecuperacion
     public DateTime FechaVencimiento { get; private set; }
     public bool Usado { get; private set; }
     public int IntentosFallidos { get; private set; }
+    /// <summary>Quién lo emitió: un Administrador (restablecimiento forzado) o la propia persona. Lo lee la auditoría (RF-AUD-05).</summary>
+    public bool IniciadoPorAdministrador { get; private set; }
 
     private CodigoRecuperacion() {} // Constructor para EF Core
 
-    public CodigoRecuperacion(string valor, int horasValidez)
+    public CodigoRecuperacion(string valor, int horasValidez, bool iniciadoPorAdministrador = false)
     {
         if (string.IsNullOrWhiteSpace(valor)) throw new ArgumentException("El código no puede estar vacío.", nameof(valor));
-        
+
+        IniciadoPorAdministrador = iniciadoPorAdministrador;
         Valor = valor;
         FechaEmision = DateTime.UtcNow;
         FechaVencimiento = DateTime.UtcNow.AddHours(horasValidez);

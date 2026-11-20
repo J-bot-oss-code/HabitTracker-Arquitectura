@@ -3,6 +3,7 @@ using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
 using AccessControl.Domain.Interfaces;
 using AccessControl.Infrastructure.Persistence;
+using Auditing.Infrastructure.Persistence;
 using DocumentManager.Infrastructure.Persistence;
 using Notifications.Infrastructure.Persistence;
 using HabitTracker.Domain.Entities;
@@ -128,6 +129,7 @@ public static class InicializacionBaseDeDatos
         await sp.GetRequiredService<HabitTrackerDbContext>().Database.MigrateAsync();
         await sp.GetRequiredService<DocumentManagerDbContext>().Database.MigrateAsync();
         await sp.GetRequiredService<NotificationsDbContext>().Database.MigrateAsync();
+        await sp.GetRequiredService<AuditingDbContext>().Database.MigrateAsync();
     }
 
     private static async Task SembrarMetaDemostracionAsync(WebApplication app, ILogger logger)

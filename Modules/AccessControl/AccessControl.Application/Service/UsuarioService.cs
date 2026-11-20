@@ -108,6 +108,7 @@ public class UsuarioService : IUsuarioService
         // "falta activarla con el código del correo" de "un administrador la desactivó".
         // Quien desactivó su propia cuenta la reactiva al iniciar sesión (con la clave correcta); una cuenta desactivada
         // por un administrador no se reactiva sola.
+        var reactivada = false;
         if (!usuario.Activo)
         {
             if (!usuario.DesactivadaPorElUsuario)
@@ -116,11 +117,18 @@ public class UsuarioService : IUsuarioService
             }
 
             usuario.ReactivarTrasDesactivacion();
+            reactivada = true;
         }
 
         // 5. Éxito: se restablecen intentos, se persiste y se emite el JWT.
         usuario.RestablecerIntentos();
         await _repository.UpdateAsync(usuario);
+
+        // RF-AUD-04: la reactivación de una cuenta también queda en el historial.
+        if (reactivada)
+        {
+            await _auditoria.ReactivadaPorSuDuenoAsync(usuario);
+        }
 
         var token = _jwtProvider.Generar(usuario);
 
@@ -256,8 +264,8 @@ public class UsuarioService : IUsuarioService
             "Cambio de estado",
             "Usuario",
             usuario.Id.ToString(),
-            estadoAnterior.ToString(),
-            nuevoEstado.ToString()
+            AuditoriaDeCuentas.Estado(estadoAnterior),
+            AuditoriaDeCuentas.Estado(nuevoEstado)
         );
     }
 
@@ -331,6 +339,9 @@ public class UsuarioService : IUsuarioService
 
         var nuevoHash = _passwordHasher.Hash(nuevaPassword);
 
+        // RF-AUD-05: quién emitió el código se lee antes de usarlo; el historial nunca recibe la contraseña ni el código.
+        var iniciadoPorAdministrador = usuario.Recuperacion.IniciadoPorAdministrador;
+
         // RF-CA-11: valida el código (un solo uso + vencimiento) y lo marca como usado.
         usuario.RestablecerPassword(nuevoHash, codigo);
 
@@ -341,6 +352,17 @@ public class UsuarioService : IUsuarioService
         await _sesiones.RevocarTodasAsync(usuario.Id, "restablecimiento-de-contrasena");
 
         await _repository.UpdateAsync(usuario);
+
+        await _auditoria.RegistroAuditoriaAsync(
+            usuario.Id,
+            usuario.Rol.ToString(),
+            "Restablecimiento de contraseña",
+            "Usuario",
+            usuario.Id.ToString(),
+            "Contraseña anterior (no se guarda)",
+            iniciadoPorAdministrador
+                ? "Contraseña nueva (no se guarda); iniciado por: un Administrador"
+                : "Contraseña nueva (no se guarda); iniciado por: el propio usuario");
     }
 
     public async Task CambiarPasswordAsync(Guid usuarioId, string actual, string nueva)
@@ -411,7 +433,7 @@ public class UsuarioService : IUsuarioService
         await _sesiones.RevocarTodasAsync(usuario.Id, "restablecimiento-forzado");
 
         var codigoGenerado = GenerarCodigoRecuperacion();
-        usuario.GenerarCodigoRecuperacion(codigoGenerado, 24);
+        usuario.GenerarCodigoRecuperacion(codigoGenerado, 24, iniciadoPorAdministrador: true);
 
         await _repository.UpdateAsync(usuario);
 
