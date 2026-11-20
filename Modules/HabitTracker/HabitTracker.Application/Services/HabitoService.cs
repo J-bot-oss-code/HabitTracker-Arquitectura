@@ -138,6 +138,8 @@ public sealed class HabitoService(
         DateTime fechaUtc,
         Guid usuarioActualId,
         bool esVersionMinima = false,
+        OrigenRegistro origen = OrigenRegistro.App,
+        string? claveIdempotencia = null,
         CancellationToken cancellationToken = default)
     {
         if (usuarioActualId == Guid.Empty)
@@ -154,7 +156,8 @@ public sealed class HabitoService(
             throw new ReglaNegocioException(ReglaNegocioException.FechaFutura, "La fecha del avance no puede ser futura.");
 
         var habito = await ObtenerHabitoPropietarioAsync(habitoId, usuarioActualId, cancellationToken);
-        habito.RegistrarAvance(usuarioActualId, cantidad, fechaUtc, esVersionMinima);
+        if (!habito.RegistrarAvance(usuarioActualId, cantidad, fechaUtc, esVersionMinima, origen, claveIdempotencia))
+            return; // ya estaba registrado con esa clave: el segundo intento es un éxito sin efectos
         await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 

@@ -14,5 +14,13 @@ internal sealed class RegistroDiarioConfiguracion : IEntityTypeConfiguration<Reg
 
         builder.Property(r => r.Cantidad).HasPrecision(18, 2);
         builder.Property(r => r.Unidad).HasMaxLength(50).IsRequired();
+        builder.Property(r => r.Origen).HasConversion<string>().HasMaxLength(10).HasDefaultValue(OrigenRegistro.App);
+        builder.Property(r => r.ClaveIdempotencia).HasMaxLength(RegistroDiario.LongitudClave);
+        // El índice filtrado de abajo no sirve para leer todos los registros de un hábito: este sí.
+        builder.HasIndex(r => r.HabitoId);
+        // Un segundo POST del mismo enlace de correo no duplica el avance: la clave es única por hábito.
+        builder.HasIndex(r => new { r.HabitoId, r.ClaveIdempotencia })
+            .IsUnique()
+            .HasFilter("[ClaveIdempotencia] IS NOT NULL");
     }
 }
