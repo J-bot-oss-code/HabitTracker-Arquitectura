@@ -193,7 +193,8 @@ export const authHandlers = [
     }
     usuario.activo = true
     usuario.tokenActivacion = null
-    return respuestas.mensaje('Cuenta activada correctamente.')
+    // Como el backend real: activar abre la sesión (quien tiene el código controla el correo).
+    return HttpResponse.json(aDto(usuario, abrirSesion(usuario)))
   }),
 
   http.post('/api/auth/resend-activation', async ({ request }) => {

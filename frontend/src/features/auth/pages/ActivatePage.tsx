@@ -1,6 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, useWatch } from 'react-hook-form'
-import { Link, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
+import { rutaInicial } from '@/app/navigation'
+import { useAuth } from '@/shared/auth/AuthContext'
 import { Alert } from '@/shared/ui/Alert'
 import { Button } from '@/shared/ui/Button'
 import { claseBoton } from '@/shared/ui/claseBoton'
@@ -12,10 +14,14 @@ import { cumple } from '../validacionEnVivo'
 
 // El código de 6 dígitos no es único entre usuarios: se activa siempre con el correo. Si llega desde el
 // enlace (?correo=...&codigo=...) se rellena, pero NO se activa solo: un clic en el botón. Así un escáner
-// de correos o una precarga del enlace no gasta los 5 intentos del código (RF-CA-15).
+// de correos o una precarga del enlace no gasta los 5 intentos del código (RF-CA-15). Activar abre la sesión y
+// lleva a la ruta inicial del rol (sin perfil, RequierePerfil manda al onboarding). Esta ruta no está bajo
+// SoloInvitados: el enlace del correo puede abrirse con otra sesión abierta.
 export function ActivatePage() {
   const [params] = useSearchParams()
   const activar = useActivar()
+  const { iniciarSesion } = useAuth()
+  const navigate = useNavigate()
 
   const {
     register,
@@ -29,6 +35,7 @@ export function ActivatePage() {
   })
   const [correo, codigo] = useWatch({ control, name: ['correo', 'codigo'] })
 
+  // Solo si la respuesta no trajo una sesión válida (no debería pasar): la cuenta ya está activa.
   if (activar.isSuccess) {
     return (
       <AuthCard titulo="Cuenta activada" paso={2}>
@@ -57,7 +64,18 @@ export function ActivatePage() {
           nuevo.
         </Alert>
       )}
-      <form onSubmit={handleSubmit((d) => activar.mutate(d))} noValidate className="space-y-4">
+      <form
+        onSubmit={handleSubmit((d) =>
+          activar.mutate(d, {
+            onSuccess: (respuesta) => {
+              const sesion = respuesta.token ? iniciarSesion(respuesta.token) : null
+              if (sesion) navigate(rutaInicial(sesion.rol), { replace: true })
+            },
+          }),
+        )}
+        noValidate
+        className="space-y-4"
+      >
         <Input
           etiqueta="Correo"
           type="email"

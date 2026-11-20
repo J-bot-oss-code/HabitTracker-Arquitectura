@@ -1,10 +1,11 @@
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import type { UserEvent } from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { CODIGO_RECUPERACION_DEMO, db, TOKEN_ACTIVACION_DEMO } from '@/mocks/db'
 import { leerRegistroPendiente } from '@/features/perfil/api'
 import { completarOnboarding } from '@/test/onboarding'
 import { renderApp, renderAppConEstado } from '@/test/render'
+import { tokenStorage } from '@/shared/auth/tokenStorage'
 
 // La política del backend: 12+ caracteres con letras y números.
 const CLAVE = 'Clave-Segura-2026'
@@ -12,7 +13,7 @@ const CLAVE_NUEVA = 'NuevaClave-Segura-9'
 const CLAVE_OTRA = 'OtraClave-Segura-7'
 
 describe('flujos de cuenta', () => {
-  it('registro con meta → activación → login → onboarding → panel', async () => {
+  it('registro con meta → activación (entra sola) → onboarding → panel', async () => {
     const { user } = renderApp('/registro?meta=primeros-5-km')
     expect(await screen.findByText('Paso 1 de 5')).toBeInTheDocument()
     await user.type(screen.getByLabelText('Nombre completo'), 'Nueva Persona')
@@ -30,14 +31,8 @@ describe('flujos de cuenta', () => {
     expect(screen.getByLabelText('Correo')).toHaveValue('nueva@demo.com')
     await user.type(screen.getByLabelText('Código de activación'), TOKEN_ACTIVACION_DEMO)
     await user.click(screen.getByRole('button', { name: 'Activar' }))
-    expect(await screen.findByText(/Tu cuenta está activa/)).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: 'Ir a iniciar sesión' }))
-    await user.type(screen.getByLabelText('Correo'), 'nueva@demo.com')
-    await user.type(screen.getByLabelText('Contraseña'), CLAVE)
-    await user.click(screen.getByRole('button', { name: 'Entrar' }))
-
-    // Sin perfil, el panel lleva al onboarding con la meta del registro.
+    // Activar abre la sesión: no hace falta volver a escribir la contraseña. Sin perfil, el panel lleva al onboarding con la meta del registro.
     expect(await screen.findByRole('heading', { name: '¿Cómo es tu jornada?' })).toBeInTheDocument()
     expect(screen.getByText('Paso 3 de 5')).toBeInTheDocument()
     await completarOnboarding(user)
@@ -202,8 +197,13 @@ describe('flujos de cuenta', () => {
     expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(false)
 
     await user.click(screen.getByRole('button', { name: 'Activar' }))
-    expect(await screen.findByText(/Tu cuenta está activa/)).toBeInTheDocument()
+    // Activa y entra: la pantalla de activación deja paso a la app.
+    await waitFor(() =>
+      expect(screen.queryByLabelText('Código de activación')).not.toBeInTheDocument(),
+    )
     expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(true)
+    expect(tokenStorage.leer()).not.toBeNull()
+    expect(screen.queryByText(/Inicia sesión para preparar tu plan/)).not.toBeInTheDocument()
   })
 
   it('el código de activación se valida: 6 dígitos y el correo de su cuenta', async () => {
