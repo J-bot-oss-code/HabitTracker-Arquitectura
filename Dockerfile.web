@@ -17,4 +17,12 @@ RUN npm run build
 FROM caddy:2.11.2-alpine
 COPY --from=build /app/dist /srv
 COPY deploy/Caddyfile /etc/caddy/Caddyfile
+
+# No se ejecuta como root. La imagen de Caddy trae la capacidad de abrir los puertos 80 y 443 sin serlo; solo hay que dar al
+# usuario sus carpetas de trabajo: /data (certificados) y /config. En el compose son volúmenes con nombre y heredan este dueño.
+RUN addgroup -S web && adduser -S -G web web \
+    && mkdir -p /data /config \
+    && chown -R web:web /data /config /srv
+USER web
+
 EXPOSE 80 443
