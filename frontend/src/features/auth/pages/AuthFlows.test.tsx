@@ -197,12 +197,12 @@ describe('flujos de cuenta', () => {
     expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(false)
 
     await user.click(screen.getByRole('button', { name: 'Activar' }))
-    // Activa y entra: la pantalla de activación deja paso a la app.
+    // Activa y entra: la sesión queda abierta y la pantalla de activación deja paso a la app.
+    await waitFor(() => expect(tokenStorage.leer()).not.toBeNull())
     await waitFor(() =>
       expect(screen.queryByLabelText('Código de activación')).not.toBeInTheDocument(),
     )
     expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(true)
-    expect(tokenStorage.leer()).not.toBeNull()
     expect(screen.queryByText(/Inicia sesión para preparar tu plan/)).not.toBeInTheDocument()
   })
 

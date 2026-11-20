@@ -35,8 +35,9 @@ export function ActivatePage() {
   })
   const [correo, codigo] = useWatch({ control, name: ['correo', 'codigo'] })
 
-  // Solo si la respuesta no trajo una sesión válida (no debería pasar): la cuenta ya está activa.
-  if (activar.isSuccess) {
+  // Solo si la respuesta no trajo una sesión (no debería pasar): la cuenta ya está activa. Con sesión, el
+  // formulario sigue a la vista hasta que la navegación lo reemplaza, sin mostrar «inicia sesión» un instante.
+  if (activar.isSuccess && !activar.data.token) {
     return (
       <AuthCard titulo="Cuenta activada" paso={2}>
         <Alert tono="exito">Tu cuenta está activa. Inicia sesión para preparar tu plan.</Alert>
