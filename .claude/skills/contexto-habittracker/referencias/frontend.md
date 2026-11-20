@@ -38,7 +38,7 @@
 | `privacidad` | Consentimientos (incluido `datosSalud`), baja y descarga | Real: `/api/privacy/*` |
 | `auth` | Registro con consentimientos, activación con código, login, Google y sesiones | Real: `/api/auth/*` |
 | `documentos` | «Mis archivos» `/documentos` (subir, descargar, eliminar), `BotonEliminarArchivo` (pide el permiso por archivo cuando está en un plan en curso), adjuntos de plan (`useAdjuntosDePlan`…) y `permisoArchivo.ts`; «Archivos del plan» vive en `mis-planes/components/ArchivosDelPlan.tsx` | Real: `/api/documents`, `/api/my-plans/{id}/attachments` |
-| `auditoria` | Resumen y auditoría del Administrador | **Propuesto**: `/api/admin/metrics` y `/api/audit` |
+| `auditoria` | Resumen y auditoría del Administrador | **Propuesto**: `/api/admin/metrics` y `/api/audit` (la API real de auditoría ya existe y difiere del contrato: filtros `usuario`, `pagina`, `tamano` y respuesta `{total, pagina, tamano, registros}`) |
 | `notificaciones` | Bandeja `/notificaciones` (filtro de sin leer, marcar como leída), `GloboNoLeidas` en el menú y Configuración › Notificaciones (`/ajustes/notificaciones`) | Real: `/api/notifications` |
 | `cola-correos` | `/admin/cola-correos` (estado, intentos de 3, último error, «Procesar ahora») y sus cifras en el Resumen | Real: `/api/admin/email-queue` |
 | `reportes` | `/reportes`: rango con zod (máx. 366 días), solicitudes por estado y constancia por plan; el Administrador ve el agregado | Real: `/api/reports/*` |

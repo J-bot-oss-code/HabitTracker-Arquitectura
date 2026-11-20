@@ -21,7 +21,7 @@ Al cerrar cada entrega:
 
 - Solution is `HabitTrackerSystem.slnx` (new XML format, not `.sln`).
 - Each module has `<Module>.Domain` ← `<Module>.Application` ← `<Module>.Infrastructure`. Wiring: AccessControl in `Host/WebApi/Extensions/ServiceExtensions.cs`, HabitTracker in `Host/WebApi/Extensions/HabitTrackerModuleExtensions.cs`, Permissions and DocumentManager in their own `Infrastructure/DependencyInjection/`.
-- Implemented modules: `AccessControl` (Práctica 1, extended by Control de Acceso v2), `Permissions` (Práctica 2), `HabitTracker` (Práctica 3; v2 plan in `docs/plan-habittracker-v2.md`), `DocumentManager` (Práctica 4). `Auditing`, `Notifications`, `Reports` are empty skeletons.
+- Implemented modules: `AccessControl` (Práctica 1, extended by Control de Acceso v2), `Permissions` (Práctica 2), `HabitTracker` (Práctica 3; v2 plan in `docs/plan-habittracker-v2.md`), `DocumentManager` (Práctica 4). `Notifications` and `Reports` (Práctica 5) and `Auditing` (Asignación 4: the immutable audit history, `GET api/audit`).
 - Each module owns its DbContext/migrations (SQL Server); no cross-module table access — modules talk through Application interfaces (e.g. HabitTracker `IPermisoService` → `PermisoServiceAdapter`).
 - All projects: `net10.0`, `Nullable enable`, `ImplicitUsings enable`. Requires .NET 10 SDK.
 
@@ -30,7 +30,7 @@ Al cerrar cada entrega:
 - `dotnet build HabitTrackerSystem.slnx`
 - `dotnet test` — xUnit + Moq suites in `tests/`; no API or external DB needed (SQLite in memory).
 - `dotnet run --project Host/WebApi/WebApi.csproj` (`http://localhost:5246`, Swagger at `/swagger`). Secrets (connection string, `JwtSettings:*`, SMTP) via User Secrets/env vars — see README.
-- Migrations: `dotnet ef database update --project Modules/<M>/<M>.Infrastructure --startup-project Host/WebApi --context <Ctx>` (`ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext`, `DocumentManagerDbContext`).
+- Migrations: `dotnet ef database update --project Modules/<M>/<M>.Infrastructure --startup-project Host/WebApi --context <Ctx>` (`ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContext`, `DocumentManagerDbContext`, `NotificationsDbContext`, `AuditingDbContext`).
 - **Contenedor (todo el sistema):** `copy .env.example .env` y `docker compose up --build` → `http://localhost:8080`. Los datos de los documentos y las claves de cifrado viven en volúmenes con nombre: `docker compose down` (sin `-v`) no los borra.
 - **Frontend:** `cd frontend && npm ci && npm test` (sin backend, API simulada con MSW), `npm run lint`, `npx tsc -b`, `npm run build`. Contra la API real: `VITE_API_URL=http://localhost:5246 npx vite --port 5174`.
 - Tags `practica-N` / `practica-N-defecto-M` are graded deliverables — never move or rewrite them.

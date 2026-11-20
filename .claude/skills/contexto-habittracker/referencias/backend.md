@@ -12,9 +12,9 @@
 | DocumentManager | Completo (RF-DOC-01..05) | `DocumentManagerDbContext` | su `DependencyInjection/` en Infrastructure |
 | Notifications | Completo (P5): `Notificacion`, `PreferenciaNotificaciones`, canal interno + correo por la cola | `NotificationsDbContext` | `Modules/Notifications/Notifications.Infrastructure/DependencyInjection/` y adaptadores en `Host/WebApi/Adapters` |
 | Reports | Completo (P5): sin base de datos; `ReportesService` valida el rango y el alcance por rol sobre dos puertos | — | `Host/WebApi/Program.cs` y adaptadores en `Host/WebApi/Adapters` |
-| Auditing | Solo `.csproj` vacíos | — | — |
+| Auditing | Completo (A4): `RegistroAuditoria` inmutable (siete datos, sin métodos que lo cambien), `RegistroAuditoriaService` (valida filtros, rango y paginación) y `GET api/audit` solo Administrador. El contexto rechaza `Modified`/`Deleted` | `AuditingDbContext` | `Modules/Auditing/Auditing.Infrastructure/DependencyInjection/` y los puertos `IAuditoriaService` (Control de Acceso), `IAuditorPermisos` y `IAuditorDocumentos` con sus adaptadores en `Host/WebApi/Adapters` |
 
-- Los cuatro contextos usan la misma cadena `ConnectionStrings:AccessControl` (SQL Server) y la tabla `__EFMigrationsHistory` por defecto.
+- Los seis contextos usan la misma cadena `ConnectionStrings:AccessControl` (SQL Server) y la tabla `__EFMigrationsHistory` por defecto.
 - `Host/WebApi/Program.cs` registra los adaptadores entre módulos, `JsonStringEnumConverter` (los enums viajan como texto) y llama a `InicializarBaseDeDatosAsync`.
 - `Host/WebApi/Extensions/InicializacionBaseDeDatos.cs`: con `BaseDeDatos:MigrarAlIniciar=true` (Docker) migra los contextos, siembra el Administrador (`ADMIN_CORREO`/`ADMIN_CLAVE`) y la Meta de demostración `5f1c0a00-0000-4000-8000-000000000002`.
 
