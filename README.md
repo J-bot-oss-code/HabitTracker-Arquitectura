@@ -238,6 +238,19 @@ Los textos del logro celebran la conducta y nunca mencionan peso, cuerpo ni culp
 4. `GET /api/admin/email-queue?estado=Fallido` muestra el correo con `intentos: 3` y `ultimoError`. Una cuarta ejecución no lo toca.
 5. Con `docker compose start mailpit`, los correos nuevos vuelven a enviarse.
 
+## Quejas y mejoras
+
+Un canal para que la persona Estándar diga qué falla o qué mejoraría, y una bandeja para que el Administrador la lea. Vive en HabitTracker (`Sugerencia`, migración `AgregarSugerencias`).
+
+| Quién | Ruta | Qué hace |
+|---|---|---|
+| Estándar | `POST /api/feedback` con `{"tipo":"Queja"\|"Mejora","texto":"…"}` | Envía (10 a 2000 caracteres). Como mucho **5 en 24 horas** por persona: la sexta da 400 con `limite_sugerencias`. Responde 201. |
+| Estándar | `GET /api/feedback` | Lo que envió ella misma, de lo más reciente a lo más antiguo. |
+| Administrador | `GET /api/admin/feedback?estado=Nueva\|Leida\|Resuelta&pagina=1&tamano=20` | La bandeja, paginada (`tamano` hasta 100). `nuevas` cuenta las que siguen sin leer, con cualquier filtro. |
+| Administrador | `POST /api/admin/feedback/{id}/status` con `{"estado":"Leida"\|"Resuelta"}` | Marca el estado. Nada vuelve a «Nueva»; repetir el mismo estado no cambia nada. |
+
+El rol se exige en el servidor y la persona sale del token (un Estándar no puede ver la bandeja y un Administrador no envía). El texto se guarda tal cual y siempre se muestra como texto. **Entra en la descarga de datos** (sección `sugerencias`) y **se borra con la baja de cuenta**.
+
 ## Reportes
 
 Dos reportes con **agregación real** (devuelven valores agrupados, no el listado de registros). Ambos piden sesión (`Authorization: Bearer <token>`) y **exigen un rango de fechas**: `desde` y `hasta`, en formato `AAAA-MM-DD`, UTC, **ambos días incluidos**, con un máximo de 366 días. Sin fechas, con `desde` posterior a `hasta` o con un rango más largo responden `400`. Dos rangos distintos dan resultados distintos sobre los mismos datos (RF-REP-05); un rango sin datos devuelve cero filas, no un error.
