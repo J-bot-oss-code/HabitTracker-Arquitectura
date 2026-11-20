@@ -1,0 +1,36 @@
+# Proxy de producción: HTTPS automático (Let's Encrypt), cabeceras de seguridad, el SPA y la API en un solo dominio.
+# Con DOMINIO=localhost Caddy usa su propia CA interna: sirve para probarlo en el equipo.
+{$DOMINIO} {
+	encode zstd gzip
+
+	# Cabeceras para todo lo que sale por este dominio. La CSP va solo en el SPA: la API (p. ej. la página de activación)
+	# trae las suyas y no debe pisarse.
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=()"
+		-Server
+	}
+
+	# La API y su comprobación de salud. Caddy añade X-Forwarded-For y X-Forwarded-Proto, que la API lee (PROXY_CONFIABLE).
+	handle /api/* {
+		reverse_proxy webapi:8080
+	}
+	handle /health {
+		reverse_proxy webapi:8080
+	}
+
+	# El SPA: los archivos con huella se guardan un año; index.html nunca. Cualquier otra ruta es del enrutador del cliente.
+	handle {
+		root * /srv
+		header Content-Security-Policy "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: https://*.googleusercontent.com; connect-src 'self' https://accounts.google.com; frame-src https://accounts.google.com; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		@estaticos path /assets/*
+		header @estaticos Cache-Control "public, max-age=31536000, immutable"
+		@raiz not path /assets/*
+		header @raiz Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}

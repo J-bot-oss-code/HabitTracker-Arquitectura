@@ -49,7 +49,10 @@ public static class InicializacionBaseDeDatos
 
         // Con Docker, SQL Server puede aceptar conexiones unos segundos después de arrancar el contenedor.
         await EjecutarConReintentosAsync(() => MigrarAsync(app), IntentosMaximos, EsperaEntreIntentos, logger);
-        await SembrarMetaDemostracionAsync(app, logger);
+        if (VerificacionDelEntorno.DebeSembrarDemostracion(app.Configuration))
+        {
+            await SembrarMetaDemostracionAsync(app, logger);
+        }
 
         using var scope = app.Services.CreateScope();
         await SembrarAdministradorAsync(

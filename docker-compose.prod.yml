@@ -1,0 +1,141 @@
+# HabitTracker Nexus - PRODUCCIÓN en un VPS (una sola réplica): proxy con HTTPS, la API y la base de datos.
+# Es independiente de docker-compose.yml (el de demostración): sin Mailpit, sin puertos de la API publicados, con límites y logs rotados.
+#
+#   cp .env.produccion.example .env   (y rellénalo; chmod 600 .env)
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Guía completa (DNS, firewall, respaldos, actualización): docs/produccion.md
+# Este archivo NO contiene valores secretos: solo ${VARIABLE} que Compose toma del .env, que no se versiona (RD-10).
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  # Base de datos: sin "ports", solo la ve la API por la red interna.
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+    platform: linux/amd64
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      # Express es gratis para producción (límite de 10 GB por base). Developer NO es para producción.
+      MSSQL_PID: Express
+      # Sin tope, SQL Server se queda con casi toda la memoria del equipo y ahoga a la API.
+      MSSQL_MEMORY_LIMIT_MB: "1536"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
+    mem_limit: 2g
+    volumes:
+      - sqlserver-datos:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    logging: *logging
+    networks: [habittracker]
+
+  # La API: solo "expose" (no publica puertos en el servidor); la alcanza el proxy "web".
+  webapi:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8080"
+    mem_limit: 768m
+    environment:
+      ConnectionStrings__AccessControl: "Server=db;Database=HabitTracker;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      JwtSettings__Clave: ${JWT_CLAVE:?Define JWT_CLAVE en el archivo .env}
+
+      BaseDeDatos__MigrarAlIniciar: "true"
+      # En producción no se siembra la Meta de demostración (tiene un Id público).
+      BaseDeDatos__SembrarDemostracion: "false"
+      ADMIN_CORREO: ${ADMIN_CORREO:?Define ADMIN_CORREO en el archivo .env}
+      ADMIN_CLAVE: ${ADMIN_CLAVE:?Define ADMIN_CLAVE en el archivo .env}
+
+      Documentos__RutaAlmacenamiento: /app/data/documentos
+      # Si se pierden estas claves, el cuestionario de salud no se puede leer. Respáldalas APARTE de la base de datos.
+      DATAPROTECTION_KEYS_PATH: /app/data/claves
+
+      # Correo real: aquí NO se pasa CORREO_MODO (el modo consola escribe códigos y enlaces en el log).
+      SMTP_HOST: ${SMTP_HOST:?Define SMTP_HOST en el archivo .env}
+      SMTP_PORT: ${SMTP_PORT:?Define SMTP_PORT en el archivo .env}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_SSL: ${SMTP_SSL:-true}
+      SMTP_FROM: ${SMTP_FROM:-}
+      Correo__EsperaReintentoSegundos: ${CORREO_ESPERA_REINTENTO_SEGUNDOS:-60}
+
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+
+      # Un solo dominio con HTTPS: la API y el SPA comparten origen.
+      App__BaseUrl: https://${DOMINIO:?Define DOMINIO en el archivo .env}
+      Cors__OrigenesPermitidos__0: https://${DOMINIO}
+      Seguridad__ContrasenasFiltradas__Habilitado: ${CONTRASENAS_FILTRADAS:-true}
+      Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Privacidad__DiasGraciaBaja: ${DIAS_GRACIA_BAJA:-30}
+      Privacidad__IntervaloEjecucionMinutos: ${BAJAS_INTERVALO_MINUTOS:-1440}
+
+      Swagger__Habilitado: "false"
+      # Cookie del refresh: solo por HTTPS y solo en el mismo sitio.
+      Sesion__CookieSegura: "true"
+      Sesion__CookieSameSite: Strict
+      # La IP fija del proxy (ver "networks"): la API lee la IP real del cliente en los límites de peticiones.
+      ProxiesConfiables__0: 172.30.0.10
+      # TLS lo termina el proxy: la API solo escucha HTTP.
+      Https__RedireccionDesactivada: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080 && printf \"GET /health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n\" >&3 && head -n1 <&3 | grep -q 200'"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    volumes:
+      - documentos-archivos:/app/data/documentos
+      - dataprotection-claves:/app/data/claves
+    logging: *logging
+    networks: [habittracker]
+
+  # El proxy: HTTPS automático, cabeceras de seguridad, el SPA y /api hacia la API. Es lo único que publica puertos.
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
+    depends_on:
+      webapi:
+        condition: service_healthy
+    environment:
+      DOMINIO: ${DOMINIO:?Define DOMINIO en el archivo .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    mem_limit: 128m
+    volumes:
+      # Los certificados de Let's Encrypt: sin este volumen se volverían a pedir en cada reinicio y se agotaría el cupo.
+      - caddy-datos:/data
+      - caddy-config:/config
+    logging: *logging
+    networks:
+      habittracker:
+        ipv4_address: 172.30.0.10
+
+networks:
+  habittracker:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  sqlserver-datos:
+  documentos-archivos:
+  dataprotection-claves:
+  caddy-datos:
+  caddy-config:

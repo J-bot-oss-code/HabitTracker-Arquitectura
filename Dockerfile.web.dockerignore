@@ -1,0 +1,7 @@
+# Contexto de Dockerfile.web: solo el frontend y el Caddyfile.
+*
+!frontend
+!deploy/Caddyfile
+**/node_modules
+**/dist
+**/.env*
