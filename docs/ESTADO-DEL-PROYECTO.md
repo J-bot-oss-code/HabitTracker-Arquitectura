@@ -106,6 +106,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 - **Asignación 4 construida (19-11-2026):** historial de auditoría (módulo `Auditing`, migraciones `CrearRegistrosAuditoria` y `AgregarOrigenDelCodigoDeRecuperacion`); sección `Auditoría` del README y `docs/bitacora-asignacion-4.md`. **Falta:** la PR a `develop` y, cuando se ordene, el tag `asignacion-4`.
 - **Siguiente:** terminar el plan v2 (Fase 5 y siguientes).
 - **Fase 5 (correo como canal de acción), mínimo para el piloto:** check-in en un clic (`api/reminders/checkin`, enlace firmado de 36 h, GET sin efectos y POST idempotente) y **recordatorios** (20-11-2026): `RecordatoriosWorker` cada 5 min, opt-in por plan, un correo por plan y día a su hora local (reclamo atómico), cadencia 3/7/21 que solo reduce, botones «Ya lo hice» y baja en un clic (`api/reminders/unsubscribe`). Migración `AgregarUltimoRecordatorioDelPlan`. **Queda para después del piloto:** resumen semanal aparte, horario silencioso, agrupar planes en un correo, «¿retomamos?» tras una pausa y `POST .../test`.
+- **Mi actividad (20-11-2026):** `GET /api/me/activity?dias=7|30` (ambos roles, solo lo propio, lectura) y pantalla `/ajustes/actividad` con descarga en CSV y JSON. Nada se borra (RF-AUD-06): es una ventana sobre el historial.
 - **Plan HabitTracker v2** (`docs/plan-habittracker-v2.md`):
   - Fases 0 a 4 hechas → Fase 5, el corte vertical (siguiente: recordatorios y check-in por correo, `RegistroDiario.Origen` y `ClaveIdempotencia`);
   - Fase 6, producción, métricas y piloto;

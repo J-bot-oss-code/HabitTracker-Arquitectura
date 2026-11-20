@@ -53,6 +53,7 @@
 | HabitsController | POST | `/api/habits/{id:guid}/transition` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/progress` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/advanced-reconfig` | rol Estandar |
+| MiActividadController | GET | `/api/me/activity` | autenticado |
 | MyPlansController | POST | `/api/my-plans` | rol Estandar |
 | MyPlansController | GET | `/api/my-plans` | rol Estandar |
 | MyPlansController | GET | `/api/my-plans/{id:guid}` | rol Estandar |
@@ -111,8 +112,8 @@
 |---|---|---|---|
 | AccessControl.Application.Tests | 31 | 297 | 47 |
 | AccessControl.Infrastructure.Tests | 11 | 82 | 9 |
-| Auditing.Api.Tests | 4 | 11 | 0 |
-| Auditing.Infrastructure.Tests | 1 | 16 | 0 |
+| Auditing.Api.Tests | 4 | 12 | 0 |
+| Auditing.Infrastructure.Tests | 1 | 19 | 2 |
 | DocumentManager.Api.Tests | 5 | 33 | 7 |
 | DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
@@ -130,7 +131,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **1062** | **136** |
+| **Total** | | **1066** | **138** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -167,7 +168,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 ## Frontend: features
 
 - `admin-users`: 3 archivos
-- `auditoria`: 9 archivos
+- `auditoria`: 14 archivos
 - `auth`: 27 archivos
 - `cola-correos`: 5 archivos
 - `documentos`: 11 archivos
