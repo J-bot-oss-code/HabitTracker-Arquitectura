@@ -93,6 +93,10 @@
 | ProgressController | POST | `/api/progress/measurements` | rol Estandar |
 | ReportsController | GET | `/api/reports/permissions` | autenticado |
 | ReportsController | GET | `/api/reports/adherence` | autenticado |
+| SugerenciasController | POST | `//api/feedback` | rol Estandar |
+| SugerenciasController | GET | `//api/feedback` | rol Estandar |
+| SugerenciasController | GET | `//api/admin/feedback` | rol Administrador |
+| SugerenciasController | POST | `//api/admin/feedback/{id:guid}/status` | rol Administrador |
 | TodayController | GET | `//api/today` | rol Estandar |
 | TodayController | GET | `//api/progress/summary` | rol Estandar |
 | TodayController | POST | `//api/progress/achievements/seen` | rol Estandar |
@@ -102,7 +106,7 @@
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado, AgregarOrigenDelCodigoDeRecuperacion
 - **Auditing:** CrearRegistrosAuditoria
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro, AgregarUltimoRecordatorioDelPlan
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro, AgregarUltimoRecordatorioDelPlan, AgregarSugerencias
 - **Notifications:** CrearNotificaciones
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
@@ -118,10 +122,10 @@
 | DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 9 | 52 | 14 |
+| HabitTracker.Api.Tests | 10 | 55 | 15 |
 | HabitTracker.Application.Tests | 9 | 143 | 9 |
-| HabitTracker.Domain.Tests | 12 | 170 | 31 |
-| HabitTracker.Integration.Tests | 13 | 76 | 4 |
+| HabitTracker.Domain.Tests | 13 | 178 | 32 |
+| HabitTracker.Integration.Tests | 14 | 91 | 5 |
 | Notifications.Api.Tests | 4 | 24 | 2 |
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
@@ -131,7 +135,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **1066** | **138** |
+| **Total** | | **1092** | **141** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -157,6 +161,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `ParticipantePerfilSalud.cs`: `class ParticipantePerfilSalud(IDatosPerfilSaludService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePermisos.cs`: `class ParticipantePermisos(ISolicitudPermisoService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePlanes.cs`: `class ParticipantePlanes(IDatosPlanesService servicio) : IParticipanteDatosUsuario`
+- `ParticipanteSugerencias.cs`: `class ParticipanteSugerencias(ISugerenciasService servicio) : IParticipanteDatosUsuario`
 - `PermisoServiceAdapter.cs`: `class PermisoServiceAdapter(ISolicitudPermisoService solicitudPermisoService) : IPermisoService`
 
 ## Workers (BackgroundService)
