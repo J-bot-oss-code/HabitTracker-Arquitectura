@@ -37,7 +37,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 
 ## 3. Pruebas
 
-- **Backend:** `dotnet test` ejecuta **1483** pruebas (medido el 20-11-2026; entre ellas, 5 de la verificación del entorno de producción, 5 de regresión `Hallazgo{N}_*` de la A3 y 42 de la auditoría de la A4) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
+- **Backend:** `dotnet test` ejecuta **1544** pruebas (medido el 20-11-2026; entre ellas, 61 del check-in por correo, 5 de la verificación del entorno de producción, 5 de regresión `Hallazgo{N}_*` de la A3 y 42 de la auditoría de la A4) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
 - **Frontend:** `cd frontend && npm test` ejecuta **1033** pruebas en 69 archivos (medido el 18-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
