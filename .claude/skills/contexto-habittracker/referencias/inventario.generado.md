@@ -38,6 +38,8 @@
 | AuthController | POST | `/api/auth/restablecer-password` | anónimo |
 | AuthController | POST | `/api/auth/reset-password` | anónimo |
 | AuthController | POST | `/api/auth/cambiar-password` | autenticado |
+| CheckinCorreoController | GET | `/api/reminders/checkin` | anónimo |
+| CheckinCorreoController | POST | `/api/reminders/checkin` | anónimo |
 | DocumentsController | POST | `/api/documents` | autenticado |
 | DocumentsController | GET | `/api/documents` | autenticado |
 | DocumentsController | GET | `/api/documents/{id:guid}` | autenticado |
@@ -97,7 +99,7 @@
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado, AgregarOrigenDelCodigoDeRecuperacion
 - **Auditing:** CrearRegistrosAuditoria
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro
 - **Notifications:** CrearNotificaciones
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
@@ -113,10 +115,10 @@
 | DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 7 | 41 | 13 |
-| HabitTracker.Application.Tests | 7 | 111 | 7 |
-| HabitTracker.Domain.Tests | 11 | 151 | 27 |
-| HabitTracker.Integration.Tests | 11 | 70 | 4 |
+| HabitTracker.Api.Tests | 8 | 47 | 14 |
+| HabitTracker.Application.Tests | 8 | 130 | 8 |
+| HabitTracker.Domain.Tests | 12 | 167 | 29 |
+| HabitTracker.Integration.Tests | 12 | 73 | 4 |
 | Notifications.Api.Tests | 3 | 20 | 2 |
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
@@ -126,7 +128,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **979** | **125** |
+| **Total** | | **1023** | **129** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -139,6 +141,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `ConsentimientoSaludAdapter.cs`: `class ConsentimientoSaludAdapter(IConsentimientoService consentimientos) : IConsentimientoSalud`
 - `DirectorioUsuariosAdapter.cs`: `class DirectorioUsuariosAdapter(IUsuarioRepository usuarios) : IDirectorioUsuarios`
 - `DocumentosUsuarioAdapter.cs`: `class DocumentosUsuarioAdapter(IDocumentoService documentos) : IDocumentosUsuario`
+- `EstadoCuentasAdapter.cs`: `class EstadoCuentasAdapter(IUsuarioRepository usuarios) : IEstadoCuentas`
 - `FuenteConstanciaAdapter.cs`: `class FuenteConstanciaAdapter(IReporteConstanciaService constancia) : IFuenteConstancia`
 - `FuenteSolicitudesAdapter.cs`: `class FuenteSolicitudesAdapter(ISolicitudPermisoReportes permisos) : IFuenteSolicitudes`
 - `GuardaEliminacionDocumentoAdapter.cs`: `class GuardaEliminacionDocumentoAdapter(`
