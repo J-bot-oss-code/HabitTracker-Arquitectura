@@ -76,7 +76,7 @@ Los valores del `.env.example` son de ejemplo para esta demostración; cámbialo
 
 La composición incluye **Mailpit**, un servidor de correo **de prueba**: recibe lo que envía la API y **no entrega nada a Internet**. Con el `.env.example` tal cual (`SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `SMTP_SSL=false`) todos los correos salen por la cola hacia Mailpit y se leen en **`http://localhost:8025`**:
 
-- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada por sí solo.
+- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada por sí solo. Al pulsarlo, la cuenta se activa **y se abre la sesión** (igual que el login: JWT y cookie del refresh), y la página lleva a la app (`App:FrontendUrl`).
 - **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
 - **Notificaciones:** cada notificación llega también por correo (ver la sección `Notificaciones`).
 
@@ -723,6 +723,7 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 *   `Privacidad:DiasGraciaBaja`, `Privacidad:IntervaloEjecucionMinutos`: (opcionales) días de gracia antes de borrar una cuenta cuya eliminación se pidió (`30`, de 0 a 365; `DIAS_GRACIA_BAJA` en Docker) y cada cuántos minutos el proceso en segundo plano busca cuentas vencidas (`1440`, una vez al día; `BAJAS_INTERVALO_MINUTOS` en Docker).
 *   `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (String) Credenciales del servidor de correo saliente, solo por variables de entorno o User Secrets.
 *   `App:BaseUrl`: (String) URL pública de la API para armar el enlace de activación del correo (ej. `http://localhost:5246`).
+*   `App:FrontendUrl`: (String, opcional) URL de la app a la que lleva la página de activación tras activar, ya con la sesión abierta (ej. `http://localhost:5173`; en Docker, `FRONTEND_URL`). Vacía = la app está en el mismo origen que la API (producción).
 
 ### Instrucciones de Ejecución
 1. Restaura las herramientas y paquetes: `dotnet restore`

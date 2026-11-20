@@ -103,7 +103,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 | `Sesion:DiasRefresh/CookieSegura/CookieSameSite` | refresh token en cookie |
 | `Privacidad:DiasGraciaBaja/IntervaloEjecucionMinutos` | baja de cuenta |
 | `Legal:VersionTerminos/VersionPrivacidad` | versiones vigentes (`v2.1` y `v1.4`) |
-| `Google:ClientId`, `Cors:OrigenesPermitidos`, `App:BaseUrl` | Google, CORS y enlaces |
+| `Google:ClientId`, `Cors:OrigenesPermitidos`, `App:BaseUrl`, `App:FrontendUrl` | Google, CORS, enlaces y a dónde lleva la activación (abre la sesión) |
 | `Seguridad:ContrasenasFiltradas:Habilitado/UrlBase` | Pwned Passwords |
 | `Documentos:RutaAlmacenamiento`, `Swagger:Habilitado`, `Https:RedireccionDesactivada`, `BaseDeDatos:MigrarAlIniciar` | varios |
 | `SMTP_HOST/PORT/USER/PASS`, `CORREO_MODO`, `OPENWEATHER_API_KEY` | correo y clima |
