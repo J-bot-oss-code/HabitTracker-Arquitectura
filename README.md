@@ -572,6 +572,9 @@ Prepara un Administrador (`admin@ejemplo.com`, ver «Datos de partida») y una p
 | **Reactivar la propia cuenta** | Ana: `POST /api/privacy/deletion-request` con `{"modo":"desactivar","password":"…"}` y volver a iniciar sesión | `Reactivación de cuenta` · `Inactivo (desactivada por su dueño)` → `Activo` |
 | **Restablecimiento propio** (RF-AUD-05) | Ana: `POST /api/auth/forgot-password` con `{"correo":"ana@ejemplo.com"}`, leer el código en Mailpit y `POST /api/auth/reset-password` con `{"correo","codigo","nuevaPassword"}` | `Restablecimiento de contraseña` · `Contraseña nueva (no se guarda); iniciado por: el propio usuario` |
 | **Restablecimiento forzado** | Administrador: `POST /api/admin/usuarios/{id}/forzar-restablecimiento` (queda `Restablecimiento forzado de contraseña`, con el Administrador como actor); cuando Ana usa el código que le llegó con `reset-password`, queda otro registro | `Restablecimiento de contraseña` · `…; iniciado por: un Administrador` |
+| **Activar la cuenta** | Ana: `POST /api/auth/activate` con `{"correo","codigo"}` (el código del correo de activación) | `Activación de cuenta` · `Pendiente de activación` → `Activo` |
+| **Cambiar la contraseña** | Ana: `POST /api/auth/cambiar-password` con la actual y la nueva | `Cambio de contraseña` · ninguna de las dos se guarda |
+| **Vincular y desvincular Google** | Ana: `POST /api/auth/google/vincular` y `DELETE /api/auth/vinculos/google` | `Vinculación de Google` · `Sin Google` → `Google vinculado`, y `Desvinculación de Google` al revés |
 
 Una operación que se rechaza (aprobar dos veces, una extensión no permitida, un documento protegido) **no** deja registro. Al contrario, la purga definitiva de una cuenta dada de baja borra sus documentos sin registrar uno por cada archivo: queda la «Solicitud de baja de cuenta» que la originó. Ningún registro contiene la contraseña ni el código: se comprueba en las pruebas y con la consulta de abajo.
 
