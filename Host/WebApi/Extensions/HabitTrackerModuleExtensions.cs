@@ -79,6 +79,9 @@ public static class HabitTrackerModuleExtensions
 
         // Archivos vinculados a un plan (RF-NEG-10). IDocumentosUsuario y la guarda de eliminar los resuelven adaptadores del Host.
         services.AddScoped<IAdjuntoPlanRepository, AdjuntoPlanRepository>();
+        // Quejas y mejoras de las personas y la bandeja del Administrador.
+        services.AddScoped<HabitTracker.Application.Sugerencias.ISugerenciaRepository, SugerenciaRepository>();
+        services.AddScoped<HabitTracker.Application.Sugerencias.ISugerenciasService, HabitTracker.Application.Sugerencias.SugerenciasService>();
         services.AddScoped<IReporteConstanciaRepository, ReporteConstanciaRepository>();
         services.AddScoped<IReporteConstanciaService, ReporteConstanciaService>();
         services.AddScoped<IAdjuntosPlanService, AdjuntosPlanService>();
