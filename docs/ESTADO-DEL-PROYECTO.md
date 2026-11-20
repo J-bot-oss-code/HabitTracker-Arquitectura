@@ -16,7 +16,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 | Notifications | Completo para la P5 (RF-NOT-01 a 13): bandeja interna y correo por la cola, con ganchos opcionales en Permisos y en los logros de HabitTracker. Cola de correos con reclamo atómico, recuperación, máximo de 3 intentos y consulta del Administrador | `docs/historial/practica-5.md` |
 | Reports | Completo para la P5 (RF-REP-01 a 05): permisos por estado (Core) y constancia por plan (negocio), con rango obligatorio y alcance por rol. Sin base de datos propia | `docs/historial/practica-5.md` |
 | Auditing | Completo para la A4 (RF-AUD-01 a 07): historial inmutable (`RegistrosAuditoria`), consulta `GET api/audit` solo para el Administrador con filtros y paginación, y los eventos de Control de Acceso, Permisos y Documentos por puertos | `docs/bitacora-asignacion-4.md` |
-| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`) y Mis planes (empezar un plan, «Archivos del plan», Hoy desde `api/today`, `/mis-planes/:id`, celebración semanal y logros del servidor en Progreso), «Mis archivos» (`/documentos`), Configuración › Solicitudes y la P5: Notificaciones (bandeja, globo y preferencia de correo), Cola de correos y Reportes. Solo las métricas y la auditoría siguen como contrato propuesto | `docs/historial/frontend.md` |
+| Frontend | Conectado a Control de Acceso, hábitos, permisos, usuarios, privacidad, perfil (onboarding de 3 toques y Perfil y salud), peso y medidas, el catálogo de planes con sus recomendados (landing, `/metas`, `/planes`) y Mis planes (empezar un plan, «Archivos del plan», Hoy desde `api/today`, `/mis-planes/:id`, celebración semanal y logros del servidor en Progreso), «Mis archivos» (`/documentos`), Configuración › Solicitudes y la P5: Notificaciones (bandeja, globo y preferencia de correo), Cola de correos y Reportes. Solo las métricas del Resumen (`GET /api/admin/metrics`) siguen como contrato propuesto; la auditoría y los mocks se comprobaron contra los controllers reales (20-11-2026) | `docs/historial/frontend.md` |
 | CI | `ci-ok` y `seguridad-ok` obligatorios en `develop` y `main` | `docs/historial/ci.md` |
 
 ## 2. Tags de entrega (no mover ni reescribir)
@@ -38,7 +38,7 @@ HabitTracker Nexus es un monolito modular en .NET 10 con Clean Architecture. Tie
 ## 3. Pruebas
 
 - **Backend:** `dotnet test` ejecuta **1544** pruebas (medido el 20-11-2026; entre ellas, 61 del check-in por correo, 5 de la verificación del entorno de producción, 5 de regresión `Hallazgo{N}_*` de la A3 y 42 de la auditoría de la A4) sin API ni BD externa (SQLite en memoria). El desglose por proyecto está en `.claude/skills/contexto-habittracker/referencias/inventario.generado.md`.
-- **Frontend:** `cd frontend && npm test` ejecuta **1033** pruebas en 69 archivos (medido el 18-11-2026) sin backend (MSW).
+- **Frontend:** `cd frontend && npm test` ejecuta **1065** pruebas en 70 archivos (medido el 20-11-2026) sin backend (MSW).
 - `tests/Permissions.Api.Tests` es una carpeta sin proyecto (solo `bin/obj`, no versionada).
 
 ## 4. Entorno local
