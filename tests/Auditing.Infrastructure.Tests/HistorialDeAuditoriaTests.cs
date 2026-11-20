@@ -349,10 +349,97 @@ public sealed class HistorialDeAuditoriaTests : IDisposable
             .ToList();
         var entidad = typeof(RegistroAuditoria);
 
-        // Assert: solo se agrega, se registra y se consulta
-        Assert.All(operaciones, nombre => Assert.Contains(nombre, new[] { "AgregarAsync", "ConsultarAsync", "RegistrarAsync" }));
+        // Assert: solo se agrega, se registra y se consulta («Mi actividad» es otra consulta, de solo lectura)
+        Assert.All(operaciones, nombre => Assert.Contains(nombre, new[] { "AgregarAsync", "ConsultarAsync", "RegistrarAsync", "MiActividadAsync" }));
         Assert.DoesNotContain(operaciones, n => prohibidas.Any(p => n.Contains(p, StringComparison.OrdinalIgnoreCase)));
         Assert.DoesNotContain(entidad.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly), m => !m.IsSpecialName);
         Assert.All(entidad.GetProperties(), p => Assert.True(p.SetMethod is null || !p.SetMethod.IsPublic));
+    }
+
+    // ---------- «Mi actividad»: solo lo propio y solo la ventana pedida ----------
+
+    private async Task RegistrarDe(Guid usuarioId, DateTime cuando, string accion)
+    {
+        _reloj.Ahora = cuando;
+        await using var contexto = NuevoContexto();
+        await Servicio(contexto).RegistrarAsync(usuarioId, "persona@ejemplo.com", accion, "Usuario", usuarioId.ToString(), "antes", "después");
+    }
+
+    private async Task<PaginaAuditoriaDto> MiActividad(Guid usuarioId, int dias, int pagina = 1, int tamano = 50)
+    {
+        await using var contexto = NuevoContexto();
+        return await Servicio(contexto).MiActividadAsync(usuarioId, dias, pagina, tamano);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-AUD-07")]
+    [Trait("Requirement", "RD-06")]
+    public async Task RF_AUD_07_MiActividad_SoloDevuelveLoQueHizoLaPropiaPersona()
+    {
+        var ana = Guid.NewGuid();
+        var beto = Guid.NewGuid();
+        var hoy = new DateTime(2026, 11, 20, 12, 0, 0, DateTimeKind.Utc);
+        await RegistrarDe(ana, hoy.AddDays(-1), "Cambio de contraseña");
+        await RegistrarDe(beto, hoy.AddDays(-1), "Subida de documento");
+        _reloj.Ahora = hoy;
+
+        var pagina = await MiActividad(ana, 7);
+
+        var registro = Assert.Single(pagina.Registros);
+        Assert.Equal((ana, "Cambio de contraseña"), (registro.UsuarioId, registro.Accion));
+        Assert.Equal(1, pagina.Total);
+    }
+
+    [Theory]
+    [InlineData(7, 2)]
+    [InlineData(30, 3)]
+    [Trait("Requirement", "RF-AUD-07")]
+    public async Task RF_AUD_07_MiActividad_SoloLaVentanaPedida_SinBorrarLoDemas(int dias, int esperados)
+    {
+        var ana = Guid.NewGuid();
+        var hoy = new DateTime(2026, 11, 20, 12, 0, 0, DateTimeKind.Utc);
+        await RegistrarDe(ana, hoy.AddDays(-1), "Cambio de contraseña");
+        await RegistrarDe(ana, hoy.AddDays(-6), "Subida de documento");
+        await RegistrarDe(ana, hoy.AddDays(-20), "Activación de cuenta");
+        await RegistrarDe(ana, hoy.AddDays(-45), "Vinculación de Google");
+        _reloj.Ahora = hoy;
+
+        Assert.Equal(esperados, (await MiActividad(ana, dias)).Total);
+
+        // RF-AUD-06: lo que queda fuera de la ventana sigue en el historial.
+        await using var contexto = NuevoContexto();
+        Assert.Equal(4, await contexto.Registros.CountAsync(r => r.UsuarioId == ana));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-AUD-07")]
+    public async Task RF_AUD_07_MiActividad_SinNadaEnLaVentana_DevuelveUnaPaginaVacia()
+    {
+        _reloj.Ahora = new DateTime(2026, 11, 20, 12, 0, 0, DateTimeKind.Utc);
+
+        var pagina = await MiActividad(Guid.NewGuid(), 30);
+
+        Assert.Equal(0, pagina.Total);
+        Assert.Empty(pagina.Registros);
+    }
+
+    [Theory]
+    [InlineData(0, 1, 50)]
+    [InlineData(14, 1, 50)]
+    [InlineData(365, 1, 50)]
+    [InlineData(7, 0, 50)]
+    [InlineData(7, 1, 0)]
+    [InlineData(7, 1, 201)]
+    [Trait("Requirement", "RD-07")]
+    public async Task RD_07_MiActividad_ValoresFueraDeRango_SeRechazanAntesDeConsultar(int dias, int pagina, int tamano)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => MiActividad(Guid.NewGuid(), dias, pagina, tamano));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-06")]
+    public async Task RD_06_MiActividad_SinIdentidad_NoConsultaNada()
+    {
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => MiActividad(Guid.Empty, 7));
     }
 }

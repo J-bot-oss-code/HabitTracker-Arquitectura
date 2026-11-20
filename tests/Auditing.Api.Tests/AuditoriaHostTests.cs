@@ -104,4 +104,19 @@ public class AuditoriaHostTests
         Assert.Same(pagina, Assert.IsType<OkObjectResult>(resultado).Value);
         Assert.Equal(new ConsultaAuditoria("ana@", "Documento", "d1", "Subida de documento", new DateOnly(2026, 11, 1), new DateOnly(2026, 11, 30), 2, 25), recibida);
     }
+
+    [Fact]
+    [Trait("Requirement", "RD-06")]
+    public void RD_06_MiActividad_ExigeSesionYNoRecibeAQuienConsultar()
+    {
+        var tipo = typeof(MiActividadController);
+        var authorize = Assert.Single(tipo.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true).Cast<AuthorizeAttribute>());
+        Assert.Null(authorize.Roles); // ambos roles, cada uno solo lo suyo
+
+        // La persona sale del token: ningún parámetro de la acción puede pedir la actividad de otra.
+        var parametros = tipo.GetMethod(nameof(MiActividadController.Consultar))!.GetParameters().Select(p => p.Name);
+        Assert.Equal(["cancellationToken", "dias", "pagina", "tamano"], parametros);
+        Assert.Equal(["GET"], tipo.GetMethods().SelectMany(m => m.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute), true))
+            .Cast<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>().SelectMany(a => a.HttpMethods));
+    }
 }

@@ -45,10 +45,35 @@ public sealed class RegistroAuditoriaService(IRegistroAuditoriaRepository reposi
         if (consulta.Tamano < 1 || consulta.Tamano > TamanoMaximo)
             throw new ArgumentException($"El tamaño de la página va de 1 a {TamanoMaximo}.");
 
-        var pagina = await repositorio.ConsultarAsync(filtro, consulta.Pagina, consulta.Tamano, cancellationToken);
+        return await PaginaAsync(filtro, consulta.Pagina, consulta.Tamano, cancellationToken);
+    }
+
+    /// <summary>Las ventanas de «Mi actividad»: una semana o un mes. El historial completo sigue intacto (RF-AUD-06).</summary>
+    public static readonly int[] DiasDeMiActividad = [7, 30];
+
+    public async Task<PaginaAuditoriaDto> MiActividadAsync(
+        Guid usuarioId, int dias, int pagina, int tamano, CancellationToken cancellationToken = default)
+    {
+        // RD-07: todo se valida antes de tocar la base de datos.
+        if (usuarioId == Guid.Empty)
+            throw new UnauthorizedAccessException("Sesión inválida.");
+        if (!DiasDeMiActividad.Contains(dias))
+            throw new ArgumentException("«dias» debe ser 7 o 30.");
+        if (pagina < 1)
+            throw new ArgumentException("La página empieza en 1.");
+        if (tamano < 1 || tamano > TamanoMaximo)
+            throw new ArgumentException($"El tamaño de la página va de 1 a {TamanoMaximo}.");
+
+        var desde = _reloj.GetUtcNow().UtcDateTime.AddDays(-dias);
+        return await PaginaAsync(new FiltroAuditoria(null, null, null, null, desde, null, usuarioId), pagina, tamano, cancellationToken);
+    }
+
+    private async Task<PaginaAuditoriaDto> PaginaAsync(FiltroAuditoria filtro, int numero, int tamano, CancellationToken cancellationToken)
+    {
+        var pagina = await repositorio.ConsultarAsync(filtro, numero, tamano, cancellationToken);
 
         return new PaginaAuditoriaDto(
-            pagina.Total, consulta.Pagina, consulta.Tamano,
+            pagina.Total, numero, tamano,
             [.. pagina.Registros.Select(r => new RegistroAuditoriaDto(
                 r.Id, DateTime.SpecifyKind(r.FechaUtc, DateTimeKind.Utc), r.UsuarioId, r.Usuario, r.Accion, r.Entidad, r.EntidadId,
                 r.ValorAnterior, r.ValorNuevo))]);
