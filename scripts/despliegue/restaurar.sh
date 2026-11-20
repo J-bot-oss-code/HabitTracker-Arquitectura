@@ -26,16 +26,21 @@ echo "Deteniendo la API y el proxy..."
 "${compose[@]}" up -d db
 
 echo "1/3 Base de datos..."
-"${compose[@]}" exec -T db mkdir -p /var/opt/mssql/backup
+"${compose[@]}" exec -T db bash -c "mkdir -p /var/opt/mssql/backup"
 "${compose[@]}" cp "$bak" db:/var/opt/mssql/backup/restaurar.bak
 "${compose[@]}" exec -T db bash -c "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -b -Q \"RESTORE DATABASE [HabitTracker] FROM DISK = N'/var/opt/mssql/backup/restaurar.bak' WITH REPLACE, RECOVERY\""
-"${compose[@]}" exec -T db rm -f /var/opt/mssql/backup/restaurar.bak
+"${compose[@]}" exec -T db bash -c "rm -f /var/opt/mssql/backup/restaurar.bak"
 
 echo "2/3 Documentos y 3/3 claves de cifrado..."
 tar xzf "$documentos" -C "$temporal"
 tar xzf "$claves" -C "$temporal"
-"${compose[@]}" cp "$temporal/documentos/." webapi:/app/data/documentos
-"${compose[@]}" cp "$temporal/claves/." webapi:/app/data/claves
+# "docker cp" sobre un contenedor DETENIDO escribe en su capa y no en el volumen (quedaría tapado al arrancar): se copia con un
+# contenedor auxiliar de la misma imagen que monta los volúmenes de la API.
+webapi_id="$("${compose[@]}" ps -aq webapi)"
+imagen="$(docker inspect --format '{{.Config.Image}}' "$webapi_id")"
+origen="$temporal"
+if command -v cygpath >/dev/null 2>&1; then origen="$(cygpath -w "$temporal")"; fi  # Git Bash en Windows (pruebas locales)
+MSYS_NO_PATHCONV=1 docker run --rm --user root --volumes-from "$webapi_id" -v "$origen:/restaurar:ro" --entrypoint bash "$imagen"     -c "cp -a /restaurar/documentos/. /app/data/documentos/ && cp -a /restaurar/claves/. /app/data/claves/ && chown -R app:app /app/data"
 
 echo "Arrancando todo..."
 "${compose[@]}" up -d

@@ -100,6 +100,7 @@ Prueba de persistencia: sube un documento, ejecuta `docker compose down` (**sin*
 
 ### Notas
 
+- **Producción:** para un servidor real (HTTPS, respaldos, correo real, sin Mailpit) usa `docker-compose.prod.yml` y sigue `docs/produccion.md`; este `docker-compose.yml` es de demostración.
 - La composición está pensada para **una sola réplica** de la API y para demostración o uso local: el contenedor escucha HTTP sin TLS. Para otro uso, ponle un proxy con HTTPS delante y define `SWAGGER_HABILITADO=false`. Con proxy, define `PROXY_CONFIABLE` con su IP para que los límites de peticiones vean la IP real del cliente (vacío = no se confía en `X-Forwarded-For`). `GET /health` (anónimo, solo «Healthy» o «Unhealthy») comprueba la base de datos y es el healthcheck del contenedor.
 - Si el puerto `8080` ya está ocupado, libéralo antes de arrancar.
 - SQL Server solo tiene imagen `linux/amd64`; en Mac con chip Apple se ejecuta emulado y tarda más.

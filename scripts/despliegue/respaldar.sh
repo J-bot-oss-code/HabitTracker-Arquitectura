@@ -21,9 +21,10 @@ trap 'rm -rf "$temporal"' EXIT
 
 echo "1/3 Base de datos..."
 # La contraseña la lee el propio contenedor (no pasa por la línea de comandos del servidor).
-"${compose[@]}" exec -T db bash -c "mkdir -p /var/opt/mssql/backup && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -b -Q \"BACKUP DATABASE [HabitTracker] TO DISK = N'/var/opt/mssql/backup/HabitTracker_${sello}.bak' WITH INIT, COMPRESSION, CHECKSUM\""
+# Sin COMPRESSION: SQL Server Express no la admite (el .bak ocupa más; la base de un piloto es pequeña).
+"${compose[@]}" exec -T db bash -c "mkdir -p /var/opt/mssql/backup && /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"\$MSSQL_SA_PASSWORD\" -b -Q \"BACKUP DATABASE [HabitTracker] TO DISK = N'/var/opt/mssql/backup/HabitTracker_${sello}.bak' WITH INIT, CHECKSUM\""
 "${compose[@]}" cp "db:/var/opt/mssql/backup/HabitTracker_${sello}.bak" "$destino/datos/HabitTracker_${sello}.bak"
-"${compose[@]}" exec -T db rm -f "/var/opt/mssql/backup/HabitTracker_${sello}.bak"
+"${compose[@]}" exec -T db bash -c "rm -f /var/opt/mssql/backup/HabitTracker_${sello}.bak"
 
 echo "2/3 Documentos..."
 "${compose[@]}" cp webapi:/app/data/documentos "$temporal/documentos"
