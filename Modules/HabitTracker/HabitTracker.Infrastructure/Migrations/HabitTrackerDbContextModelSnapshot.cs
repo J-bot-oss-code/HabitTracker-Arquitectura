@@ -524,6 +524,9 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<DateOnly?>("UltimoRecordatorioLocal")
+                        .HasColumnType("date");
+
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uniqueidentifier");
 

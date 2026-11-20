@@ -25,6 +25,17 @@ public sealed class PlanUsuarioRepository(HabitTrackerDbContext contexto) : IPla
         await contexto.PlanesUsuario.AddAsync(plan, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PlanUsuario>> ListarConRecordatorioAsync(CancellationToken cancellationToken = default) =>
+        await contexto.PlanesUsuario.AsNoTracking()
+            .Where(p => p.Estado == EstadoPlanUsuario.Activo && p.RecordatoriosActivos && p.HoraRecordatorio != null)
+            .ToListAsync(cancellationToken);
+
+    // Compara y marca en la misma instrucción: entre leer el último envío y escribirlo no hay hueco para otra pasada.
+    public async Task<bool> ReclamarRecordatorioAsync(Guid planId, DateOnly hoyLocal, CancellationToken cancellationToken = default) =>
+        await contexto.PlanesUsuario
+            .Where(p => p.Id == planId && (p.UltimoRecordatorioLocal == null || p.UltimoRecordatorioLocal < hoyLocal))
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.UltimoRecordatorioLocal, hoyLocal), cancellationToken) == 1;
+
     // Las pausas caen en cascada con el plan; los hábitos del plan quedan sueltos (SetNull) y la baja los borra aparte.
     public async Task<int> EliminarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) =>
         await contexto.PlanesUsuario.Where(p => p.UsuarioId == usuarioId).ExecuteDeleteAsync(cancellationToken);
