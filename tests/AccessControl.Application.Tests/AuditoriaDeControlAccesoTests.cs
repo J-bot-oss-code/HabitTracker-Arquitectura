@@ -176,7 +176,8 @@ public class AuditoriaDeControlAccesoTests
         Assert.Equal(persona.Id, r.UsuarioId);
         Assert.Equal("Restablecimiento de contraseña", r.Accion);
         Assert.Equal(persona.Id.ToString(), r.Identificador);
-        Assert.Contains("iniciado por: el propio usuario", r.Nuevo);
+        Assert.Equal("Contraseña anterior (no se guarda)", r.Anterior);
+        Assert.Equal("Contraseña nueva (no se guarda); iniciado por: el propio usuario", r.Nuevo);
         Assert.DoesNotContain(e.Auditor.Registros, x => x.Contiene("ABC123") || x.Contiene(ClaveNueva) || x.Contiene("hash"));
     }
 
@@ -202,10 +203,13 @@ public class AuditoriaDeControlAccesoTests
         Assert.Equal(admin.Id, forzado.UsuarioId);
         Assert.Equal("Restablecimiento forzado de contraseña", forzado.Accion);
         Assert.Equal(persona.Id.ToString(), forzado.Identificador);
+        Assert.Equal("Contraseña anterior activa", forzado.Anterior);
+        Assert.Equal("Contraseña invalidada (restablecimiento forzado por administrador)", forzado.Nuevo);
         Assert.True(completado.EstaCompleto);
         Assert.Equal(persona.Id, completado.UsuarioId);
         Assert.Equal("Restablecimiento de contraseña", completado.Accion);
-        Assert.Contains("iniciado por: un Administrador", completado.Nuevo);
+        Assert.Equal("Contraseña anterior (no se guarda)", completado.Anterior);
+        Assert.Equal("Contraseña nueva (no se guarda); iniciado por: un Administrador", completado.Nuevo);
         Assert.DoesNotContain(e.Auditor.Registros, x => x.Contiene(codigo) || x.Contiene(ClaveNueva) || x.Contiene("hash"));
     }
 

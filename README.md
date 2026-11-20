@@ -564,7 +564,7 @@ Prepara un Administrador (`admin@ejemplo.com`, ver «Datos de partida») y una p
 |---|---|---|
 | **Aprobar una solicitud** (RF-AUD-02) | Ana: `POST /api/permissions` con `{"permisoSolicitado":"Habits.AdvancedReconfig"}`. Administrador: `POST /api/permissions/{id}/approve` | `Aprobación de solicitud de permiso` · `SolicitudPermiso` · `Pendiente` → `Aplicada (permiso «…» de ana@…)` |
 | **Rechazar una solicitud** | Administrador: `POST /api/permissions/{id}/reject` con `{"motivoRechazo":"Falta justificacion"}` | `Rechazo de solicitud de permiso` · `Pendiente` → `Rechazada (…; motivo: …)` |
-| **Subir un documento** (RF-AUD-03) | Ana: `curl -X POST /api/documents -H "Authorization: Bearer <token>" -F "archivo=@doc.txt"` | `Subida de documento` · `Documento` · `No existía` → `doc.txt (20 bytes)` |
+| **Subir un documento** (RF-AUD-03) | Ana: `curl -X POST http://localhost:8080/api/documents -H "Authorization: Bearer <token>" -F "archivo=@doc.txt"` | `Subida de documento` · `Documento` · `No existía` → `doc.txt (20 bytes)` |
 | **Eliminar un documento** | `DELETE /api/documents/{id}` (su dueña, o un Administrador) | `Eliminación de documento` · `doc.txt (visible)` → `doc.txt (eliminado)` (más `; eliminado por un Administrador` si lo hizo uno) |
 | **Cambiar un rol** (RF-AUD-04) | Administrador: `PATCH /api/admin/usuarios/{id}/rol` con `{"nuevoRol":"Administrador"}` | `Cambio de rol` · `Usuario` · `Estandar` → `Administrador` |
 | **Desactivar y reactivar** | Administrador: `PATCH /api/admin/usuarios/{id}/estado` con `{"nuevoEstado":false}` y luego `true` | `Cambio de estado` · `Activo` → `Inactivo`, y `Inactivo` → `Activo` |
@@ -572,7 +572,7 @@ Prepara un Administrador (`admin@ejemplo.com`, ver «Datos de partida») y una p
 | **Restablecimiento propio** (RF-AUD-05) | Ana: `POST /api/auth/forgot-password` con `{"correo":"ana@ejemplo.com"}`, leer el código en Mailpit y `POST /api/auth/reset-password` con `{"correo","codigo","nuevaPassword"}` | `Restablecimiento de contraseña` · `Contraseña nueva (no se guarda); iniciado por: el propio usuario` |
 | **Restablecimiento forzado** | Administrador: `POST /api/admin/usuarios/{id}/forzar-restablecimiento` (queda `Restablecimiento forzado de contraseña`, con el Administrador como actor); cuando Ana usa el código que le llegó con `reset-password`, queda otro registro | `Restablecimiento de contraseña` · `…; iniciado por: un Administrador` |
 
-Una operación que se rechaza (aprobar dos veces, una extensión no permitida, un documento protegido) **no** deja registro. Ningún registro contiene la contraseña ni el código: se comprueba en las pruebas y con la consulta de abajo.
+Una operación que se rechaza (aprobar dos veces, una extensión no permitida, un documento protegido) **no** deja registro. Al contrario, la purga definitiva de una cuenta dada de baja borra sus documentos sin registrar uno por cada archivo: queda la «Solicitud de baja de cuenta» que la originó. Ningún registro contiene la contraseña ni el código: se comprueba en las pruebas y con la consulta de abajo.
 
 ### Cómo consultar el historial (RF-AUD-07)
 

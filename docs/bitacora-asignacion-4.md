@@ -35,7 +35,7 @@ Registro real, capturado de la API (`GET /api/audit?accion=Cambio de rol`), y el
 
 | Concepto | Campo del registro de auditoría | Valor en el registro | Valor en el commit |
 |---|---|---|---|
-| **Autor** | `usuarioId` y `actor` | `f4ecd579-…` · `admin@ejemplo.com` | `Juan Ramon De Los Santos Ramirez` (nombre y correo) |
+| **Autor** | `usuarioId` y `actor` | `f4ecd579-…` · `admin@ejemplo.com` | `Juan Ramon De Los Santos Ramirez` (nombre; el correo también se guarda) |
 | **Mensaje** | `accion` + `entidad` | `Cambio de rol` sobre `Usuario` | `fix: dos guardados simultáneos de la preferencia de correo ya no dan 500 (hallazgo 3) [RF-NOT-07, RD-07]` |
 | **Fecha** | `fecha` | `2026-11-20T00:16:51.676251Z` (UTC) | `2026-11-19T14:34:04-04:00` (con su zona) |
 | **Identificador** | `id` (GUID) | `c9e5fd50-24d9-44cd-9986-8fdd58984022` | `701aa7a34f412ef3998b493ea75687d93696199a` (hash SHA-1) |
@@ -45,7 +45,7 @@ Registro real, capturado de la API (`GET /api/audit?accion=Cambio de rol`), y el
 
 **Qué guarda uno que el otro no:**
 - **El commit** guarda *todas* las líneas que cambiaron, no un resumen de un valor; el **encadenamiento** con su padre (si alguien altera un commit antiguo, cambia su hash y el de todos los siguientes: se nota); la distinción entre autor y quien lo aplicó; y el estado completo del proyecto en ese punto.
-- **El registro de auditoría** guarda **quién** actuó con su identidad dentro de la aplicación (el rol y el id de la cuenta, no un nombre de git), **sobre qué entidad de negocio** (`Usuario`, `Documento`) y su identificador, y se puede **consultar por esos campos** (por usuario, entidad y rango) con una pregunta, cosa que `git log` solo hace con búsquedas de texto.
+- **El registro de auditoría** guarda **quién** actuó con su identidad dentro de la aplicación (el id de la cuenta y su correo, no un nombre de git), **sobre qué entidad de negocio** (`Usuario`, `Documento`) y su identificador, y se puede **consultar por esos campos** (por usuario, entidad y rango) con una pregunta, cosa que `git log` solo hace con búsquedas de texto.
 - **La inmutabilidad no es igual.** La del commit es criptográfica (el hash lo delata); la del registro la imponen las reglas de la aplicación (no hay operación de edición ni borrado y el contexto rechaza modificar), pero **no es tamper-evident**: quien tenga acceso directo a la base de datos podría alterarlo sin dejar rastro. Es un límite que declaro; cubrirlo exigiría encadenar los registros con hashes.
 
 ## Cómo verificarlo
