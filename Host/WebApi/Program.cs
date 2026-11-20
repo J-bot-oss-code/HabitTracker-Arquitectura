@@ -37,6 +37,9 @@ builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, Co
 // Los avisos de Permisos (solicitud creada y resuelta) llegan al motor de Notificaciones por este adaptador.
 builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermisos, NotificadorPermisosAdapter>();
 
+// Quién aprobó o rechazó cada solicitud queda en el historial de auditoría (RF-AUD-02).
+builder.Services.AddScoped<Permissions.Application.Interfaces.IAuditorPermisos, AuditorPermisosAdapter>();
+
 // Los logros que gana la persona en HabitTracker se le avisan por el mismo motor.
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuario, NotificadorUsuarioAdapter>();
 
