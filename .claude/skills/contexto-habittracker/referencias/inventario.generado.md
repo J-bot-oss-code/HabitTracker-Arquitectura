@@ -109,7 +109,7 @@
 | AccessControl.Infrastructure.Tests | 11 | 80 | 8 |
 | Auditing.Api.Tests | 4 | 11 | 0 |
 | Auditing.Infrastructure.Tests | 1 | 16 | 0 |
-| DocumentManager.Api.Tests | 4 | 31 | 6 |
+| DocumentManager.Api.Tests | 5 | 33 | 7 |
 | DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
@@ -126,7 +126,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **977** | **124** |
+| **Total** | | **979** | **125** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
