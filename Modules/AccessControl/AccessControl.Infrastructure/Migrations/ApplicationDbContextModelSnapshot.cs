@@ -337,6 +337,9 @@ namespace AccessControl.Infrastructure.Migrations
                             b1.Property<DateTime>("FechaVencimiento")
                                 .HasColumnType("datetime2");
 
+                            b1.Property<bool>("IniciadoPorAdministrador")
+                                .HasColumnType("bit");
+
                             b1.Property<int>("IntentosFallidos")
                                 .HasColumnType("int");
 

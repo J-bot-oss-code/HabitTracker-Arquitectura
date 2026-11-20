@@ -33,7 +33,6 @@ public static class ServiceExtensions
         services.AddScoped<IUsuarioService, UsuarioService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IEmailQueue, DatabaseEmailQueue>();
-        services.AddScoped<IAuditoriaService, AuditoriaService>();
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<ITokenBlacklist, TokenBlacklistService>();
 

@@ -292,7 +292,7 @@ Ejecuta toda la suite de pruebas unitarias con:
 dotnet test
 ```
 
-La suite prueba directamente las capas de aplicación, dominio e infraestructura: no inicia la API ni necesita una base de datos externa. Las pruebas de persistencia usan SQLite en memoria. Hoy son **1436 pruebas** y ese único comando las ejecuta todas desde un clon limpio.
+La suite prueba directamente las capas de aplicación, dominio e infraestructura: no inicia la API ni necesita una base de datos externa. Las pruebas de persistencia usan SQLite en memoria. Hoy son **1478 pruebas** y ese único comando las ejecuta todas desde un clon limpio.
 
 **Asignación 3 (auditoría de la P5).** Cada hallazgo corregido tiene una prueba de regresión cuyo nombre empieza por `Hallazgo{N}_` y que falla sobre el código anterior a su corrección (ver `docs/bitacora-asignacion-3.md`, «Cómo verificar cada hallazgo»). Para correr solo esas:
 
@@ -542,13 +542,85 @@ Reglas del módulo que conviene conocer al probar la API (las comprueban las pru
 
 **CORS.** Solo los orígenes de `Cors:OrigenesPermitidos` (en desarrollo, `http://localhost:5173` y `:5174`; en Docker, la variable `FRONTEND_URL`). Nunca comodines; sin orígenes configurados no se permite ninguno. `GET /api/auth/me` devuelve también el `nombre`.
 
+## Auditoría
+
+Pieza 6 del Core (RF-AUD-01 a 07). Es el historial de **quién cambió qué y cuándo, y qué había antes**, hecho para los datos de la aplicación como `git log` lo hace para el repositorio. Vive en `Modules/Auditing` (tabla `RegistrosAuditoria`, en la misma base de datos, con su propio `AuditingDbContext` y su migración) y se consulta en `GET /api/audit`. Todas las operaciones piden sesión (`Authorization: Bearer <token>`; el token sale del cuerpo de `POST /api/auth/login`).
+
+**Cada registro** guarda los siete datos de RF-AUD-01 y ninguno puede faltar (el dominio no deja crearlo incompleto): `usuarioId` y `actor` (el correo de quien actuó), `accion`, `entidad`, `entidadId`, `fecha` (UTC, la fija el servidor) y `valorAnterior` y `valorNuevo`.
+
+### Decisiones de diseño
+
+1. **Dónde se escribe.** En el **servicio** que hace el cambio, justo después de guardarlo y en el único método por el que pasa ese cambio, nunca en el controller: así ningún camino (endpoint, Google, otro proceso) deja un cambio sin registro. A diferencia de los avisos de las notificaciones, **un fallo al auditar no se traga**: la operación responde error. *Límite declarado:* el cambio y su registro no comparten transacción; si el proceso cae justo entre los dos, quedaría un cambio sin registro.
+2. **Valor anterior y nuevo.** Texto corto y legible, no un volcado de objetos: `Estandar` → `Administrador`, `Activo` → `Inactivo`, `Pendiente` → `Aplicada (permiso «…» de …)`, `No existía` → `doc.txt (20 bytes)`. **Nunca** se guarda una contraseña, un hash ni un código: el restablecimiento dice «Contraseña nueva (no se guarda)».
+3. **El Core no depende del negocio (RD-03).** Auditoría no referencia a ningún módulo. Cada módulo que audita define su propio puerto en su `Application` (`IAuditoriaService` en Control de Acceso, `IAuditorPermisos`, `IAuditorDocumentos`) y los adaptadores de `Host/WebApi/Adapters` lo conectan con el historial. HabitTracker no participa.
+4. **Inmutabilidad (RF-AUD-06).** La entidad no tiene métodos que la cambien, el repositorio solo agrega y consulta, el controller solo tiene `GET` y `AuditingDbContext` rechaza guardar un registro modificado o eliminado. La baja de cuenta **no** borra el historial (no es un participante de `IParticipanteDatosUsuario`).
+5. **Quién inició un restablecimiento.** El código de recuperación recuerda quién lo emitió (`IniciadoPorAdministrador`): así, al completarlo, el registro dice si lo inició la persona o un Administrador, aunque la persona haya pedido otro código después de un forzado.
+
+### Cómo provocar cada evento
+
+Prepara un Administrador (`admin@ejemplo.com`, ver «Datos de partida») y una persona Estándar registrada y activada (`ana@ejemplo.com`, ver «Revisión acumulada»). Los correos con códigos se leen en Mailpit (`http://localhost:8025`).
+
+| Evento | Cómo provocarlo | Qué queda en el registro |
+|---|---|---|
+| **Aprobar una solicitud** (RF-AUD-02) | Ana: `POST /api/permissions` con `{"permisoSolicitado":"Habits.AdvancedReconfig"}`. Administrador: `POST /api/permissions/{id}/approve` | `Aprobación de solicitud de permiso` · `SolicitudPermiso` · `Pendiente` → `Aplicada (permiso «…» de ana@…)` |
+| **Rechazar una solicitud** | Administrador: `POST /api/permissions/{id}/reject` con `{"motivoRechazo":"Falta justificacion"}` | `Rechazo de solicitud de permiso` · `Pendiente` → `Rechazada (…; motivo: …)` |
+| **Subir un documento** (RF-AUD-03) | Ana: `curl -X POST http://localhost:8080/api/documents -H "Authorization: Bearer <token>" -F "archivo=@doc.txt"` | `Subida de documento` · `Documento` · `No existía` → `doc.txt (20 bytes)` |
+| **Eliminar un documento** | `DELETE /api/documents/{id}` (su dueña, o un Administrador) | `Eliminación de documento` · `doc.txt (visible)` → `doc.txt (eliminado)` (más `; eliminado por un Administrador` si lo hizo uno) |
+| **Cambiar un rol** (RF-AUD-04) | Administrador: `PATCH /api/admin/usuarios/{id}/rol` con `{"nuevoRol":"Administrador"}` | `Cambio de rol` · `Usuario` · `Estandar` → `Administrador` |
+| **Desactivar y reactivar** | Administrador: `PATCH /api/admin/usuarios/{id}/estado` con `{"nuevoEstado":false}` y luego `true` | `Cambio de estado` · `Activo` → `Inactivo`, y `Inactivo` → `Activo` |
+| **Reactivar la propia cuenta** | Ana: `POST /api/privacy/deletion-request` con `{"modo":"desactivar","password":"…"}` y volver a iniciar sesión | `Reactivación de cuenta` · `Inactivo (desactivada por su dueño)` → `Activo` |
+| **Restablecimiento propio** (RF-AUD-05) | Ana: `POST /api/auth/forgot-password` con `{"correo":"ana@ejemplo.com"}`, leer el código en Mailpit y `POST /api/auth/reset-password` con `{"correo","codigo","nuevaPassword"}` | `Restablecimiento de contraseña` · `Contraseña nueva (no se guarda); iniciado por: el propio usuario` |
+| **Restablecimiento forzado** | Administrador: `POST /api/admin/usuarios/{id}/forzar-restablecimiento` (queda `Restablecimiento forzado de contraseña`, con el Administrador como actor); cuando Ana usa el código que le llegó con `reset-password`, queda otro registro | `Restablecimiento de contraseña` · `…; iniciado por: un Administrador` |
+
+Una operación que se rechaza (aprobar dos veces, una extensión no permitida, un documento protegido) **no** deja registro. Al contrario, la purga definitiva de una cuenta dada de baja borra sus documentos sin registrar uno por cada archivo: queda la «Solicitud de baja de cuenta» que la originó. Ningún registro contiene la contraseña ni el código: se comprueba en las pruebas y con la consulta de abajo.
+
+### Cómo consultar el historial (RF-AUD-07)
+
+`GET /api/audit` es **solo para el Administrador** (el rol se exige en el servidor): un Estándar recibe `403` y sin sesión, `401`. Devuelve los registros de **más reciente a más antiguo**, paginados, y todos los filtros son opcionales y se combinan (un registro debe cumplirlos todos):
+
+| Parámetro | Qué filtra |
+|---|---|
+| `usuario` | quien actuó: el correo **contiene** el texto (`usuario=ana@`) |
+| `entidad` | el tipo de dato afectado, exacto: `Usuario`, `Documento` o `SolicitudPermiso` |
+| `entidadId` | el identificador de esa entidad, exacto (la historia de un documento o de una cuenta) |
+| `accion` | la acción, exacta (`accion=Cambio de rol`) |
+| `desde`, `hasta` | rango de días `AAAA-MM-DD`, UTC, **ambos incluidos** (se puede dar solo uno); máximo 366 días |
+| `pagina`, `tamano` | página (desde 1) y registros por página (50 por defecto, máximo 200) |
+
+```bash
+# Todo el historial (primera página) y el total
+curl "http://localhost:8080/api/audit" -H "Authorization: Bearer <token del Administrador>"
+
+curl "http://localhost:8080/api/audit?usuario=ana@"                      # lo que hizo Ana
+curl "http://localhost:8080/api/audit?entidad=Documento"                 # por entidad
+curl "http://localhost:8080/api/audit?entidad=Documento&entidadId=<id>"  # la historia de un documento
+curl "http://localhost:8080/api/audit?accion=Cambio%20de%20rol"          # por acción
+curl "http://localhost:8080/api/audit?desde=2026-11-01&hasta=2026-11-30" # por rango (el 30 entra completo)
+curl "http://localhost:8080/api/audit?usuario=ana@&entidad=Documento&desde=2026-11-20"   # combinados
+curl "http://localhost:8080/api/audit?tamano=5&pagina=2"                 # paginado
+```
+
+La respuesta es `{ "total", "pagina", "tamano", "registros": [ … ] }`: `total` cuenta **todos** los que cumplen los filtros, no solo los de la página. Un rango sin datos devuelve `registros: []`. Un filtro inválido (`hasta` anterior a `desde`, más de 366 días, `tamano` 0 o mayor que 200, una fecha mal escrita) responde `400` sin tocar la base de datos. Ejemplo de un registro real (restablecimiento que un Administrador había forzado):
+
+```json
+{
+  "id": "<GUID del registro>", "fecha": "2026-11-20T00:16:58Z",
+  "usuarioId": "2c29cf67-…", "actor": "ana@ejemplo.com",
+  "accion": "Restablecimiento de contraseña", "entidad": "Usuario", "entidadId": "2c29cf67-…",
+  "valorAnterior": "Contraseña anterior (no se guarda)",
+  "valorNuevo": "Contraseña nueva (no se guarda); iniciado por: un Administrador"
+}
+```
+
+**No existe ninguna operación para editar ni borrar el historial** (RF-AUD-06): `PUT`, `PATCH`, `DELETE` y `POST` sobre `/api/audit` responden `405`. **El historial persiste** (RD-09): sobrevive a reiniciar la API y a `docker compose down` (sin `-v`), porque vive en el volumen de SQL Server. Las pruebas del historial se ejecutan con `dotnet test --filter "FullyQualifiedName~RF_AUD"`.
+
 ## Integración continua (CI)
 
 Cada PR hacia `develop` o `main` (y cada push a esas ramas) ejecuta dos workflows de GitHub Actions. Los **checks requeridos** son `ci-ok` y `seguridad-ok`: agrupan todos los trabajos de su workflow y bloquean el merge si alguno falla. El umbral es **severidad alta y crítica**: lo que quede por debajo se reporta pero no bloquea.
 
 | Workflow | Trabajo | Qué verifica | Bloquea el merge si… |
 |---|---|---|---|
-| `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 1436 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
+| `ci.yml` | Backend (.NET) | restore con NuGetAudit, build Release con las reglas de seguridad del compilador, las 1478 pruebas, paquetes NuGet vulnerables | el build, una prueba o un paquete con vulnerabilidad alta o crítica falla |
 | `ci.yml` | Frontend (React) | `npm ci` sin scripts, firmas de paquetes, lint, formato, tipos, las 1033 pruebas, build, `npm audit` | cualquier paso falla o hay una vulnerabilidad alta o crítica en una dependencia de producción (`npm audit --omit=dev`) |
 | `ci.yml` | Reglas del repositorio | formato de los commits (`tipo: descripción en español [RF-XX-NN, RD-NN]`), RD-03, RD-05, RD-08, RD-10 y RD-11, ShellCheck de los scripts | un commit o el código incumple la regla |
 | `seguridad.yml` | CodeQL (C#, JS/TS, Actions) | análisis estático con las consultas `security-extended` | la regla de *code scanning* del repositorio detecta una alerta alta o crítica |

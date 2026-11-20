@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using WebApi.Adapters;
 using WebApi.Extensions;
 using WebApi.Middlewares;
+using Auditing.Infrastructure.DependencyInjection;
 using DocumentManager.Infrastructure.DependencyInjection;
 using Notifications.Infrastructure.DependencyInjection;
 using Permissions.Infrastructure.DependencyInjection;
@@ -23,12 +24,24 @@ builder.Services.AddDocumentManagerModule(builder.Configuration);
 // Módulo de Notificaciones (Pieza 4 del Core): bandeja interna y correo por la cola de Control de Acceso.
 builder.Services.AddNotificationsModule(builder.Configuration);
 
+// Módulo de Auditoría (Pieza 6 del Core): historial inmutable en su propia tabla; los demás módulos le escriben por puertos.
+builder.Services.AddAuditingModule(builder.Configuration);
+
+// Control de Acceso registra sus eventos (rol, estado, contraseña) por su puerto; este adaptador los guarda en el historial.
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IAuditoriaService, AuditoriaControlAccesoAdapter>();
+
 // Notificaciones se conecta a Control de Acceso (usuarios y cola de correos) solo por puertos y estos adaptadores.
 builder.Services.AddScoped<Notifications.Application.Interfaces.IDirectorioUsuarios, DirectorioUsuariosAdapter>();
 builder.Services.AddScoped<Notifications.Application.Interfaces.IColaCorreos, ColaCorreosAdapter>();
 
 // Los avisos de Permisos (solicitud creada y resuelta) llegan al motor de Notificaciones por este adaptador.
 builder.Services.AddScoped<Permissions.Application.Interfaces.INotificadorPermisos, NotificadorPermisosAdapter>();
+
+// Cada subida y eliminación de documento queda en el historial de auditoría (RF-AUD-03).
+builder.Services.AddScoped<DocumentManager.Application.Interfaces.IAuditorDocumentos, AuditorDocumentosAdapter>();
+
+// Quién aprobó o rechazó cada solicitud queda en el historial de auditoría (RF-AUD-02).
+builder.Services.AddScoped<Permissions.Application.Interfaces.IAuditorPermisos, AuditorPermisosAdapter>();
 
 // Los logros que gana la persona en HabitTracker se le avisan por el mismo motor.
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuario, NotificadorUsuarioAdapter>();
