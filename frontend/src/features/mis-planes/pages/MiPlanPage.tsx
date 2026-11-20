@@ -398,6 +398,7 @@ function Recordatorio({ plan }: { plan: PlanUsuarioDto }) {
           <h2 className="text-lg font-bold">Recordatorio</h2>
           <Interruptor
             etiqueta="Recibir recordatorios de este plan"
+            descripcion="A esa hora te escribimos con lo que te falta del día y un botón «Ya lo hice». Como mucho un correo al día, y te das de baja desde el mismo correo."
             activado={activos}
             alCambiar={setActivos}
           />

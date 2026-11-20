@@ -75,6 +75,14 @@ describe('Mis planes: detalle', () => {
     expect(await screen.findByText('Plan cancelado.')).toBeInTheDocument()
   })
 
+  it('el recordatorio explica qué trae el correo y cómo darse de baja', async () => {
+    renderApp(`/mis-planes/${PLAN_DEMO_ID}`, { como: 'estandar' })
+    await screen.findByText('Recordatorio')
+
+    expect(screen.getByText(/botón «Ya lo hice»/)).toBeInTheDocument()
+    expect(screen.getByText(/te das de baja desde el mismo correo/)).toBeInTheDocument()
+  })
+
   it('el recordatorio pide una hora para activarse', async () => {
     const { user } = renderApp(`/mis-planes/${PLAN_DEMO_ID}`, { como: 'estandar' })
     await screen.findByText('Recordatorio')
