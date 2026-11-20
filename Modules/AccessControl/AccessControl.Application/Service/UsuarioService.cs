@@ -406,6 +406,8 @@ public class UsuarioService : IUsuarioService
         await _sesiones.RevocarTodasAsync(usuario.Id, "cambio-de-contrasena");
 
         await _repository.UpdateAsync(usuario);
+
+        await _auditoria.ContrasenaCambiadaAsync(usuario);
     }
 
     public async Task ForzarRestablecimientoAsync(Guid usuarioId, Guid adminId)
@@ -546,6 +548,8 @@ public class UsuarioService : IUsuarioService
         usuario.CompletarActivacion(codigo);
 
         await _repository.UpdateAsync(usuario);
+
+        await _auditoria.ActivadaAsync(usuario);
     }
 
     public async Task<UsuarioResponseDto> RegistrarUsuarioAsync(RegistroRequestDto request)

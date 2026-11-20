@@ -157,6 +157,11 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
         usuario.RestablecerIntentos();
         await _usuarios.UpdateAsync(usuario);
 
+        if (existente is null)
+        {
+            await _auditoria.GoogleVinculadoAsync(usuario, vinculado: true);
+        }
+
         if (reactivada)
         {
             await _auditoria.ReactivadaPorSuDuenoAsync(usuario);
@@ -197,6 +202,8 @@ public sealed class ServicioLoginExterno : IServicioLoginExterno
         {
             // El proveedor llega en la ruta de la petición: no se escribe en el log (solo el identificador del usuario).
             _logger.LogInformation("Proveedor externo desvinculado del usuario {UsuarioId}.", usuarioId);
+            // Solo existe un proveedor (LoginExterno.ProveedorGoogle): la vinculación encontrada arriba es la de Google.
+            await _auditoria.GoogleVinculadoAsync(usuario, vinculado: false);
         }
 
         return eliminado;
