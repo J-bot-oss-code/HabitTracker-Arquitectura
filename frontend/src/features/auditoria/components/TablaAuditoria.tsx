@@ -1,5 +1,5 @@
 import { parsearFechaUtc } from '@/shared/lib/fechas'
-import { etiquetaAccion, type EventoAuditoriaDto } from '../types'
+import type { EventoAuditoriaDto } from '../types'
 
 // "1 nov 2026, 15:27": 24 horas y sin repetir "UTC" en cada fila (la cabecera ya lo dice).
 const formatoCuando = new Intl.DateTimeFormat('es-DO', {
@@ -9,14 +9,17 @@ const formatoCuando = new Intl.DateTimeFormat('es-DO', {
   timeZone: 'UTC',
 })
 
-// Qué cambió: "Administrador → Estandar", o "→ desactivar" si solo hay valor nuevo.
+// Qué cambió: "Administrador → Estandar", o "→ desactivar" si solo hay valor nuevo. El servidor nunca manda
+// null; "-" significa sin valor (p. ej. la descarga de datos).
+const hayValor = (v: string) => v !== '' && v !== '-'
 function cambio(e: EventoAuditoriaDto): string | null {
-  if (e.valorAnterior && e.valorNuevo) return `${e.valorAnterior} → ${e.valorNuevo}`
-  if (e.valorNuevo) return `→ ${e.valorNuevo}`
+  if (hayValor(e.valorAnterior) && hayValor(e.valorNuevo))
+    return `${e.valorAnterior} → ${e.valorNuevo}`
+  if (hayValor(e.valorNuevo)) return `→ ${e.valorNuevo}`
   return null
 }
 
-// Tabla de auditoría (§5.6): Acción · Quién · Cuándo (UTC) · Detalle · Origen. Lo que importa
+// Tabla de auditoría (§5.6): Acción · Quién · Cuándo (UTC) · Detalle. Lo que importa
 // va primero, así en un móvil —donde la tabla se desplaza— lo primero que se ve es qué pasó. El
 // texto se pinta tal cual (React lo escapa): el contenido de un evento nunca es HTML.
 export function TablaAuditoria({
@@ -24,7 +27,7 @@ export function TablaAuditoria({
   conDetalle = true,
 }: {
   eventos: EventoAuditoriaDto[]
-  // El resumen del panel muestra solo Acción, Quién, Cuándo y Origen (§5.6).
+  // El resumen del panel muestra solo Acción, Quién y Cuándo (§5.6).
   conDetalle?: boolean
 }) {
   return (
@@ -53,9 +56,6 @@ export function TablaAuditoria({
                 Detalle
               </th>
             )}
-            <th scope="col" className="px-4 py-3">
-              Origen
-            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-borde">
@@ -63,9 +63,7 @@ export function TablaAuditoria({
             const detalle = cambio(e)
             return (
               <tr key={e.id}>
-                <td className="whitespace-nowrap px-4 py-3 font-semibold">
-                  {etiquetaAccion[e.accion]}
-                </td>
+                <td className="whitespace-nowrap px-4 py-3 font-semibold">{e.accion}</td>
                 <td className="px-4 py-3">{e.actor}</td>
                 <td className="whitespace-nowrap px-4 py-3 tabular-nums text-texto-2">
                   {formatoCuando.format(parsearFechaUtc(e.fecha))}
@@ -76,7 +74,6 @@ export function TablaAuditoria({
                     {detalle && <span className="block text-atenuado">{detalle}</span>}
                   </td>
                 )}
-                <td className="px-4 py-3 text-atenuado">{e.origen}</td>
               </tr>
             )
           })}

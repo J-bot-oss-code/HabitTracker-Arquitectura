@@ -154,6 +154,12 @@ export interface SesionMock {
   ultimoUsoEn: string
 }
 
+export interface ActividadMock {
+  fecha: string
+  actor: string
+  tipo: 'Registro' | 'InicioSesion'
+}
+
 interface Db {
   usuarios: UsuarioMock[]
   habitos: HabitoMock[]
@@ -177,7 +183,11 @@ interface Db {
   consentimientos: Map<string, ConsentimientosDto>
   pesos: Map<string, PesosDto>
   mediciones: Map<string, MedicionDto[]>
+  // Lo que audita el backend real (solo las acciones de ACCIONES_AUDITORIA); lo lee GET /api/audit.
   auditoria: EventoAuditoriaDto[]
+  // Registros de cuenta e inicios de sesión: el backend real NO los audita. Solo alimentan las métricas
+  // propuestas (/api/admin/metrics) y nunca salen por /api/audit.
+  actividad: ActividadMock[]
   bajas: Map<string, BajaProgramadaMock>
   // Notificaciones (la más reciente primero), preferencia de correo por usuario (true si falta) y cola de correos.
   notificaciones: NotificacionMock[]
@@ -204,6 +214,7 @@ export const db: Db = {
   pesos: new Map(),
   mediciones: new Map(),
   auditoria: [],
+  actividad: [],
   bajas: new Map(),
   notificaciones: [],
   preferenciasCorreo: new Map(),
@@ -562,40 +573,72 @@ export function reiniciarDb() {
     ],
   ])
 
-  // Auditoría de ejemplo: los últimos 40 días, con el historial que alimenta las métricas.
+  // Auditoría de ejemplo con las acciones reales del backend (todos los campos van llenos, como en la API).
+  const [ana, admin, otro] = db.usuarios
   const evento = (
     n: number,
     dias: number,
-    actor: string,
-    accion: EventoAuditoriaDto['accion'],
+    actor: UsuarioMock,
+    accion: string,
     entidad: string,
-    extra: Partial<EventoAuditoriaDto> = {},
+    entidadId: string,
+    valorAnterior: string,
+    valorNuevo: string,
   ): EventoAuditoriaDto => ({
     id: `dd000000-0000-4000-8000-${String(n).padStart(12, '0')}`,
     fecha: new Date(ahora - dias * DIA - n * 60_000).toISOString(),
-    actor,
+    usuarioId: actor.id,
+    actor: actor.correo,
     accion,
     entidad,
-    entidadId: null,
-    valorAnterior: null,
-    valorNuevo: null,
-    origen: 'Web',
-    ...extra,
+    entidadId,
+    valorAnterior,
+    valorNuevo,
   })
   db.auditoria = [
-    evento(1, 40, 'estandar@demo.com', 'Registro', 'Usuario'),
-    evento(2, 38, 'otro@demo.com', 'Registro', 'Usuario'),
-    evento(3, 30, 'admin@demo.com', 'InicioSesion', 'Sesión'),
-    evento(4, 33, 'otro@demo.com', 'InicioSesion', 'Sesión'),
-    evento(5, 9, 'estandar@demo.com', 'InicioSesion', 'Sesión'),
-    evento(6, 6, 'admin@demo.com', 'CambioRol', 'Usuario', {
-      entidadId: db.usuarios[2].id,
-      valorAnterior: 'Administrador',
-      valorNuevo: 'Estandar',
-    }),
-    evento(7, 3, 'estandar@demo.com', 'InicioSesion', 'Sesión'),
-    evento(8, 2, 'admin@demo.com', 'InicioSesion', 'Sesión'),
-    evento(9, 4, 'estandar@demo.com', 'DescargaDatos', 'Cuenta'),
+    evento(1, 20, admin, 'Cambio de estado', 'Usuario', otro.id, 'Inactivo', 'Activo'),
+    evento(
+      2,
+      15,
+      admin,
+      'Aprobación de solicitud de permiso',
+      'SolicitudPermiso',
+      '5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c99',
+      'Pendiente',
+      'Aplicada (permiso «ver-reportes» de otro@demo.com)',
+    ),
+    evento(
+      3,
+      12,
+      ana,
+      'Subida de documento',
+      'Documento',
+      '6b5c4d3e-2f10-4b8c-9d7e-5f4a3b2c1d99',
+      'No existía',
+      'analisis.pdf (20480 bytes)',
+    ),
+    evento(4, 6, admin, 'Cambio de rol', 'Usuario', otro.id, 'Administrador', 'Estandar'),
+    evento(5, 4, ana, 'Descarga de datos personales', 'Usuario', ana.id, '-', '-'),
+  ]
+  // Actividad que el backend no audita: alimenta solo las métricas propuestas.
+  const actividad = (
+    n: number,
+    dias: number,
+    actor: string,
+    tipo: ActividadMock['tipo'],
+  ): ActividadMock => ({
+    fecha: new Date(ahora - dias * DIA - n * 60_000).toISOString(),
+    actor,
+    tipo,
+  })
+  db.actividad = [
+    actividad(1, 40, ana.correo, 'Registro'),
+    actividad(2, 38, otro.correo, 'Registro'),
+    actividad(3, 30, admin.correo, 'InicioSesion'),
+    actividad(4, 33, otro.correo, 'InicioSesion'),
+    actividad(5, 9, ana.correo, 'InicioSesion'),
+    actividad(7, 3, ana.correo, 'InicioSesion'),
+    actividad(8, 2, admin.correo, 'InicioSesion'),
   ]
   db.bajas = new Map()
   db.notificaciones = []

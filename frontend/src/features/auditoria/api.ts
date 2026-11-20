@@ -1,12 +1,12 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { api } from '@/shared/api/http'
 import type { MetricasDto } from './metricas'
-import type { EventoAuditoriaDto, FiltroAuditoria } from './types'
+import type { FiltroAuditoria, PaginaAuditoriaDto } from './types'
 
-// Contratos propuestos (sin backend todavía): ver types.ts y metricas.ts.
+// /api/audit es real (types.ts); /api/admin/metrics sigue siendo un contrato propuesto (metricas.ts).
 export const auditoriaApi = {
   listar: (filtro: FiltroAuditoria = {}) =>
-    api.get<EventoAuditoriaDto[]>('/api/audit', { query: { ...filtro } }),
+    api.get<PaginaAuditoriaDto>('/api/audit', { query: { ...filtro } }),
   metricas: () => api.get<MetricasDto>('/api/admin/metrics'),
 }
 

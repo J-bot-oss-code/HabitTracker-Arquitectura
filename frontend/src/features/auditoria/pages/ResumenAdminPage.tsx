@@ -18,7 +18,7 @@ import { metricasACsv } from '../metricas'
 // cifra permite saber qué hace una persona concreta.
 export function ResumenAdminPage() {
   const metricas = useMetricas()
-  const recientes = useAuditoria({ limite: 8 })
+  const recientes = useAuditoria({ tamano: 8 })
   const m = metricas.data
   const planes = usePlanes()
   // La cola es de otro módulo: si su consulta falla (403, error) la tarjeta se queda solo con el enlace.
@@ -153,10 +153,10 @@ export function ResumenAdminPage() {
               alReintentar={() => recientes.refetch()}
             />
           )
-        ) : recientes.data.length === 0 ? (
+        ) : recientes.data.registros.length === 0 ? (
           <p className="text-sm text-atenuado">Todavía no hay eventos.</p>
         ) : (
-          <TablaAuditoria eventos={recientes.data} conDetalle={false} />
+          <TablaAuditoria eventos={recientes.data.registros} conDetalle={false} />
         )}
       </section>
 

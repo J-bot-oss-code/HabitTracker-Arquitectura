@@ -133,11 +133,12 @@ export const privacidadHandlers = [
     db.sesiones = db.sesiones.filter((s) => s.usuarioId !== usuario.id)
     if (db.refresh?.usuarioId === usuario.id) db.refresh = null
     auditar({
-      actor: usuario.correo,
-      accion: 'SolicitudBaja',
-      entidad: 'Cuenta',
+      actor: usuario,
+      accion: 'Solicitud de baja de cuenta',
+      entidad: 'Usuario',
       entidadId: usuario.id,
-      valorNuevo: modo,
+      valorAnterior: 'Cuenta activa',
+      valorNuevo: modo === 'desactivar' ? 'Desactivada por su dueño' : 'Eliminación programada',
     })
     return HttpResponse.json({ modo, borradoEn }, { status: 202 })
   }),
@@ -171,7 +172,14 @@ export const privacidadHandlers = [
     const consentimiento = db.consentimientos.get(u.id)
     const vinculo = db.vinculosGoogle.get(u.id)
     const baja = db.bajas.get(u.id)
-    auditar({ actor: u.correo, accion: 'DescargaDatos', entidad: 'Cuenta' })
+    auditar({
+      actor: u,
+      accion: 'Descarga de datos personales',
+      entidad: 'Usuario',
+      entidadId: u.id,
+      valorAnterior: '-',
+      valorNuevo: '-',
+    })
     return HttpResponse.json({
       generadoEn: new Date().toISOString(),
       cuenta: {

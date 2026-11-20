@@ -13,17 +13,17 @@ import { useAuditoria } from '../api'
 import { TablaAuditoria } from '../components/TablaAuditoria'
 import { auditoriaACsv, descargarCsv, nombreCsv } from '../csv'
 import { filtroAuditoriaSchema, type FiltroAuditoriaForm } from '../schemas'
-import { ACCIONES_AUDITORIA, etiquetaAccion, type FiltroAuditoria } from '../types'
+import { ACCIONES_AUDITORIA, type FiltroAuditoria } from '../types'
 
-// El servidor entrega como máximo este número de eventos por consulta.
+// Se pide el máximo que admite el servidor por página (tamano: 1 a 200).
 export const LIMITE_EVENTOS = 200
 
-const VACIO: FiltroAuditoriaForm = { actor: '', accion: '', desde: '', hasta: '' }
+const VACIO: FiltroAuditoriaForm = { usuario: '', accion: '', desde: '', hasta: '' }
 
 // Los campos vacíos no viajan: la consulta solo lleva lo que el administrador eligió.
 function aFiltro(f: FiltroAuditoriaForm): FiltroAuditoria {
   return {
-    ...(f.actor && { actor: f.actor }),
+    ...(f.usuario && { usuario: f.usuario }),
     ...(f.accion && { accion: f.accion }),
     ...(f.desde && { desde: f.desde }),
     ...(f.hasta && { hasta: f.hasta }),
@@ -34,7 +34,7 @@ function aFiltro(f: FiltroAuditoriaForm): FiltroAuditoria {
 // solo lectura (RF-AUD-06), con exportación a CSV. Solo la ve el Administrador.
 export function AuditoriaPage() {
   const [filtro, setFiltro] = useState<FiltroAuditoria>({})
-  const auditoria = useAuditoria({ ...filtro, limite: LIMITE_EVENTOS })
+  const auditoria = useAuditoria({ ...filtro, tamano: LIMITE_EVENTOS })
   const {
     register,
     handleSubmit,
@@ -45,9 +45,10 @@ export function AuditoriaPage() {
     defaultValues: VACIO,
   })
 
-  const eventos = auditoria.data ?? []
+  const eventos = auditoria.data?.registros ?? []
+  const total = auditoria.data?.total ?? 0
   const hayFiltro = Object.keys(filtro).length > 0
-  const truncada = eventos.length >= LIMITE_EVENTOS
+  const truncada = total > eventos.length
 
   let contenido
   if (auditoria.isPending) {
@@ -122,14 +123,14 @@ export function AuditoriaPage() {
               ayuda="Correo completo o parte de él"
               placeholder="correo"
               autoComplete="off"
-              error={errors.actor?.message}
-              {...register('actor')}
+              error={errors.usuario?.message}
+              {...register('usuario')}
             />
             <Select etiqueta="Acción" error={errors.accion?.message} {...register('accion')}>
               <option value="">Todas</option>
               {ACCIONES_AUDITORIA.map((a) => (
                 <option key={a} value={a}>
-                  {etiquetaAccion[a]}
+                  {a}
                 </option>
               ))}
             </Select>
@@ -167,7 +168,7 @@ export function AuditoriaPage() {
 
       {auditoria.isSuccess && eventos.length > 0 && (
         <Alert tono="info" className="mb-4">
-          {eventos.length} {eventos.length === 1 ? 'evento' : 'eventos'}
+          {total} {total === 1 ? 'evento' : 'eventos'}
           {hayFiltro ? ' con los filtros aplicados' : ''}, del más reciente al más antiguo.
           {truncada &&
             ` Se muestran solo los ${LIMITE_EVENTOS} más recientes y el CSV incluye únicamente esos: afina los filtros para ver el resto.`}
