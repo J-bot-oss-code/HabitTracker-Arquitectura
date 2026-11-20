@@ -50,7 +50,7 @@ public class DatabaseEmailQueue : IEmailQueue
                 $"Hola,<br><br>Gracias por registrarte en <strong>HabitTracker Nexus</strong>. Para completar tu registro, pulsa el botón o ingresa este código de 6 dígitos junto con tu correo (vence en 24 horas):",
                 codigo,
                 "Si no creaste esta cuenta, puedes ignorar este mensaje.",
-                enlace));
+                [new AccionCorreo("Activar mi cuenta", enlace)]));
 
         _dbContext.CorreosEnCola.Add(mensaje);
         await _dbContext.SaveChangesAsync();
@@ -75,11 +75,48 @@ public class DatabaseEmailQueue : IEmailQueue
         _logger.LogInformation("Correo informativo en cola: {CorreoId}.", correo.Id);
     }
 
+    public async Task EncolarCorreoConAccionesAsync(
+        string destinatario, string asunto, string titulo, string mensaje,
+        IReadOnlyList<AccionCorreo> acciones, string? enlaceBaja)
+    {
+        ArgumentNullException.ThrowIfNull(acciones);
+        foreach (var accion in acciones)
+        {
+            ExigirUrlHttp(accion.Url);
+        }
+
+        var despedida = enlaceBaja is null
+            ? "Puedes dejar de recibir estos correos desde Configuración, en la app."
+            : $@"¿No quieres más recordatorios? <a href=""{ExigirUrlHttp(enlaceBaja)}"" style=""color:#6b7280;"">Darme de baja</a>.";
+
+        var correo = new CorreoEnCola(
+            destinatario,
+            $"{asunto} — HabitTracker Nexus",
+            PlantillaHtml(Escapar(titulo), Escapar(mensaje), codigo: null, despedida, acciones));
+
+        _dbContext.CorreosEnCola.Add(correo);
+        await _dbContext.SaveChangesAsync();
+
+        _logger.LogInformation("Correo con acciones en cola: {CorreoId}.", correo.Id);
+    }
+
+    /// <summary>La URL va a un atributo href: solo http(s) absoluta (nada de javascript: ni data:), y escapada.</summary>
+    private static string ExigirUrlHttp(string url)
+    {
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
+        {
+            throw new ArgumentException("La URL del correo debe ser http(s) absoluta.", nameof(url));
+        }
+
+        return Escapar(uri.AbsoluteUri);
+    }
+
     // Solo los caracteres que cambian el HTML: WebUtility.HtmlEncode también convertiría las tildes en entidades numéricas.
     private static string Escapar(string texto) =>
         texto.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;").Replace("\"", "&quot;");
 
-    private static string PlantillaHtml(string titulo, string introduccion, string? codigo, string despedida, string? enlaceBoton = null)
+    private static string PlantillaHtml(
+        string titulo, string introduccion, string? codigo, string despedida, IReadOnlyList<AccionCorreo>? botones = null)
     {
         var caja = string.IsNullOrWhiteSpace(codigo)
             ? string.Empty
@@ -87,9 +124,9 @@ public class DatabaseEmailQueue : IEmailQueue
 <div style=""display:inline-block;background-color:#f0fdfa;border:2px dashed #0f766e;border-radius:8px;padding:16px 32px;font-size:22px;font-weight:bold;letter-spacing:3px;color:#0f766e;"">{codigo}</div>
 </td></tr></table>";
 
-        var boton = string.IsNullOrWhiteSpace(enlaceBoton)
-            ? string.Empty
-            : $@"<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""><tr><td align=""center"" style=""padding:0 0 16px 0;""><a href=""{enlaceBoton}"" style=""display:inline-block;background-color:#0f766e;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 36px;border-radius:8px;"">Activar mi cuenta</a></td></tr></table>";
+        // Un botón por acción, uno debajo de otro (en móvil caben a lo ancho). El texto se escapa; la URL ya viene validada.
+        var boton = string.Concat((botones ?? []).Select(b =>
+            $@"<table role=""presentation"" width=""100%"" cellpadding=""0"" cellspacing=""0""><tr><td align=""center"" style=""padding:0 0 12px 0;""><a href=""{ExigirUrlHttp(b.Url)}"" style=""display:inline-block;background-color:#0f766e;color:#ffffff;text-decoration:none;font-weight:bold;padding:14px 36px;border-radius:8px;"">{Escapar(b.Texto)}</a></td></tr></table>"));
 
         return $@"<!DOCTYPE html>
 <html lang=""es"">

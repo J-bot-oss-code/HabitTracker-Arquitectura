@@ -71,5 +71,60 @@ public sealed class DatabaseEmailQueueTests : IDisposable
         using var lectura = NuevoContexto();
         Assert.Contains("K7Q2ZP", lectura.CorreosEnCola.Single().Cuerpo);
         Assert.Contains("letter-spacing", lectura.CorreosEnCola.Single().Cuerpo);
+        // El botón sigue llevando al enlace con el correo y el código (el & escapado dentro del href).
+        Assert.Contains("Activar mi cuenta", lectura.CorreosEnCola.Single().Cuerpo);
+        Assert.Contains("&amp;codigo=K7Q2ZP", lectura.CorreosEnCola.Single().Cuerpo);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-07")]
+    public async Task RF_NEG_07_UnCorreoConAcciones_LlevaUnBotonPorAccionYElEnlaceDeBaja()
+    {
+        using var contexto = NuevoContexto();
+
+        await Cola(contexto).EncolarCorreoConAccionesAsync(
+            "ana@ejemplo.com", "Tu plan de hoy", "Hoy en «Caminar»", "Te queda esto para hoy.",
+            [new("Ya lo hice: Caminar 20 min", "https://app.ejemplo.com/api/reminders/checkin?token=abc"),
+             new("Abrir la app", "https://app.ejemplo.com/hoy")],
+            "https://app.ejemplo.com/api/reminders/unsubscribe?token=xyz");
+
+        using var lectura = NuevoContexto();
+        var cuerpo = lectura.CorreosEnCola.Single().Cuerpo;
+        Assert.Contains(@"href=""https://app.ejemplo.com/api/reminders/checkin?token=abc""", cuerpo);
+        Assert.Contains("Ya lo hice: Caminar 20 min", cuerpo);
+        Assert.Contains(@"href=""https://app.ejemplo.com/hoy""", cuerpo);
+        Assert.Contains(@"href=""https://app.ejemplo.com/api/reminders/unsubscribe?token=xyz""", cuerpo);
+        Assert.DoesNotContain("letter-spacing", cuerpo); // sin la caja del código
+    }
+
+    [Theory]
+    [InlineData("javascript:alert(1)")]
+    [InlineData("data:text/html,hola")]
+    [InlineData("/ruta/relativa")]
+    [Trait("Requirement", "RD-07")]
+    public async Task RD_07_UnaAccionConUrlQueNoEsHttp_SeRechazaYNoSeEncola(string url)
+    {
+        using var contexto = NuevoContexto();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => Cola(contexto).EncolarCorreoConAccionesAsync(
+            "ana@ejemplo.com", "Asunto", "Título", "Mensaje", [new("Botón", url)], enlaceBaja: null));
+
+        using var lectura = NuevoContexto();
+        Assert.Empty(lectura.CorreosEnCola);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-07")]
+    public async Task RD_07_ElTextoDeUnBotonSeEscapa()
+    {
+        using var contexto = NuevoContexto();
+
+        await Cola(contexto).EncolarCorreoConAccionesAsync(
+            "ana@ejemplo.com", "Asunto", "Título", "Mensaje", [new("<b>Hecho</b>", "https://app.ejemplo.com/hoy")], null);
+
+        using var lectura = NuevoContexto();
+        var cuerpo = lectura.CorreosEnCola.Single().Cuerpo;
+        Assert.DoesNotContain("<b>Hecho</b>", cuerpo);
+        Assert.Contains("&lt;b&gt;Hecho&lt;/b&gt;", cuerpo);
     }
 }
