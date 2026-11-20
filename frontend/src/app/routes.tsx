@@ -65,6 +65,10 @@ const paginas = {
     () => import('@/features/publico/pages/CalculadorasPage'),
     'CalculadorasPage',
   ),
+  comoFunciona: perezosa(
+    () => import('@/features/publico/pages/ComoFuncionaPage'),
+    'ComoFuncionaPage',
+  ),
   legal: perezosa(() => import('@/features/publico/pages/LegalPage'), 'LegalPage'),
   bienvenida: perezosa(() => import('@/features/perfil/pages/OnboardingPage'), 'OnboardingPage'),
   ajustesCuenta: perezosa(() => import('./ajustes/CuentaAjustesPage'), 'CuentaAjustesPage'),
@@ -151,6 +155,7 @@ export const rutas: RouteObject[] = [
         handle: { titulo: 'Calculadora de calorías' },
         ...paginas.calculadoras,
       },
+      { path: 'como-funciona', handle: { titulo: 'Cómo funciona' }, ...paginas.comoFunciona },
       { path: 'legal/:documento', handle: { titulo: 'Documentos legales' }, ...paginas.legal },
       // Cualquier dirección desconocida, con o sin sesión. Las rutas protegidas son explícitas,
       // así que una de ellas sin sesión sigue llevando al login.
