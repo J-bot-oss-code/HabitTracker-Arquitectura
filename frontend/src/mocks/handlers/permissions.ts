@@ -151,8 +151,9 @@ export const permissionsHandlers = [
     if (!esGuid(params.id)) return new HttpResponse(null, { status: 404 })
     const solicitud = db.solicitudes.find((s) => s.id === params.id)
     if (!solicitud) return solicitudNoEncontrada()
+    // ObtenerPorIdAsync lanza UnauthorizedAccessException con la de otra persona: 403 CON cuerpo (el 403 sin cuerpo es el del rol).
     if (sesion.usuario.rol !== 'Administrador' && !esPropia(solicitud, sesion.usuario.correo)) {
-      return respuestas.prohibido()
+      return respuestas.ajeno()
     }
     return HttpResponse.json(solicitud)
   }),

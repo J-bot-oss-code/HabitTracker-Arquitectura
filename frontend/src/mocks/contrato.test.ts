@@ -306,6 +306,29 @@ describe('contrato de la API simulada', () => {
     expect(await sinGuid.text()).toBe('')
   })
 
+  it('la solicitud de otra persona es 403 CON ProblemDetails (UnauthorizedAccessException); el 403 del rol no lleva cuerpo', async () => {
+    const [ajena] = await (
+      await llamar('/api/permissions', { token: iniciarSesionComo('admin') })
+    ).json()
+    const r = await llamar(`/api/permissions/${ajena.id}`, { token: iniciarSesionComo('estandar') })
+    expect(r.status).toBe(403)
+    expect(await r.json()).toMatchObject({ title: 'No autorizado.', status: 403 })
+    // Un Administrador en un endpoint solo de Estándar: el 403 lo da el rol y no hay cuerpo.
+    const porRol = await llamar('/api/habits', { token: iniciarSesionComo('admin') })
+    expect(porRol.status).toBe(403)
+    expect(await porRol.text()).toBe('')
+  })
+
+  it('reconfigurar sin el permiso aplicado es 403 CON ProblemDetails (HabitoService lanza UnauthorizedAccessException)', async () => {
+    const r = await llamar(`/api/habits/${LEER}/advanced-reconfig`, {
+      metodo: 'POST',
+      token: iniciarSesionComo('estandar'),
+      body: { periodicidad: 'Diaria', cantidadObjetivo: 2, unidad: 'páginas' },
+    })
+    expect(r.status).toBe(403)
+    expect(await r.json()).toMatchObject({ title: 'No autorizado.', status: 403 })
+  })
+
   it('el permiso efectivo no distingue mayúsculas: solo una solicitud Aplicada lo concede', async () => {
     const estandar = iniciarSesionComo('estandar')
     const admin = iniciarSesionComo('admin')

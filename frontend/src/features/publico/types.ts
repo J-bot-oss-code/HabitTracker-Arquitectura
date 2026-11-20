@@ -17,8 +17,8 @@ export const infoActividad: Record<NivelActividad, { etiqueta: string; factor: n
   muyAlta: { etiqueta: 'Muy alta (trabajo físico o doble sesión)', factor: 1.9 },
 }
 
-// Límite propuesto para el backend (mejora futura): el perfil físico aún no existe en
-// Host/WebApi. La edad mínima sigue la de los términos de uso (docs/mejoras §7.2).
+// Mismos límites que PerfilUsuario en el backend (EdadMinima y EdadMaxima, AlturaMinimaCm y AlturaMaximaCm,
+// PesoMinimoKg y PesoMaximoKg). La edad mínima sigue la de los términos de uso (docs/mejoras §7.2).
 export const LIMITES_CORPORALES = {
   edad: { min: 16, max: 100 },
   alturaCm: { min: 120, max: 230 },

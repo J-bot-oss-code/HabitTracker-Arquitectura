@@ -10,7 +10,7 @@ export const MINUTOS_EXPIRACION = 15
 export function problema(status: number, title: string, detail?: string, codigo?: string) {
   return HttpResponse.json(
     {
-      type: `https://httpstatuses.io/${status}`,
+      // GlobalExceptionMiddleware no fija `type`: solo title, status, detail, instance y, si hay, codigo.
       title,
       status,
       detail,

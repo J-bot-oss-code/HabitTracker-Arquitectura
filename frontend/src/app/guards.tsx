@@ -63,7 +63,7 @@ export function SoloInvitados() {
 }
 
 // Una cuenta Estándar sin perfil (recién registrada) completa primero el onboarding. Si la
-// pieza no existe en el servidor (backend real sin el contrato propuesto) o falla por otra
+// pieza no existe en el servidor (un 404 sin cuerpo: ruta que no atiende nadie) o falla por otra
 // causa, no bloquea: cada pantalla maneja sus propios errores.
 export function RequierePerfil() {
   const perfil = usePerfil()

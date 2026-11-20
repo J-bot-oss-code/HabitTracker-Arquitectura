@@ -234,8 +234,9 @@ export const habitsHandlers = [
     const habito = habitoDelUsuario(params.id, sesion.usuario.id)
     if (habito instanceof Response) return habito
     if (habito.estado === 'Completado') return respuestas.operacion()
+    // HabitoService lanza UnauthorizedAccessException sin el permiso: 403 CON cuerpo, como con un hábito ajeno.
     if (!tienePermisoAplicado(sesion.usuario.correo, 'Habits.AdvancedReconfig')) {
-      return respuestas.prohibido()
+      return respuestas.ajeno()
     }
     habito.periodicidad = body.periodicidad
     habito.cantidadObjetivo = body.cantidadObjetivo

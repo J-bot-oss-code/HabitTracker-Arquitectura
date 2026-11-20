@@ -3,8 +3,7 @@ import { LIMITES_CORPORALES } from '@/features/publico/types'
 import { hoyUtcInput } from '@/shared/lib/fechas'
 import { ZONAS, type Zona } from './types'
 
-// Límite propuesto para el backend (mejora futura): peso y medidas aún no existen en
-// Host/WebApi. El peso usa los límites corporales del perfil.
+// Mismos límites que MedicionCorporal.Limites en el backend. El peso usa los límites corporales del perfil.
 export const LIMITES_MEDIDA: Record<Zona, { min: number; max: number }> = {
   Cintura: { min: 40, max: 250 },
   Pecho: { min: 40, max: 250 },
@@ -12,7 +11,7 @@ export const LIMITES_MEDIDA: Record<Zona, { min: number; max: number }> = {
   Grasa: { min: 3, max: 60 },
 }
 
-// Límite propuesto para el backend (mejora futura): evita años absurdos que deforman la escala.
+// FechasCorporales.FechaMinima del backend: evita años absurdos que deforman la escala.
 export const FECHA_MINIMA = '2000-01-01'
 
 const fecha = z
