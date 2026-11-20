@@ -83,16 +83,17 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 - **Puerto del Core implementado en el Host:** `IParticipanteDatosUsuario` (`Modules/AccessControl/AccessControl.Application/Interfaces/IParticipanteDatosUsuario.cs`, con `Seccion`, `ExportarAsync` y `EliminarAsync` idempotente). Lo implementan `ParticipanteHabitos`, `ParticipantePerfilSalud` (sección `perfilYSalud`), `ParticipantePlanes` (sección `planes`: planes, pausas y logros), `ParticipantePermisos` y `ParticipanteDocumentos`, y lo usan la descarga de datos y la baja de cuenta. **Todo dato nuevo por usuario debe entrar aquí** (exportar y borrar).
 - **Consentimiento:** `IConsentimientoService` (AccessControl.Application), con `DatosSalud`, `Marketing`, `CompartirCumplimiento` y `EstadisticasAnonimas`. Los mocks del frontend esperan **409** si falta `datosSalud`.
 - **Usuario** (correo, nombre, activo, baja programada): `IUsuarioRepository.GetByIdAsync` (AccessControl).
+- **Correo de HabitTracker (Fase 5):** `IEstadoCuentas` → `EstadoCuentasAdapter` (check-in) e `ICanalRecordatorios` → `CanalRecordatoriosAdapter` (recordatorios).
 
 ## Correo y workers
 
 - **Cola:** `CorreoEnCola` (tabla `CorreosEnCola`, estados Pendiente, Procesando, Enviado y Fallido, `MaxIntentos = 3`, espera de 2^n min entre reintentos).
-  - `IEmailQueue` solo tiene `EncolarCorreoRecuperacionAsync` y `EncolarCorreoActivacionAsync`: **no hay un método genérico**.
-  - `DatabaseEmailQueue.PlantillaHtml` siempre dibuja la caja del código.
-  - Solo `UsuarioService` encola.
+  - `IEmailQueue`: recuperación, activación, `EncolarCorreoAsync` (informativo, lo usa Notificaciones por `IColaCorreos`) y `EncolarCorreoConAccionesAsync` (botones `AccionCorreo` + enlace de baja; solo URL http(s) absolutas, el texto se escapa).
+  - `DatabaseEmailQueue.PlantillaHtml` dibuja la caja del código solo si hay código, y un botón por acción.
 - **`EmailSenderWorker`:** cada 15 s marca `Procesando` antes de enviar (RF-NOT-12). Un correo que quedó en `Procesando` tras una caída no se reintenta. SMTP con `SMTP_HOST/PORT/USER/PASS`; con `CORREO_MODO=consola` y `SMTP_HOST` vacío escribe `[CORREO EN CONSOLA]` en el log.
 - **`BajaCuentasWorker`:** el patrón a copiar. Abre un scope por pasada y solo llama a `IServicioBajaCuentas.EjecutarAsync(ahora)`. Las opciones (`OpcionesPrivacidad`, con `Seccion` + `Validar()`) se enlazan y registran como singleton.
-- Los dos workers viven en `Modules/AccessControl/AccessControl.Infrastructure/Workers/`.
+- Esos dos workers viven en `Modules/AccessControl/AccessControl.Infrastructure/Workers/`.
+- **`RecordatoriosWorker`** (`Modules/HabitTracker/HabitTracker.Infrastructure/Workers/`, Fase 5): cada `Recordatorios:IntervaloMinutos` (5) llama a `IRecordatoriosService.EjecutarAsync(ahora)`. Solo planes **activos con el recordatorio encendido** (opt-in por plan, `PUT api/my-plans/{id}/reminder`); `DecisorRecordatorio` (dominio puro): ventana de 3 h desde la hora local, uno por día (`PlanUsuario.UltimoRecordatorioLocal`, reclamado con un `ExecuteUpdate` atómico) y la cadencia 3/7/21 que solo reduce (la actividad es el último registro). Sale por `ICanalRecordatorios` → `CanalRecordatoriosAdapter` (cuenta activa sin baja + `CorreoActivo` de Notificaciones + cola). Baja en un clic: `api/reminders/unsubscribe` (GET sin efectos, POST idempotente; token de 60 días). `Recordatorios:Habilitado=false` lo apaga.
 
 ## Configuración
 

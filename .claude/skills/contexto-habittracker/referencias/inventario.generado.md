@@ -38,6 +38,8 @@
 | AuthController | POST | `/api/auth/restablecer-password` | anónimo |
 | AuthController | POST | `/api/auth/reset-password` | anónimo |
 | AuthController | POST | `/api/auth/cambiar-password` | autenticado |
+| BajaRecordatoriosController | GET | `/api/reminders/unsubscribe` | anónimo |
+| BajaRecordatoriosController | POST | `/api/reminders/unsubscribe` | anónimo |
 | CheckinCorreoController | GET | `/api/reminders/checkin` | anónimo |
 | CheckinCorreoController | POST | `/api/reminders/checkin` | anónimo |
 | DocumentsController | POST | `/api/documents` | autenticado |
@@ -99,7 +101,7 @@
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado, AgregarOrigenDelCodigoDeRecuperacion
 - **Auditing:** CrearRegistrosAuditoria
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro, AgregarUltimoRecordatorioDelPlan
 - **Notifications:** CrearNotificaciones
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
@@ -108,18 +110,18 @@
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
 | AccessControl.Application.Tests | 31 | 297 | 47 |
-| AccessControl.Infrastructure.Tests | 11 | 80 | 8 |
+| AccessControl.Infrastructure.Tests | 11 | 82 | 9 |
 | Auditing.Api.Tests | 4 | 11 | 0 |
 | Auditing.Infrastructure.Tests | 1 | 16 | 0 |
 | DocumentManager.Api.Tests | 5 | 33 | 7 |
 | DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 8 | 47 | 14 |
-| HabitTracker.Application.Tests | 8 | 130 | 8 |
-| HabitTracker.Domain.Tests | 12 | 167 | 29 |
-| HabitTracker.Integration.Tests | 12 | 73 | 4 |
-| Notifications.Api.Tests | 3 | 20 | 2 |
+| HabitTracker.Api.Tests | 9 | 52 | 14 |
+| HabitTracker.Application.Tests | 9 | 143 | 9 |
+| HabitTracker.Domain.Tests | 12 | 170 | 31 |
+| HabitTracker.Integration.Tests | 13 | 76 | 4 |
+| Notifications.Api.Tests | 4 | 24 | 2 |
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
 | Notifications.Infrastructure.Tests | 1 | 5 | 0 |
@@ -128,7 +130,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 1 | 6 | 0 |
 | Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **1032** | **132** |
+| **Total** | | **1062** | **136** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -137,6 +139,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `AuditorDocumentosAdapter.cs`: `class AuditorDocumentosAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditorDocumentos`
 - `AuditorPermisosAdapter.cs`: `class AuditorPermisosAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditorPermisos`
 - `AuditoriaControlAccesoAdapter.cs`: `class AuditoriaControlAccesoAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditoriaService`
+- `CanalRecordatoriosAdapter.cs`: `class CanalRecordatoriosAdapter(`
 - `ColaCorreosAdapter.cs`: `class ColaCorreosAdapter(IEmailQueue cola) : IColaCorreos`
 - `ConsentimientoSaludAdapter.cs`: `class ConsentimientoSaludAdapter(IConsentimientoService consentimientos) : IConsentimientoSalud`
 - `DirectorioUsuariosAdapter.cs`: `class DirectorioUsuariosAdapter(IUsuarioRepository usuarios) : IDirectorioUsuarios`
@@ -159,6 +162,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 - `Modules/AccessControl/AccessControl.Infrastructure/Workers/BajaCuentasWorker.cs`
 - `Modules/AccessControl/AccessControl.Infrastructure/Workers/EmailSenderWorker.cs`
+- `Modules/HabitTracker/HabitTracker.Infrastructure/Workers/RecordatoriosWorker.cs`
 
 ## Frontend: features
 
