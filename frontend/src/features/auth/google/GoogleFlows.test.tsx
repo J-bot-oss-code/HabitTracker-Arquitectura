@@ -107,6 +107,20 @@ describe('Continuar con Google en el inicio de sesión', () => {
     expect(db.vinculosGoogle.has(ana?.id ?? '')).toBe(true)
   })
 
+  it('quien no recuerda su contraseña tiene un enlace para crear una nueva con su correo', async () => {
+    cuentaDeGoogle('estandar@demo.com')
+    const { user } = renderApp('/login')
+
+    await user.click(await screen.findByRole('button', { name: BOTON }))
+    const formulario = (await screen.findByRole('button', { name: 'Vincular y entrar' })).closest(
+      'form',
+    ) as HTMLElement
+
+    expect(
+      within(formulario).getByRole('link', { name: 'Crea una nueva con tu correo' }),
+    ).toHaveAttribute('href', '/recuperar')
+  })
+
   it('cancelar la vinculación vuelve al botón sin haber iniciado sesión', async () => {
     cuentaDeGoogle('estandar@demo.com')
     const { user } = renderApp('/login')

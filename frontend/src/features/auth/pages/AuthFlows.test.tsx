@@ -139,6 +139,7 @@ describe('flujos de cuenta', () => {
     const alerta = await screen.findByRole('alert')
     // Orienta sin confirmar ni negar que el correo exista (RF-CA-01) y ofrece salidas.
     expect(alerta).toHaveTextContent('No pudimos crear la cuenta con estos datos.')
+    expect(alerta).toHaveTextContent('Si la creaste con Google, usa «Continuar con Google».')
     expect(within(alerta).getByRole('link', { name: 'Iniciar sesión' })).toHaveAttribute(
       'href',
       '/login',

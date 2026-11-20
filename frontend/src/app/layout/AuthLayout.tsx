@@ -87,7 +87,7 @@ export function AuthLayout() {
             <Marca forzarTexto />
           </Link>
           {meta ? <PanelMeta meta={meta} /> : <PanelGeneral />}
-          <p className="text-sm text-tinta-atenuado">Programación III · ITLA · 2026</p>
+          <p className="text-sm text-tinta-atenuado">Constancia sin culpa, un día a la vez.</p>
         </aside>
 
         <main className="relative flex flex-col items-center justify-start gap-8 px-4 pb-10 pt-20 lg:justify-center lg:pt-10">
