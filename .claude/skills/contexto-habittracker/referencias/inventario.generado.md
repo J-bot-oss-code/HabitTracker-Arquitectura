@@ -187,6 +187,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `progreso`: 11 archivos
 - `publico`: 18 archivos
 - `reportes`: 10 archivos
+- `sugerencias`: 13 archivos
 
 ## Frontend: contratos propuestos (sin backend)
 
