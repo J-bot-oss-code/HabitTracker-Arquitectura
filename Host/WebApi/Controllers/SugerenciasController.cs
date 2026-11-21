@@ -20,7 +20,7 @@ namespace WebApi.Controllers;
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class SugerenciasController(ISugerenciasService sugerencias) : ControllerBase
 {
-    /// <summary>Envía una queja o una propuesta de mejora. Como mucho 5 en 24 horas (409 si se pasa: <c>limite_sugerencias</c>).</summary>
+    /// <summary>Envía una queja o una propuesta de mejora. Como mucho 5 en 24 horas (400 con el código <c>limite_sugerencias</c> si se pasa).</summary>
     [HttpPost("api/feedback")]
     [Authorize(Roles = "Estandar")]
     [ProducesResponseType(typeof(SugerenciaDto), StatusCodes.Status201Created)]
