@@ -14,6 +14,7 @@ import { privacidadHandlers } from './privacidad'
 import { progresoHandlers } from './progreso'
 import { propuestasHandlers } from './propuestas'
 import { reportesHandlers } from './reportes'
+import { sugerenciasHandlers } from './sugerencias'
 
 export const handlers = [
   ...authHandlers,
@@ -32,6 +33,8 @@ export const handlers = [
   ...notificacionesHandlers,
   ...colaCorreosHandlers,
   ...reportesHandlers,
+  // Quejas y mejoras: las envía el Estándar y las revisa el Administrador.
+  ...sugerenciasHandlers,
   ...adminUsersHandlers,
   // Historial de auditoría (Auditing, solo lectura).
   ...auditoriaHandlers,

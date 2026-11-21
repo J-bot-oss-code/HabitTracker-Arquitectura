@@ -12,7 +12,7 @@ describe('Configuración', () => {
     expect(await screen.findByText('estandar@demo.com', { selector: 'dd' })).toBeInTheDocument()
   })
 
-  it('el Estándar ve las nueve secciones y navega entre ellas', async () => {
+  it('el Estándar ve las diez secciones y navega entre ellas', async () => {
     const { user, router } = renderApp('/ajustes/cuenta', { como: 'estandar' })
     await screen.findByRole('heading', { level: 1, name: 'Cuenta' })
     const enlaces = within(secciones())
@@ -27,6 +27,7 @@ describe('Configuración', () => {
       'Privacidad y datos',
       'Mi actividad',
       'Notificaciones',
+      'Quejas y mejoras',
       'Apariencia',
     ])
 
@@ -53,6 +54,17 @@ describe('Configuración', () => {
     await screen.findByRole('heading', { level: 1, name: 'Cuenta' })
     expect(within(secciones()).queryByRole('link', { name: 'Privacidad y datos' })).toBeNull()
     expect(screen.queryByRole('link', { name: /Privacidad y datos/ })).toBeNull()
+  })
+
+  it('el Administrador no ve «Quejas y mejoras» en Configuración (la API se lo niega) y su bandeja está en el menú', async () => {
+    renderApp('/ajustes/cuenta', { como: 'admin' })
+    await screen.findByRole('heading', { level: 1, name: 'Cuenta' })
+    expect(within(secciones()).queryByRole('link', { name: 'Quejas y mejoras' })).toBeNull()
+    expect(
+      within(screen.getByRole('navigation', { name: 'Principal' })).getByRole('link', {
+        name: /Quejas y mejoras/,
+      }),
+    ).toHaveAttribute('href', '/admin/sugerencias')
   })
 
   it('el enlace de la cabecera y el menú principal llevan a Configuración', async () => {

@@ -13,6 +13,7 @@ import type {
 import type { NotificacionDto } from '@/features/notificaciones/types'
 import type { ConsentimientosDto, CuestionarioSaludDto, PerfilDto } from '@/features/perfil/types'
 import type { Ancla } from '@/features/planes/types'
+import type { SugerenciaDto } from '@/features/sugerencias/types'
 import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import type { Rol } from '@/shared/auth/roles'
@@ -145,6 +146,11 @@ export interface NotificacionMock extends NotificacionDto {
   usuarioId: string
 }
 
+// Una queja o propuesta de mejora con la persona que la escribió (la bandeja del Administrador solo muestra su id).
+export interface SugerenciaMock extends SugerenciaDto {
+  usuarioId: string
+}
+
 // Una sesión abierta en un dispositivo (SesionUsuario): el refresh token rotativo la sostiene.
 export interface SesionMock {
   id: string
@@ -193,6 +199,8 @@ interface Db {
   notificaciones: NotificacionMock[]
   preferenciasCorreo: Map<string, boolean>
   correos: CorreoColaDto[]
+  // Quejas y mejoras de todas las personas, en el orden en que llegaron (la API las ordena al leerlas).
+  sugerencias: SugerenciaMock[]
 }
 
 export const db: Db = {
@@ -219,6 +227,7 @@ export const db: Db = {
   notificaciones: [],
   preferenciasCorreo: new Map(),
   correos: [],
+  sugerencias: [],
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -644,6 +653,28 @@ export function reiniciarDb() {
   db.notificaciones = []
   db.preferenciasCorreo = new Map()
   db.correos = []
+  db.sugerencias = []
+  // La demo del navegador arranca con un par de mensajes para que la bandeja no esté vacía; las pruebas siembran los suyos.
+  if (import.meta.env.MODE !== 'test') {
+    db.sugerencias = [
+      {
+        id: 'a1b2c3d4-0000-4000-8000-000000000001',
+        usuarioId: estandar,
+        tipo: 'Mejora',
+        texto: 'Me gustaría poder elegir la hora del recordatorio de cada hábito por separado.',
+        creadaEn: new Date(ahora - 2 * 60 * 60 * 1000).toISOString(),
+        estado: 'Nueva',
+      },
+      {
+        id: 'a1b2c3d4-0000-4000-8000-000000000002',
+        usuarioId: otro.id,
+        tipo: 'Queja',
+        texto: 'En el celular, la lista de planes tarda en cargar cuando la conexión es lenta.',
+        creadaEn: new Date(ahora - 3 * DIA).toISOString(),
+        estado: 'Leida',
+      },
+    ]
+  }
 
   // Ana ya tiene otras sesiones abiertas (otros dispositivos) para poder probar «Sesiones activas».
   db.sesiones = [

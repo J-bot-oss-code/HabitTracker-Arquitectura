@@ -110,6 +110,9 @@ const PLAN_RESUMEN = [
   'requiereCuestionario',
 ]
 const NOTIFICACION = ['id', 'tipo', 'titulo', 'mensaje', 'creadaEnUtc', 'leida', 'leidaEnUtc']
+// SugerenciaDto y SugerenciaAdminDto (SugerenciasService.cs): el del Administrador añade usuarioId.
+const SUGERENCIA_DTO = ['id', 'tipo', 'texto', 'creadaEn', 'estado']
+const SUGERENCIA_ADMIN = ['id', 'usuarioId', 'tipo', 'texto', 'creadaEn', 'estado']
 
 let ana: string
 let admin: string
@@ -303,6 +306,30 @@ describe('forma de las respuestas de notificaciones', () => {
       await json('/api/notifications/preferences', ana, 'PUT', { correoActivo: false }),
       ['correoActivo'],
       'PUT /api/notifications/preferences',
+    )
+  })
+})
+
+describe('forma de las respuestas de quejas y mejoras', () => {
+  it('SugerenciaDto, PaginaSugerenciasDto y SugerenciaAdminDto', async () => {
+    const enviada = await llamar('/api/feedback', ana, 'POST', {
+      tipo: 'Queja',
+      texto: 'La lista de planes tarda en cargar.',
+    })
+    expect(enviada.status).toBe(201)
+    const creada = (await enviada.json()) as { id: string }
+    forma(creada, SUGERENCIA_DTO, 'POST /api/feedback')
+    formaLista(await json('/api/feedback', ana), SUGERENCIA_DTO, 'GET /api/feedback')
+
+    const pagina = await json<Record<string, unknown>>('/api/admin/feedback', admin)
+    forma(pagina, ['total', 'pagina', 'tamano', 'nuevas', 'sugerencias'], 'GET /api/admin/feedback')
+    formaLista(pagina.sugerencias, SUGERENCIA_ADMIN, 'sugerencias de la bandeja')
+    expect(pagina).toMatchObject({ total: 1, pagina: 1, tamano: 20, nuevas: 1 })
+
+    forma(
+      await json(`/api/admin/feedback/${creada.id}/status`, admin, 'POST', { estado: 'Leida' }),
+      SUGERENCIA_ADMIN,
+      'POST /api/admin/feedback/{id}/status',
     )
   })
 })
@@ -680,6 +707,10 @@ describe('forma de las respuestas de perfil y privacidad', () => {
     formulario.append('archivo', new File(['hola'], 'nota.txt', { type: 'text/plain' }))
     await json('/api/documents', ana, 'POST', formulario)
     await json('/api/permissions', ana, 'POST', { permisoSolicitado: 'Habits.AdvancedReconfig' })
+    await json('/api/feedback', ana, 'POST', {
+      tipo: 'Mejora',
+      texto: 'Me gustaría elegir la hora de cada recordatorio.',
+    })
 
     const datos = await json<Record<string, unknown>>('/api/privacy/export', ana)
     forma(
@@ -725,7 +756,15 @@ describe('forma de las respuestas de perfil y privacidad', () => {
 
     const modulos = datos.modulos as Record<string, unknown>
     expect(campos(modulos)).toEqual(
-      ['habitos', 'permisos', 'documentos', 'planes', 'notificaciones', 'perfilYSalud'].sort(),
+      [
+        'habitos',
+        'permisos',
+        'documentos',
+        'planes',
+        'notificaciones',
+        'sugerencias',
+        'perfilYSalud',
+      ].sort(),
     )
     formaLista(modulos.habitos, HABITO, 'habitos exportados')
     formaLista(
@@ -767,6 +806,7 @@ describe('forma de las respuestas de perfil y privacidad', () => {
     const notificaciones = modulos.notificaciones as Record<string, unknown>
     forma(notificaciones, ['preferencias', 'notificaciones'], 'sección notificaciones')
     forma(notificaciones.preferencias, ['correoActivo'], 'preferencias exportadas')
+    formaLista(modulos.sugerencias, SUGERENCIA_DTO, 'sugerencias exportadas')
     const perfilYSalud = modulos.perfilYSalud as Record<string, unknown>
     forma(perfilYSalud, ['perfil', 'cuestionario', 'pesos', 'mediciones'], 'sección perfilYSalud')
   })

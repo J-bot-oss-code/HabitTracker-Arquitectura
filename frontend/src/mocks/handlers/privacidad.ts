@@ -267,6 +267,17 @@ export const privacidadHandlers = [
               leidaEnUtc: n.leidaEnUtc,
             })),
         },
+        // ParticipanteSugerencias: las quejas y mejoras que escribió (SugerenciaDto), de la más reciente a la más antigua.
+        sugerencias: db.sugerencias
+          .filter((s) => s.usuarioId === u.id)
+          .sort((a, b) => Date.parse(b.creadaEn) - Date.parse(a.creadaEn))
+          .map((s) => ({
+            id: s.id,
+            tipo: s.tipo,
+            texto: s.texto,
+            creadaEn: s.creadaEn,
+            estado: s.estado,
+          })),
         // ParticipantePerfilSalud: el cuestionario va descifrado para su dueño.
         perfilYSalud: datosPerfilSalud(u.id),
       },

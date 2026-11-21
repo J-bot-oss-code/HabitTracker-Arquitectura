@@ -92,9 +92,9 @@ Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs
 - Públicas: landing `/`, `/metas`, `/calculadoras` y `/legal/:documento`.
 - Alta: `/registro` con consentimientos y `/bienvenida` (onboarding).
 - Estándar: `/hoy` (inicio) y `/progreso`.
-- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Mi actividad (`/ajustes/actividad`, ambos roles: `GET /api/me/activity?dias=7|30`, lo propio de la sesión, con descarga CSV/JSON de todo el periodo; vive en `features/auditoria`), Notificaciones (preferencia de correo) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
+- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Mi actividad (`/ajustes/actividad`, ambos roles: `GET /api/me/activity?dias=7|30`, lo propio de la sesión, con descarga CSV/JSON de todo el periodo; vive en `features/auditoria`), Notificaciones (preferencia de correo), Sugerencias (`/ajustes/sugerencias`, solo Estándar: quejas y propuestas de mejora, `features/sugerencias`, `POST/GET /api/feedback`) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
 - Ambos roles: `/notificaciones` (bandeja con globo de sin leer en el menú) y `/reportes` (permisos por estado y constancia por plan, con rango de fechas).
-- Administrador: `/admin` (inicio), `/admin/auditoria` y `/admin/cola-correos`.
+- Administrador: `/admin` (inicio), `/admin/auditoria`, `/admin/cola-correos` y `/admin/sugerencias` («Quejas y mejoras»: bandeja paginada con filtro por estado y globo de nuevas en el menú; `GET /api/admin/feedback`, `POST /api/admin/feedback/{id}/status`).
 
 Cada pantalla pone su título de pestaña y el foco en su encabezado (`app/layout/RaizApp.tsx`). Las rutas nuevas llevan `handle: { titulo }` en `routes.tsx`.
 

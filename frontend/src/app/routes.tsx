@@ -129,6 +129,14 @@ const paginas = {
     'ColaCorreosPage',
   ),
   reportes: perezosa(() => import('@/features/reportes/pages/ReportesPage'), 'ReportesPage'),
+  sugerencias: perezosa(
+    () => import('@/features/sugerencias/pages/SugerenciasPage'),
+    'SugerenciasPage',
+  ),
+  sugerenciasAdmin: perezosa(
+    () => import('@/features/sugerencias/pages/SugerenciasAdminPage'),
+    'SugerenciasAdminPage',
+  ),
 }
 
 export const rutas: RouteObject[] = [
@@ -285,6 +293,14 @@ export const rutas: RouteObject[] = [
                     },
                     ...paginas.misPermisos,
                   },
+                  {
+                    path: 'sugerencias',
+                    handle: {
+                      titulo: 'Quejas y mejoras',
+                      descripcion: 'Cuéntanos qué te estorba o qué mejorarías. Lo lee una persona.',
+                    },
+                    ...paginas.sugerencias,
+                  },
                   // Descargar, decidir y retirarse no deben exigir dar más datos primero.
                   {
                     path: 'privacidad',
@@ -342,6 +358,11 @@ export const rutas: RouteObject[] = [
                 ...paginas.colaCorreos,
               },
               { path: 'admin/auditoria', handle: { titulo: 'Auditoría' }, ...paginas.auditoria },
+              {
+                path: 'admin/sugerencias',
+                handle: { titulo: 'Quejas y mejoras' },
+                ...paginas.sugerenciasAdmin,
+              },
             ],
           },
           {
