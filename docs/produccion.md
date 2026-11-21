@@ -52,7 +52,7 @@ sudo scripts/despliegue/actualizar.sh
 Respalda, trae el código (`git pull`), reconstruye, arranca y espera a que la API esté sana. Las migraciones se aplican solas al arrancar. Si algo falla, el script indica cómo volver a la versión anterior y, si la migración ya cambió la base, cómo restaurar el respaldo previo.
 
 ## 6. Vigilar
-- **Disponibilidad:** un monitor externo (UptimeRobot o similar) sobre `https://<DOMINIO>/health`, con aviso por correo.
+- **Disponibilidad:** un monitor externo (UptimeRobot o similar) sobre `https://<DOMINIO>/health`, con aviso por correo. Configúralo como monitor de **palabra clave** que exige el texto `Healthy`: `/health` responde `Degraded` (también con 200) si el proceso de recordatorios dejó de completar pasadas, y `Unhealthy` (503) si no hay base de datos. Un monitor que solo mira el código 200 no vería el primer caso.
 - **Logs:** `docker compose -f docker-compose.prod.yml logs -f webapi` (Docker los rota: 5 archivos de 10 MB por servicio).
 - **Correo:** el Administrador ve la cola en `/admin/cola-correos`; un correo `Fallido` con su último error suele ser la contraseña de aplicación o el puerto.
 - **Disco:** `df -h` de vez en cuando; los respaldos y los documentos crecen.

@@ -123,8 +123,8 @@
 | DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 10 | 55 | 15 |
-| HabitTracker.Application.Tests | 9 | 143 | 9 |
+| HabitTracker.Api.Tests | 11 | 60 | 15 |
+| HabitTracker.Application.Tests | 10 | 148 | 9 |
 | HabitTracker.Domain.Tests | 13 | 178 | 32 |
 | HabitTracker.Integration.Tests | 15 | 97 | 5 |
 | Notifications.Api.Tests | 4 | 24 | 2 |
@@ -136,7 +136,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 2 | 11 | 0 |
 | Reports.Application.Tests | 2 | 13 | 3 |
-| **Total** | | **1110** | **143** |
+| **Total** | | **1120** | **143** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
