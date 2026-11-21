@@ -77,6 +77,8 @@ services:
       App__BaseUrl: https://${DOMINIO:?Define DOMINIO en el archivo .env}
       Cors__OrigenesPermitidos__0: https://${DOMINIO}
       Seguridad__ContrasenasFiltradas__Habilitado: ${CONTRASENAS_FILTRADAS:-true}
+      # Proceso de recordatorios por correo (opt-in por plan). false lo apaga sin tocar lo demás.
+      Recordatorios__Habilitado: ${RECORDATORIOS_HABILITADO:-true}
       Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       Privacidad__DiasGraciaBaja: ${DIAS_GRACIA_BAJA:-30}
       Privacidad__IntervaloEjecucionMinutos: ${BAJAS_INTERVALO_MINUTOS:-1440}

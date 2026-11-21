@@ -9,7 +9,8 @@ namespace AccessControl.Application.Interfaces
         Task CambiarRolAsync(Guid usuarioId, string nuevoRol, Guid adminId);
         Task IniciarRecuperacionAsync(string correo);
 
-        Task ActivarCuentaAsync(string correo, string codigo);
+        /// <summary>Activa la cuenta con el código del correo y devuelve la persona con su JWT, como el login.</summary>
+        Task<UsuarioResponseDto> ActivarCuentaAsync(string correo, string codigo);
         Task ReenviarEnlaceActivacionAsync(string correo);
         Task<IEnumerable<UsuarioResponseDto>> ObtenerTodosAsync();
         Task CambiarEstadoAsync(Guid usuarioId, bool nuevoEstado, Guid adminId);

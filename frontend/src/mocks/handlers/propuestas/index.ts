@@ -1,6 +1,5 @@
 import type { HttpHandler } from 'msw'
 import type { Rol } from '@/shared/auth/roles'
-import { adminHandlers, contratosAdmin } from './admin'
 
 // Contratos propuestos: endpoints que Host/WebApi todavía NO tiene y que el frontend necesita
 // para mostrar la aplicación como debe verse en producción (docs/mejoras). Se simulan aquí
@@ -31,10 +30,9 @@ interface ModuloPropuesto {
   handlers: HttpHandler[]
 }
 
-const modulos: ModuloPropuesto[] = [
-  // Paso 7: métricas anónimas y auditoría del administrador.
-  { contratos: contratosAdmin, handlers: adminHandlers },
-]
+// Hoy no queda ninguno: las métricas del Administrador (`GET /api/admin/metrics`) ya son un endpoint real y viven
+// en handlers/metricas.ts. Un contrato nuevo se agrega aquí como { contratos, handlers }.
+const modulos: ModuloPropuesto[] = []
 
 export const CONTRATOS_PROPUESTOS: ContratoPropuesto[] = modulos.flatMap((m) => m.contratos)
 

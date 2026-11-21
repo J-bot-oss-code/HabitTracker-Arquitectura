@@ -3,6 +3,7 @@ using AccessControl.Application.Service;
 using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
 using AccessControl.Domain.Interfaces;
+using AccessControl.Domain.Excepciones;
 using Microsoft.Extensions.Logging;
 using Moq;
 
@@ -232,5 +233,112 @@ public class AuditoriaDeControlAccesoTests
         // Assert
         Assert.Equal(2, e.CodigosEnviados.Count);
         Assert.Contains("iniciado por: el propio usuario", e.Auditor.Registros.Last().Nuevo);
+    }
+
+    // ---------- Acciones de seguridad de la propia cuenta (para «Mi actividad») ----------
+
+    [Fact]
+    [Trait("Requirement", "RF-AUD-04")]
+    public async Task RF_AUD_04_ActivarLaCuentaConElCodigo_QuedaRegistradoComoSuyo()
+    {
+        // Arrange
+        var e = new Escenario();
+        var persona = new Usuario("Persona", new Email("persona@ejemplo.com"), "hash-guardado", Rol.Estandar);
+        persona.EstablecerTokenActivacion("123456", DateTime.UtcNow.AddHours(24));
+        e.Usuarios.Add(persona);
+        e.Repo.Setup(r => r.ReservarIntentoActivacionAsync(persona.Id)).ReturnsAsync(1);
+
+        // Act
+        await e.Servicio.ActivarCuentaAsync("persona@ejemplo.com", "123456");
+
+        // Assert
+        var r = Assert.Single(e.Auditor.Registros);
+        Assert.True(r.EstaCompleto);
+        Assert.Equal(persona.Id, r.UsuarioId);
+        Assert.Equal(("Activación de cuenta", "Pendiente de activación", "Activo"), (r.Accion, r.Anterior, r.Nuevo));
+        Assert.False(r.Contiene("123456"));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-AUD-04")]
+    public async Task RF_AUD_04_UnCodigoDeActivacionIncorrecto_NoDejaRegistro()
+    {
+        var e = new Escenario();
+        var persona = new Usuario("Persona", new Email("persona@ejemplo.com"), "hash-guardado", Rol.Estandar);
+        persona.EstablecerTokenActivacion("123456", DateTime.UtcNow.AddHours(24));
+        e.Usuarios.Add(persona);
+        e.Repo.Setup(r => r.ReservarIntentoActivacionAsync(persona.Id)).ReturnsAsync(1);
+
+        await Assert.ThrowsAsync<CodigoInvalidoException>(() => e.Servicio.ActivarCuentaAsync("persona@ejemplo.com", "654321"));
+
+        Assert.Empty(e.Auditor.Registros);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-AUD-04")]
+    public async Task RF_AUD_04_CambiarLaContrasena_QuedaRegistradoSinNingunaDeLasDos()
+    {
+        // Arrange
+        var e = new Escenario();
+        var persona = e.Agregar("persona@ejemplo.com");
+
+        // Act
+        await e.Servicio.CambiarPasswordAsync(persona.Id, "buena", ClaveNueva);
+
+        // Assert
+        var r = Assert.Single(e.Auditor.Registros);
+        Assert.True(r.EstaCompleto);
+        Assert.Equal(persona.Id, r.UsuarioId);
+        Assert.Equal("Cambio de contraseña", r.Accion);
+        Assert.False(r.Contiene("buena"));
+        Assert.False(r.Contiene(ClaveNueva));
+        Assert.False(r.Contiene("hash"));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-AUD-04")]
+    public async Task RF_AUD_04_UnaClaveActualIncorrecta_NoRegistraUnCambio()
+    {
+        var e = new Escenario();
+        var persona = e.Agregar("persona@ejemplo.com");
+
+        await Assert.ThrowsAsync<ClaveActualIncorrectaException>(() => e.Servicio.CambiarPasswordAsync(persona.Id, "mala", ClaveNueva));
+
+        Assert.Empty(e.Auditor.Registros);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-AUD-04")]
+    public async Task RF_AUD_04_VincularYDesvincularGoogle_QuedanRegistrados()
+    {
+        // Arrange
+        var e = new Escenario();
+        var persona = e.Agregar("persona@ejemplo.com");
+        var validador = new Mock<IValidadorIdTokenGoogle>();
+        validador.Setup(v => v.ValidarAsync("id-token", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new IdentidadExterna("sub-1", "persona@ejemplo.com", true, "Persona"));
+        var vinculos = new Mock<ILoginExternoRepository>();
+        vinculos.Setup(v => v.AgregarAsync(It.IsAny<LoginExterno>())).Returns(Task.CompletedTask);
+        var jwt = new Mock<IJwtProvider>();
+        jwt.Setup(j => j.Generar(It.IsAny<Usuario>())).Returns("jwt");
+        var servicio = new ServicioLoginExterno(
+            validador.Object, e.Repo.Object, vinculos.Object, e.Hasher.Object, jwt.Object,
+            VersionesLegales.PorDefecto, Mock.Of<ILogger<ServicioLoginExterno>>(), e.Auditor);
+
+        // Act
+        await servicio.VincularGoogleAsync("id-token", "buena");
+        vinculos.Setup(v => v.ObtenerDeUsuarioAsync(persona.Id, "google"))
+            .ReturnsAsync(new LoginExterno(persona.Id, "google", "sub-1", DateTime.UtcNow));
+        vinculos.Setup(v => v.EliminarAsync(persona.Id, "google")).ReturnsAsync(true);
+        await servicio.DesvincularAsync(persona.Id, "google");
+
+        // Assert
+        Assert.Equal(2, e.Auditor.Registros.Count);
+        Assert.All(e.Auditor.Registros, r => { Assert.True(r.EstaCompleto); Assert.Equal(persona.Id, r.UsuarioId); });
+        Assert.Equal(("Vinculación de Google", "Sin Google", "Google vinculado"),
+            (e.Auditor.Registros[0].Accion, e.Auditor.Registros[0].Anterior, e.Auditor.Registros[0].Nuevo));
+        Assert.Equal(("Desvinculación de Google", "Google vinculado", "Sin Google"),
+            (e.Auditor.Registros[1].Accion, e.Auditor.Registros[1].Anterior, e.Auditor.Registros[1].Nuevo));
+        Assert.DoesNotContain(e.Auditor.Registros, r => r.Contiene("sub-1"));
     }
 }

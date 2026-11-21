@@ -13,6 +13,7 @@ import type {
 import type { NotificacionDto } from '@/features/notificaciones/types'
 import type { ConsentimientosDto, CuestionarioSaludDto, PerfilDto } from '@/features/perfil/types'
 import type { Ancla } from '@/features/planes/types'
+import type { SugerenciaDto } from '@/features/sugerencias/types'
 import type { MedicionDto, PesosDto } from '@/features/progreso/types'
 import type { SolicitudPermisoDto } from '@/features/permissions/types'
 import type { Rol } from '@/shared/auth/roles'
@@ -145,6 +146,11 @@ export interface NotificacionMock extends NotificacionDto {
   usuarioId: string
 }
 
+// Una queja o propuesta de mejora con la persona que la escribió (la bandeja del Administrador solo muestra su id).
+export interface SugerenciaMock extends SugerenciaDto {
+  usuarioId: string
+}
+
 // Una sesión abierta en un dispositivo (SesionUsuario): el refresh token rotativo la sostiene.
 export interface SesionMock {
   id: string
@@ -158,6 +164,15 @@ export interface ActividadMock {
   fecha: string
   actor: string
   tipo: 'Registro' | 'InicioSesion'
+}
+
+// Personas del piloto que NO están en la tabla de usuarios de la demo: solo existen para que las métricas del
+// Administrador (cohorte mínima de 5) tengan con qué mostrar cifras. Nada de esto sale por otra ruta.
+export interface PoblacionSimuladaMock {
+  // Un registro de avance de una persona anónima (`persona` es un identificador interno de la simulación).
+  registros: { persona: string; fecha: string }[]
+  // Un plan del catálogo iniciado por una persona anónima.
+  planesIniciados: string[]
 }
 
 interface Db {
@@ -185,14 +200,19 @@ interface Db {
   mediciones: Map<string, MedicionDto[]>
   // Lo que audita el backend real (solo las acciones de ACCIONES_AUDITORIA); lo lee GET /api/audit.
   auditoria: EventoAuditoriaDto[]
-  // Registros de cuenta e inicios de sesión: el backend real NO los audita. Solo alimentan las métricas
-  // propuestas (/api/admin/metrics) y nunca salen por /api/audit.
+  // Registros de cuenta e inicios de sesión: el backend real NO los audita. Los registros de cuenta alimentan las
+  // «cuentas nuevas» de /api/admin/metrics y nada de esto sale por /api/audit.
   actividad: ActividadMock[]
+  // Cuándo se registró un avance con «Ya lo hice» del correo (instantes UTC); solo cuenta para las métricas.
+  registrosPorCorreo: string[]
+  poblacionSimulada: PoblacionSimuladaMock
   bajas: Map<string, BajaProgramadaMock>
   // Notificaciones (la más reciente primero), preferencia de correo por usuario (true si falta) y cola de correos.
   notificaciones: NotificacionMock[]
   preferenciasCorreo: Map<string, boolean>
   correos: CorreoColaDto[]
+  // Quejas y mejoras de todas las personas, en el orden en que llegaron (la API las ordena al leerlas).
+  sugerencias: SugerenciaMock[]
 }
 
 export const db: Db = {
@@ -215,10 +235,13 @@ export const db: Db = {
   mediciones: new Map(),
   auditoria: [],
   actividad: [],
+  registrosPorCorreo: [],
+  poblacionSimulada: { registros: [], planesIniciados: [] },
   bajas: new Map(),
   notificaciones: [],
   preferenciasCorreo: new Map(),
   correos: [],
+  sugerencias: [],
 }
 
 const DIA = 24 * 60 * 60 * 1000
@@ -640,10 +663,34 @@ export function reiniciarDb() {
     actividad(7, 3, ana.correo, 'InicioSesion'),
     actividad(8, 2, admin.correo, 'InicioSesion'),
   ]
+  db.registrosPorCorreo = []
+  db.poblacionSimulada = { registros: [], planesIniciados: [] }
   db.bajas = new Map()
   db.notificaciones = []
   db.preferenciasCorreo = new Map()
   db.correos = []
+  db.sugerencias = []
+  // La demo del navegador arranca con un par de mensajes para que la bandeja no esté vacía; las pruebas siembran los suyos.
+  if (import.meta.env.MODE !== 'test') {
+    db.sugerencias = [
+      {
+        id: 'a1b2c3d4-0000-4000-8000-000000000001',
+        usuarioId: estandar,
+        tipo: 'Mejora',
+        texto: 'Me gustaría poder elegir la hora del recordatorio de cada hábito por separado.',
+        creadaEn: new Date(ahora - 2 * 60 * 60 * 1000).toISOString(),
+        estado: 'Nueva',
+      },
+      {
+        id: 'a1b2c3d4-0000-4000-8000-000000000002',
+        usuarioId: otro.id,
+        tipo: 'Queja',
+        texto: 'En el celular, la lista de planes tarda en cargar cuando la conexión es lenta.',
+        creadaEn: new Date(ahora - 3 * DIA).toISOString(),
+        estado: 'Leida',
+      },
+    ]
+  }
 
   // Ana ya tiene otras sesiones abiertas (otros dispositivos) para poder probar «Sesiones activas».
   db.sesiones = [
@@ -663,8 +710,56 @@ export function reiniciarDb() {
     },
   ]
 
-  // La demo del navegador arranca con el plan de ejemplo; las pruebas lo piden con sembrarPlanDemo().
-  if (import.meta.env.MODE !== 'test') sembrarPlanDemo(ahora)
+  // La demo del navegador arranca con el plan de ejemplo y con un piloto de ejemplo; las pruebas piden lo suyo
+  // (sembrarPlanDemo() y sembrarPoblacionDemo()): sin ellos solo hay 3 personas, por debajo de la cohorte mínima.
+  if (import.meta.env.MODE !== 'test') {
+    sembrarPlanDemo(ahora)
+    sembrarPoblacionDemo(ahora)
+  }
+}
+
+// Un piloto de ejemplo para las métricas del Administrador: 7 personas anónimas con avances (5 de ellas ya
+// registraban hace 30 a 60 días y 3 de esas siguen), 5 inicios de «Mi día de oficina saludable» (con el de Ana, 6) y 5
+// de «Caminar para empezar», dos avances por el correo y dos cuentas nuevas esta semana. Con eso todas las cifras
+// superan la cohorte mínima de 5 y se ven.
+export function sembrarPoblacionDemo(ahora = Date.now()) {
+  if (db.poblacionSimulada.registros.length > 0) return
+  const avance = (persona: number, dias: number) => ({
+    persona: `piloto-${persona}`,
+    fecha: new Date(ahora - dias * DIA).toISOString(),
+  })
+  db.poblacionSimulada.registros = [
+    // De hace 30 a 60 días: la cohorte de retención (5 personas).
+    avance(1, 45),
+    avance(2, 41),
+    avance(3, 38),
+    avance(4, 33),
+    avance(7, 50),
+    // Y los últimos 30 días: 1, 2 y 3 siguen (3 de 5, el 60 %); 4 y 7 ya no; 5 y 6 son nuevas.
+    avance(1, 12),
+    avance(2, 6),
+    avance(3, 3),
+    avance(5, 4),
+    avance(6, 1),
+  ]
+  db.poblacionSimulada.planesIniciados = [
+    ...Array<string>(5).fill(PLAN_DEMO_SLUG),
+    ...Array<string>(5).fill('caminar-para-empezar'),
+  ]
+  db.registrosPorCorreo = [
+    new Date(ahora - 1 * DIA).toISOString(),
+    new Date(ahora - 3 * DIA).toISOString(),
+  ]
+  for (const [n, dias] of [
+    [1, 2],
+    [2, 5],
+  ] as const) {
+    db.actividad.push({
+      fecha: new Date(ahora - dias * DIA).toISOString(),
+      actor: `piloto-${n}@demo.com`,
+      tipo: 'Registro',
+    })
+  }
 }
 
 reiniciarDb()

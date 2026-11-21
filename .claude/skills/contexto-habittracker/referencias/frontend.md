@@ -38,7 +38,7 @@
 | `privacidad` | Consentimientos (incluido `datosSalud`), baja y descarga | Real: `/api/privacy/*` |
 | `auth` | Registro con consentimientos, activación con código, login, Google y sesiones | Real: `/api/auth/*` |
 | `documentos` | «Mis archivos» `/documentos` (subir, descargar, eliminar), `BotonEliminarArchivo` (pide el permiso por archivo cuando está en un plan en curso), adjuntos de plan (`useAdjuntosDePlan`…) y `permisoArchivo.ts`; «Archivos del plan» vive en `mis-planes/components/ArchivosDelPlan.tsx` | Real: `/api/documents`, `/api/my-plans/{id}/attachments` |
-| `auditoria` | Resumen y auditoría del Administrador | `GET /api/audit` **real** (Administrador; filtros `usuario`, `entidad`, `entidadId`, `accion`, `desde`, `hasta`, `pagina`, `tamano`; respuesta `{total, pagina, tamano, registros}`, acción como texto legible). **Propuesto**: solo `/api/admin/metrics` |
+| `auditoria` | Resumen y auditoría del Administrador | `GET /api/audit` **real** (Administrador; filtros `usuario`, `entidad`, `entidadId`, `accion`, `desde`, `hasta`, `pagina`, `tamano`; respuesta `{total, pagina, tamano, registros}`, acción como texto legible). `GET /api/admin/metrics` **real** (Administrador, sin parámetros: `MetricasProductoDto` con cohorte mínima de 5; `usuariosActivos30d` y `retencion30d` llegan `null` con menos de 5 personas y `planesMasIniciados` solo trae planes con ≥5; handler `mocks/handlers/metricas.ts`, `metricasACsv` deja vacío lo oculto). No queda ningún contrato propuesto |
 | `notificaciones` | Bandeja `/notificaciones` (filtro de sin leer, marcar como leída), `GloboNoLeidas` en el menú y Configuración › Notificaciones (`/ajustes/notificaciones`) | Real: `/api/notifications` |
 | `cola-correos` | `/admin/cola-correos` (estado, intentos de 3, último error, «Procesar ahora») y sus cifras en el Resumen | Real: `/api/admin/email-queue` |
 | `reportes` | `/reportes`: rango con zod (máx. 366 días), solicitudes por estado y constancia por plan; el Administrador ve el agregado | Real: `/api/reports/*` |
@@ -48,7 +48,7 @@ Slugs del catálogo (13, de la API): los 6 Regulares `perder-grasa-sostenible`, 
 - **Mis planes en pruebas:** el plan de ejemplo (`mi-dia-oficina`) solo se siembra fuera de las pruebas; una prueba que lo necesite llama `sembrarPlanDemo()`. El perfil ya no tiene `metaSlug`.
 - **El mock de los planes** (`mocks/handlers/planes.ts`) replica `RecomendadorPlanes` y `ReglasSeguridadPlanes`; sus datos (`planesData.ts`) son una copia de `catalogo-planes.json` que `mocks/planes.test.ts` compara con el JSON del backend. Si cambia el contenido allí, se regenera la copia (no se edita a mano).
 
-## Contratos propuestos (sin backend)
+## Contratos propuestos (sin backend; hoy ninguno)
 
 - Se declaran en `src/mocks/handlers/propuestas/*.ts`, se registran en `CONTRATOS_PROPUESTOS` (`propuestas/index.ts`) y se apuntan en "Pendientes para el backend" de `frontend/docs/PLAN-FRONTEND-NEXUS.md`.
 - Una prueba (`src/mocks/propuestas.test.ts`) exige que los handlers y el registro coincidan y que ninguna propuesta pise una ruta real.

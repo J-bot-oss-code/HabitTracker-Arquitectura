@@ -9,7 +9,19 @@ namespace WebApi.Paginas;
 /// </summary>
 public static class PaginaActivacion
 {
-    public static string Html(string nonce) => $$"""
+    /// <summary>Ruta de la app a la que se va tras activar (la sesión ya quedó abierta con la cookie del refresh).</summary>
+    public const string RutaTrasActivar = "/hoy";
+
+    /// <summary>
+    /// URL de la app tras activar. Sin <c>App:FrontendUrl</c> la app está en el mismo origen que la API (producción, detrás
+    /// del proxy). Solo se admite una URL http(s) absoluta: es configuración, pero nunca debe poder inyectar otro esquema.
+    /// </summary>
+    public static string Destino(string? frontendUrl) =>
+        Uri.TryCreate(frontendUrl, UriKind.Absolute, out var uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
+            ? uri.GetLeftPart(UriPartial.Authority) + RutaTrasActivar
+            : RutaTrasActivar;
+
+    public static string Html(string nonce, string destino) => $$"""
         <!DOCTYPE html>
         <html lang="es">
         <head>
@@ -33,6 +45,7 @@ public static class PaginaActivacion
         <button id="activar" type="button">Activar mi cuenta</button>
         </main>
         <script nonce="{{nonce}}">
+        const destino = {{System.Text.Json.JsonSerializer.Serialize(destino)}};
         const params = new URLSearchParams(location.search);
         const correo = params.get('correo') || '';
         const codigo = params.get('codigo') || '';
@@ -53,8 +66,10 @@ public static class PaginaActivacion
               body: JSON.stringify({ correo, codigo })
             });
             if (respuesta.ok) {
-              mensaje.textContent = 'Cuenta activada correctamente. Ya puedes iniciar sesión en HabitTracker Nexus.';
+              // La respuesta abrió la sesión (cookie HttpOnly del refresh): la app la recupera al cargar.
+              mensaje.textContent = 'Cuenta activada. Entrando a HabitTracker Nexus…';
               boton.hidden = true;
+              location.assign(destino);
             } else if (respuesta.status === 429) {
               mensaje.textContent = 'Demasiados intentos. Espera un minuto e inténtalo de nuevo.';
               boton.disabled = false;

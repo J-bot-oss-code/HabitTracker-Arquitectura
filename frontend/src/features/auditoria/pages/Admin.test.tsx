@@ -1,9 +1,10 @@
 import { screen, waitFor, within } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
+import { delay, http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { db, sembrarPlanDemo } from '@/mocks/db'
+import { db, sembrarPlanDemo, sembrarPoblacionDemo } from '@/mocks/db'
+import type { CorreoColaDto } from '@/features/cola-correos/types'
 import { auditoriaHandlers } from '@/mocks/handlers/auditoria'
-import { adminHandlers } from '@/mocks/handlers/propuestas/admin'
+import { metricasHandlers } from '@/mocks/handlers/metricas'
 import { problema } from '@/mocks/http'
 import { server } from '@/mocks/server'
 import { iniciarSesionComo, renderApp } from '@/test/render'
@@ -80,23 +81,71 @@ describe('CSV seguro', () => {
     )
     const m: MetricasDto = {
       generadoEn: '2026-11-03T10:00:00.000Z',
-      usuariosActivos30d: 2,
-      registros7d: 1,
-      retencion30d: null,
+      cohorteMinima: 5,
+      cuentasNuevas7d: 1,
       eliminacionesEnCurso: 0,
-      planesMasIniciados: [{ slug: 'x', cantidad: 3 }],
+      sugerenciasNuevas: 4,
+      registrosPorCorreo7d: 2,
+      usuariosActivos30d: 12,
+      retencion30d: null,
+      planesMasIniciados: [{ slug: 'x', cantidad: 7 }],
     }
-    const csv = metricasACsv(m, (s) => `Plan ${s}`)
-    expect(csv).toContain('Usuarios activos (30 días),2')
-    expect(csv).toContain('Retención a 30 días (%),')
-    expect(csv).toContain('Plan iniciado: Plan x,3')
-    expect(csv).not.toContain('@')
+    const filas = metricasACsv(m, (s) => `Plan ${s}`).split('\r\n')
+    expect(filas).toContain('Personas activas (30 días),12,')
+    expect(filas).toContain('Cuentas nuevas (7 días),1,')
+    expect(filas).toContain('Registros por correo (7 días),2,')
+    expect(filas).toContain('Quejas y mejoras nuevas,4,')
+    expect(filas).toContain('Plan iniciado: Plan x,7,')
+    // Una cifra oculta sale vacía: no es lo mismo que cero.
+    expect(filas).toContain('Retención a 30 días (%),,Oculta: menos de 5 personas')
+    expect(filas.join('\n')).not.toContain('@')
+  })
+
+  it('en el CSV, las dos cifras ocultas salen vacías y sin planes', () => {
+    const m: MetricasDto = {
+      generadoEn: '2026-11-03T10:00:00.000Z',
+      cohorteMinima: 5,
+      cuentasNuevas7d: 0,
+      eliminacionesEnCurso: 0,
+      sugerenciasNuevas: 0,
+      registrosPorCorreo7d: 0,
+      usuariosActivos30d: null,
+      retencion30d: null,
+      planesMasIniciados: [],
+    }
+    const filas = metricasACsv(m, (s) => s).split('\r\n')
+    expect(filas).toContain('Personas activas (30 días),,Oculta: menos de 5 personas')
+    expect(filas).toContain('Retención a 30 días (%),,Oculta: menos de 5 personas')
+    expect(filas).toContain('Cuentas nuevas (7 días),0,')
+    expect(filas.some((f) => f.startsWith('Plan iniciado'))).toBe(false)
+  })
+
+  it('un correo no cabe en el CSV de las métricas: solo cifras y nombres de plan', () => {
+    const m: MetricasDto = {
+      generadoEn: '2026-11-03T10:00:00.000Z',
+      cohorteMinima: 5,
+      cuentasNuevas7d: 0,
+      eliminacionesEnCurso: 0,
+      sugerenciasNuevas: 0,
+      registrosPorCorreo7d: 0,
+      usuariosActivos30d: null,
+      retencion30d: null,
+      planesMasIniciados: [{ slug: 'x', cantidad: 5 }],
+    }
+    expect(metricasACsv(m, () => 'Plan, con "comas"')).toContain(
+      '"Plan iniciado: Plan, con ""comas""",5',
+    )
   })
 })
 
 const CLAVE_NUEVA_CUENTA = 'Clave-Segura-2026'
 
-describe('contrato del panel de administración (auditoría real, métricas propuestas)', () => {
+const DIA_MS = 86_400_000
+const hace = (dias: number) => new Date(Date.now() - dias * DIA_MS).toISOString()
+const metricasDe = async (token = iniciarSesionComo('admin')): Promise<MetricasDto> =>
+  (await llamar('/api/admin/metrics', token)).json()
+
+describe('contrato del panel de administración (auditoría y métricas reales)', () => {
   it('métricas y auditoría son solo del Administrador', async () => {
     for (const ruta of ['/api/admin/metrics', '/api/audit']) {
       expect((await llamar(ruta)).status).toBe(401)
@@ -105,18 +154,89 @@ describe('contrato del panel de administración (auditoría real, métricas prop
     }
   })
 
-  it('las métricas son agregadas y anónimas: ningún correo ni id de persona', async () => {
+  it('con pocas personas, lo que cuenta personas llega null y no hay planes; lo demás sí se cuenta', async () => {
     sembrarPlanDemo()
-    const r = await llamar('/api/admin/metrics', iniciarSesionComo('admin'))
-    const m: MetricasDto = await r.json()
+    const m = await metricasDe()
     expect(m).toMatchObject({
-      usuariosActivos30d: 2,
-      registros7d: 0,
-      retencion30d: 50,
+      cohorteMinima: 5,
+      cuentasNuevas7d: 0,
       eliminacionesEnCurso: 0,
-      planesMasIniciados: [{ slug: 'mi-dia-oficina', cantidad: 1 }],
+      sugerenciasNuevas: 0,
+      registrosPorCorreo7d: 0,
+      usuariosActivos30d: null,
+      retencion30d: null,
+      planesMasIniciados: [],
     })
-    expect(JSON.stringify(m)).not.toMatch(/@|demo|-0000|[0-9a-f]{8}-[0-9a-f]{4}/)
+  })
+
+  it('con el piloto de ejemplo se ven las cifras, los planes de más a menos y la retención', async () => {
+    sembrarPlanDemo()
+    sembrarPoblacionDemo()
+    const m = await metricasDe()
+    expect(m.usuariosActivos30d).toBeGreaterThanOrEqual(5)
+    // De 5 personas con avances hace 30 a 60 días, 3 siguen.
+    expect(m.retencion30d).toBe(60)
+    expect(m.planesMasIniciados).toEqual([
+      { slug: 'mi-dia-oficina', cantidad: 6 },
+      { slug: 'caminar-para-empezar', cantidad: 5 },
+    ])
+    expect(m.cuentasNuevas7d).toBe(2)
+    expect(m.registrosPorCorreo7d).toBe(2)
+    // Agregadas y anónimas: ningún correo ni id de persona.
+    expect(JSON.stringify(m)).not.toMatch(/@|demo|piloto|-0000|[0-9a-f]{8}-[0-9a-f]{4}/)
+  })
+
+  it('la cohorte mínima es exacta: con 4 personas se oculta y con 5 se muestra (también un plan)', async () => {
+    // Solo Ana tiene avances recientes en las cuentas de ejemplo: 1 + 3 anónimas = 4 (oculto) y 1 + 4 = 5 (visible).
+    db.poblacionSimulada.registros.push(
+      { persona: 'a', fecha: hace(1) },
+      { persona: 'b', fecha: hace(2) },
+      { persona: 'c', fecha: hace(3) },
+    )
+    db.poblacionSimulada.planesIniciados.push('x', 'x', 'x', 'x')
+    let m = await metricasDe()
+    expect(m.usuariosActivos30d).toBeNull()
+    expect(m.planesMasIniciados).toEqual([])
+
+    db.poblacionSimulada.registros.push({ persona: 'd', fecha: hace(4) })
+    db.poblacionSimulada.planesIniciados.push('x')
+    m = await metricasDe()
+    expect(m.usuariosActivos30d).toBe(5)
+    expect(m.planesMasIniciados).toEqual([{ slug: 'x', cantidad: 5 }])
+  })
+
+  it('las bajas en curso, las quejas nuevas y las cuentas nuevas se cuentan aunque sean pocas', async () => {
+    db.bajas.set(db.usuarios[2].id, { solicitadaEn: hace(1), borradoEn: hace(-29) })
+    // Una baja cuyo periodo de gracia ya terminó no está «en curso».
+    db.bajas.set(db.usuarios[1].id, { solicitadaEn: hace(40), borradoEn: hace(10) })
+    const texto = 'Un mensaje de al menos diez caracteres.'
+    db.sugerencias.push(
+      {
+        id: 's1',
+        usuarioId: db.usuarios[0].id,
+        tipo: 'Queja',
+        texto,
+        creadaEn: hace(1),
+        estado: 'Nueva',
+      },
+      {
+        id: 's2',
+        usuarioId: db.usuarios[0].id,
+        tipo: 'Mejora',
+        texto,
+        creadaEn: hace(2),
+        estado: 'Leida',
+      },
+    )
+    db.registrosPorCorreo.push(hace(1), hace(8))
+    db.actividad.push({ fecha: hace(2), actor: 'nueva@demo.com', tipo: 'Registro' })
+    const m = await metricasDe()
+    expect(m).toMatchObject({
+      eliminacionesEnCurso: 1,
+      sugerenciasNuevas: 1,
+      registrosPorCorreo7d: 1,
+      cuentasNuevas7d: 1,
+    })
   })
 
   it('la auditoría solo crece con las acciones reales; registro e inicio de sesión no se auditan', async () => {
@@ -164,7 +284,7 @@ describe('contrato del panel de administración (auditoría real, métricas prop
 
   it('no existe ninguna ruta para modificar o borrar eventos (RF-AUD-06)', () => {
     expect(auditoriaHandlers.map((h) => String(h.info.method))).toEqual(['GET'])
-    expect(adminHandlers.map((h) => String(h.info.method))).toEqual(['GET'])
+    expect(metricasHandlers.map((h) => String(h.info.method))).toEqual(['GET'])
   })
 
   it('un inicio de sesión no se audita (el backend real no lo hace), solo cuenta para las métricas', async () => {
@@ -256,22 +376,68 @@ describe('contrato del panel de administración (auditoría real, métricas prop
   })
 })
 
+// El bloque de una cifra (Estadistica): la fila de la etiqueta, el número grande y la explicación cuelgan del mismo contenedor.
+const tarjeta = (etiqueta: string) =>
+  screen.getByText(etiqueta).closest('div')!.parentElement as HTMLElement
+
+const AVISO_PRIVACIDAD = /Oculta hasta que haya al menos 5 personas, para proteger su anonimato\./
+
+const correoDeEjemplo: CorreoColaDto = {
+  id: 'c0',
+  destinatario: 'persona@demo.com',
+  asunto: 'Tu resumen de la semana',
+  estado: 'Pendiente',
+  intentos: 0,
+  fechaCreacion: new Date().toISOString(),
+  fechaUltimoIntento: null,
+  fechaEnvio: null,
+  ultimoError: null,
+}
+
+const metricasBase = (extra: Partial<MetricasDto> = {}): MetricasDto => ({
+  generadoEn: new Date().toISOString(),
+  cohorteMinima: 5,
+  cuentasNuevas7d: 0,
+  eliminacionesEnCurso: 0,
+  sugerenciasNuevas: 0,
+  registrosPorCorreo7d: 0,
+  usuariosActivos30d: null,
+  retencion30d: null,
+  planesMasIniciados: [],
+  ...extra,
+})
+
 describe('Resumen del Administrador', () => {
-  it('muestra los indicadores, los planes y la auditoría reciente', async () => {
+  it('muestra las cifras agrupadas, los planes con su nombre y la auditoría reciente', async () => {
     sembrarPlanDemo()
+    sembrarPoblacionDemo()
     renderApp('/admin', { como: 'admin' })
     expect(await screen.findByRole('heading', { level: 1, name: 'Resumen' })).toBeInTheDocument()
+    expect(screen.getAllByRole('heading', { level: 1 })).toHaveLength(1)
     expect(screen.getByText('Métricas agregadas y anónimas.')).toBeInTheDocument()
 
-    const kpis = await screen.findByRole('region', { name: 'Indicadores' })
-    expect(within(kpis).getByText('Usuarios activos')).toBeInTheDocument()
-    expect(within(kpis).getByText('50 %')).toBeInTheDocument()
-    // Sin identificadores internos ni avisos de proceso en la interfaz.
-    expect(within(kpis).queryByText(/Google|RF-/)).not.toBeInTheDocument()
+    const personas = await screen.findByRole('region', { name: 'Personas' })
+    expect(personas).toBeInTheDocument()
+    expect(within(tarjeta('Cuentas nuevas')).getByText('2')).toBeInTheDocument()
+    expect(within(tarjeta('Retención a 30 días')).getByText('60 %')).toBeInTheDocument()
+    // Con cifra no se explica la privacidad, se explica qué cuenta.
+    expect(tarjeta('Personas activas')).not.toHaveTextContent(/privacidad/)
+    expect(tarjeta('Personas activas')).not.toHaveTextContent('—')
 
-    const planes = await screen.findByRole('region', { name: 'Planes más iniciados' })
-    expect(within(planes).getByText('Mi día de oficina saludable')).toBeInTheDocument()
-    expect(within(planes).getByText('1 inicio')).toBeInTheDocument()
+    const uso = screen.getByRole('region', { name: 'Uso' })
+    expect(within(tarjeta('Registros por correo')).getByText('2')).toBeInTheDocument()
+    const lista = within(uso).getByRole('list')
+    const filas = within(lista).getAllByRole('listitem')
+    expect(filas).toHaveLength(2)
+    // Con el nombre del plan (no el slug) y la cantidad, de más a menos.
+    expect(within(filas[0]).getByText('Mi día de oficina saludable')).toBeInTheDocument()
+    expect(within(filas[0]).getByText('6 personas')).toBeInTheDocument()
+    expect(within(filas[1]).getByText('5 personas')).toBeInTheDocument()
+    expect(within(lista).queryByText(/mi-dia-oficina|caminar-para-empezar/)).not.toBeInTheDocument()
+    // Sin identificadores internos ni avisos de proceso en la interfaz.
+    expect(screen.queryByText(/Google|RF-/)).not.toBeInTheDocument()
+
+    expect(within(personas).getByText('Bajas en curso')).toBeInTheDocument()
 
     const tabla = await screen.findByRole('table', { name: /Eventos de auditoría/ })
     expect(within(tabla).getAllByRole('row').length).toBeGreaterThan(1)
@@ -311,43 +477,246 @@ describe('Resumen del Administrador', () => {
     expect(await screen.findByText('No tienes acceso a esta sección')).toBeInTheDocument()
   })
 
-  it('con el backend real (sin las piezas) avisa en vez de fallar', async () => {
-    server.use(
-      http.get('/api/admin/metrics', () => new HttpResponse(null, { status: 404 })),
-      http.get('/api/audit', () => new HttpResponse(null, { status: 404 })),
-    )
+  it('con la cohorte pequeña muestra un guion y explica por qué, nunca un cero ni un error', async () => {
+    // Sin el piloto de ejemplo solo hay 3 cuentas: por debajo de la cohorte mínima.
     renderApp('/admin', { como: 'admin' })
-    expect(await screen.findByText('Las métricas llegarán pronto')).toBeInTheDocument()
-    expect(await screen.findByText('La auditoría llegará pronto.')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeDisabled()
+    await screen.findByRole('region', { name: 'Personas' })
+    for (const etiqueta of ['Personas activas', 'Retención a 30 días']) {
+      const bloque = tarjeta(etiqueta)
+      expect(bloque).toHaveTextContent('—')
+      expect(bloque).not.toHaveTextContent(/\b0\b/)
+      expect(bloque).not.toHaveTextContent('%')
+    }
+    expect(tarjeta('Personas activas')).toHaveTextContent(AVISO_PRIVACIDAD)
+    // La retención dice cuál es la cohorte que falta, no solo que está oculta.
+    expect(tarjeta('Retención a 30 días')).toHaveTextContent(
+      'Hay menos de 5 personas que registraron algo hace 30 a 60 días.',
+    )
+    // El guion va atenuado (no es un dato) y no se lee como «raya».
+    expect(within(tarjeta('Personas activas')).getByText('—')).toHaveClass('text-atenuado')
+    expect(within(tarjeta('Personas activas')).getByText('Sin cifra')).toHaveClass('sr-only')
+    // Sin planes visibles, la razón en la lista de planes.
+    const uso = screen.getByRole('region', { name: 'Uso' })
+    expect(within(uso).queryByRole('list')).not.toBeInTheDocument()
+    expect(
+      within(uso).getByText(
+        'Ningún plan llega todavía a 5 personas, así que no se muestra ninguno.',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      within(uso).getByRole('heading', { name: 'Planes más iniciados (desde el inicio)' }),
+    ).toBeInTheDocument()
+    // Nada se presenta como un fallo.
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
+    // Lo demás sí se muestra aunque sea 0.
+    expect(within(tarjeta('Cuentas nuevas')).getByText('0')).toBeInTheDocument()
+    expect(within(tarjeta('Bajas en curso')).getByText('0')).toBeInTheDocument()
+    expect(within(tarjeta('Quejas y mejoras nuevas')).getByText('0')).toBeInTheDocument()
+    expect(within(tarjeta('Registros por correo')).getByText('0')).toBeInTheDocument()
   })
 
-  it('un error de carga de las métricas ofrece reintentar', async () => {
+  it('el orden de los grupos es: Para atender, Personas y Uso', async () => {
+    renderApp('/admin', { como: 'admin' })
+    await screen.findByRole('region', { name: 'Personas' })
+    const titulos = screen
+      .getAllByRole('heading', { level: 2 })
+      .map((h) => h.textContent)
+      .filter((t) => ['Para atender', 'Personas', 'Uso'].includes(t ?? ''))
+    expect(titulos).toEqual(['Para atender', 'Personas', 'Uso'])
+  })
+
+  it('«Para atender» trae las quejas nuevas y los correos fallidos, cada uno con su enlace', async () => {
+    db.correos.push(
+      { ...correoDeEjemplo, id: 'c1', estado: 'Fallido' },
+      { ...correoDeEjemplo, id: 'c2', estado: 'Fallido' },
+      { ...correoDeEjemplo, id: 'c3', estado: 'Pendiente' },
+    )
+    renderApp('/admin', { como: 'admin' })
+    const atender = await screen.findByRole('region', { name: 'Para atender' })
+    await waitFor(() =>
+      expect(within(tarjeta('Correos fallidos')).getByText('2')).toBeInTheDocument(),
+    )
+    expect(
+      within(atender).getByRole('link', { name: 'Revisar los correos fallidos' }),
+    ).toHaveAttribute('href', '/admin/cola-correos')
+    // La bajas no son accionables: viven en «Personas».
+    expect(within(atender).queryByText('Bajas en curso')).not.toBeInTheDocument()
+    expect(
+      within(screen.getByRole('region', { name: 'Personas' })).getByText('Bajas en curso'),
+    ).toBeInTheDocument()
+  })
+
+  it('sin correos fallidos la cifra es 0; si la cola no responde, queda sin cifra y lo dice', async () => {
+    server.use(http.get('/api/admin/email-queue', () => problema(500, 'Error interno.')))
+    renderApp('/admin', { como: 'admin' })
+    await screen.findByRole('region', { name: 'Para atender' })
+    await waitFor(() =>
+      expect(tarjeta('Correos fallidos')).toHaveTextContent(
+        'No se pudo consultar la cola de correos.',
+      ),
+    )
+    expect(within(tarjeta('Correos fallidos')).getByText('Sin cifra')).toBeInTheDocument()
+    expect(
+      within(tarjeta('Correos fallidos')).getByRole('link', {
+        name: 'Revisar los correos fallidos',
+      }),
+    ).toBeInTheDocument()
+  })
+
+  it('la barra de cada plan es decorativa: no se anuncia como progreso', async () => {
+    sembrarPlanDemo()
+    sembrarPoblacionDemo()
+    renderApp('/admin', { como: 'admin' })
+    const uso = await screen.findByRole('region', { name: 'Uso' })
+    await within(uso).findByText('Mi día de oficina saludable')
+    expect(within(uso).queryByRole('progressbar')).not.toBeInTheDocument()
+    expect(uso.querySelectorAll('[aria-hidden="true"].bg-borde')).toHaveLength(2)
+  })
+
+  it('el aviso de privacidad usa la cohorte mínima que manda el servidor', async () => {
+    server.use(
+      http.get('/api/admin/metrics', () => HttpResponse.json(metricasBase({ cohorteMinima: 8 }))),
+    )
+    renderApp('/admin', { como: 'admin' })
+    await screen.findByRole('region', { name: 'Personas' })
+    expect(tarjeta('Personas activas')).toHaveTextContent(
+      'Oculta hasta que haya al menos 8 personas, para proteger su anonimato.',
+    )
+  })
+
+  it('un plan que ya no está en el catálogo se muestra por su slug, sin romper la lista', async () => {
+    server.use(
+      http.get('/api/admin/metrics', () =>
+        HttpResponse.json(
+          metricasBase({
+            usuariosActivos30d: 9,
+            planesMasIniciados: [{ slug: 'plan-retirado', cantidad: 5 }],
+          }),
+        ),
+      ),
+    )
+    renderApp('/admin', { como: 'admin' })
+    const uso = await screen.findByRole('region', { name: 'Uso' })
+    expect(await within(uso).findByText('plan-retirado')).toBeInTheDocument()
+    expect(within(tarjeta('Personas activas')).getByText('9')).toBeInTheDocument()
+  })
+
+  it('las quejas nuevas se cuentan y llevan a la bandeja de /admin/sugerencias', async () => {
+    db.sugerencias.push({
+      id: 'nueva-1',
+      usuarioId: db.usuarios[0].id,
+      tipo: 'Mejora',
+      texto: 'Me gustaría elegir la hora de cada aviso.',
+      creadaEn: new Date().toISOString(),
+      estado: 'Nueva',
+    })
+    const { user } = renderApp('/admin', { como: 'admin' })
+    await screen.findByRole('region', { name: 'Para atender' })
+    const bloque = tarjeta('Quejas y mejoras nuevas')
+    expect(within(bloque).getByText('1')).toBeInTheDocument()
+    const enlace = within(bloque).getByRole('link', { name: 'Abrir las quejas y mejoras' })
+    expect(enlace).toHaveAttribute('href', '/admin/sugerencias')
+    await user.click(enlace)
+    expect(
+      await screen.findByRole('heading', { level: 1, name: 'Quejas y mejoras' }),
+    ).toBeInTheDocument()
+  })
+
+  it('las bajas en curso se muestran con su explicación', async () => {
+    db.bajas.set(db.usuarios[2].id, {
+      solicitadaEn: new Date().toISOString(),
+      borradoEn: new Date(Date.now() + 29 * 86_400_000).toISOString(),
+    })
+    renderApp('/admin', { como: 'admin' })
+    await screen.findByRole('region', { name: 'Personas' })
+    const bloque = tarjeta('Bajas en curso')
+    expect(within(bloque).getByText('1')).toBeInTheDocument()
+    expect(bloque).toHaveTextContent('periodo de gracia')
+  })
+
+  it('dice cuándo se generaron las cifras, en la hora de quien mira', async () => {
+    const generadoEn = '2026-11-21T15:30:00.000Z'
+    server.use(
+      http.get('/api/admin/metrics', () => HttpResponse.json(metricasBase({ generadoEn }))),
+    )
+    renderApp('/admin', { como: 'admin' })
+    const esperado = new Intl.DateTimeFormat('es-DO', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
+      .format(new Date(generadoEn))
+      // El formato usa un espacio fino antes de «a. m.»: el DOM lo normaliza a un espacio normal.
+      .replace(/\s/g, ' ')
+    expect(await screen.findByText(`Generado el ${esperado}`)).toBeInTheDocument()
+  })
+
+  it('mientras llegan las cifras muestra un estado de carga accesible', async () => {
+    server.use(
+      http.get('/api/admin/metrics', async () => {
+        await delay(300)
+        return HttpResponse.json(metricasBase())
+      }),
+    )
+    renderApp('/admin', { como: 'admin' })
+    expect(await screen.findByRole('status')).toHaveTextContent('Cargando las métricas…')
+    expect(await screen.findByRole('region', { name: 'Personas' })).toBeInTheDocument()
+    expect(screen.queryByText('Cargando las métricas…')).not.toBeInTheDocument()
+  })
+
+  it('una métrica que el servidor rechaza (403) es un error normal con reintento, sin «llegarán pronto»', async () => {
+    server.use(http.get('/api/admin/metrics', () => problema(403, 'Acceso denegado.')))
+    renderApp('/admin', { como: 'admin' })
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.queryByText(/llegarán pronto/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: 'Personas' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Exportar CSV' })).toBeDisabled()
+    // El resto del Resumen sigue en pie.
+    expect(await screen.findByRole('heading', { name: 'Cola de correos' })).toBeInTheDocument()
+  })
+
+  it('un 404 sin cuerpo de las métricas tampoco se toma por «llegarán pronto»: es un error con reintento', async () => {
+    server.use(http.get('/api/admin/metrics', () => new HttpResponse(null, { status: 404 })))
+    renderApp('/admin', { como: 'admin' })
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+    expect(screen.queryByText(/llegarán pronto/)).not.toBeInTheDocument()
+  })
+
+  it('un error de carga de las métricas ofrece reintentar y se recupera', async () => {
     let falla = true
     server.use(
       http.get('/api/admin/metrics', () =>
-        falla
-          ? problema(500, 'Error interno.')
-          : HttpResponse.json({
-              generadoEn: new Date().toISOString(),
-              usuariosActivos30d: 0,
-              registros7d: 0,
-              retencion30d: null,
-              eliminacionesEnCurso: 0,
-              planesMasIniciados: [],
-            }),
+        falla ? problema(500, 'Error interno.') : HttpResponse.json(metricasBase()),
       ),
     )
     const { user } = renderApp('/admin', { como: 'admin' })
     await user.click(await screen.findByRole('button', { name: 'Reintentar' }))
     falla = false
     await user.click(await screen.findByRole('button', { name: 'Reintentar' }))
-    expect(await screen.findByText('Aún nadie ha elegido un plan.')).toBeInTheDocument()
-    const kpis = screen.getByRole('region', { name: 'Indicadores' })
-    expect(within(kpis).getByText('—')).toBeInTheDocument()
+    expect(await screen.findByRole('region', { name: 'Personas' })).toBeInTheDocument()
+    expect(tarjeta('Personas activas')).toHaveTextContent('—')
+    expect(screen.queryByRole('button', { name: 'Reintentar' })).not.toBeInTheDocument()
   })
 
-  it('"Exportar CSV" baja las métricas sin datos personales', async () => {
+  it('"Exportar CSV" deja vacías las cifras ocultas y no lleva datos personales', async () => {
+    let blob: Blob | null = null
+    URL.createObjectURL = (b: Blob | MediaSource) => {
+      blob = b as Blob
+      return 'blob:prueba'
+    }
+    URL.revokeObjectURL = () => undefined
+    const { user } = renderApp('/admin', { como: 'admin' })
+    await screen.findByRole('region', { name: 'Personas' })
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
+    await user.click(screen.getByRole('button', { name: 'Exportar CSV' }))
+    const filas = (await (blob as unknown as Blob).text()).split('\r\n')
+    expect(filas).toContain('Personas activas (30 días),,Oculta: menos de 5 personas')
+    expect(filas).toContain('Retención a 30 días (%),,Oculta: menos de 5 personas')
+    expect(filas).toContain('Cuentas nuevas (7 días),0,')
+    expect(filas.join('\n')).not.toContain('@')
+  })
+
+  it('"Exportar CSV" baja las métricas con los nombres de los planes', async () => {
     let blob: Blob | null = null
     URL.createObjectURL = (b: Blob | MediaSource) => {
       blob = b as Blob
@@ -360,13 +729,18 @@ describe('Resumen del Administrador', () => {
     ) {
       nombre = this.download
     })
+    sembrarPlanDemo()
+    sembrarPoblacionDemo()
     const { user } = renderApp('/admin', { como: 'admin' })
-    await screen.findByRole('region', { name: 'Indicadores' })
+    await screen.findByRole('region', { name: 'Personas' })
+    // El nombre del plan llega del catálogo: se espera a que la lista lo muestre.
+    await screen.findByText('Mi día de oficina saludable')
     await user.click(screen.getByRole('button', { name: 'Exportar CSV' }))
     expect(nombre).toMatch(/^metricas-\d{4}-\d{2}-\d{2}\.csv$/)
-    const texto = await (blob as unknown as Blob).text()
-    expect(texto).toContain('Usuarios activos (30 días),2')
-    expect(texto).not.toContain('@')
+    const filas = (await (blob as unknown as Blob).text()).split('\r\n')
+    expect(filas).toContain('Retención a 30 días (%),60,')
+    expect(filas).toContain('Plan iniciado: Mi día de oficina saludable,6,')
+    expect(filas.join('\n')).not.toContain('@')
   })
 })
 

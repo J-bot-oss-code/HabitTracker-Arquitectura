@@ -8,6 +8,7 @@ import { SelectorTemaMenu } from '@/shared/theme/SelectorTema'
 import { Badge } from '@/shared/ui/Badge'
 import { Button } from '@/shared/ui/Button'
 import { GloboNoLeidas } from '@/features/notificaciones/components/GloboNoLeidas'
+import { GloboSugerenciasNuevas } from '@/features/sugerencias/components/GloboSugerenciasNuevas'
 import { AvisosDeCuenta } from '@/features/privacidad/components/AvisosDeCuenta'
 import { Icono } from '@/shared/ui/Icono'
 import { navegacionPara, rutaInicial } from '../navigation'
@@ -197,6 +198,7 @@ export function AppLayout() {
               <Icono nombre={item.icono} className="size-5 shrink-0" />
               <span className="text-center lg:flex-1 lg:text-left">{item.etiqueta}</span>
               {item.a === '/notificaciones' && <GloboNoLeidas />}
+              {item.a === '/admin/sugerencias' && <GloboSugerenciasNuevas />}
             </NavLink>
           ))}
         </nav>

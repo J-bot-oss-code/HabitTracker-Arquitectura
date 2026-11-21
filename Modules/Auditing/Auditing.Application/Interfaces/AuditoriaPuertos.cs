@@ -6,8 +6,10 @@ namespace Auditing.Application.Interfaces;
 /// <summary>
 /// Filtros ya validados y normalizados (el rango en instantes UTC, con el final exclusivo) que el repositorio traduce a SQL.
 /// </summary>
+/// <param name="UsuarioId">Solo lo que hizo esa persona (identificador exacto): «Mi actividad».</param>
 public sealed record FiltroAuditoria(
-    string? Usuario, string? Entidad, string? EntidadId, string? Accion, DateTime? DesdeUtc, DateTime? HastaUtcExclusivo);
+    string? Usuario, string? Entidad, string? EntidadId, string? Accion, DateTime? DesdeUtc, DateTime? HastaUtcExclusivo,
+    Guid? UsuarioId = null);
 
 public sealed record PaginaRegistros(int Total, IReadOnlyList<RegistroAuditoria> Registros);
 
@@ -31,4 +33,10 @@ public interface IRegistroAuditoriaService
 
     /// <summary>Consulta filtrada y paginada (RF-AUD-07). Un filtro inválido lanza <see cref="ArgumentException"/>.</summary>
     Task<PaginaAuditoriaDto> ConsultarAsync(ConsultaAuditoria consulta, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// «Mi actividad»: lo que hizo la propia persona en los últimos <paramref name="dias"/> días (7 o 30), paginado. Nunca
+    /// devuelve registros de otra persona. Un valor fuera de rango lanza <see cref="ArgumentException"/>.
+    /// </summary>
+    Task<PaginaAuditoriaDto> MiActividadAsync(Guid usuarioId, int dias, int pagina, int tamano, CancellationToken cancellationToken = default);
 }

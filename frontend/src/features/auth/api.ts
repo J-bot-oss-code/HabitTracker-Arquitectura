@@ -20,7 +20,8 @@ const base = '/api/auth'
 
 export const authApi = {
   registrar: (body: RegistroRequest) => api.post<UsuarioResponseDto>(`${base}/register`, body),
-  activar: (body: ActivarRequest) => api.post<MensajeResponse>(`${base}/activate`, body),
+  // Activa y abre la sesión igual que el login (JWT + cookie del refresh).
+  activar: (body: ActivarRequest) => api.post<UsuarioResponseDto>(`${base}/activate`, body),
   reenviarActivacion: (correo: string) =>
     api.post<MensajeResponse>(`${base}/resend-activation`, { correo }),
   login: (body: LoginRequest) => api.post<UsuarioResponseDto>(`${base}/login`, body),

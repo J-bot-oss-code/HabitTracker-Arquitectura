@@ -44,6 +44,7 @@
   - `Services/PerfilSaludServices.cs`: `IPerfilService`, `ICuestionarioSaludService`, `IProgresoCorporalService` e `IDatosPerfilSaludService` (exportar y borrar).
   - `Services/PlanesService.cs` (`IPlanesService`: listar, detalle y recomendados) con el puerto `Interfaces/IPlanPlantillaRepository.cs` (solo lectura) y `DTOs/PlanesDtos.cs`.
   - `Services/PlanUsuarioService.cs` (`IPlanUsuarioService`: inscribirse, listar, detalle, transición, ajuste y recordatorio) y `Services/SeguimientoDiarioServices.cs` (`ILogrosService`, `IHoyService`, `IResumenProgresoService`, `IDatosPlanesService`), con `DTOs/PlanUsuarioDtos.cs` y los puertos de `Interfaces/IPlanUsuarioPuertos.cs`.
+  - `Sugerencias/SugerenciasService.cs` (`ISugerenciasService`, `ISugerenciaRepository`): quejas y mejoras de las personas y su bandeja; `Sugerencia` (Domain/Sugerencias) valida texto y estado en un solo punto; tope de 5 en 24 h por persona; rutas `api/feedback` (Estándar) y `api/admin/feedback` (Administrador).
   - `Exceptions/ClimaExceptions.cs`: excepciones de clima (503 y 404). `Exceptions/ConflictoDeUnicidadException.cs`: la violación de un índice único, traducida por el `IUnitOfWork` para que Application no conozca a EF.
 - **Infrastructure** (`Modules/HabitTracker/HabitTracker.Infrastructure/`):
   - `Persistence/HabitTrackerDbContext.cs`: `ApplyConfigurationsFromAssembly` con una clase `IEntityTypeConfiguration` por entidad en `Persistence/Configuraciones/`, y `ConfigureConventions` que guarda todo `DateTime` como `datetime2` y lo lee con `Kind=Utc` (la API devuelve `Z`). Hábito→Registros en cascada, **Hábito→Meta en `SetNull`**, textos con `HasMaxLength` y decimales `HasPrecision(18, 2)`.
@@ -80,19 +81,20 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 
 - **Puerto del negocio implementado en el Host:** `IPermisoService` (HabitTracker.Application) → `PermisoServiceAdapter` → `ISolicitudPermisoService` (Permissions).
 - **Consentimiento de salud:** `IConsentimientoSalud` (HabitTracker) → `Host/WebApi/Adapters/ConsentimientoSaludAdapter.cs` → `IConsentimientoService`. Una cuenta sin consentimientos equivale a no consentir.
-- **Puerto del Core implementado en el Host:** `IParticipanteDatosUsuario` (`Modules/AccessControl/AccessControl.Application/Interfaces/IParticipanteDatosUsuario.cs`, con `Seccion`, `ExportarAsync` y `EliminarAsync` idempotente). Lo implementan `ParticipanteHabitos`, `ParticipantePerfilSalud` (sección `perfilYSalud`), `ParticipantePlanes` (sección `planes`: planes, pausas y logros), `ParticipantePermisos` y `ParticipanteDocumentos`, y lo usan la descarga de datos y la baja de cuenta. **Todo dato nuevo por usuario debe entrar aquí** (exportar y borrar).
+- **Puerto del Core implementado en el Host:** `IParticipanteDatosUsuario` (`Modules/AccessControl/AccessControl.Application/Interfaces/IParticipanteDatosUsuario.cs`, con `Seccion`, `ExportarAsync` y `EliminarAsync` idempotente). Lo implementan `ParticipanteHabitos`, `ParticipantePerfilSalud` (sección `perfilYSalud`), `ParticipantePlanes` (sección `planes`: planes, pausas y logros), `ParticipantePermisos`, `ParticipanteDocumentos` y `ParticipanteSugerencias` (sección `sugerencias`), y lo usan la descarga de datos y la baja de cuenta. **Todo dato nuevo por usuario debe entrar aquí** (exportar y borrar).
 - **Consentimiento:** `IConsentimientoService` (AccessControl.Application), con `DatosSalud`, `Marketing`, `CompartirCumplimiento` y `EstadisticasAnonimas`. Los mocks del frontend esperan **409** si falta `datosSalud`.
 - **Usuario** (correo, nombre, activo, baja programada): `IUsuarioRepository.GetByIdAsync` (AccessControl).
+- **Correo de HabitTracker (Fase 5):** `IEstadoCuentas` → `EstadoCuentasAdapter` (check-in) e `ICanalRecordatorios` → `CanalRecordatoriosAdapter` (recordatorios).
 
 ## Correo y workers
 
 - **Cola:** `CorreoEnCola` (tabla `CorreosEnCola`, estados Pendiente, Procesando, Enviado y Fallido, `MaxIntentos = 3`, espera de 2^n min entre reintentos).
-  - `IEmailQueue` solo tiene `EncolarCorreoRecuperacionAsync` y `EncolarCorreoActivacionAsync`: **no hay un método genérico**.
-  - `DatabaseEmailQueue.PlantillaHtml` siempre dibuja la caja del código.
-  - Solo `UsuarioService` encola.
+  - `IEmailQueue`: recuperación, activación, `EncolarCorreoAsync` (informativo, lo usa Notificaciones por `IColaCorreos`) y `EncolarCorreoConAccionesAsync` (botones `AccionCorreo` + enlace de baja; solo URL http(s) absolutas, el texto se escapa).
+  - `DatabaseEmailQueue.PlantillaHtml` dibuja la caja del código solo si hay código, y un botón por acción.
 - **`EmailSenderWorker`:** cada 15 s marca `Procesando` antes de enviar (RF-NOT-12). Un correo que quedó en `Procesando` tras una caída no se reintenta. SMTP con `SMTP_HOST/PORT/USER/PASS`; con `CORREO_MODO=consola` y `SMTP_HOST` vacío escribe `[CORREO EN CONSOLA]` en el log.
 - **`BajaCuentasWorker`:** el patrón a copiar. Abre un scope por pasada y solo llama a `IServicioBajaCuentas.EjecutarAsync(ahora)`. Las opciones (`OpcionesPrivacidad`, con `Seccion` + `Validar()`) se enlazan y registran como singleton.
-- Los dos workers viven en `Modules/AccessControl/AccessControl.Infrastructure/Workers/`.
+- Esos dos workers viven en `Modules/AccessControl/AccessControl.Infrastructure/Workers/`.
+- **`RecordatoriosWorker`** (`Modules/HabitTracker/HabitTracker.Infrastructure/Workers/`, Fase 5): cada `Recordatorios:IntervaloMinutos` (5) llama a `IRecordatoriosService.EjecutarAsync(ahora)`. Solo planes **activos con el recordatorio encendido** (opt-in por plan, `PUT api/my-plans/{id}/reminder`); `DecisorRecordatorio` (dominio puro): ventana de 3 h desde la hora local, uno por día (`PlanUsuario.UltimoRecordatorioLocal`, reclamado con un `ExecuteUpdate` atómico) y la cadencia 3/7/21 que solo reduce (la actividad es el último registro). Sale por `ICanalRecordatorios` → `CanalRecordatoriosAdapter` (cuenta activa sin baja + `CorreoActivo` de Notificaciones + cola). Baja en un clic: `api/reminders/unsubscribe` (GET sin efectos, POST idempotente; token de 60 días). `Recordatorios:Habilitado=false` lo apaga.
 
 ## Configuración
 
@@ -103,7 +105,7 @@ El orden de los `catch` importa: una excepción nueva que herede de `InvalidOper
 | `Sesion:DiasRefresh/CookieSegura/CookieSameSite` | refresh token en cookie |
 | `Privacidad:DiasGraciaBaja/IntervaloEjecucionMinutos` | baja de cuenta |
 | `Legal:VersionTerminos/VersionPrivacidad` | versiones vigentes (`v2.1` y `v1.4`) |
-| `Google:ClientId`, `Cors:OrigenesPermitidos`, `App:BaseUrl` | Google, CORS y enlaces |
+| `Google:ClientId`, `Cors:OrigenesPermitidos`, `App:BaseUrl`, `App:FrontendUrl` | Google, CORS, enlaces y a dónde lleva la activación (abre la sesión) |
 | `Seguridad:ContrasenasFiltradas:Habilitado/UrlBase` | Pwned Passwords |
 | `Documentos:RutaAlmacenamiento`, `Swagger:Habilitado`, `Https:RedireccionDesactivada`, `BaseDeDatos:MigrarAlIniciar` | varios |
 | `SMTP_HOST/PORT/USER/PASS`, `CORREO_MODO`, `OPENWEATHER_API_KEY` | correo y clima |
@@ -149,4 +151,5 @@ Contextos: `ApplicationDbContext`, `PermissionsDbContext`, `HabitTrackerDbContex
 
 - **API:** `GET api/reports/permissions` (Core: solicitudes por estado, `GROUP BY` en la base) y `GET api/reports/adherence` (negocio: constancia por plan). `desde` y `hasta` obligatorios (máx. 366 días); el rol del token decide el alcance (Estándar: lo suyo; Administrador: todos, agregado y sin datos personales).
 - **Piezas:** `Reports.Application/Services/ReportesService.cs`; puertos `IFuenteSolicitudes` → `FuenteSolicitudesAdapter` (sobre `ISolicitudPermisoReportes`, clase nueva `SolicitudPermisoReportes`) e `IFuenteConstancia` → `FuenteConstanciaAdapter` (sobre `IReporteConstanciaService` de HabitTracker). La función de agregación es `CalculadoraConstancia` (dominio, pura).
+- **Métricas del Resumen del Administrador (Fase 6):** `GET api/admin/metrics` (solo Administrador, sin parámetros). `MetricasProductoService` (Reports) aplica la **cohorte mínima de 5** (personas activas, retención y planes más iniciados salen nulos o fuera de la lista con menos); `IFuenteMetricas` → `FuenteMetricasAdapter` (Host) junta `IUsuarioRepository` (cuentas nuevas y bajas en curso), `IMetricasHabitosRepository` (HabitTracker: personas con registro, retención 30–60 d, registros por correo, planes) y las quejas nuevas. Solo números: ningún Guid ni dato de salud.
 - Detalle: `docs/historial/practica-5.md`; criterios: `docs/criterios-notificaciones-reportes.md`.

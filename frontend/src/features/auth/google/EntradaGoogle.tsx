@@ -1,9 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import type { ReactNode } from 'react'
 import { useForm } from 'react-hook-form'
+import { Link } from 'react-router'
 import { z } from 'zod'
 import { consentimientoSchema, type ConsentimientoForm } from '@/features/perfil/api'
 import { RUTAS_LEGALES, VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/publico/api'
 import { Alert } from '@/shared/ui/Alert'
+import { claseEnlace } from '@/shared/ui/AuthCard'
 import { Button } from '@/shared/ui/Button'
 import { ConsentFieldset } from '@/shared/ui/ConsentFieldset'
 import { PasswordInput } from '@/shared/ui/Field'
@@ -79,9 +82,11 @@ export function FormularioClave({
   cargando,
   alEnviar,
   alCancelar,
+  ayuda,
 }: {
   titulo: string
   textoBoton: string
+  ayuda?: ReactNode
   cargando: boolean
   alEnviar: (password: string) => void
   alCancelar: () => void
@@ -101,6 +106,7 @@ export function FormularioClave({
         error={errors.password?.message}
         {...register('password')}
       />
+      {ayuda && <p className="text-sm text-atenuado">{ayuda}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" cargando={cargando}>
           {textoBoton}
@@ -152,6 +158,15 @@ export function EntradaGoogle({
           cargando={google.cargando}
           alEnviar={(password) => google.confirmarVinculacion(paso.idToken, password)}
           alCancelar={google.cancelar}
+          ayuda={
+            <>
+              ¿No la recuerdas?{' '}
+              <Link to="/recuperar" className={claseEnlace}>
+                Crea una nueva con tu correo
+              </Link>{' '}
+              y vuelve a pulsar «Continuar con Google».
+            </>
+          }
         />
       )}
     </div>

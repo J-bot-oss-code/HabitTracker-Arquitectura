@@ -19,8 +19,8 @@ import { PERIODOS, type Periodo } from '../types'
 const SEMANAS_CONSTANCIA = 10
 
 // Progreso (especificación §5.4): peso, medidas, fotos, constancia, récords y logros. Todo lo
-// que no depende de datos nuevos se calcula con los hábitos reales; peso y medidas son
-// contratos propuestos (features/progreso/types.ts).
+// que no depende de datos nuevos se calcula con los hábitos reales; peso y medidas vienen de
+// ProgressController (features/progreso/types.ts).
 export function ProgresoPage() {
   const [periodo, setPeriodo] = useState<Periodo>('3meses')
   // La línea de la meta de peso termina cuando termina el plan en curso que más dura.

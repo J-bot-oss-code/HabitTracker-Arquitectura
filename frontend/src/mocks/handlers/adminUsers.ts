@@ -16,7 +16,14 @@ export const adminUsersHandlers = [
     await latencia()
     const { error } = autenticar(request, ROLES)
     if (error) return error
-    return HttpResponse.json(db.usuarios.map((u) => aDto(u)))
+    // ObtenerTodosAsync arma el DTO solo con id, nombre, correo, rol y estado: el resto va con sus valores por defecto.
+    return HttpResponse.json(
+      db.usuarios.map((u) => ({
+        ...aDto(u),
+        requiereAceptarDocumentos: false,
+        bajaProgramadaPara: null,
+      })),
+    )
   }),
 
   http.patch<{ id: string }>('/api/admin/usuarios/:id/rol', async ({ request, params }) => {

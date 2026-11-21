@@ -118,6 +118,13 @@ public sealed class PlanUsuario
     /// <summary>Hora local del recordatorio (Fase 5).</summary>
     public TimeOnly? HoraRecordatorio { get; private set; }
     public bool RecordatoriosActivos { get; private set; }
+
+    /// <summary>
+    /// Último día local en que salió el recordatorio por correo: como mucho uno por día. Lo marca el repositorio de forma
+    /// atómica al reclamar el envío (dos pasadas a la vez no mandan dos correos), no este objeto.
+    /// </summary>
+    public DateOnly? UltimoRecordatorioLocal { get; private set; }
+
     public IReadOnlyList<PeriodoPausa> Pausas => _pausas;
 
     /// <summary>Hasta cuándo estuvo en marcha: el fin previsto o, si se canceló antes, el día de la cancelación (RF-REP-02).</summary>

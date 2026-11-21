@@ -1,0 +1,12 @@
+# Solo para la prueba de carga: emula un VPS de 2 vCPU (1 para la API y 1 para SQL Server) y sube los límites de peticiones
+# por persona y por IP, que con pocas cuentas compartidas taparían la capacidad real del servidor.
+services:
+  webapi:
+    cpus: "1.0"
+    environment:
+      RateLimit__LoginPorMinuto: "100000"
+      RateLimit__UsuarioPorMinuto: "100000"
+      RateLimit__CatalogoPorMinuto: "100000"
+      RateLimit__RefreshPorMinuto: "100000"
+  db:
+    cpus: "1.0"

@@ -108,7 +108,8 @@ generar() {
   echo
   # Cada contrato declara `metodo: 'GET',` y en la línea siguiente `ruta: '/api/...'` (ver propuestas/*.ts).
   local contratos
-  contratos=$(git ls-files 'frontend/src/mocks/handlers/propuestas/*.ts' | grep -v -e 'index\.ts$' -e '\.test\.ts$' | sort | while read -r f; do
+  # El `|| true` es para cuando ya no queda ningún contrato propuesto: grep -v sale con 1 si no deja ninguna línea.
+  contratos=$({ git ls-files 'frontend/src/mocks/handlers/propuestas/*.ts' | grep -v -e 'index\.ts$' -e '\.test\.ts$' || true; } | sort | while read -r f; do
     awk -v archivo="$(basename "$f")" "
       /metodo: *'[A-Z]+'/ { m = \$0; sub(/.*metodo: *'/, \"\", m); sub(/'.*/, \"\", m) }
       /ruta: *'/ && m != \"\" { r = \$0; sub(/.*ruta: *'/, \"\", r); sub(/'.*/, \"\", r); printf \"- \`%s %s\` (%s)\n\", m, r, archivo; m = \"\" }

@@ -33,6 +33,7 @@ public class HabitTrackerDbContext : DbContext
     public DbSet<PlanUsuario> PlanesUsuario { get; set; } = null!;
     public DbSet<LogroUsuario> LogrosUsuario { get; set; } = null!;
     public DbSet<AdjuntoPlan> AdjuntosPlan { get; set; } = null!;
+    public DbSet<HabitTracker.Domain.Sugerencias.Sugerencia> Sugerencias { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

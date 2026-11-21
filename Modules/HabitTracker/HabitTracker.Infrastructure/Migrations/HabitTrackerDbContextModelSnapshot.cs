@@ -524,6 +524,9 @@ namespace HabitTracker.Infrastructure.Migrations
                         .HasMaxLength(60)
                         .HasColumnType("nvarchar(60)");
 
+                    b.Property<DateOnly?>("UltimoRecordatorioLocal")
+                        .HasColumnType("date");
+
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uniqueidentifier");
 
@@ -585,6 +588,44 @@ namespace HabitTracker.Infrastructure.Migrations
                     b.HasIndex("UsuarioId", "Fecha");
 
                     b.ToTable("RegistrosPeso", (string)null);
+                });
+
+            modelBuilder.Entity("HabitTracker.Domain.Sugerencias.Sugerencia", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreadaEnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("EstadoCambiadoEnUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Texto")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Estado", "CreadaEnUtc");
+
+                    b.HasIndex("UsuarioId", "CreadaEnUtc");
+
+                    b.ToTable("Sugerencias", (string)null);
                 });
 
             modelBuilder.Entity("HabitTracker.Infrastructure.Persistence.Configuraciones.CuestionarioSaludFila", b =>

@@ -36,7 +36,9 @@ describe('LoginPage', () => {
     await user.type(screen.getByLabelText('Contraseña'), 'incorrecta1')
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
 
-    expect(await screen.findByText('Correo o contraseña incorrectos.')).toBeInTheDocument()
+    expect(await screen.findByText(/Correo o contraseña incorrectos./)).toHaveTextContent(
+      'Continuar con Google',
+    )
   })
 
   it('una cuenta desactivada por un administrador recibe ese aviso', async () => {

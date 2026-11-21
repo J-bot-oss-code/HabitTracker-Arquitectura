@@ -22,6 +22,7 @@ public class AuthController : ControllerBase
     private readonly IGestorSesiones _sesiones;
     private readonly OpcionesSesion _opcionesSesion;
     private readonly IServicioLoginExterno _loginExterno;
+    private readonly string _destinoTrasActivar;
 
     public AuthController(
         IUsuarioService usuarioService,
@@ -29,8 +30,10 @@ public class AuthController : ControllerBase
         IConsentimientoService consentimientos,
         IGestorSesiones sesiones,
         OpcionesSesion opcionesSesion,
-        IServicioLoginExterno loginExterno)
+        IServicioLoginExterno loginExterno,
+        IConfiguration? configuracion = null)
     {
+        _destinoTrasActivar = PaginaActivacion.Destino(configuracion?["App:FrontendUrl"]);
         _loginExterno = loginExterno;
         _usuarioService = usuarioService;
         _blacklist = blacklist;
@@ -51,16 +54,19 @@ public class AuthController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, resultado);
     }
 
-    /// <summary>Activa una cuenta con el correo y el código de 6 dígitos recibido por correo.</summary>
+    /// <summary>
+    /// Activa una cuenta con el correo y el código de 6 dígitos recibido por correo y abre la sesión igual que el login
+    /// (JWT y cookie del refresh): quien tiene el código demostró controlar el correo. El código es de un solo uso.
+    /// </summary>
     [HttpPost("activate")]
     [AllowAnonymous]
     [EnableRateLimiting("activacion")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UsuarioResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Activate([FromBody] ActivateRequest request)
     {
-        await _usuarioService.ActivarCuentaAsync(request.Correo, request.Codigo);
-        return Ok(new { mensaje = "Cuenta activada correctamente." });
+        var usuario = await _usuarioService.ActivarCuentaAsync(request.Correo, request.Codigo);
+        return Ok(await CompletarInicioAsync(usuario));
     }
 
     /// <summary>
@@ -81,7 +87,7 @@ public class AuthController : ControllerBase
         Response.Headers["Referrer-Policy"] = "no-referrer";
         Response.Headers.ContentSecurityPolicy =
             $"default-src 'none'; script-src 'nonce-{nonce}'; style-src 'nonce-{nonce}'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
-        return Content(PaginaActivacion.Html(nonce), "text/html");
+        return Content(PaginaActivacion.Html(nonce, _destinoTrasActivar), "text/html");
     }
 
     /// <summary>

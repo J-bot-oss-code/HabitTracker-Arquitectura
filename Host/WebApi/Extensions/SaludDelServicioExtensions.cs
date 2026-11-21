@@ -1,4 +1,5 @@
 using AccessControl.Infrastructure.Persistence;
+using HabitTracker.Application.Notificaciones;
 using HabitTracker.Infrastructure.Persistence;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -15,7 +16,11 @@ public static class SaludDelServicioExtensions
 
     public static IServiceCollection AddSaludDelServicio(this IServiceCollection services)
     {
-        services.AddHealthChecks().AddCheck<BaseDeDatosDisponible>("base-de-datos");
+        services.AddHealthChecks()
+            .AddCheck<BaseDeDatosDisponible>("base-de-datos")
+            // Un proceso de recordatorios parado no tumba la API: se marca «Degraded» (sigue respondiendo 200) para que un
+            // monitor externo que busque la palabra «Healthy» avise, sin que el contenedor se reinicie por un fallo pasajero.
+            .AddCheck<RecordatoriosVivos>("recordatorios", failureStatus: HealthStatus.Degraded);
         return services;
     }
 
@@ -38,6 +43,21 @@ public static class SaludDelServicioExtensions
             {
                 return HealthCheckResult.Unhealthy();
             }
+        }
+    }
+
+    /// <summary>Sana si el proceso de recordatorios está apagado a propósito o si completó una pasada hace poco (sin detalles: RD-08).</summary>
+    public sealed class RecordatoriosVivos(OpcionesRecordatorios opciones, ILatidoRecordatorios latido, TimeProvider? reloj = null) : IHealthCheck
+    {
+        public Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
+        {
+            if (!opciones.Habilitado)
+                return Task.FromResult(HealthCheckResult.Healthy());
+
+            var ahora = (reloj ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+            var vivo = LatidoRecordatorios.EstaVivo(
+                ahora, latido.IniciadoEnUtc, latido.UltimaPasadaCorrectaUtc, TimeSpan.FromMinutes(opciones.IntervaloMinutos));
+            return Task.FromResult(vivo ? HealthCheckResult.Healthy() : HealthCheckResult.Degraded());
         }
     }
 }

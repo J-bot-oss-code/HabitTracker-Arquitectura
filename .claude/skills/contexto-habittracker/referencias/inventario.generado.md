@@ -38,6 +38,8 @@
 | AuthController | POST | `/api/auth/restablecer-password` | anónimo |
 | AuthController | POST | `/api/auth/reset-password` | anónimo |
 | AuthController | POST | `/api/auth/cambiar-password` | autenticado |
+| BajaRecordatoriosController | GET | `/api/reminders/unsubscribe` | anónimo |
+| BajaRecordatoriosController | POST | `/api/reminders/unsubscribe` | anónimo |
 | CheckinCorreoController | GET | `/api/reminders/checkin` | anónimo |
 | CheckinCorreoController | POST | `/api/reminders/checkin` | anónimo |
 | DocumentsController | POST | `/api/documents` | autenticado |
@@ -51,6 +53,8 @@
 | HabitsController | POST | `/api/habits/{id:guid}/transition` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/progress` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/advanced-reconfig` | rol Estandar |
+| MetricasAdminController | GET | `/api/admin/metrics` | rol Administrador |
+| MiActividadController | GET | `/api/me/activity` | autenticado |
 | MyPlansController | POST | `/api/my-plans` | rol Estandar |
 | MyPlansController | GET | `/api/my-plans` | rol Estandar |
 | MyPlansController | GET | `/api/my-plans/{id:guid}` | rol Estandar |
@@ -90,6 +94,10 @@
 | ProgressController | POST | `/api/progress/measurements` | rol Estandar |
 | ReportsController | GET | `/api/reports/permissions` | autenticado |
 | ReportsController | GET | `/api/reports/adherence` | autenticado |
+| SugerenciasController | POST | `//api/feedback` | rol Estandar |
+| SugerenciasController | GET | `//api/feedback` | rol Estandar |
+| SugerenciasController | GET | `//api/admin/feedback` | rol Administrador |
+| SugerenciasController | POST | `//api/admin/feedback/{id:guid}/status` | rol Administrador |
 | TodayController | GET | `//api/today` | rol Estandar |
 | TodayController | GET | `//api/progress/summary` | rol Estandar |
 | TodayController | POST | `//api/progress/achievements/seen` | rol Estandar |
@@ -99,7 +107,7 @@
 - **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado, AgregarOrigenDelCodigoDeRecuperacion
 - **Auditing:** CrearRegistrosAuditoria
 - **DocumentManager:** AgregarTablaDocumentos
-- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro
+- **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro, AgregarUltimoRecordatorioDelPlan, AgregarSugerencias
 - **Notifications:** CrearNotificaciones
 - **Permissions:** AgregarTablaSolicitudesPermisos
 
@@ -107,28 +115,28 @@
 
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
-| AccessControl.Application.Tests | 30 | 288 | 44 |
-| AccessControl.Infrastructure.Tests | 11 | 80 | 8 |
-| Auditing.Api.Tests | 4 | 11 | 0 |
-| Auditing.Infrastructure.Tests | 1 | 16 | 0 |
+| AccessControl.Application.Tests | 31 | 297 | 47 |
+| AccessControl.Infrastructure.Tests | 11 | 84 | 9 |
+| Auditing.Api.Tests | 4 | 12 | 0 |
+| Auditing.Infrastructure.Tests | 1 | 19 | 2 |
 | DocumentManager.Api.Tests | 5 | 33 | 7 |
 | DocumentManager.Application.Tests | 2 | 39 | 3 |
 | DocumentManager.Domain.Tests | 1 | 15 | 2 |
 | DocumentManager.Infrastructure.Tests | 3 | 15 | 2 |
-| HabitTracker.Api.Tests | 8 | 47 | 14 |
-| HabitTracker.Application.Tests | 8 | 130 | 8 |
-| HabitTracker.Domain.Tests | 12 | 167 | 29 |
-| HabitTracker.Integration.Tests | 12 | 73 | 4 |
-| Notifications.Api.Tests | 3 | 20 | 2 |
+| HabitTracker.Api.Tests | 11 | 60 | 15 |
+| HabitTracker.Application.Tests | 10 | 148 | 9 |
+| HabitTracker.Domain.Tests | 13 | 178 | 32 |
+| HabitTracker.Integration.Tests | 15 | 97 | 5 |
+| Notifications.Api.Tests | 4 | 24 | 2 |
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
 | Notifications.Infrastructure.Tests | 1 | 5 | 0 |
 | Permissions.Application.Tests | 3 | 22 | 2 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
-| Reports.Api.Tests | 1 | 6 | 0 |
-| Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **1023** | **129** |
+| Reports.Api.Tests | 2 | 11 | 0 |
+| Reports.Application.Tests | 2 | 13 | 3 |
+| **Total** | | **1120** | **143** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -137,12 +145,14 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `AuditorDocumentosAdapter.cs`: `class AuditorDocumentosAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditorDocumentos`
 - `AuditorPermisosAdapter.cs`: `class AuditorPermisosAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditorPermisos`
 - `AuditoriaControlAccesoAdapter.cs`: `class AuditoriaControlAccesoAdapter(IRegistroAuditoriaService historial, IUsuarioRepository usuarios) : IAuditoriaService`
+- `CanalRecordatoriosAdapter.cs`: `class CanalRecordatoriosAdapter(`
 - `ColaCorreosAdapter.cs`: `class ColaCorreosAdapter(IEmailQueue cola) : IColaCorreos`
 - `ConsentimientoSaludAdapter.cs`: `class ConsentimientoSaludAdapter(IConsentimientoService consentimientos) : IConsentimientoSalud`
 - `DirectorioUsuariosAdapter.cs`: `class DirectorioUsuariosAdapter(IUsuarioRepository usuarios) : IDirectorioUsuarios`
 - `DocumentosUsuarioAdapter.cs`: `class DocumentosUsuarioAdapter(IDocumentoService documentos) : IDocumentosUsuario`
 - `EstadoCuentasAdapter.cs`: `class EstadoCuentasAdapter(IUsuarioRepository usuarios) : IEstadoCuentas`
 - `FuenteConstanciaAdapter.cs`: `class FuenteConstanciaAdapter(IReporteConstanciaService constancia) : IFuenteConstancia`
+- `FuenteMetricasAdapter.cs`: `class FuenteMetricasAdapter(`
 - `FuenteSolicitudesAdapter.cs`: `class FuenteSolicitudesAdapter(ISolicitudPermisoReportes permisos) : IFuenteSolicitudes`
 - `GuardaEliminacionDocumentoAdapter.cs`: `class GuardaEliminacionDocumentoAdapter(`
 - `NotificadorPermisosAdapter.cs`: `class NotificadorPermisosAdapter(INotificacionService notificaciones, IDirectorioUsuarios directorio) : INotificadorPermisos`
@@ -153,17 +163,19 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `ParticipantePerfilSalud.cs`: `class ParticipantePerfilSalud(IDatosPerfilSaludService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePermisos.cs`: `class ParticipantePermisos(ISolicitudPermisoService servicio) : IParticipanteDatosUsuario`
 - `ParticipantePlanes.cs`: `class ParticipantePlanes(IDatosPlanesService servicio) : IParticipanteDatosUsuario`
+- `ParticipanteSugerencias.cs`: `class ParticipanteSugerencias(ISugerenciasService servicio) : IParticipanteDatosUsuario`
 - `PermisoServiceAdapter.cs`: `class PermisoServiceAdapter(ISolicitudPermisoService solicitudPermisoService) : IPermisoService`
 
 ## Workers (BackgroundService)
 
 - `Modules/AccessControl/AccessControl.Infrastructure/Workers/BajaCuentasWorker.cs`
 - `Modules/AccessControl/AccessControl.Infrastructure/Workers/EmailSenderWorker.cs`
+- `Modules/HabitTracker/HabitTracker.Infrastructure/Workers/RecordatoriosWorker.cs`
 
 ## Frontend: features
 
 - `admin-users`: 3 archivos
-- `auditoria`: 9 archivos
+- `auditoria`: 14 archivos
 - `auth`: 27 archivos
 - `cola-correos`: 5 archivos
 - `documentos`: 11 archivos
@@ -175,12 +187,13 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `planes`: 11 archivos
 - `privacidad`: 10 archivos
 - `progreso`: 11 archivos
-- `publico`: 15 archivos
+- `publico`: 18 archivos
 - `reportes`: 10 archivos
+- `sugerencias`: 13 archivos
 
 ## Frontend: contratos propuestos (sin backend)
 
-- `GET /api/admin/metrics` (admin.ts)
+- (ninguno: todo está conectado al backend)
 
 ## Contenido del módulo de negocio
 

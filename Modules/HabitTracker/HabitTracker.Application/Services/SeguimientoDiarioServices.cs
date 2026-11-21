@@ -157,7 +157,8 @@ public sealed class HoyService(
             p.Progreso.Racha, s is null ? null : new SugerenciaAjusteDto(s.Opciones, s.DiasSinRegistro));
     }
 
-    private static TareaHoyDto TareaDeHoy(PlanUsuario plan, Habito habito, DateOnly hoy, TimeZoneInfo zona, JornadaPersona? jornada)
+    // También la usan los recordatorios por correo: una sola definición de «qué falta hoy».
+    internal static TareaHoyDto TareaDeHoy(PlanUsuario plan, Habito habito, DateOnly hoy, TimeZoneInfo zona, JornadaPersona? jornada)
     {
         // El periodo de una tarea diaria es el día local; el de una semanal, la semana (lunes a domingo) local.
         var desde = habito.Periodicidad == Periodicidad.Semanal ? InicioDeSemana(hoy) : hoy;

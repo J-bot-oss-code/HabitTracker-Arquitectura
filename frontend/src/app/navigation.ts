@@ -40,6 +40,12 @@ export const NAVEGACION: ItemNavegacion[] = [
     icono: 'correo',
     roles: ['Administrador'],
   },
+  {
+    a: '/admin/sugerencias',
+    etiqueta: 'Quejas y mejoras',
+    icono: 'info',
+    roles: ['Administrador'],
+  },
   // Cuenta, apariencia, inicio de sesión, seguridad y privacidad viven juntas en Configuración (siempre al final).
   {
     a: '/ajustes',
@@ -103,12 +109,28 @@ export const SECCIONES_AJUSTES: SeccionAjustes[] = [
     roles: ['Estandar'],
     descripcion: 'Descarga tus datos, revisa los consentimientos o retírate.',
   },
+  // Para ambos roles: GET /api/me/activity solo devuelve lo de la propia sesión.
+  {
+    a: '/ajustes/actividad',
+    etiqueta: 'Mi actividad',
+    icono: 'auditoria',
+    roles: ['Estandar', 'Administrador'],
+    descripcion: 'Lo que hiciste en tu cuenta en los últimos 7 o 30 días, para guardarlo.',
+  },
   {
     a: '/ajustes/notificaciones',
     etiqueta: 'Notificaciones',
     icono: 'notificaciones',
     roles: ['Estandar', 'Administrador'],
     descripcion: 'Elige si los avisos también te llegan por correo.',
+  },
+  // Solo Estándar: api/feedback responde 403 al Administrador (él lee la bandeja en /admin/sugerencias).
+  {
+    a: '/ajustes/sugerencias',
+    etiqueta: 'Quejas y mejoras',
+    icono: 'info',
+    roles: ['Estandar'],
+    descripcion: 'Cuéntanos una queja o qué mejorarías de la web.',
   },
   {
     a: '/ajustes/apariencia',
@@ -139,6 +161,7 @@ const RUTAS_POR_ROL: Array<{ patron: RegExp; roles: Rol[] }> = [
   { patron: /^\/ajustes\/privacidad\/?$/i, roles: ['Estandar'] },
   { patron: /^\/ajustes\/perfil-salud\/?$/i, roles: ['Estandar'] },
   { patron: /^\/ajustes\/solicitudes\/?$/i, roles: ['Estandar'] },
+  { patron: /^\/ajustes\/sugerencias\/?$/i, roles: ['Estandar'] },
   { patron: /^\/habitos(\/|$)/i, roles: ['Estandar'] },
   { patron: /^\/documentos\/?$/i, roles: ['Estandar'] },
   { patron: /^\/mis-planes(\/|$)/i, roles: ['Estandar'] },

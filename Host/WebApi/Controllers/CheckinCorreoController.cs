@@ -87,7 +87,7 @@ internal static class PaginasCheckin
         "Enlace no válido",
         "<h1>Este enlace ya no sirve</h1><p>Puede que haya caducado o que tu plan haya cambiado. Abre la app para registrar tu avance.</p>");
 
-    private static string Marco(string titulo, string cuerpo) => $$"""
+    public static string Marco(string titulo, string cuerpo) => $$"""
         <!doctype html>
         <html lang="es">
         <head>

@@ -178,4 +178,68 @@ public class NotificacionesTests
         // Una actividad «futura» por desfase de reloj no produce días negativos.
         Assert.Equal(0, CalculadoraCadencia.DiasSinActividad(Utc(2026, 11, 14, 12), SantoDomingo, Utc(2026, 11, 13, 12)));
     }
+
+    // ---------- DecisorRecordatorio ----------
+
+    // Santo Domingo es UTC-4 todo el año: las 8:00 locales son las 12:00 UTC.
+    private static readonly TimeOnly Ocho = new(8, 0);
+    private static readonly DateOnly Hoy = new(2026, 11, 20);
+
+    [Theory]
+    [Trait("Requirement", "RF-NEG-07")]
+    [InlineData(11, 59, false)] // 7:59 local: todavía no
+    [InlineData(12, 0, true)]   // 8:00 justo
+    [InlineData(14, 30, true)]  // 10:30, dentro de la ventana de 3 h
+    [InlineData(15, 0, true)]   // 11:00, el borde de la ventana
+    [InlineData(15, 1, false)]  // 11:01, llegaría a destiempo
+    public void RF_NEG_07_Recordatorio_SoloEntreLaHoraElegidaYTresHorasDespues(int hUtc, int minUtc, bool toca)
+    {
+        var tipo = DecisorRecordatorio.Decidir(Ocho, SantoDomingo, Utc(2026, 11, 20, hUtc, minUtc), null, 0);
+
+        Assert.Equal(toca ? TipoRecordatorio.Diario : null, tipo);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-07")]
+    public void RF_NEG_07_Recordatorio_UnoPorDia_SiYaSeEnvioHoyNoVuelveATocar()
+    {
+        Assert.Null(DecisorRecordatorio.Decidir(Ocho, SantoDomingo, Utc(2026, 11, 20, 13), Hoy, 0));
+        Assert.Equal(TipoRecordatorio.Diario, DecisorRecordatorio.Decidir(Ocho, SantoDomingo, Utc(2026, 11, 20, 13), Hoy.AddDays(-1), 0));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-07")]
+    public void RF_NEG_07_Recordatorio_UnaHoraTardiaNoSeMandaPasadaLaMedianoche()
+    {
+        // 23:00 local elegidas; a la 1:00 local del día siguiente (05:00 UTC) no se manda como si fuera de ese día.
+        Assert.Null(DecisorRecordatorio.Decidir(new TimeOnly(23, 0), SantoDomingo, Utc(2026, 11, 21, 5), Hoy, 0));
+    }
+
+    [Theory]
+    [Trait("Requirement", "RF-NEG-07")]
+    [InlineData(0, TipoRecordatorio.Diario)]
+    [InlineData(2, TipoRecordatorio.Diario)]
+    [InlineData(3, TipoRecordatorio.Regreso)]
+    [InlineData(6, TipoRecordatorio.Regreso)]
+    [InlineData(7, TipoRecordatorio.Regreso)]   // pasa a semanal: el día del umbral sí
+    [InlineData(8, null)]
+    [InlineData(13, null)]
+    [InlineData(14, TipoRecordatorio.Regreso)]  // y cada 7 días
+    [InlineData(20, null)]
+    [InlineData(21, TipoRecordatorio.AvisoRetomar)] // el único «¿seguimos?»
+    [InlineData(22, null)]                      // después, nada hasta que vuelva
+    [InlineData(28, null)]
+    [InlineData(400, null)]
+    public void RF_NEG_07_Recordatorio_LaCadenciaSoloReduce(int diasSinActividad, TipoRecordatorio? esperado)
+    {
+        Assert.Equal(esperado, DecisorRecordatorio.Decidir(Ocho, SantoDomingo, Utc(2026, 11, 20, 13), null, diasSinActividad));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-11")]
+    public void RD_11_Recordatorio_ExigeUnaFechaUtc()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            DecisorRecordatorio.Decidir(Ocho, SantoDomingo, new DateTime(2026, 11, 20, 13, 0, 0, DateTimeKind.Local), null, 0));
+    }
 }

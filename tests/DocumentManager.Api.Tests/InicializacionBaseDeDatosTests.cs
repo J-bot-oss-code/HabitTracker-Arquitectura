@@ -205,6 +205,10 @@ public class InicializacionBaseDeDatosTests
         }
         public Task<int> ContarAdministradoresActivosAsync() =>
             Task.FromResult(Guardados.Count(u => u.Rol == Rol.Administrador && u.Activo));
+        public Task<int> ContarCreadasDesdeAsync(DateTime desdeUtc) =>
+            Task.FromResult(Guardados.Count(u => u.FechaCreacion >= desdeUtc));
+        public Task<int> ContarConBajaProgramadaAsync() =>
+            Task.FromResult(Guardados.Count(u => u.TieneBajaProgramada));
         public Task<IReadOnlyList<Usuario>> ListarAdministradoresActivosAsync() =>
             Task.FromResult<IReadOnlyList<Usuario>>([.. Guardados.Where(u => u.Rol == Rol.Administrador && u.Activo)]);
     }

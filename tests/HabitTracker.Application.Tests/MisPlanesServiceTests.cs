@@ -66,6 +66,10 @@ public class MisPlanesServiceTests
             Eliminados += Lista.RemoveAll(p => p.UsuarioId == usuarioId);
             return Task.FromResult(Eliminados);
         }
+        public Task<IReadOnlyList<PlanUsuario>> ListarConRecordatorioAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<PlanUsuario>>([]);
+        public Task<bool> ReclamarRecordatorioAsync(Guid planId, DateOnly hoyLocal, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
     }
 
     private sealed class Habitos : IHabitoRepository

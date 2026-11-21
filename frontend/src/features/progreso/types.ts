@@ -1,6 +1,6 @@
-// Contrato propuesto: sin endpoint en Host/WebApi. Peso y medidas corporales (docs/mejoras §4.5
-// y especificación §5.4). Los simula mocks/handlers/propuestas/progreso.ts y están registrados
-// en CONTRATOS_PROPUESTOS. Son datos de salud: el servidor no los guarda sin consentimiento.
+// Contrato de ProgressController (/api/progress/weights y /measurements, solo Estándar). Son datos de
+// salud: el servidor no los guarda sin el consentimiento datosSalud (409 consentimiento_salud_requerido).
+// Un peso y una medida (por zona) por día UTC: el nuevo reemplaza al anterior.
 
 export interface PesoDto {
   id: string

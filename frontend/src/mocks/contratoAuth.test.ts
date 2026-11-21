@@ -104,6 +104,10 @@ describe('contrato simulado: activación con correo y código de 6 dígitos', ()
     })
     expect(r.status).toBe(200)
     expect(db.usuarios.find((u) => u.correo === 'inactiva@demo.com')?.activo).toBe(true)
+    // Como el login: responde la persona con su JWT y abre la sesión (cookie del refresh).
+    const cuerpo = (await r.json()) as { correo: string; token: string | null }
+    expect(cuerpo.correo).toBe('inactiva@demo.com')
+    expect(cuerpo.token).toBeTruthy()
   })
 
   it('el código solo no basta: el cuerpo antiguo {token} es una solicitud inválida', async () => {

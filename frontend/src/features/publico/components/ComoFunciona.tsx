@@ -1,4 +1,7 @@
-// "Cómo funciona" (§5.1, punto 5): tres pasos numerados.
+import { Link } from 'react-router'
+import { Icono } from '@/shared/ui/Icono'
+
+// "Cómo funciona" (§5.1, punto 5): tres pasos numerados y el enlace a la guía completa.
 const pasos = [
   {
     numero: '01',
@@ -38,6 +41,15 @@ export function ComoFunciona() {
           </li>
         ))}
       </ol>
+      <p className="mt-5">
+        <Link
+          to="/como-funciona"
+          className="inline-flex min-h-11 items-center gap-1.5 rounded-lg font-semibold text-acento underline underline-offset-4 hover:text-acento-fuerte"
+        >
+          Ver la guía completa
+          <Icono nombre="flecha" className="size-4" />
+        </Link>
+      </p>
     </section>
   )
 }

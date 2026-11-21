@@ -17,6 +17,12 @@ public interface IFirmadorEnlaces
 
     /// <summary>Los datos del enlace, o <c>null</c> si no es válido, fue alterado o ya caducó.</summary>
     DatosEnlaceCheckin? LeerCheckin(string token);
+
+    /// <summary>El enlace «Darme de baja» de los recordatorios de esa persona.</summary>
+    string FirmarBaja(Guid usuarioId);
+
+    /// <summary>De quién es el enlace de baja, o <c>null</c> si no es válido, fue alterado o ya caducó.</summary>
+    Guid? LeerBaja(string token);
 }
 
 /// <summary>
@@ -26,7 +32,12 @@ public interface IFirmadorEnlaces
 public sealed class FirmadorEnlaces(ICifradorDatos cifrador, TimeProvider? reloj = null) : IFirmadorEnlaces
 {
     public static readonly TimeSpan VigenciaCheckin = TimeSpan.FromHours(36);
+
+    /// <summary>Larga a propósito: un correo viejo también tiene que poder dar de baja (y la baja nunca hace daño).</summary>
+    public static readonly TimeSpan VigenciaBaja = TimeSpan.FromDays(60);
+
     private const string Proposito = "Enlace.Checkin.v1";
+    private const string PropositoBaja = "Enlace.Baja.v1";
     private readonly TimeProvider _reloj = reloj ?? TimeProvider.System;
 
     private sealed record Carga(Guid U, Guid H, string F, long E);
@@ -51,6 +62,31 @@ public sealed class FirmadorEnlaces(ICifradorDatos cifrador, TimeProvider? reloj
                 || !DateOnly.TryParseExact(carga.F, "yyyy-MM-dd", out var fecha))
                 return null;
             return new DatosEnlaceCheckin(carga.U, carga.H, fecha);
+        }
+        catch (Exception ex) when (ex is CryptographicException or JsonException or FormatException or ArgumentException)
+        {
+            return null;
+        }
+    }
+
+    private sealed record CargaBaja(Guid U, long E);
+
+    public string FirmarBaja(Guid usuarioId)
+    {
+        if (usuarioId == Guid.Empty)
+            throw new ArgumentException("El usuario no es válido.", nameof(usuarioId));
+        var expira = _reloj.GetUtcNow().Add(VigenciaBaja).ToUnixTimeSeconds();
+        return cifrador.Cifrar(JsonSerializer.Serialize(new CargaBaja(usuarioId, expira)), PropositoBaja);
+    }
+
+    public Guid? LeerBaja(string token)
+    {
+        if (string.IsNullOrWhiteSpace(token) || token.Length > 2048)
+            return null;
+        try
+        {
+            var carga = JsonSerializer.Deserialize<CargaBaja>(cifrador.Descifrar(token, PropositoBaja));
+            return carga is null || carga.U == Guid.Empty || carga.E <= _reloj.GetUtcNow().ToUnixTimeSeconds() ? null : carga.U;
         }
         catch (Exception ex) when (ex is CryptographicException or JsonException or FormatException or ArgumentException)
         {
