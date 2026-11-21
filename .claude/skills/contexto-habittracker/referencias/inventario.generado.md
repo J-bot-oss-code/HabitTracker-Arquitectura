@@ -53,6 +53,7 @@
 | HabitsController | POST | `/api/habits/{id:guid}/transition` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/progress` | rol Estandar |
 | HabitsController | POST | `/api/habits/{id:guid}/advanced-reconfig` | rol Estandar |
+| MetricasAdminController | GET | `/api/admin/metrics` | rol Administrador |
 | MiActividadController | GET | `/api/me/activity` | autenticado |
 | MyPlansController | POST | `/api/my-plans` | rol Estandar |
 | MyPlansController | GET | `/api/my-plans` | rol Estandar |
@@ -115,7 +116,7 @@
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
 | AccessControl.Application.Tests | 31 | 297 | 47 |
-| AccessControl.Infrastructure.Tests | 11 | 82 | 9 |
+| AccessControl.Infrastructure.Tests | 11 | 84 | 9 |
 | Auditing.Api.Tests | 4 | 12 | 0 |
 | Auditing.Infrastructure.Tests | 1 | 19 | 2 |
 | DocumentManager.Api.Tests | 5 | 33 | 7 |
@@ -125,7 +126,7 @@
 | HabitTracker.Api.Tests | 10 | 55 | 15 |
 | HabitTracker.Application.Tests | 9 | 143 | 9 |
 | HabitTracker.Domain.Tests | 13 | 178 | 32 |
-| HabitTracker.Integration.Tests | 14 | 91 | 5 |
+| HabitTracker.Integration.Tests | 15 | 97 | 5 |
 | Notifications.Api.Tests | 4 | 24 | 2 |
 | Notifications.Application.Tests | 1 | 12 | 0 |
 | Notifications.Domain.Tests | 1 | 8 | 1 |
@@ -133,9 +134,9 @@
 | Permissions.Application.Tests | 3 | 22 | 2 |
 | Permissions.Domain.Tests | 1 | 15 | 1 |
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
-| Reports.Api.Tests | 1 | 6 | 0 |
-| Reports.Application.Tests | 1 | 8 | 1 |
-| **Total** | | **1092** | **141** |
+| Reports.Api.Tests | 2 | 11 | 0 |
+| Reports.Application.Tests | 2 | 13 | 3 |
+| **Total** | | **1110** | **143** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
@@ -151,6 +152,7 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 - `DocumentosUsuarioAdapter.cs`: `class DocumentosUsuarioAdapter(IDocumentoService documentos) : IDocumentosUsuario`
 - `EstadoCuentasAdapter.cs`: `class EstadoCuentasAdapter(IUsuarioRepository usuarios) : IEstadoCuentas`
 - `FuenteConstanciaAdapter.cs`: `class FuenteConstanciaAdapter(IReporteConstanciaService constancia) : IFuenteConstancia`
+- `FuenteMetricasAdapter.cs`: `class FuenteMetricasAdapter(`
 - `FuenteSolicitudesAdapter.cs`: `class FuenteSolicitudesAdapter(ISolicitudPermisoReportes permisos) : IFuenteSolicitudes`
 - `GuardaEliminacionDocumentoAdapter.cs`: `class GuardaEliminacionDocumentoAdapter(`
 - `NotificadorPermisosAdapter.cs`: `class NotificadorPermisosAdapter(INotificacionService notificaciones, IDirectorioUsuarios directorio) : INotificadorPermisos`

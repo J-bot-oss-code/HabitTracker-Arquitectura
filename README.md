@@ -251,6 +251,23 @@ Un canal para que la persona Estándar diga qué falla o qué mejoraría, y una 
 
 El rol se exige en el servidor y la persona sale del token (un Estándar no puede ver la bandeja y un Administrador no envía). El texto se guarda tal cual y siempre se muestra como texto. **Entra en la descarga de datos** (sección `sugerencias`) y **se borra con la baja de cuenta**.
 
+## Métricas del Resumen del Administrador
+
+`GET /api/admin/metrics` (solo Administrador; un Estándar recibe 403). Cifras **agregadas y anónimas** del producto para la pantalla Resumen. Solo números: ningún identificador de persona ni dato de salud.
+
+| Campo | Qué cuenta |
+|---|---|
+| `cuentasNuevas7d` | Cuentas creadas en los últimos 7 días. |
+| `eliminacionesEnCurso` | Cuentas con la baja pedida que siguen en el periodo de gracia. |
+| `sugerenciasNuevas` | Quejas y mejoras sin leer. |
+| `registrosPorCorreo7d` | Avances registrados con el botón «Ya lo hice» del correo en 7 días. |
+| `usuariosActivos30d` | Personas distintas con algún registro de avance en 30 días. |
+| `retencion30d` | % de quienes registraron algo hace 30 a 60 días y también en los últimos 30. |
+| `planesMasIniciados` | Hasta 5 planes del catálogo y cuántas personas los iniciaron. |
+| `cohorteMinima` | El mínimo de personas para mostrar una cifra (5). |
+
+**Regla de privacidad:** lo que cuenta personas (`usuariosActivos30d`, `retencion30d` y cada plan de `planesMasIniciados`) se oculta cuando son **menos de 5**: el campo llega `null` o el plan no aparece. Con un piloto de 10 a 20 personas algunas cifras quedarán ocultas al principio, a propósito. Las cuentas nuevas, las bajas y las quejas nuevas no se ocultan: son datos de operación que el Administrador ya ve en sus pantallas.
+
 ## Reportes
 
 Dos reportes con **agregación real** (devuelven valores agrupados, no el listado de registros). Ambos piden sesión (`Authorization: Bearer <token>`) y **exigen un rango de fechas**: `desde` y `hasta`, en formato `AAAA-MM-DD`, UTC, **ambos días incluidos**, con un máximo de 366 días. Sin fechas, con `desde` posterior a `hasta` o con un rango más largo responden `400`. Dos rangos distintos dan resultados distintos sobre los mismos datos (RF-REP-05); un rango sin datos devuelve cero filas, no un error.
