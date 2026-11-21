@@ -193,9 +193,3 @@ Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 
 ## Frontend: contratos propuestos (sin backend)
 
-- `GET /api/admin/metrics` (admin.ts)
-
-## Contenido del módulo de negocio
-
-- `Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/catalogo-planes.json`: 13 planes
-- `Modules/HabitTracker/HabitTracker.Infrastructure/Contenido/mensajes-motivacion.json`: 33 mensajes
