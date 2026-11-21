@@ -11,7 +11,7 @@ import {
   type PaginaAuditoriaDto,
 } from './types'
 
-// /api/audit y /api/me/activity son reales (types.ts); /api/admin/metrics sigue siendo un contrato propuesto (metricas.ts).
+// /api/audit, /api/me/activity (types.ts) y /api/admin/metrics (metricas.ts) son endpoints reales.
 export const auditoriaApi = {
   listar: (filtro: FiltroAuditoria = {}) =>
     api.get<PaginaAuditoriaDto>('/api/audit', { query: { ...filtro } }),

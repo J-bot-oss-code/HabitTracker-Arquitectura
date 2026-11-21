@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { iniciarSesionComo } from '@/test/render'
-import { PLAN_DEMO_ID, sembrarPlanDemo } from './db'
+import { PLAN_DEMO_ID, sembrarPlanDemo, sembrarPoblacionDemo } from './db'
 
 // Un Básico con guía semanal: es el plan que cubre los campos de la guía en el catálogo y en Mis planes.
 const PLAN_CON_GUIA = 'caminar-para-empezar'
@@ -113,6 +113,19 @@ const NOTIFICACION = ['id', 'tipo', 'titulo', 'mensaje', 'creadaEnUtc', 'leida',
 // SugerenciaDto y SugerenciaAdminDto (SugerenciasService.cs): el del Administrador añade usuarioId.
 const SUGERENCIA_DTO = ['id', 'tipo', 'texto', 'creadaEn', 'estado']
 const SUGERENCIA_ADMIN = ['id', 'usuarioId', 'tipo', 'texto', 'creadaEn', 'estado']
+// MetricasProductoDto y PlanIniciadoDto (ReportesDtos.cs).
+const METRICAS_PRODUCTO = [
+  'generadoEn',
+  'cohorteMinima',
+  'cuentasNuevas7d',
+  'eliminacionesEnCurso',
+  'sugerenciasNuevas',
+  'registrosPorCorreo7d',
+  'usuariosActivos30d',
+  'retencion30d',
+  'planesMasIniciados',
+]
+const PLAN_INICIADO = ['slug', 'cantidad']
 
 let ana: string
 let admin: string
@@ -290,6 +303,29 @@ describe('forma de las respuestas de administración, auditoría y reportes', ()
       ],
       'filas de constancia',
     )
+  })
+})
+
+describe('forma de las métricas del Administrador', () => {
+  it('MetricasProductoDto con la cohorte pequeña: lo que cuenta personas llega null y sin planes', async () => {
+    const m = await json<Record<string, unknown>>('/api/admin/metrics', admin)
+    forma(m, METRICAS_PRODUCTO, 'GET /api/admin/metrics')
+    expect(m).toMatchObject({
+      cohorteMinima: 5,
+      usuariosActivos30d: null,
+      retencion30d: null,
+      planesMasIniciados: [],
+    })
+    expect(typeof m.generadoEn).toBe('string')
+  })
+
+  it('MetricasProductoDto con la cohorte completa y PlanIniciadoDto', async () => {
+    sembrarPoblacionDemo()
+    const m = await json<Record<string, unknown>>('/api/admin/metrics', admin)
+    forma(m, METRICAS_PRODUCTO, 'GET /api/admin/metrics')
+    formaLista(m.planesMasIniciados, PLAN_INICIADO, 'planesMasIniciados')
+    expect(typeof m.usuariosActivos30d).toBe('number')
+    expect(Number.isInteger(m.retencion30d)).toBe(true)
   })
 })
 

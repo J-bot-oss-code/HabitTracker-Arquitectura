@@ -22,7 +22,7 @@ export function auditar(evento: {
 }
 
 // El backend real NO audita los registros de cuenta ni los inicios de sesión: aquí solo alimentan las
-// métricas propuestas (/api/admin/metrics) y no aparecen en GET /api/audit.
+// «cuentas nuevas» de /api/admin/metrics y no aparecen en GET /api/audit.
 export function registrarActividad(tipo: 'Registro' | 'InicioSesion', correo: string) {
   db.actividad.push({ fecha: new Date().toISOString(), actor: correo, tipo })
 }

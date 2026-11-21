@@ -22,6 +22,16 @@ export function formatearFechaHora(iso: string): string {
   return `${formatoFechaHora.format(parsearFechaUtc(iso))} UTC`
 }
 
+// Un instante UTC mostrado en la hora de quien mira (sin zona fija): para «Generado el …» en un panel interno.
+const formatoFechaHoraLocal = new Intl.DateTimeFormat('es-DO', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+})
+
+export function formatearFechaHoraLocal(iso: string): string {
+  return formatoFechaHoraLocal.format(parsearFechaUtc(iso))
+}
+
 // "2026-10-30" (input type=date) → "2026-10-30T00:00:00.000Z".
 // Si la fecha es hoy se envía el instante actual: un avance a las 00:00 quedaría antes del
 // inicio de un ciclo que empezó hoy (hábito recién creado o reconfigurado) y no contaría.

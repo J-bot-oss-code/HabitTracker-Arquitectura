@@ -49,7 +49,7 @@ src/
 
 ## Piezas pendientes del backend
 
-Solo queda la **Auditoría** como contrato propuesto (ver más abajo). Notificaciones, Cola de correos y Reportes
+Ya no queda ningún contrato propuesto: la **Auditoría** y las **métricas** (`GET /api/admin/metrics`) son reales. Notificaciones, Cola de correos y Reportes
 ya están conectadas a sus controllers (`features/notificaciones`, `features/cola-correos`, `features/reportes`) y no
 quedan pantallas «Próximamente»: `features/coming-soon` y `shared/ui/ComingSoon` se eliminaron. Si el backend
 entrega otra pieza, el flujo es:
@@ -149,5 +149,5 @@ marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activa
   confirmación incorrecta es SIEMPRE un 400 (un 401 cerraría la sesión) y cuenta para el bloqueo; una cuenta sin
   contraseña confirma con Google. `AvisosDeCuenta` (en `AppLayout`) muestra `requiereAceptarDocumentos` y la baja
   programada con «Cancelar eliminación». Las cuentas desactivadas por su dueño se reactivan al iniciar sesión.
-- **Pendiente de conectar:** perfil físico, peso y medidas, métricas de administración y el resto de módulos
-  (siguen simulados en `mocks/handlers/propuestas/`).
+- **Pendiente de conectar:** nada por ahora. `mocks/handlers/propuestas/` queda vacío y sirve para contratos
+  futuros (perfil, peso, medidas y métricas ya son handlers reales).
