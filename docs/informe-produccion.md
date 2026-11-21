@@ -90,7 +90,7 @@ Lo que necesitas tú (el runbook paso a paso está en `docs/produccion.md`):
 7. Opcional: `GOOGLE_CLIENT_ID` para «Continuar con Google».
 
 Lo que falta de mi lado / del repositorio:
-- **Fusionar las PR en orden.** La #128 está abierta con el CI en verde y todo lo demás está apilado encima de ella (14 ramas). Hay que abrir una PR por rama y fusionarlas en cadena.
+- **Fusionar las PR en orden.** La #128 está abierta con el CI en verde y todo lo demás está apilado encima de ella (10 ramas). Hay que abrir una PR por rama y fusionarlas en cadena.
 - Antes de abrir al público: la prueba de navegador con Edge y el escaneo de seguridad de la sección 4.
 
 ## 7. Dónde alojarlo
