@@ -86,6 +86,8 @@ services:
       Seguridad__ContrasenasFiltradas__Habilitado: ${CONTRASENAS_FILTRADAS:-true}
       # Origen del frontend que puede llamar a la API desde el navegador (CORS). Sin comodines: un solo origen exacto.
       Cors__OrigenesPermitidos__0: ${FRONTEND_URL:-http://localhost:5173}
+      # Tras activar la cuenta desde el correo, la página lleva a la app (en producción la app está en el mismo origen).
+      App__FrontendUrl: ${FRONTEND_URL:-http://localhost:5173}
       # ID de cliente de Google (público por diseño, no es un secreto). Vacío = el inicio con Google responde 503.
       Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       # Baja de cuenta: días de gracia antes de borrar la cuenta y cada cuántos minutos se buscan cuentas vencidas.

@@ -12,7 +12,7 @@ import { Marca } from './Marca'
 const enlaces = [
   { a: '/metas', etiqueta: 'Metas' },
   { a: '/calculadoras', etiqueta: 'Calculadoras' },
-  { a: '/#como-funciona', etiqueta: 'Cómo funciona' },
+  { a: '/como-funciona', etiqueta: 'Cómo funciona' },
 ]
 
 const legales = [
@@ -30,15 +30,7 @@ const claseEnlaceNav = ({ isActive }: { isActive: boolean }) =>
       : 'text-texto-2 hover:bg-hover hover:text-texto',
   )
 
-// Un ancla de la landing (/#como-funciona) no es una página: nunca se marca como actual.
 function EnlaceNav({ a, etiqueta }: { a: string; etiqueta: string }) {
-  if (a.includes('#')) {
-    return (
-      <Link to={a} className={claseEnlaceNav({ isActive: false })}>
-        {etiqueta}
-      </Link>
-    )
-  }
   return (
     <NavLink to={a} end className={claseEnlaceNav}>
       {etiqueta}

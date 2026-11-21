@@ -52,7 +52,7 @@ export function PreferenciasNotificacionesPage() {
           ) : (
             <Interruptor
               etiqueta="Recibir también por correo"
-              descripcion="Te enviamos por correo los mismos avisos que ves en la bandeja."
+              descripcion="Te enviamos por correo los mismos avisos que ves en la bandeja. Si lo apagas, tampoco te llegan los recordatorios de tus planes."
               activado={preferencias.data.correoActivo}
               deshabilitado={guardar.isPending}
               alCambiar={cambiar}

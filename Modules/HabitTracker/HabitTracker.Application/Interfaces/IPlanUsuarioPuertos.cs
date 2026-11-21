@@ -15,6 +15,15 @@ public interface IPlanUsuarioRepository
 
     Task AgregarAsync(PlanUsuario plan, CancellationToken cancellationToken = default);
 
+    /// <summary>Los planes activos con el recordatorio encendido y una hora elegida, de todas las personas (solo lectura).</summary>
+    Task<IReadOnlyList<PlanUsuario>> ListarConRecordatorioAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Reclama el recordatorio de hoy de un plan en una sola instrucción: devuelve <c>true</c> solo a quien lo marcó. Si otra
+    /// pasada lo reclamó antes para ese día, devuelve <c>false</c> y no se envía nada.
+    /// </summary>
+    Task<bool> ReclamarRecordatorioAsync(Guid planId, DateOnly hoyLocal, CancellationToken cancellationToken = default);
+
     /// <summary>Borra los planes y sus pausas (baja de cuenta). Inmediato e idempotente.</summary>
     Task<int> EliminarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default);
 }

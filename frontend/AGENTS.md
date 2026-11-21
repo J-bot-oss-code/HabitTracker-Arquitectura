@@ -49,7 +49,7 @@ src/
 
 ## Piezas pendientes del backend
 
-Solo queda la **Auditoría** como contrato propuesto (ver más abajo). Notificaciones, Cola de correos y Reportes
+Ya no queda ningún contrato propuesto: la **Auditoría** y las **métricas** (`GET /api/admin/metrics`) son reales. Notificaciones, Cola de correos y Reportes
 ya están conectadas a sus controllers (`features/notificaciones`, `features/cola-correos`, `features/reportes`) y no
 quedan pantallas «Próximamente»: `features/coming-soon` y `shared/ui/ComingSoon` se eliminaron. Si el backend
 entrega otra pieza, el flujo es:
@@ -92,9 +92,9 @@ Construidas según `docs/mejoras/diseno-ui-web-movil.md` y documentadas en `docs
 - Públicas: landing `/`, `/metas`, `/calculadoras` y `/legal/:documento`.
 - Alta: `/registro` con consentimientos y `/bienvenida` (onboarding).
 - Estándar: `/hoy` (inicio) y `/progreso`.
-- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Notificaciones (preferencia de correo) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
+- Configuración (`/ajustes`, ambos roles; `app/ajustes/AjustesLayout`): Cuenta, Contraseña y seguridad, Inicio de sesión, Privacidad y datos (solo Estándar), Mi actividad (`/ajustes/actividad`, ambos roles: `GET /api/me/activity?dias=7|30`, lo propio de la sesión, con descarga CSV/JSON de todo el periodo; vive en `features/auditoria`), Notificaciones (preferencia de correo), Sugerencias (`/ajustes/sugerencias`, solo Estándar: quejas y propuestas de mejora, `features/sugerencias`, `POST/GET /api/feedback`) y Apariencia. `/cuenta` redirige a `/ajustes/cuenta`. Las secciones salen de `SECCIONES_AJUSTES` (`app/navigation.ts`).
 - Ambos roles: `/notificaciones` (bandeja con globo de sin leer en el menú) y `/reportes` (permisos por estado y constancia por plan, con rango de fechas).
-- Administrador: `/admin` (inicio), `/admin/auditoria` y `/admin/cola-correos`.
+- Administrador: `/admin` (inicio), `/admin/auditoria`, `/admin/cola-correos` y `/admin/sugerencias` («Quejas y mejoras»: bandeja paginada con filtro por estado y globo de nuevas en el menú; `GET /api/admin/feedback`, `POST /api/admin/feedback/{id}/status`).
 
 Cada pantalla pone su título de pestaña y el foco en su encabezado (`app/layout/RaizApp.tsx`). Las rutas nuevas llevan `handle: { titulo }` en `routes.tsx`.
 
@@ -149,5 +149,5 @@ marketing}` con las versiones vigentes; sin ellos no se crea la cuenta. **Activa
   confirmación incorrecta es SIEMPRE un 400 (un 401 cerraría la sesión) y cuenta para el bloqueo; una cuenta sin
   contraseña confirma con Google. `AvisosDeCuenta` (en `AppLayout`) muestra `requiereAceptarDocumentos` y la baja
   programada con «Cancelar eliminación». Las cuentas desactivadas por su dueño se reactivan al iniciar sesión.
-- **Pendiente de conectar:** perfil físico, peso y medidas, métricas de administración y el resto de módulos
-  (siguen simulados en `mocks/handlers/propuestas/`).
+- **Pendiente de conectar:** nada por ahora. `mocks/handlers/propuestas/` queda vacío y sirve para contratos
+  futuros (perfil, peso, medidas y métricas ya son handlers reales).

@@ -295,6 +295,14 @@ export function HoyPage() {
               <TiraSemana dias={semana} etiqueta="Cumplimiento de la semana" />
             </CardBody>
           </Card>
+
+          {/* Ayuda al pie de la columna: a mano, sin quitar espacio a lo del día. */}
+          <Link
+            to="/como-funciona"
+            className="inline-flex min-h-11 items-center self-start rounded-lg px-1 text-sm font-semibold text-acento underline underline-offset-4 hover:text-acento-fuerte"
+          >
+            ¿Cómo funciona?
+          </Link>
         </aside>
       </div>
 

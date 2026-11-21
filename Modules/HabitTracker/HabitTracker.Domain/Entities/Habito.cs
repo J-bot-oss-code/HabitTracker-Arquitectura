@@ -163,7 +163,11 @@ public class Habito
     /// <param name="esVersionMinima">
     /// "Hoy solo lo mínimo": cuenta como un día cumplido en la constancia, y solo existe en un hábito de un plan.
     /// </param>
-    public void RegistrarAvance(Guid usuarioActualId, decimal cantidad, DateTime fechaUtc, bool esVersionMinima = false)
+    /// <param name="claveIdempotencia">
+    /// Si ya hay un registro con esa clave, no se agrega otro. Devuelve <c>false</c> en ese caso y <c>true</c> si registró.
+    /// </param>
+    public bool RegistrarAvance(Guid usuarioActualId, decimal cantidad, DateTime fechaUtc, bool esVersionMinima = false,
+        OrigenRegistro origen = OrigenRegistro.App, string? claveIdempotencia = null)
     {
         ValidarPropietario(usuarioActualId);
         if (Estado != EstadoHabito.Activo)
@@ -177,7 +181,11 @@ public class Habito
             throw new ReglaNegocioException(ReglaNegocioException.VersionMinimaNoDisponible,
                 "Este hábito no tiene una versión mínima.");
 
-        Registros.Add(new RegistroDiario(cantidad, fechaUtc, Unidad, esVersionMinima));
+        if (claveIdempotencia is not null && Registros.Any(r => r.ClaveIdempotencia == claveIdempotencia))
+            return false;
+
+        Registros.Add(new RegistroDiario(cantidad, fechaUtc, Unidad, esVersionMinima, origen, claveIdempotencia));
+        return true;
     }
 
     private void ValidarPropietario(Guid usuarioActualId)

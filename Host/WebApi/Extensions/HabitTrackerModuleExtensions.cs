@@ -1,4 +1,5 @@
 using HabitTracker.Application.Interfaces;
+using HabitTracker.Application.Notificaciones;
 using HabitTracker.Application.Services;
 using HabitTracker.Infrastructure.Contenido;
 using HabitTracker.Infrastructure.DependencyInjection;
@@ -35,6 +36,25 @@ public static class HabitTrackerModuleExtensions
         // Perfil, cuestionario de salud (cifrado con Data Protection) y progreso corporal (Fase 2 de HabitTracker v2).
         // El consentimiento lo resuelve un adaptador del Host (IConsentimientoSalud), registrado en Program.cs.
         services.AddScoped<ICifradorDatos, CifradorDataProtection>();
+        // Check-in por correo (Fase 5): enlace firmado con las mismas claves de Data Protection. IEstadoCuentas lo resuelve
+        // un adaptador del Host, registrado en Program.cs.
+        services.AddScoped<IFirmadorEnlaces, FirmadorEnlaces>();
+        services.AddScoped<ICheckinCorreoService, CheckinCorreoService>();
+
+        // Recordatorios por correo (Fase 5): los enlaces cuelgan de la API (App:BaseUrl) y «Abrir la app» va a App:FrontendUrl
+        // (en producción, el mismo origen). ICanalRecordatorios lo resuelve un adaptador del Host, registrado en Program.cs.
+        var recordatorios = new OpcionesRecordatorios();
+        configuration.GetSection("Recordatorios").Bind(recordatorios);
+        recordatorios.UrlApi = configuration["App:BaseUrl"] ?? "";
+        recordatorios.UrlApp = string.IsNullOrWhiteSpace(configuration["App:FrontendUrl"]) ? recordatorios.UrlApi : configuration["App:FrontendUrl"]!;
+        services.AddSingleton(recordatorios);
+        services.AddSingleton<ILatidoRecordatorios, LatidoRecordatorios>();
+        services.AddScoped<IRecordatoriosService, RecordatoriosService>();
+        if (recordatorios.Habilitado)
+        {
+            recordatorios.Validar(); // una URL mal configurada detiene el arranque, no un correo con enlaces rotos
+            services.AddHostedService<HabitTracker.Infrastructure.Workers.RecordatoriosWorker>();
+        }
         services.AddScoped<IPerfilUsuarioRepository, PerfilUsuarioRepository>();
         services.AddScoped<ICuestionarioSaludRepository, CuestionarioSaludRepository>();
         services.AddScoped<IProgresoCorporalRepository, ProgresoCorporalRepository>();
@@ -60,6 +80,10 @@ public static class HabitTrackerModuleExtensions
 
         // Archivos vinculados a un plan (RF-NEG-10). IDocumentosUsuario y la guarda de eliminar los resuelven adaptadores del Host.
         services.AddScoped<IAdjuntoPlanRepository, AdjuntoPlanRepository>();
+        services.AddScoped<IMetricasHabitosRepository, MetricasHabitosRepository>();
+        // Quejas y mejoras de las personas y la bandeja del Administrador.
+        services.AddScoped<HabitTracker.Application.Sugerencias.ISugerenciaRepository, SugerenciaRepository>();
+        services.AddScoped<HabitTracker.Application.Sugerencias.ISugerenciasService, HabitTracker.Application.Sugerencias.SugerenciasService>();
         services.AddScoped<IReporteConstanciaRepository, ReporteConstanciaRepository>();
         services.AddScoped<IReporteConstanciaService, ReporteConstanciaService>();
         services.AddScoped<IAdjuntosPlanService, AdjuntosPlanService>();

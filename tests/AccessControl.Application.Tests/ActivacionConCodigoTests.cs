@@ -93,10 +93,12 @@ public class ActivacionConCodigoTests
         var usuario = CrearUsuarioPendiente("048213");
         var (servicio, repo, _) = Crear(usuario);
 
-        await servicio.ActivarCuentaAsync(Correo, "048213");
+        var respuesta = await servicio.ActivarCuentaAsync(Correo, "048213");
 
         Assert.True(usuario.Activo);
         Assert.Null(usuario.TokenAcceso);
+        // La activación devuelve a la persona, como el login, para abrirle la sesión.
+        Assert.Equal((usuario.Id, true), (respuesta.Id, respuesta.Activo));
         repo.Verify(r => r.UpdateAsync(usuario), Times.Once);
     }
 

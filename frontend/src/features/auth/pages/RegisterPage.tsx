@@ -31,7 +31,7 @@ type Formulario = z.infer<typeof esquema>
 // orienta al usuario sin confirmar ni negar nada.
 function mensajeRegistro(error: unknown): string {
   if (esErrorHttp(error, 400)) {
-    return 'No pudimos crear la cuenta con estos datos. Si ya tienes una con este correo,'
+    return 'No pudimos crear la cuenta con estos datos. Si la creaste con Google, usa «Continuar con Google». Si ya tienes una con este correo,'
   }
   return mensajeDeError(error, 'No se pudo completar el registro.')
 }

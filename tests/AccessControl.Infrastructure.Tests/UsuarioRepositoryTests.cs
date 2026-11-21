@@ -232,4 +232,40 @@ public sealed class UsuarioRepositoryTests : IDisposable
 
         Assert.Equal(adminActivo.Id, Assert.Single(lista).Id);
     }
+
+    // ---------- Conteos para las métricas del Administrador: solo números ----------
+
+    [Fact]
+    [Trait("Requirement", "RF-REP-04")]
+    public async Task RF_REP_04_ContarCreadasDesde_CuentaSoloLasCreadasEnLaVentana()
+    {
+        using (var contexto = NuevoContexto())
+        {
+            await new UsuarioRepository(contexto).SaveAsync(NuevoUsuario("a@ejemplo.com"));
+        }
+        using var lectura = NuevoContexto();
+        var repo = new UsuarioRepository(lectura);
+
+        Assert.Equal(1, await repo.ContarCreadasDesdeAsync(DateTime.UtcNow.AddDays(-7)));
+        Assert.Equal(0, await repo.ContarCreadasDesdeAsync(DateTime.UtcNow.AddDays(1)));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-REP-04")]
+    public async Task RF_REP_04_ContarConBajaProgramada_SoloLasQueEstanEnPeriodoDeGracia()
+    {
+        var enBaja = NuevoUsuario("baja@ejemplo.com");
+        enBaja.ProgramarBaja(DateTime.UtcNow, 30);
+        using (var contexto = NuevoContexto())
+        {
+            var repo = new UsuarioRepository(contexto);
+            await repo.SaveAsync(enBaja);
+            var normal = NuevoUsuario("normal@ejemplo.com");
+            await repo.SaveAsync(normal);
+        }
+
+        using var lectura = NuevoContexto();
+
+        Assert.Equal(1, await new UsuarioRepository(lectura).ContarConBajaProgramadaAsync());
+    }
 }

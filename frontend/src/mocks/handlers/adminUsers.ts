@@ -16,7 +16,14 @@ export const adminUsersHandlers = [
     await latencia()
     const { error } = autenticar(request, ROLES)
     if (error) return error
-    return HttpResponse.json(db.usuarios.map((u) => aDto(u)))
+    // ObtenerTodosAsync arma el DTO solo con id, nombre, correo, rol y estado: el resto va con sus valores por defecto.
+    return HttpResponse.json(
+      db.usuarios.map((u) => ({
+        ...aDto(u),
+        requiereAceptarDocumentos: false,
+        bajaProgramadaPara: null,
+      })),
+    )
   }),
 
   http.patch<{ id: string }>('/api/admin/usuarios/:id/rol', async ({ request, params }) => {
@@ -27,8 +34,8 @@ export const adminUsersHandlers = [
     const usuario = usuarioObjetivo(params.id)
     if (!body || !esRol(body.nuevoRol) || !usuario) return respuestas.operacion()
     auditar({
-      actor: sesion.usuario.correo,
-      accion: 'CambioRol',
+      actor: sesion.usuario,
+      accion: 'Cambio de rol',
       entidad: 'Usuario',
       entidadId: usuario.id,
       valorAnterior: usuario.rol,
@@ -48,12 +55,12 @@ export const adminUsersHandlers = [
     const usuario = usuarioObjetivo(params.id)
     if (!body || typeof body.nuevoEstado !== 'boolean' || !usuario) return respuestas.operacion()
     auditar({
-      actor: sesion.usuario.correo,
-      accion: 'CambioEstado',
+      actor: sesion.usuario,
+      accion: 'Cambio de estado',
       entidad: 'Usuario',
       entidadId: usuario.id,
-      valorAnterior: usuario.activo ? 'Activa' : 'Inactiva',
-      valorNuevo: body.nuevoEstado ? 'Activa' : 'Inactiva',
+      valorAnterior: usuario.activo ? 'Activo' : 'Inactivo',
+      valorNuevo: body.nuevoEstado ? 'Activo' : 'Inactivo',
     })
     usuario.activo = body.nuevoEstado
     if (!usuario.activo) usuario.sesionesValidasDesde = Date.now()

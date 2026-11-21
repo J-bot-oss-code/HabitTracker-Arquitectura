@@ -24,6 +24,10 @@ public class AdjuntosPlanServiceTests
             Task.FromResult<IReadOnlyList<PlanUsuario>>([.. Lista.Where(p => p.UsuarioId == usuarioId)]);
         public Task AgregarAsync(PlanUsuario plan, CancellationToken cancellationToken = default) { Lista.Add(plan); return Task.CompletedTask; }
         public Task<int> EliminarDeUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken = default) => Task.FromResult(0);
+        public Task<IReadOnlyList<PlanUsuario>> ListarConRecordatorioAsync(CancellationToken cancellationToken = default) =>
+            Task.FromResult<IReadOnlyList<PlanUsuario>>([]);
+        public Task<bool> ReclamarRecordatorioAsync(Guid planId, DateOnly hoyLocal, CancellationToken cancellationToken = default) =>
+            Task.FromResult(false);
     }
 
     private sealed class Adjuntos(Planes planes) : IAdjuntoPlanRepository

@@ -29,3 +29,8 @@ docs/
 Dockerfile
 .dockerignore
 docker-compose*.yml
+
+# Archivos de despliegue: no forman parte de la imagen de la API
+deploy/
+Dockerfile.web*
+scripts/

@@ -1,23 +1,28 @@
-import type { AccionAuditoria } from '@/features/auditoria/types'
 import { db } from './db'
 
 // Registro de auditoría de la API simulada: solo se inserta, nunca se modifica ni se borra
-// (RF-AUD-06). Cada handler de una acción sensible llama a `auditar` (docs/mejoras §6.1).
+// (RF-AUD-06). Cada handler de una acción que el backend real audita llama a `auditar`, con el
+// texto exacto de ACCIONES_AUDITORIA y todos los campos llenos (el servidor nunca manda null).
 export function auditar(evento: {
-  actor: string
-  accion: AccionAuditoria
+  actor: { id: string; correo: string }
+  accion: string
   entidad: string
-  entidadId?: string | null
-  valorAnterior?: string | null
-  valorNuevo?: string | null
+  entidadId: string
+  valorAnterior: string
+  valorNuevo: string
 }) {
+  const { actor, ...resto } = evento
   db.auditoria.push({
     id: crypto.randomUUID(),
     fecha: new Date().toISOString(),
-    entidadId: null,
-    valorAnterior: null,
-    valorNuevo: null,
-    origen: 'Web',
-    ...evento,
+    usuarioId: actor.id,
+    actor: actor.correo,
+    ...resto,
   })
+}
+
+// El backend real NO audita los registros de cuenta ni los inicios de sesión: aquí solo alimentan las
+// «cuentas nuevas» de /api/admin/metrics y no aparecen en GET /api/audit.
+export function registrarActividad(tipo: 'Registro' | 'InicioSesion', correo: string) {
+  db.actividad.push({ fecha: new Date().toISOString(), actor: correo, tipo })
 }

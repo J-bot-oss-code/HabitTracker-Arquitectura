@@ -21,4 +21,26 @@ internal static class AuditoriaDeCuentas
             : auditoria.RegistroAuditoriaAsync(
                 usuario.Id, usuario.Rol.ToString(), "Reactivación de cuenta", "Usuario", usuario.Id.ToString(),
                 $"{Inactivo} (desactivada por su dueño)", Activo);
+
+    /// <summary>La persona activó su cuenta con el código del correo.</summary>
+    public static Task ActivadaAsync(this IAuditoriaService? auditoria, Usuario usuario) =>
+        RegistrarDelDuenoAsync(auditoria, usuario, "Activación de cuenta", "Pendiente de activación", Activo);
+
+    /// <summary>La persona cambió su contraseña desde la app (nunca se guarda ninguna de las dos).</summary>
+    public static Task ContrasenaCambiadaAsync(this IAuditoriaService? auditoria, Usuario usuario) =>
+        RegistrarDelDuenoAsync(auditoria, usuario, "Cambio de contraseña",
+            "Contraseña anterior (no se guarda)", "Contraseña nueva (no se guarda)");
+
+    /// <summary>La persona vinculó (o desvinculó) su cuenta de Google.</summary>
+    public static Task GoogleVinculadoAsync(this IAuditoriaService? auditoria, Usuario usuario, bool vinculado) =>
+        vinculado
+            ? RegistrarDelDuenoAsync(auditoria, usuario, "Vinculación de Google", "Sin Google", "Google vinculado")
+            : RegistrarDelDuenoAsync(auditoria, usuario, "Desvinculación de Google", "Google vinculado", "Sin Google");
+
+    private static Task RegistrarDelDuenoAsync(
+        IAuditoriaService? auditoria, Usuario usuario, string accion, string anterior, string nuevo) =>
+        auditoria is null
+            ? Task.CompletedTask
+            : auditoria.RegistroAuditoriaAsync(
+                usuario.Id, usuario.Rol.ToString(), accion, "Usuario", usuario.Id.ToString(), anterior, nuevo);
 }

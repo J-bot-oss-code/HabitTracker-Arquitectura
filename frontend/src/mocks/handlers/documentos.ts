@@ -42,7 +42,7 @@ const sinCuerpo404 = () => new HttpResponse(null, { status: 404 })
 const requierePermiso = (detalle: string) =>
   problema(409, 'Se necesita un permiso.', detalle, 'documento_requiere_permiso')
 
-const aDto = (d: DocumentoMock): DocumentoDto => ({
+export const documentoADto = (d: DocumentoMock): DocumentoDto => ({
   id: d.id,
   nombre: d.nombre,
   tipo: d.tipo,
@@ -144,7 +144,7 @@ export const documentosHandlers = [
       contenido: await archivo.arrayBuffer(),
     }
     db.documentos.push(documento)
-    return HttpResponse.json(aDto(documento), {
+    return HttpResponse.json(documentoADto(documento), {
       status: 201,
       headers: { Location: `/api/documents/${documento.id}` },
     })
@@ -160,7 +160,7 @@ export const documentosHandlers = [
       db.documentos
         .filter((d) => !d.eliminado && (esAdmin || d.usuarioId === sesion.usuario.id))
         .sort((a, b) => b.fechaSubidaUtc.localeCompare(a.fechaSubidaUtc))
-        .map(aDto),
+        .map(documentoADto),
     )
   }),
 
@@ -187,7 +187,7 @@ export const documentosHandlers = [
     const { sesion, error } = autenticar(request)
     if (error) return error
     const { documento, error: rechazo } = documentoAutorizado(params.id, sesion.usuario)
-    return rechazo ?? HttpResponse.json(aDto(documento))
+    return rechazo ?? HttpResponse.json(documentoADto(documento))
   }),
 
   http.delete<{ id: string }>('/api/documents/:id', async ({ request, params }) => {

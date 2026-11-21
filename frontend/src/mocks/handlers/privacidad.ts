@@ -5,6 +5,7 @@ import { VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/publico/legal'
 import { auditar } from '../auditoria'
 import { db } from '../db'
 import { autenticar, esTexto, latencia, leerJson, respuestas } from '../http'
+import { documentoADto } from './documentos'
 import { aDto as habitoADto } from './habits'
 import { datosPerfilSalud } from './perfil'
 
@@ -133,11 +134,12 @@ export const privacidadHandlers = [
     db.sesiones = db.sesiones.filter((s) => s.usuarioId !== usuario.id)
     if (db.refresh?.usuarioId === usuario.id) db.refresh = null
     auditar({
-      actor: usuario.correo,
-      accion: 'SolicitudBaja',
-      entidad: 'Cuenta',
+      actor: usuario,
+      accion: 'Solicitud de baja de cuenta',
+      entidad: 'Usuario',
       entidadId: usuario.id,
-      valorNuevo: modo,
+      valorAnterior: 'Cuenta activa',
+      valorNuevo: modo === 'desactivar' ? 'Desactivada por su dueño' : 'Eliminación programada',
     })
     return HttpResponse.json({ modo, borradoEn }, { status: 202 })
   }),
@@ -171,7 +173,14 @@ export const privacidadHandlers = [
     const consentimiento = db.consentimientos.get(u.id)
     const vinculo = db.vinculosGoogle.get(u.id)
     const baja = db.bajas.get(u.id)
-    auditar({ actor: u.correo, accion: 'DescargaDatos', entidad: 'Cuenta' })
+    auditar({
+      actor: u,
+      accion: 'Descarga de datos personales',
+      entidad: 'Usuario',
+      entidadId: u.id,
+      valorAnterior: '-',
+      valorNuevo: '-',
+    })
     return HttpResponse.json({
       generadoEn: new Date().toISOString(),
       cuenta: {
@@ -214,19 +223,61 @@ export const privacidadHandlers = [
       modulos: {
         habitos: db.habitos.filter((h) => h.usuarioId === u.id).map(habitoADto),
         permisos: db.solicitudes.filter((s) => s.solicitante.toLowerCase() === u.correo),
-        documentos: [],
-        // ParticipantePlanes: los planes con los archivos vinculados (los archivos mismos van en `documentos`).
+        // ParticipanteDocumentos: los metadatos de sus archivos sin eliminar (los bytes se bajan aparte).
+        documentos: db.documentos
+          .filter((d) => d.usuarioId === u.id && !d.eliminado)
+          .map(documentoADto),
+        // ParticipantePlanes (PlanExportadoDto y LogroDto): los planes con sus pausas y los archivos vinculados
+        // (los archivos mismos van en `documentos`), y los logros.
         planes: {
           planes: db.planesUsuario
             .filter((p) => p.usuarioId === u.id)
             .map((p) => ({
-              ...p,
+              id: p.id,
+              slug: p.slug,
+              nombre: p.nombre,
+              estado: p.estado,
+              fechaInicio: p.fechaInicio,
+              fechaFinPrevista: p.fechaFinPrevista,
+              extensiones: p.extensiones,
+              modoSuaveHasta: p.modoSuaveHasta,
+              horaRecordatorio: p.horaRecordatorio,
+              recordatoriosActivos: p.recordatoriosActivos,
+              pausas: p.pausas,
               archivosVinculados: db.adjuntos
                 .filter((a) => a.planUsuarioId === p.id)
                 .map((a) => a.documentoId),
             })),
-          logros: [],
+          logros: db.logros
+            .filter((l) => l.usuarioId === u.id)
+            .map((l) => ({ clave: l.clave, obtenidoEn: l.obtenidoEn, visto: l.vistoEn !== null })),
         },
+        // ParticipanteNotificaciones: la preferencia de correo y la bandeja completa.
+        notificaciones: {
+          preferencias: { correoActivo: db.preferenciasCorreo.get(u.id) ?? true },
+          notificaciones: db.notificaciones
+            .filter((n) => n.usuarioId === u.id)
+            .map((n) => ({
+              id: n.id,
+              tipo: n.tipo,
+              titulo: n.titulo,
+              mensaje: n.mensaje,
+              creadaEnUtc: n.creadaEnUtc,
+              leida: n.leida,
+              leidaEnUtc: n.leidaEnUtc,
+            })),
+        },
+        // ParticipanteSugerencias: las quejas y mejoras que escribió (SugerenciaDto), de la más reciente a la más antigua.
+        sugerencias: db.sugerencias
+          .filter((s) => s.usuarioId === u.id)
+          .sort((a, b) => Date.parse(b.creadaEn) - Date.parse(a.creadaEn))
+          .map((s) => ({
+            id: s.id,
+            tipo: s.tipo,
+            texto: s.texto,
+            creadaEn: s.creadaEn,
+            estado: s.estado,
+          })),
         // ParticipantePerfilSalud: el cuestionario va descifrado para su dueño.
         perfilYSalud: datosPerfilSalud(u.id),
       },

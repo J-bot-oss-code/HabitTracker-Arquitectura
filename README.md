@@ -76,7 +76,7 @@ Los valores del `.env.example` son de ejemplo para esta demostración; cámbialo
 
 La composición incluye **Mailpit**, un servidor de correo **de prueba**: recibe lo que envía la API y **no entrega nada a Internet**. Con el `.env.example` tal cual (`SMTP_HOST=mailpit`, `SMTP_PORT=1025`, `SMTP_SSL=false`) todos los correos salen por la cola hacia Mailpit y se leen en **`http://localhost:8025`**:
 
-- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada por sí solo.
+- **Activación:** el correo trae un **código de 6 dígitos** (vence en 24 horas) y un botón con el enlace `http://localhost:8080/api/auth/activate?correo=...&codigo=...`. El enlace abre una página con un botón **"Activar mi cuenta"**; abrirlo no activa nada por sí solo. Al pulsarlo, la cuenta se activa **y se abre la sesión** (igual que el login: JWT y cookie del refresh), y la página lleva a la app (`App:FrontendUrl`).
 - **Recuperación de contraseña:** el cuerpo trae un código de seis caracteres para `POST /api/auth/reset-password`.
 - **Notificaciones:** cada notificación llega también por correo (ver la sección `Notificaciones`).
 
@@ -100,6 +100,7 @@ Prueba de persistencia: sube un documento, ejecuta `docker compose down` (**sin*
 
 ### Notas
 
+- **Producción:** para un servidor real (HTTPS, respaldos, correo real, sin Mailpit) usa `docker-compose.prod.yml` y sigue `docs/produccion.md`; este `docker-compose.yml` es de demostración.
 - La composición está pensada para **una sola réplica** de la API y para demostración o uso local: el contenedor escucha HTTP sin TLS. Para otro uso, ponle un proxy con HTTPS delante y define `SWAGGER_HABILITADO=false`. Con proxy, define `PROXY_CONFIABLE` con su IP para que los límites de peticiones vean la IP real del cliente (vacío = no se confía en `X-Forwarded-For`). `GET /health` (anónimo, solo «Healthy» o «Unhealthy») comprueba la base de datos y es el healthcheck del contenedor.
 - Si el puerto `8080` ya está ocupado, libéralo antes de arrancar.
 - SQL Server solo tiene imagen `linux/amd64`; en Mac con chip Apple se ejecuta emulado y tarda más.
@@ -236,6 +237,36 @@ Los textos del logro celebran la conducta y nunca mencionan peso, cuerpo ni culp
 3. Ejecuta el procesador tres veces (`POST /api/admin/email-queue/process`) esperando entre cada una lo que marque la espera de reintento. Con el valor por defecto, el correo queda `Fallido` unos 6 minutos después del primer intento (el servicio en segundo plano también lo reintenta solo). Para no esperar, pon `CORREO_ESPERA_REINTENTO_SEGUNDOS=0` en el `.env` y aplica con `docker compose up -d`.
 4. `GET /api/admin/email-queue?estado=Fallido` muestra el correo con `intentos: 3` y `ultimoError`. Una cuarta ejecución no lo toca.
 5. Con `docker compose start mailpit`, los correos nuevos vuelven a enviarse.
+
+## Quejas y mejoras
+
+Un canal para que la persona Estándar diga qué falla o qué mejoraría, y una bandeja para que el Administrador la lea. Vive en HabitTracker (`Sugerencia`, migración `AgregarSugerencias`).
+
+| Quién | Ruta | Qué hace |
+|---|---|---|
+| Estándar | `POST /api/feedback` con `{"tipo":"Queja"\|"Mejora","texto":"…"}` | Envía (10 a 2000 caracteres). Como mucho **5 en 24 horas** por persona: la sexta da 400 con `limite_sugerencias`. Responde 201. |
+| Estándar | `GET /api/feedback` | Lo que envió ella misma, de lo más reciente a lo más antiguo. |
+| Administrador | `GET /api/admin/feedback?estado=Nueva\|Leida\|Resuelta&pagina=1&tamano=20` | La bandeja, paginada (`tamano` hasta 100). `nuevas` cuenta las que siguen sin leer, con cualquier filtro. |
+| Administrador | `POST /api/admin/feedback/{id}/status` con `{"estado":"Leida"\|"Resuelta"}` | Marca el estado. Nada vuelve a «Nueva»; repetir el mismo estado no cambia nada. |
+
+El rol se exige en el servidor y la persona sale del token (un Estándar no puede ver la bandeja y un Administrador no envía). El texto se guarda tal cual y siempre se muestra como texto. **Entra en la descarga de datos** (sección `sugerencias`) y **se borra con la baja de cuenta**.
+
+## Métricas del Resumen del Administrador
+
+`GET /api/admin/metrics` (solo Administrador; un Estándar recibe 403). Cifras **agregadas y anónimas** del producto para la pantalla Resumen. Solo números: ningún identificador de persona ni dato de salud.
+
+| Campo | Qué cuenta |
+|---|---|
+| `cuentasNuevas7d` | Cuentas creadas en los últimos 7 días. |
+| `eliminacionesEnCurso` | Cuentas con la baja pedida que siguen en el periodo de gracia. |
+| `sugerenciasNuevas` | Quejas y mejoras sin leer. |
+| `registrosPorCorreo7d` | Avances registrados con el botón «Ya lo hice» del correo en 7 días. |
+| `usuariosActivos30d` | Personas distintas con algún registro de avance en 30 días. |
+| `retencion30d` | % de quienes registraron algo hace 30 a 60 días y también en los últimos 30. |
+| `planesMasIniciados` | Hasta 5 planes del catálogo y cuántas personas los iniciaron. |
+| `cohorteMinima` | El mínimo de personas para mostrar una cifra (5). |
+
+**Regla de privacidad:** lo que cuenta personas (`usuariosActivos30d`, `retencion30d` y cada plan de `planesMasIniciados`) se oculta cuando son **menos de 5**: el campo llega `null` o el plan no aparece. Con un piloto de 10 a 20 personas algunas cifras quedarán ocultas al principio, a propósito. Las cuentas nuevas, las bajas y las quejas nuevas no se ocultan: son datos de operación que el Administrador ya ve en sus pantallas.
 
 ## Reportes
 
@@ -571,6 +602,9 @@ Prepara un Administrador (`admin@ejemplo.com`, ver «Datos de partida») y una p
 | **Reactivar la propia cuenta** | Ana: `POST /api/privacy/deletion-request` con `{"modo":"desactivar","password":"…"}` y volver a iniciar sesión | `Reactivación de cuenta` · `Inactivo (desactivada por su dueño)` → `Activo` |
 | **Restablecimiento propio** (RF-AUD-05) | Ana: `POST /api/auth/forgot-password` con `{"correo":"ana@ejemplo.com"}`, leer el código en Mailpit y `POST /api/auth/reset-password` con `{"correo","codigo","nuevaPassword"}` | `Restablecimiento de contraseña` · `Contraseña nueva (no se guarda); iniciado por: el propio usuario` |
 | **Restablecimiento forzado** | Administrador: `POST /api/admin/usuarios/{id}/forzar-restablecimiento` (queda `Restablecimiento forzado de contraseña`, con el Administrador como actor); cuando Ana usa el código que le llegó con `reset-password`, queda otro registro | `Restablecimiento de contraseña` · `…; iniciado por: un Administrador` |
+| **Activar la cuenta** | Ana: `POST /api/auth/activate` con `{"correo","codigo"}` (el código del correo de activación) | `Activación de cuenta` · `Pendiente de activación` → `Activo` |
+| **Cambiar la contraseña** | Ana: `POST /api/auth/cambiar-password` con la actual y la nueva | `Cambio de contraseña` · ninguna de las dos se guarda |
+| **Vincular y desvincular Google** | Ana: `POST /api/auth/google/vincular` y `DELETE /api/auth/vinculos/google` | `Vinculación de Google` · `Sin Google` → `Google vinculado`, y `Desvinculación de Google` al revés |
 
 Una operación que se rechaza (aprobar dos veces, una extensión no permitida, un documento protegido) **no** deja registro. Al contrario, la purga definitiva de una cuenta dada de baja borra sus documentos sin registrar uno por cada archivo: queda la «Solicitud de baja de cuenta» que la originó. Ningún registro contiene la contraseña ni el código: se comprueba en las pruebas y con la consulta de abajo.
 
@@ -719,6 +753,8 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 *   `Privacidad:DiasGraciaBaja`, `Privacidad:IntervaloEjecucionMinutos`: (opcionales) días de gracia antes de borrar una cuenta cuya eliminación se pidió (`30`, de 0 a 365; `DIAS_GRACIA_BAJA` en Docker) y cada cuántos minutos el proceso en segundo plano busca cuentas vencidas (`1440`, una vez al día; `BAJAS_INTERVALO_MINUTOS` en Docker).
 *   `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`: (String) Credenciales del servidor de correo saliente, solo por variables de entorno o User Secrets.
 *   `App:BaseUrl`: (String) URL pública de la API para armar el enlace de activación del correo (ej. `http://localhost:5246`).
+*   `App:FrontendUrl`: (String, opcional) URL de la app a la que lleva la página de activación tras activar, ya con la sesión abierta (ej. `http://localhost:5173`; en Docker, `FRONTEND_URL`). Vacía = la app está en el mismo origen que la API (producción).
+*   `Recordatorios:Habilitado` (bool, `true`) e `Recordatorios:IntervaloMinutos` (1–60, `5`): el proceso que envía los recordatorios por correo de los planes. Solo escribe a quien encendió el recordatorio de un plan (opt-in), como mucho un correo por plan y día a la hora elegida, con botones «Ya lo hice» y un enlace para darse de baja en un clic (`/api/reminders/unsubscribe`). Los enlaces usan `App:BaseUrl`; «Abrir la app», `App:FrontendUrl`.
 
 ### Instrucciones de Ejecución
 1. Restaura las herramientas y paquetes: `dotnet restore`

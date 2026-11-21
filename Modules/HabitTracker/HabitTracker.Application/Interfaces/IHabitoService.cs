@@ -25,9 +25,11 @@ public interface IHabitoService
     /// <summary>
     /// Registra avance en un hábito Activo. Rechaza fechas futuras (<c>fecha_futura</c>). Con <paramref name="esVersionMinima"/>
     /// ("Hoy solo lo mínimo") el hábito debe ser de un plan (<c>version_minima_no_disponible</c>).
+    /// Con <paramref name="claveIdempotencia"/> un segundo avance con la misma clave no se duplica (check-in por correo).
     /// </summary>
     Task RegistrarAvanceAsync(Guid habitoId, decimal cantidad, DateTime fechaUtc, Guid usuarioActualId,
-        bool esVersionMinima = false, CancellationToken cancellationToken = default);
+        bool esVersionMinima = false, OrigenRegistro origen = OrigenRegistro.App, string? claveIdempotencia = null,
+        CancellationToken cancellationToken = default);
 
     /// <summary>Reconfigura la meta del hábito; exige el permiso aplicado <c>Habits.AdvancedReconfig</c>.</summary>
     Task ReconfigurarHabitoAsync(Guid habitoId, Periodicidad periodicidad, decimal cantidadObjetivo, string unidad,

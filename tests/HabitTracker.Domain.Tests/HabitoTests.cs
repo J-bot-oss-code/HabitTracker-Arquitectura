@@ -463,4 +463,43 @@ public class HabitoTests
         var campo = typeof(Habito).GetProperty("FechaInicioCiclo", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
         campo!.SetValue(habito, fechaInicio);
     }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-07")]
+    public void RF_NEG_07_RegistrarAvance_ConLaMismaClave_NoDuplica()
+    {
+        var habito = CrearHabito(EstadoHabito.Activo);
+
+        var primero = habito.RegistrarAvance(propietario, 1, DateTime.UtcNow, false, OrigenRegistro.Correo, "correo:2026-11-13");
+        var segundo = habito.RegistrarAvance(propietario, 1, DateTime.UtcNow, false, OrigenRegistro.Correo, "correo:2026-11-13");
+        var otroDia = habito.RegistrarAvance(propietario, 1, DateTime.UtcNow, false, OrigenRegistro.Correo, "correo:2026-11-14");
+
+        Assert.True(primero);
+        Assert.False(segundo);
+        Assert.True(otroDia);
+        Assert.Equal(2, habito.Registros.Count);
+        Assert.All(habito.Registros, r => Assert.Equal(OrigenRegistro.Correo, r.Origen));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RF-NEG-07")]
+    public void RF_NEG_07_RegistrarAvance_SinClave_SiempreRegistra_ConOrigenApp()
+    {
+        var habito = CrearHabito(EstadoHabito.Activo);
+
+        Assert.True(habito.RegistrarAvance(propietario, 5, DateTime.UtcNow));
+        Assert.True(habito.RegistrarAvance(propietario, 5, DateTime.UtcNow));
+
+        Assert.Equal(2, habito.Registros.Count);
+        Assert.All(habito.Registros, r => { Assert.Equal(OrigenRegistro.App, r.Origen); Assert.Null(r.ClaveIdempotencia); });
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("0123456789012345678901234567890123456789012345678901234567890")] // 61
+    [Trait("Requirement", "RD-07")]
+    public void RD_07_RegistroDiario_RechazaUnaClaveVaciaOMuyLarga(string clave)
+    {
+        Assert.Throws<ArgumentException>(() => new RegistroDiario(1, DateTime.UtcNow, "vaso", false, OrigenRegistro.Correo, clave));
+    }
 }

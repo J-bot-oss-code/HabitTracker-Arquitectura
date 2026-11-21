@@ -49,7 +49,8 @@ public sealed class GestorSesiones : IGestorSesiones
 
         var ahora = DateTime.UtcNow;
         var (token, hash) = NuevoToken();
-        var sesion = new SesionUsuario(usuarioId, hash, ahora, _opciones.DuracionRefresh, dispositivo, ip);
+        var sesion = new SesionUsuario(
+            usuarioId, hash, ahora, _opciones.DuracionRefresh, DescripcionDispositivo.De(dispositivo), ip);
 
         await _sesiones.AgregarAsync(sesion);
 

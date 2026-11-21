@@ -1,6 +1,6 @@
 import { descargarArchivo } from '@/shared/lib/descarga'
+import { aRegistroExportado } from './detalle'
 import type { EventoAuditoriaDto } from './types'
-import { etiquetaAccion } from './types'
 
 // Una celda de CSV. Un texto que empieza por = + - @ (o tabulación/retorno) se interpretaría como
 // fórmula al abrir el archivo en una hoja de cálculo (inyección de fórmulas): se antepone una
@@ -22,18 +22,25 @@ export function auditoriaACsv(eventos: EventoAuditoriaDto[]): string {
       'Id de la entidad',
       'Valor anterior',
       'Valor nuevo',
-      'Origen',
     ],
     ...eventos.map((e) => [
       e.fecha,
       e.actor,
-      etiquetaAccion[e.accion],
+      e.accion,
       e.entidad,
       e.entidadId,
       e.valorAnterior,
       e.valorNuevo,
-      e.origen,
     ]),
+  ]
+  return filas.map((f) => f.map(celdaCsv).join(',')).join('\r\n')
+}
+
+// «Mi actividad»: los mismos cuatro campos que el JSON (fecha, acción, antes y después); "-" sale vacío.
+export function miActividadACsv(eventos: EventoAuditoriaDto[]): string {
+  const filas: (string | null)[][] = [
+    ['Fecha (UTC)', 'Acción', 'Antes', 'Después'],
+    ...eventos.map(aRegistroExportado).map((r) => [r.fecha, r.accion, r.antes, r.despues]),
   ]
   return filas.map((f) => f.map(celdaCsv).join(',')).join('\r\n')
 }

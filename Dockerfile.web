@@ -1,0 +1,28 @@
+# Imagen web de producción: compila el SPA y lo sirve con Caddy (HTTPS automático) delante de la API.
+# Se construye desde la raíz del repositorio: docker compose -f docker-compose.prod.yml build web
+# VITE_API_URL vacío = la SPA llama a /api en su propio origen (un solo dominio: la cookie del refresh es SameSite=Strict).
+
+# ---------- Etapa 1: compilar el SPA ----------
+FROM node:24.22.2-alpine AS build
+WORKDIR /app
+COPY frontend/package.json frontend/package-lock.json frontend/.npmrc ./
+RUN npm ci --ignore-scripts
+COPY frontend/ ./
+# Vacíos a propósito: nada de Vite se hereda del equipo (todo lo VITE_ termina en el bundle público).
+ARG VITE_GOOGLE_CLIENT_ID=""
+ENV VITE_API_URL="" VITE_USE_MOCKS="false" VITE_GOOGLE_CLIENT_ID=$VITE_GOOGLE_CLIENT_ID
+RUN npm run build
+
+# ---------- Etapa 2: Caddy sirve el SPA y reenvía /api a la API ----------
+FROM caddy:2.11.2-alpine
+COPY --from=build /app/dist /srv
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+
+# No se ejecuta como root. La imagen de Caddy trae la capacidad de abrir los puertos 80 y 443 sin serlo; solo hay que dar al
+# usuario sus carpetas de trabajo: /data (certificados) y /config. En el compose son volúmenes con nombre y heredan este dueño.
+RUN addgroup -S web && adduser -S -G web web \
+    && mkdir -p /data /config \
+    && chown -R web:web /data /config /srv
+USER web
+
+EXPOSE 80 443

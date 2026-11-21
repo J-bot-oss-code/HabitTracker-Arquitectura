@@ -121,7 +121,7 @@ describe('Centro de privacidad', () => {
       expect(db.auditoria).toHaveLength(eventosAntes + 1)
       expect(db.auditoria.at(-1)).toMatchObject({
         actor: 'estandar@demo.com',
-        accion: 'DescargaDatos',
+        accion: 'Descarga de datos personales',
       })
     })
 
@@ -156,7 +156,9 @@ describe('Centro de privacidad', () => {
       await user.click(await screen.findByRole('button', { name: /Descargar mis datos/ }))
       expect(await screen.findByText('Descarga lista.')).toBeInTheDocument()
       // El servidor ya deja la constancia al servir el archivo: no hay un aviso aparte (export-request).
-      expect(db.auditoria.slice(eventosAntes).map((e) => e.accion)).toEqual(['DescargaDatos'])
+      expect(db.auditoria.slice(eventosAntes).map((e) => e.accion)).toEqual([
+        'Descarga de datos personales',
+      ])
     })
   })
 
@@ -262,8 +264,8 @@ describe('Centro de privacidad', () => {
       expect(ana()).toMatchObject({ activo: false, desactivadaPorUsuario: true })
       expect(db.bajas.size).toBe(0)
       expect(db.auditoria.at(-1)).toMatchObject({
-        accion: 'SolicitudBaja',
-        valorNuevo: 'desactivar',
+        accion: 'Solicitud de baja de cuenta',
+        valorNuevo: 'Desactivada por su dueño',
       })
     })
 

@@ -23,7 +23,8 @@ const MENSAJES_POR_CODIGO: Record<string, string> = {
 
 function mensajeLogin(error: unknown): string {
   // RF-CA-03: no se revela qué dato falló.
-  if (esErrorHttp(error, 401)) return 'Correo o contraseña incorrectos.'
+  if (esErrorHttp(error, 401))
+    return 'Correo o contraseña incorrectos. Si creaste la cuenta con Google, usa «Continuar con Google».'
   // RF-CA-15 / RF-CA-19 / RF-CA-20: con la clave correcta el backend dice por qué no se puede entrar.
   const codigo = codigoDeError(error)
   if (codigo && MENSAJES_POR_CODIGO[codigo]) return MENSAJES_POR_CODIGO[codigo]

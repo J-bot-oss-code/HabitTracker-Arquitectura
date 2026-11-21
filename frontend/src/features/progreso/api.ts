@@ -3,7 +3,7 @@ import { perfilKeys } from '@/features/perfil/api'
 import { api } from '@/shared/api/http'
 import type { MedicionDto, PesosDto, RegistrarMedicionRequest, RegistrarPesoRequest } from './types'
 
-// Contratos propuestos (sin backend todavía): ver types.ts.
+// ProgressController (solo Estándar): peso y medidas, con el consentimiento datosSalud (409 si falta).
 export const progresoApi = {
   pesos: () => api.get<PesosDto>('/api/progress/weights'),
   registrarPeso: (body: RegistrarPesoRequest) => api.post<PesosDto>('/api/progress/weights', body),

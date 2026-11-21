@@ -22,6 +22,8 @@ public sealed class RegistroAuditoriaRepository(AuditingDbContext dbContext) : I
 
         // Todo el filtrado, el conteo y la paginación ocurren en la base de datos: nunca se trae el historial a memoria.
         var consulta = dbContext.Registros.AsNoTracking().AsQueryable();
+        if (filtro.UsuarioId is { } usuarioId)
+            consulta = consulta.Where(r => r.UsuarioId == usuarioId);
         if (filtro.Usuario is { } usuario)
             consulta = consulta.Where(r => r.Usuario.Contains(usuario));
         if (filtro.Entidad is { } entidad)

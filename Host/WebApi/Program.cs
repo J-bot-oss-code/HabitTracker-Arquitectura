@@ -50,6 +50,9 @@ builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuar
 builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteSolicitudes, FuenteSolicitudesAdapter>();
 builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteConstancia, FuenteConstanciaAdapter>();
 builder.Services.AddScoped<Reports.Application.Interfaces.IReportesService, Reports.Application.Services.ReportesService>();
+// Métricas del Resumen del Administrador: Reportes aplica la cohorte mínima; los conteos salen por este adaptador.
+builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteMetricas, FuenteMetricasAdapter>();
+builder.Services.AddScoped<Reports.Application.Interfaces.IMetricasProductoService, Reports.Application.Services.MetricasProductoService>();
 
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();
@@ -59,6 +62,10 @@ builder.Services.AddScoped<HabitTracker.Application.Interfaces.IConsentimientoSa
 // Archivos vinculados a planes: HabitTracker ve los documentos por un puerto y el Manejador de documentos consulta una guarda al eliminar.
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IDocumentosUsuario, DocumentosUsuarioAdapter>();
 builder.Services.AddScoped<DocumentManager.Application.Interfaces.IGuardaEliminacionDocumento, GuardaEliminacionDocumentoAdapter>();
+// Estado de las cuentas (activa y sin baja programada) para el check-in por correo de HabitTracker.
+builder.Services.AddScoped<HabitTracker.Application.Notificaciones.IEstadoCuentas, EstadoCuentasAdapter>();
+// Por dónde salen los recordatorios de HabitTracker: cuenta, preferencia de correo y cola, cada uno por su puerto.
+builder.Services.AddScoped<HabitTracker.Application.Notificaciones.ICanalRecordatorios, CanalRecordatoriosAdapter>();
 
 // Cifrado en reposo de los datos de salud: claves persistentes en DATAPROTECTION_KEYS_PATH (obligatorio fuera de Development).
 builder.Services.AddProteccionDeDatos(builder.Configuration, builder.Environment);
@@ -70,6 +77,7 @@ builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDat
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipantePermisos>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteDocumentos>();
 builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteNotificaciones>();
+builder.Services.AddScoped<AccessControl.Application.Interfaces.IParticipanteDatosUsuario, ParticipanteSugerencias>();
 
 // Límite de peticiones por IP en activación, login, registro y recuperación de contraseña (RD-06).
 builder.Services.AddLimitacionDePeticiones(builder.Configuration);
@@ -106,6 +114,7 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 // Migraciones y datos semilla (solo si BaseDeDatos:MigrarAlIniciar=true; la composición de Docker lo activa).
+VerificacionDelEntorno.ExigirZonasHorarias();
 await app.InicializarBaseDeDatosAsync();
 
 // Catálogo de planes de HabitTracker (siempre: es contenido del código, no datos de demostración).

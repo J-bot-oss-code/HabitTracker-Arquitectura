@@ -1,3 +1,4 @@
+using AccessControl.Application.DTOs;
 using AccessControl.Application.Service;
 using System.Text.RegularExpressions;
 using AccessControl.Application.Interfaces;
@@ -64,6 +65,68 @@ public class HostSeguridadTests
         Assert.Contains($"<script nonce=\"{nonce}\">", resultado.Content);
         Assert.Contains("default-src 'none'", csp);
         Assert.DoesNotContain("unsafe-inline", csp);
+    }
+
+    [Theory]
+    [InlineData(null, "/hoy")]
+    [InlineData("", "/hoy")]
+    [InlineData("http://localhost:5173", "http://localhost:5173/hoy")]
+    [InlineData("https://app.ejemplo.com/", "https://app.ejemplo.com/hoy")]
+    [InlineData("https://app.ejemplo.com/otra/ruta?x=1", "https://app.ejemplo.com/hoy")]
+    [InlineData("javascript:alert(1)", "/hoy")]
+    [InlineData("data:text/html,hola", "/hoy")]
+    [InlineData("//otro.ejemplo.com", "/hoy")]
+    public void RF_CA_15_TrasActivarLaPaginaLlevaALaApp_SoloAUnaUrlHttpConfigurada(string? frontendUrl, string esperado) =>
+        Assert.Equal(esperado, WebApi.Paginas.PaginaActivacion.Destino(frontendUrl));
+
+    [Fact]
+    public void RF_CA_15_LaPaginaRedirigeSoloDespuesDeUnPostCorrecto()
+    {
+        var html = WebApi.Paginas.PaginaActivacion.Html("n", "http://localhost:5173/hoy");
+
+        Assert.Contains("const destino = \"http://localhost:5173/hoy\";", html);
+        var tras = html.IndexOf("if (respuesta.ok)", StringComparison.Ordinal);
+        Assert.True(tras > 0 && html.IndexOf("location.assign(destino)", StringComparison.Ordinal) > tras);
+    }
+
+    [Fact]
+    public async Task RF_CA_15_ActivarAbreLaSesionIgualQueElLogin()
+    {
+        var servicio = new Mock<IUsuarioService>();
+        var usuario = new UsuarioResponseDto(Guid.NewGuid(), "Persona", "persona@ejemplo.com", "Estandar", true, "jwt");
+        servicio.Setup(s => s.ActivarCuentaAsync("persona@ejemplo.com", "123456")).ReturnsAsync(usuario);
+        var sesiones = new Mock<IGestorSesiones>();
+        sesiones.Setup(s => s.IniciarAsync(usuario.Id, It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(new SesionEmitida("refresh-token", DateTime.UtcNow.AddDays(14)));
+        var http = new DefaultHttpContext();
+        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<IConsentimientoService>(), sesiones.Object, OpcionesSesion.PorDefecto, Mock.Of<IServicioLoginExterno>())
+        {
+            ControllerContext = new ControllerContext { HttpContext = http }
+        };
+
+        var resultado = Assert.IsType<OkObjectResult>(await controlador.Activate(new ActivateRequest("persona@ejemplo.com", "123456")));
+
+        Assert.Equal("jwt", Assert.IsType<UsuarioResponseDto>(resultado.Value).Token);
+        sesiones.Verify(s => s.IniciarAsync(usuario.Id, It.IsAny<string?>(), It.IsAny<string?>()), Times.Once);
+        Assert.Contains(OpcionesSesion.NombreCookie, http.Response.Headers.SetCookie.ToString());
+    }
+
+    [Fact]
+    public async Task RF_CA_15_UnCodigoInvalidoNoAbreSesion()
+    {
+        var servicio = new Mock<IUsuarioService>();
+        servicio.Setup(s => s.ActivarCuentaAsync(It.IsAny<string>(), It.IsAny<string>()))
+            .ThrowsAsync(new AccessControl.Domain.Excepciones.CodigoInvalidoException());
+        var sesiones = new Mock<IGestorSesiones>();
+        var controlador = new AuthController(servicio.Object, Mock.Of<ITokenBlacklist>(), Mock.Of<IConsentimientoService>(), sesiones.Object, OpcionesSesion.PorDefecto, Mock.Of<IServicioLoginExterno>())
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+
+        await Assert.ThrowsAsync<AccessControl.Domain.Excepciones.CodigoInvalidoException>(
+            () => controlador.Activate(new ActivateRequest("persona@ejemplo.com", "123456")));
+
+        sesiones.VerifyNoOtherCalls();
     }
 
     [Fact]

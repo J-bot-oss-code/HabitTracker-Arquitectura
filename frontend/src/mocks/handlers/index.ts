@@ -1,8 +1,11 @@
 import { adminUsersHandlers } from './adminUsers'
+import { auditoriaHandlers } from './auditoria'
 import { authHandlers } from './auth'
 import { colaCorreosHandlers } from './colaCorreos'
 import { documentosHandlers } from './documentos'
 import { habitsHandlers } from './habits'
+import { metricasHandlers } from './metricas'
+import { miActividadHandlers } from './miActividad'
 import { misPlanesHandlers } from './misPlanes'
 import { notificacionesHandlers } from './notificaciones'
 import { planesHandlers } from './planes'
@@ -12,6 +15,7 @@ import { privacidadHandlers } from './privacidad'
 import { progresoHandlers } from './progreso'
 import { propuestasHandlers } from './propuestas'
 import { reportesHandlers } from './reportes'
+import { sugerenciasHandlers } from './sugerencias'
 
 export const handlers = [
   ...authHandlers,
@@ -30,7 +34,15 @@ export const handlers = [
   ...notificacionesHandlers,
   ...colaCorreosHandlers,
   ...reportesHandlers,
+  // Quejas y mejoras: las envía el Estándar y las revisa el Administrador.
+  ...sugerenciasHandlers,
   ...adminUsersHandlers,
+  // Historial de auditoría (Auditing, solo lectura).
+  ...auditoriaHandlers,
+  // «Mi actividad»: lo propio de la sesión, en ventanas de 7 o 30 días.
+  ...miActividadHandlers,
+  // Métricas agregadas y anónimas del Resumen del Administrador (cohorte mínima de 5).
+  ...metricasHandlers,
   // Centro de privacidad real (consentimientos, baja de cuenta y descarga de datos).
   ...privacidadHandlers,
   // Endpoints sin backend todavía (ver propuestas/index.ts).

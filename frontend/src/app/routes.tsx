@@ -65,6 +65,10 @@ const paginas = {
     () => import('@/features/publico/pages/CalculadorasPage'),
     'CalculadorasPage',
   ),
+  comoFunciona: perezosa(
+    () => import('@/features/publico/pages/ComoFuncionaPage'),
+    'ComoFuncionaPage',
+  ),
   legal: perezosa(() => import('@/features/publico/pages/LegalPage'), 'LegalPage'),
   bienvenida: perezosa(() => import('@/features/perfil/pages/OnboardingPage'), 'OnboardingPage'),
   ajustesCuenta: perezosa(() => import('./ajustes/CuentaAjustesPage'), 'CuentaAjustesPage'),
@@ -88,6 +92,10 @@ const paginas = {
     'ResumenAdminPage',
   ),
   auditoria: perezosa(() => import('@/features/auditoria/pages/AuditoriaPage'), 'AuditoriaPage'),
+  miActividad: perezosa(
+    () => import('@/features/auditoria/pages/MiActividadPage'),
+    'MiActividadPage',
+  ),
   hoy: perezosa(() => import('@/features/habits/pages/HoyPage'), 'HoyPage'),
   habitos: perezosa(() => import('@/features/habits/pages/HabitsPage'), 'HabitsPage'),
   habito: perezosa(() => import('@/features/habits/pages/HabitDetailPage'), 'HabitDetailPage'),
@@ -121,6 +129,14 @@ const paginas = {
     'ColaCorreosPage',
   ),
   reportes: perezosa(() => import('@/features/reportes/pages/ReportesPage'), 'ReportesPage'),
+  sugerencias: perezosa(
+    () => import('@/features/sugerencias/pages/SugerenciasPage'),
+    'SugerenciasPage',
+  ),
+  sugerenciasAdmin: perezosa(
+    () => import('@/features/sugerencias/pages/SugerenciasAdminPage'),
+    'SugerenciasAdminPage',
+  ),
 }
 
 export const rutas: RouteObject[] = [
@@ -151,6 +167,7 @@ export const rutas: RouteObject[] = [
         handle: { titulo: 'Calculadora de calorías' },
         ...paginas.calculadoras,
       },
+      { path: 'como-funciona', handle: { titulo: 'Cómo funciona' }, ...paginas.comoFunciona },
       { path: 'legal/:documento', handle: { titulo: 'Documentos legales' }, ...paginas.legal },
       // Cualquier dirección desconocida, con o sin sesión. Las rutas protegidas son explícitas,
       // así que una de ellas sin sesión sigue llevando al login.
@@ -237,6 +254,14 @@ export const rutas: RouteObject[] = [
                 ...paginas.ajustesInicioSesion,
               },
               {
+                path: 'actividad',
+                handle: {
+                  titulo: 'Mi actividad',
+                  descripcion: 'Lo que hiciste en tu cuenta. Puedes guardarlo en tu equipo.',
+                },
+                ...paginas.miActividad,
+              },
+              {
                 path: 'notificaciones',
                 handle: {
                   titulo: 'Notificaciones',
@@ -267,6 +292,14 @@ export const rutas: RouteObject[] = [
                       descripcion: 'Los permisos que pediste y cómo van.',
                     },
                     ...paginas.misPermisos,
+                  },
+                  {
+                    path: 'sugerencias',
+                    handle: {
+                      titulo: 'Quejas y mejoras',
+                      descripcion: 'Cuéntanos qué te estorba o qué mejorarías. Lo lee una persona.',
+                    },
+                    ...paginas.sugerencias,
                   },
                   // Descargar, decidir y retirarse no deben exigir dar más datos primero.
                   {
@@ -325,6 +358,11 @@ export const rutas: RouteObject[] = [
                 ...paginas.colaCorreos,
               },
               { path: 'admin/auditoria', handle: { titulo: 'Auditoría' }, ...paginas.auditoria },
+              {
+                path: 'admin/sugerencias',
+                handle: { titulo: 'Quejas y mejoras' },
+                ...paginas.sugerenciasAdmin,
+              },
             ],
           },
           {
