@@ -15,3 +15,22 @@ public sealed record FilaConstanciaDto(
 
 /// <summary>«¿Qué tan constante fui en cada plan durante este período?» (RF-REP-02).</summary>
 public sealed record ReporteConstanciaDto(DateOnly Desde, DateOnly Hasta, string Alcance, string Pregunta, IReadOnlyList<FilaConstanciaDto> Filas);
+
+/// <summary>Un plan del catálogo y cuántas personas lo iniciaron (solo el slug y el número).</summary>
+public sealed record PlanIniciadoDto(string Slug, int Cantidad);
+
+/// <summary>
+/// Métricas agregadas y anónimas del producto. Nunca llevan identificadores ni datos de salud. Lo que cuenta personas es nulo
+/// cuando son menos de <paramref name="CohorteMinima"/> (el cliente puede decir por qué no se muestra).
+/// </summary>
+/// <param name="Retencion30d">% de quienes registraron algo hace 30 a 60 días y también en los últimos 30; nulo si la cohorte es pequeña.</param>
+public sealed record MetricasProductoDto(
+    DateTime GeneradoEn,
+    int CohorteMinima,
+    int CuentasNuevas7d,
+    int EliminacionesEnCurso,
+    int SugerenciasNuevas,
+    int RegistrosPorCorreo7d,
+    int? UsuariosActivos30d,
+    int? Retencion30d,
+    IReadOnlyList<PlanIniciadoDto> PlanesMasIniciados);

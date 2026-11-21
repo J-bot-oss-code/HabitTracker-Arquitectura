@@ -50,6 +50,9 @@ builder.Services.AddScoped<HabitTracker.Application.Interfaces.INotificadorUsuar
 builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteSolicitudes, FuenteSolicitudesAdapter>();
 builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteConstancia, FuenteConstanciaAdapter>();
 builder.Services.AddScoped<Reports.Application.Interfaces.IReportesService, Reports.Application.Services.ReportesService>();
+// Métricas del Resumen del Administrador: Reportes aplica la cohorte mínima; los conteos salen por este adaptador.
+builder.Services.AddScoped<Reports.Application.Interfaces.IFuenteMetricas, FuenteMetricasAdapter>();
+builder.Services.AddScoped<Reports.Application.Interfaces.IMetricasProductoService, Reports.Application.Services.MetricasProductoService>();
 
 // Adaptador de IPermisoService para HabitTracker (conecta con Gestión de Permisos).
 builder.Services.AddScoped<HabitTracker.Application.Interfaces.IPermisoService, PermisoServiceAdapter>();

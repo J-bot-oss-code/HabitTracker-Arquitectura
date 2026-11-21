@@ -180,6 +180,16 @@ public class UsuarioRepository : IUsuarioRepository
         return await _dbContext.usuarios.CountAsync(u => u.Rol == Rol.Administrador && u.Activo);
     }
 
+    public async Task<int> ContarCreadasDesdeAsync(DateTime desdeUtc)
+    {
+        return await _dbContext.usuarios.CountAsync(u => u.FechaCreacion >= desdeUtc);
+    }
+
+    public async Task<int> ContarConBajaProgramadaAsync()
+    {
+        return await _dbContext.usuarios.CountAsync(u => u.BajaProgramadaPara != null);
+    }
+
     public async Task<IReadOnlyList<Usuario>> ListarAdministradoresActivosAsync()
     {
         return await _dbContext.usuarios.AsNoTracking().Where(u => u.Rol == Rol.Administrador && u.Activo).ToListAsync();
