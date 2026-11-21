@@ -3,7 +3,7 @@ import type { UsuarioResponseDto } from '@/features/auth/types'
 import { leerTokenDemo } from '@/features/auth/google/tokenDemo'
 import { VERSION_PRIVACIDAD, VERSION_TERMINOS } from '@/features/publico/legal'
 import { CABECERA_CSRF } from '@/shared/api/sesion'
-import { auditar } from '../auditoria'
+import { registrarActividad } from '../auditoria'
 import { CODIGO_RECUPERACION_DEMO, db, TOKEN_ACTIVACION_DEMO, type UsuarioMock } from '../db'
 import {
   autenticar,
@@ -167,7 +167,7 @@ export const authHandlers = [
       compartirCumplimiento: false,
       estadisticasAnonimas: false,
     })
-    auditar({ actor: nuevo.correo, accion: 'Registro', entidad: 'Usuario', entidadId: nuevo.id })
+    registrarActividad('Registro', nuevo.correo)
     return HttpResponse.json(aDto(nuevo), { status: 201 })
   }),
 
@@ -238,7 +238,7 @@ export const authHandlers = [
 
     usuario.intentosFallidos = 0
     usuario.bloqueadoHasta = null
-    auditar({ actor: usuario.correo, accion: 'InicioSesion', entidad: 'Sesión' })
+    registrarActividad('InicioSesion', usuario.correo)
     return HttpResponse.json(aDto(usuario, abrirSesion(usuario)))
   }),
 
@@ -417,7 +417,7 @@ export const authHandlers = [
     if (vinculado) {
       const rechazo = rechazoDeEntrada(vinculado)
       if (rechazo) return rechazo
-      auditar({ actor: vinculado.correo, accion: 'InicioSesion', entidad: 'Sesión' })
+      registrarActividad('InicioSesion', vinculado.correo)
       return HttpResponse.json(aDto(vinculado, abrirSesion(vinculado)))
     }
 
@@ -468,7 +468,7 @@ export const authHandlers = [
       compartirCumplimiento: false,
       estadisticasAnonimas: false,
     })
-    auditar({ actor: nuevo.correo, accion: 'Registro', entidad: 'Usuario', entidadId: nuevo.id })
+    registrarActividad('Registro', nuevo.correo)
     return HttpResponse.json(aDto(nuevo, abrirSesion(nuevo)), { status: 201 })
   }),
 

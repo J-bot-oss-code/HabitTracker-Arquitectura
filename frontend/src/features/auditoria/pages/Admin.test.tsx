@@ -2,13 +2,28 @@ import { screen, waitFor, within } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { db, sembrarPlanDemo } from '@/mocks/db'
+import { auditoriaHandlers } from '@/mocks/handlers/auditoria'
 import { adminHandlers } from '@/mocks/handlers/propuestas/admin'
 import { problema } from '@/mocks/http'
 import { server } from '@/mocks/server'
 import { iniciarSesionComo, renderApp } from '@/test/render'
 import { auditoriaACsv, celdaCsv, nombreCsv } from '../csv'
 import { metricasACsv, type MetricasDto } from '../metricas'
-import type { EventoAuditoriaDto } from '../types'
+import type { EventoAuditoriaDto, PaginaAuditoriaDto } from '../types'
+
+// Un evento completo (el servidor nunca manda null) con lo que cada prueba quiera cambiar.
+const evento = (extra: Partial<EventoAuditoriaDto> = {}): EventoAuditoriaDto => ({
+  id: crypto.randomUUID(),
+  fecha: new Date().toISOString(),
+  usuarioId: '0b8e7a52-1c3d-4f6e-8a9b-1c2d3e4f5a02',
+  actor: 'admin@demo.com',
+  accion: 'Cambio de rol',
+  entidad: 'Usuario',
+  entidadId: 'abc',
+  valorAnterior: 'Estandar',
+  valorNuevo: 'Administrador',
+  ...extra,
+})
 
 const url = (ruta: string) => `${window.location.origin}${ruta}`
 const llamar = (ruta: string, token?: string, metodo = 'GET', body?: unknown) =>
@@ -20,6 +35,9 @@ const llamar = (ruta: string, token?: string, metodo = 'GET', body?: unknown) =>
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
+
+const pagina = async (ruta: string, token: string): Promise<PaginaAuditoriaDto> =>
+  (await llamar(ruta, token)).json()
 
 afterEach(() => vi.restoreAllMocks())
 
@@ -42,23 +60,17 @@ describe('CSV seguro', () => {
   })
 
   it('la auditoría sale con encabezado, acción legible y un evento por fila', () => {
-    const evento: EventoAuditoriaDto = {
-      id: '1',
+    const e = evento({
       fecha: '2026-11-03T10:00:00.000Z',
-      actor: 'admin@demo.com',
-      accion: 'CambioRol',
-      entidad: 'Usuario',
-      entidadId: 'abc',
       valorAnterior: 'Administrador',
       valorNuevo: '=Estandar',
-      origen: 'Web',
-    }
-    const filas = auditoriaACsv([evento]).split('\r\n')
+    })
+    const filas = auditoriaACsv([e]).split('\r\n')
     expect(filas[0]).toBe(
-      'Fecha (UTC),Usuario,Acción,Entidad,Id de la entidad,Valor anterior,Valor nuevo,Origen',
+      'Fecha (UTC),Usuario,Acción,Entidad,Id de la entidad,Valor anterior,Valor nuevo',
     )
     expect(filas[1]).toBe(
-      "2026-11-03T10:00:00.000Z,admin@demo.com,Cambio de rol,Usuario,abc,Administrador,'=Estandar,Web",
+      "2026-11-03T10:00:00.000Z,admin@demo.com,Cambio de rol,Usuario,abc,Administrador,'=Estandar",
     )
   })
 
@@ -84,7 +96,7 @@ describe('CSV seguro', () => {
 
 const CLAVE_NUEVA_CUENTA = 'Clave-Segura-2026'
 
-describe('contrato propuesto del panel de administración', () => {
+describe('contrato del panel de administración (auditoría real, métricas propuestas)', () => {
   it('métricas y auditoría son solo del Administrador', async () => {
     for (const ruta of ['/api/admin/metrics', '/api/audit']) {
       expect((await llamar(ruta)).status).toBe(401)
@@ -107,8 +119,9 @@ describe('contrato propuesto del panel de administración', () => {
     expect(JSON.stringify(m)).not.toMatch(/@|demo|-0000|[0-9a-f]{8}-[0-9a-f]{4}/)
   })
 
-  it('la auditoría solo crece: registro, inicio de sesión, cambios y resoluciones se anotan', async () => {
+  it('la auditoría solo crece con las acciones reales; registro e inicio de sesión no se auditan', async () => {
     const antes = db.auditoria.length
+    const actividadAntes = db.actividad.length
     await llamar('/api/auth/register', undefined, 'POST', {
       nombre: 'Persona Nueva',
       correo: 'nueva@demo.com',
@@ -127,69 +140,119 @@ describe('contrato propuesto del panel de administración', () => {
     })
     const nuevos = db.auditoria.slice(antes)
     expect(nuevos.map((e) => e.accion)).toEqual([
-      'Registro',
-      'CambioRol',
-      'CambioEstado',
-      'ResolucionPermiso',
+      'Cambio de rol',
+      'Cambio de estado',
+      'Rechazo de solicitud de permiso',
     ])
-    expect(nuevos[1]).toMatchObject({
+    expect(nuevos[0]).toMatchObject({
       actor: 'admin@demo.com',
+      usuarioId: db.usuarios[1].id,
+      entidad: 'Usuario',
+      entidadId: db.usuarios[2].id,
       valorAnterior: 'Estandar',
       valorNuevo: 'Administrador',
     })
+    expect(nuevos[2]).toMatchObject({ entidad: 'SolicitudPermiso', valorAnterior: 'Pendiente' })
+    // Todos los campos van llenos: el servidor nunca manda null ni el campo "origen".
+    for (const e of nuevos) {
+      expect(Object.values(e).every((v) => typeof v === 'string' && v !== '')).toBe(true)
+      expect(e).not.toHaveProperty('origen')
+    }
+    // El registro de la cuenta solo cuenta para las métricas propuestas.
+    expect(db.actividad.length).toBe(actividadAntes + 1)
   })
 
   it('no existe ninguna ruta para modificar o borrar eventos (RF-AUD-06)', () => {
-    expect(adminHandlers.map((h) => String(h.info.method))).toEqual(['GET', 'GET'])
+    expect(auditoriaHandlers.map((h) => String(h.info.method))).toEqual(['GET'])
+    expect(adminHandlers.map((h) => String(h.info.method))).toEqual(['GET'])
   })
 
-  it('un inicio de sesión queda registrado', async () => {
+  it('un inicio de sesión no se audita (el backend real no lo hace), solo cuenta para las métricas', async () => {
     const antes = db.auditoria.length
+    const actividadAntes = db.actividad.length
     await llamar('/api/auth/login', undefined, 'POST', {
       email: 'estandar@demo.com',
       password: 'Demo1234',
     })
-    expect(db.auditoria.slice(antes)).toMatchObject([
-      { actor: 'estandar@demo.com', accion: 'InicioSesion' },
+    expect(db.auditoria).toHaveLength(antes)
+    expect(db.actividad.slice(actividadAntes)).toMatchObject([
+      { actor: 'estandar@demo.com', tipo: 'InicioSesion' },
     ])
   })
 
   it.each([
-    ['limite=0'],
-    ['limite=9999'],
-    ['accion=Hackeo'],
+    ['tamano=0'],
+    ['tamano=201'],
+    ['tamano=abc'],
+    ['pagina=0'],
     ['desde=ayer'],
     ['desde=2026-11-10&hasta=2026-11-01'],
-    [`actor=${'a'.repeat(151)}`],
+    ['desde=2025-01-01&hasta=2026-01-02'],
+    [`usuario=${'a'.repeat(255)}`],
+    [`entidad=${'a'.repeat(101)}`],
+    [`entidadId=${'a'.repeat(101)}`],
+    [`accion=${'a'.repeat(101)}`],
   ])('rechaza el filtro %s', async (consulta) => {
     const r = await llamar(`/api/audit?${consulta}`, iniciarSesionComo('admin'))
     expect(r.status).toBe(400)
   })
 
-  it('filtra por usuario, acción y rango (incluyendo el último día) y ordena de nuevo a viejo', async () => {
+  it('acepta el tamaño máximo, un rango de 366 días y una acción desconocida (texto libre)', async () => {
     const admin = iniciarSesionComo('admin')
-    const todos: EventoAuditoriaDto[] = await (await llamar('/api/audit', admin)).json()
-    const fechas = todos.map((e) => Date.parse(e.fecha))
+    expect((await llamar('/api/audit?tamano=200', admin)).status).toBe(200)
+    expect((await llamar('/api/audit?desde=2025-01-01&hasta=2026-01-01', admin)).status).toBe(200)
+    const r = await pagina('/api/audit?accion=Hackeo', admin)
+    expect(r).toMatchObject({ total: 0, registros: [] })
+  })
+
+  it('devuelve la página real y filtra por usuario, acción, entidad, entidadId y rango, de nuevo a viejo', async () => {
+    const admin = iniciarSesionComo('admin')
+    const todos = await pagina('/api/audit', admin)
+    expect(todos).toMatchObject({ total: db.auditoria.length, pagina: 1, tamano: 50 })
+    expect(todos.registros).toHaveLength(db.auditoria.length)
+    const fechas = todos.registros.map((e) => Date.parse(e.fecha))
     expect(fechas).toEqual([...fechas].sort((a, b) => b - a))
+    expect(todos.registros.every((e) => !('origen' in e))).toBe(true)
 
-    const porActor: EventoAuditoriaDto[] = await (
-      await llamar('/api/audit?actor=ADMIN', admin)
-    ).json()
-    expect(porActor.length).toBeGreaterThan(0)
-    expect(porActor.every((e) => e.actor === 'admin@demo.com')).toBe(true)
+    const porUsuario = await pagina('/api/audit?usuario=ADMIN', admin)
+    expect(porUsuario.registros.length).toBeGreaterThan(0)
+    expect(porUsuario.registros.every((e) => e.actor === 'admin@demo.com')).toBe(true)
+    // El correo CONTIENE el texto.
+    expect((await pagina('/api/audit?usuario=@demo', admin)).total).toBe(todos.total)
 
-    const porAccion: EventoAuditoriaDto[] = await (
-      await llamar('/api/audit?accion=Registro', admin)
-    ).json()
-    expect(porAccion.map((e) => e.accion)).toEqual(['Registro', 'Registro'])
+    const porAccion = await pagina('/api/audit?accion=Cambio de rol', admin)
+    expect(porAccion.registros.map((e) => e.accion)).toEqual(['Cambio de rol'])
+    // La acción es exacta, no por parte del texto.
+    expect((await pagina('/api/audit?accion=Cambio', admin)).total).toBe(0)
 
-    const dia = todos[0].fecha.slice(0, 10)
-    const delDia: EventoAuditoriaDto[] = await (
-      await llamar(`/api/audit?desde=${dia}&hasta=${dia}`, admin)
-    ).json()
-    expect(delDia.length).toBeGreaterThan(0)
-    expect(delDia.every((e) => e.fecha.startsWith(dia))).toBe(true)
-    expect((await (await llamar('/api/audit?limite=3', admin)).json()).length).toBe(3)
+    const porEntidad = await pagina('/api/audit?entidad=Documento', admin)
+    expect(porEntidad.registros.map((e) => e.accion)).toEqual(['Subida de documento'])
+    const porEntidadId = await pagina(
+      `/api/audit?entidadId=${porEntidad.registros[0].entidadId}`,
+      admin,
+    )
+    expect(porEntidadId.total).toBe(1)
+
+    const dia = todos.registros[0].fecha.slice(0, 10)
+    const delDia = await pagina(`/api/audit?desde=${dia}&hasta=${dia}`, admin)
+    expect(delDia.registros.length).toBeGreaterThan(0)
+    expect(delDia.registros.every((e) => e.fecha.startsWith(dia))).toBe(true)
+  })
+
+  it('pagina: total cuenta todo lo que cumple los filtros y no solo la página', async () => {
+    const admin = iniciarSesionComo('admin')
+    const total = db.auditoria.length
+    const primera = await pagina('/api/audit?tamano=2', admin)
+    expect(primera).toMatchObject({ total, pagina: 1, tamano: 2 })
+    expect(primera.registros).toHaveLength(2)
+    const segunda = await pagina('/api/audit?tamano=2&pagina=2', admin)
+    expect(segunda.pagina).toBe(2)
+    expect(segunda.registros.map((e) => e.id)).not.toContain(primera.registros[0].id)
+    // Más allá de la última página: lista vacía, el total se conserva.
+    expect(await pagina('/api/audit?tamano=2&pagina=99', admin)).toMatchObject({
+      total,
+      registros: [],
+    })
   })
 })
 
@@ -314,6 +377,8 @@ describe('Auditoría', () => {
     expect(screen.getByText(/solo lectura/)).toBeInTheDocument()
     const tabla = await screen.findByRole('table', { name: /Eventos de auditoría/ })
     expect(within(tabla).getAllByRole('row')).toHaveLength(db.auditoria.length + 1)
+    // La acción llega legible del servidor y se muestra tal cual.
+    expect(within(tabla).getByText('Subida de documento')).toBeInTheDocument()
     // Cambio de rol con valor anterior y nuevo (RF-AUD-01).
     expect(within(tabla).getByText('Administrador → Estandar')).toBeInTheDocument()
     expect(
@@ -325,12 +390,12 @@ describe('Auditoría', () => {
     const { user } = renderApp('/admin/auditoria', { como: 'admin' })
     await screen.findByRole('table', { name: /Eventos de auditoría/ })
 
-    await user.type(screen.getByLabelText('Usuario'), 'otro@')
-    await user.selectOptions(screen.getByLabelText('Acción'), 'Registro')
+    await user.type(screen.getByLabelText('Usuario'), 'admin@')
+    await user.selectOptions(screen.getByLabelText('Acción'), 'Cambio de rol')
     await user.click(screen.getByRole('button', { name: 'Filtrar' }))
     const tabla = await screen.findByRole('table', { name: /Eventos de auditoría/ })
     await waitFor(() => expect(within(tabla).getAllByRole('row')).toHaveLength(2))
-    expect(within(tabla).getByText('Registro de cuenta')).toBeInTheDocument()
+    expect(within(tabla).getByText('Cambio de rol')).toBeInTheDocument()
     expect(screen.getByText(/con los filtros aplicados/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Limpiar' }))
@@ -362,17 +427,7 @@ describe('Auditoría', () => {
   })
 
   it('"Exportar CSV" baja exactamente lo que se ve, con BOM y sin fórmulas activas', async () => {
-    db.auditoria.push({
-      id: 'x',
-      fecha: new Date().toISOString(),
-      actor: 'admin@demo.com',
-      accion: 'CambioRol',
-      entidad: 'Usuario',
-      entidadId: null,
-      valorAnterior: null,
-      valorNuevo: '=1+1',
-      origen: 'Web',
-    })
+    db.auditoria.push(evento({ valorNuevo: '=1+1' }))
     let blob: Blob | null = null
     URL.createObjectURL = (b: Blob | MediaSource) => {
       blob = b as Blob
@@ -395,17 +450,12 @@ describe('Auditoría', () => {
   })
 
   it('los datos del evento se muestran como texto, nunca como HTML', async () => {
-    db.auditoria.push({
-      id: 'y',
-      fecha: new Date().toISOString(),
-      actor: '<img src=x onerror=alert(1)>@demo.com',
-      accion: 'InicioSesion',
-      entidad: '<b>Sesión</b>',
-      entidadId: null,
-      valorAnterior: null,
-      valorNuevo: null,
-      origen: 'Web',
-    })
+    db.auditoria.push(
+      evento({
+        actor: '<img src=x onerror=alert(1)>@demo.com',
+        entidad: '<b>Sesión</b>',
+      }),
+    )
     renderApp('/admin/auditoria', { como: 'admin' })
     const tabla = await screen.findByRole('table', { name: /Eventos de auditoría/ })
     expect(within(tabla).getByText('<b>Sesión</b>')).toBeInTheDocument()
@@ -422,27 +472,75 @@ describe('Auditoría', () => {
     renderApp('/admin/auditoria', { como: 'admin' })
     expect(await screen.findByText('La auditoría llegará pronto')).toBeInTheDocument()
   })
+
+  it('un error del servidor ofrece reintentar y recupera la tabla', async () => {
+    let falla = true
+    server.use(
+      http.get('/api/audit', () =>
+        falla
+          ? problema(500, 'Error interno.')
+          : HttpResponse.json({ total: 1, pagina: 1, tamano: 200, registros: [evento()] }),
+      ),
+    )
+    const { user } = renderApp('/admin/auditoria', { como: 'admin' })
+    const reintentar = await screen.findByRole('button', { name: 'Reintentar' })
+    falla = false
+    await user.click(reintentar)
+    expect(await screen.findByRole('table', { name: /Eventos de auditoría/ })).toBeInTheDocument()
+  })
+
+  it('un filtro que el servidor rechaza (400) se muestra como error, sin romper la pantalla', async () => {
+    server.use(http.get('/api/audit', () => problema(400, 'Solicitud inválida.')))
+    renderApp('/admin/auditoria', { como: 'admin' })
+    expect(await screen.findByRole('heading', { level: 1, name: 'Auditoría' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Reintentar' })).toBeInTheDocument()
+  })
+
+  it('el filtro de usuario viaja como "usuario" y el tamaño como "tamano"', async () => {
+    const consultas: string[] = []
+    server.use(
+      http.get('/api/audit', ({ request }) => {
+        consultas.push(new URL(request.url).search)
+        return HttpResponse.json({ total: 0, pagina: 1, tamano: 200, registros: [] })
+      }),
+    )
+    const { user } = renderApp('/admin/auditoria', { como: 'admin' })
+    await screen.findByText('Aún no hay eventos registrados')
+    await user.type(screen.getByLabelText('Usuario'), 'ana@')
+    await user.selectOptions(screen.getByLabelText('Acción'), 'Subida de documento')
+    await user.click(screen.getByRole('button', { name: 'Filtrar' }))
+    await waitFor(() => expect(consultas.length).toBeGreaterThan(1))
+    const params = new URLSearchParams(consultas.at(-1))
+    expect(params.get('usuario')).toBe('ana@')
+    expect(params.get('accion')).toBe('Subida de documento')
+    expect(params.get('tamano')).toBe('200')
+    expect(params.has('actor')).toBe(false)
+    expect(params.has('limite')).toBe(false)
+  })
+
+  it('valida en el formulario un rango de más de 366 días', async () => {
+    const { user } = renderApp('/admin/auditoria', { como: 'admin' })
+    await screen.findByRole('table', { name: /Eventos de auditoría/ })
+    await user.type(screen.getByLabelText('Desde'), '2025-01-01')
+    await user.type(screen.getByLabelText('Hasta'), '2026-01-02')
+    await user.click(screen.getByRole('button', { name: 'Filtrar' }))
+    expect(await screen.findByText('El rango no puede pasar de 366 días.')).toBeInTheDocument()
+  })
 })
 
 describe('ajustes de la revisión del Paso 7', () => {
   it('avisa cuando la lista está truncada a los 200 más recientes', async () => {
     for (let i = 0; i < 205; i++) {
-      db.auditoria.push({
-        id: `masivo-${i}`,
-        fecha: new Date(Date.now() - i * 1000).toISOString(),
-        actor: 'estandar@demo.com',
-        accion: 'InicioSesion',
-        entidad: 'Sesión',
-        entidadId: null,
-        valorAnterior: null,
-        valorNuevo: null,
-        origen: 'Web',
-      })
+      db.auditoria.push(
+        evento({ id: `masivo-${i}`, fecha: new Date(Date.now() - i * 1000).toISOString() }),
+      )
     }
     renderApp('/admin/auditoria', { como: 'admin' })
     expect(await screen.findByText(/Se muestran solo los 200 más recientes/)).toBeInTheDocument()
     const tabla = await screen.findByRole('table', { name: /Eventos de auditoría/ })
     expect(within(tabla).getAllByRole('row')).toHaveLength(201)
+    // El total es el de todo lo que cumple los filtros, no el de la página.
+    expect(screen.getByText(new RegExp(`^${db.auditoria.length} eventos`))).toBeInTheDocument()
   })
 
   it('la tabla es una región enfocable para desplazarla con el teclado', async () => {
@@ -480,7 +578,7 @@ describe('ajustes de la ronda 3 de crítica', () => {
     const cabecera = within(tabla)
       .getAllByRole('columnheader')
       .map((c) => c.textContent)
-    expect(cabecera).toEqual(['Acción', 'Quién', 'Cuándo (UTC)', 'Detalle', 'Origen'])
+    expect(cabecera).toEqual(['Acción', 'Quién', 'Cuándo (UTC)', 'Detalle'])
     // Sin "UTC" repetido por fila ni a. m./p. m.
     expect(within(tabla).queryByText(/UTC$|a\. m\.|p\. m\./)).toBeNull()
   })

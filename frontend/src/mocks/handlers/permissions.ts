@@ -6,6 +6,10 @@ import { activoPorCorreo, administradoresActivos, notificar } from '../notificar
 import { CLAVE_PERMISO } from '@/features/permissions/schemas'
 import { autenticar, esGuid, esTexto, latencia, leerJson, problema, respuestas } from '../http'
 
+// Texto del detalle que guarda SolicitudPermisoService al auditar una resolución.
+const detalleSolicitud = (s: SolicitudPermisoDto) =>
+  `permiso «${s.permisoSolicitado}» de ${s.solicitante}`
+
 // Réplica de Permissions.Domain: Pendiente → Aprobada → Aplicada, Pendiente → Rechazada.
 export function tienePermisoAplicado(correo: string, permiso: string): boolean {
   return db.solicitudes.some(
@@ -166,12 +170,12 @@ export const permissionsHandlers = [
     }
     // Aprobar y aplicar ocurren juntos en SolicitudPermisoService.
     auditar({
-      actor: sesion.usuario.correo,
-      accion: 'ResolucionPermiso',
+      actor: sesion.usuario,
+      accion: 'Aprobación de solicitud de permiso',
       entidad: 'SolicitudPermiso',
       entidadId: solicitud.id,
       valorAnterior: 'Pendiente',
-      valorNuevo: 'Aplicada',
+      valorNuevo: `Aplicada (${detalleSolicitud(solicitud)})`,
     })
     Object.assign(solicitud, {
       estado: 'Aplicada',
@@ -195,12 +199,12 @@ export const permissionsHandlers = [
       return respuestas.operacion()
     }
     auditar({
-      actor: sesion.usuario.correo,
-      accion: 'ResolucionPermiso',
+      actor: sesion.usuario,
+      accion: 'Rechazo de solicitud de permiso',
       entidad: 'SolicitudPermiso',
       entidadId: solicitud.id,
       valorAnterior: 'Pendiente',
-      valorNuevo: 'Rechazada',
+      valorNuevo: `Rechazada (${detalleSolicitud(solicitud)}; motivo: ${body.motivoRechazo.trim()})`,
     })
     Object.assign(solicitud, {
       estado: 'Rechazada',

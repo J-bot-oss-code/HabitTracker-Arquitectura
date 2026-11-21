@@ -1,4 +1,5 @@
 import { adminUsersHandlers } from './adminUsers'
+import { auditoriaHandlers } from './auditoria'
 import { authHandlers } from './auth'
 import { colaCorreosHandlers } from './colaCorreos'
 import { documentosHandlers } from './documentos'
@@ -31,6 +32,8 @@ export const handlers = [
   ...colaCorreosHandlers,
   ...reportesHandlers,
   ...adminUsersHandlers,
+  // Historial de auditoría (Auditing, solo lectura).
+  ...auditoriaHandlers,
   // Centro de privacidad real (consentimientos, baja de cuenta y descarga de datos).
   ...privacidadHandlers,
   // Endpoints sin backend todavía (ver propuestas/index.ts).
