@@ -11,7 +11,8 @@ namespace HabitTracker.Infrastructure.Workers;
 /// y su tolerancia a fallos.
 /// </summary>
 public sealed class RecordatoriosWorker(
-    IServiceScopeFactory scopeFactory, OpcionesRecordatorios opciones, TimeProvider reloj, ILogger<RecordatoriosWorker> logger)
+    IServiceScopeFactory scopeFactory, OpcionesRecordatorios opciones, TimeProvider reloj, ILatidoRecordatorios latido,
+    ILogger<RecordatoriosWorker> logger)
     : BackgroundService
 {
     // Espera inicial: da tiempo a que las migraciones del arranque terminen antes de la primera pasada.
@@ -45,6 +46,7 @@ public sealed class RecordatoriosWorker(
             using var scope = scopeFactory.CreateScope();
             var servicio = scope.ServiceProvider.GetRequiredService<IRecordatoriosService>();
             var enviados = await servicio.EjecutarAsync(reloj.GetUtcNow().UtcDateTime, cancelacion);
+            latido.PasadaCorrecta(reloj.GetUtcNow().UtcDateTime); // solo si la pasada terminó sin error: /health lo mira
             if (enviados > 0)
             {
                 logger.LogInformation("Recordatorios encolados en esta pasada: {Enviados}.", enviados);

@@ -48,6 +48,7 @@ public static class HabitTrackerModuleExtensions
         recordatorios.UrlApi = configuration["App:BaseUrl"] ?? "";
         recordatorios.UrlApp = string.IsNullOrWhiteSpace(configuration["App:FrontendUrl"]) ? recordatorios.UrlApi : configuration["App:FrontendUrl"]!;
         services.AddSingleton(recordatorios);
+        services.AddSingleton<ILatidoRecordatorios, LatidoRecordatorios>();
         services.AddScoped<IRecordatoriosService, RecordatoriosService>();
         if (recordatorios.Habilitado)
         {
