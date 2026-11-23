@@ -755,6 +755,7 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 *   `App:BaseUrl`: (String) URL pública de la API para armar el enlace de activación del correo (ej. `http://localhost:5246`).
 *   `App:FrontendUrl`: (String, opcional) URL de la app a la que lleva la página de activación tras activar, ya con la sesión abierta (ej. `http://localhost:5173`; en Docker, `FRONTEND_URL`). Vacía = la app está en el mismo origen que la API (producción).
 *   `Recordatorios:Habilitado` (bool, `true`) e `Recordatorios:IntervaloMinutos` (1–60, `5`): el proceso que envía los recordatorios por correo de los planes. Solo escribe a quien encendió el recordatorio de un plan (opt-in), como mucho un correo por plan y día a la hora elegida, con botones «Ya lo hice» y un enlace para darse de baja en un clic (`/api/reminders/unsubscribe`). Los enlaces usan `App:BaseUrl`; «Abrir la app», `App:FrontendUrl`.
+*   `Correo:TopeDiario` (int, `450`): correos que la cola acepta en 24 h, por la cuota del proveedor (Gmail en el piloto). Los avisos y recordatorios se cortan 50 antes, para que activación y recuperación sigan saliendo; además, como mucho 10 por hora a una misma dirección.
 
 ### Instrucciones de Ejecución
 1. Restaura las herramientas y paquetes: `dotnet restore`
