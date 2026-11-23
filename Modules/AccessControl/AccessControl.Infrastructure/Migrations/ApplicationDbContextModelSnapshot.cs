@@ -111,6 +111,8 @@ namespace AccessControl.Infrastructure.Migrations
 
                     b.HasIndex("Estado");
 
+                    b.HasIndex("Estado", "FechaCreacion");
+
                     b.ToTable("CorreosEnCola");
                 });
 
@@ -253,6 +255,9 @@ namespace AccessControl.Infrastructure.Migrations
                     b.Property<DateTime?>("BajaSolicitadaEn")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("CodigosEmitidos")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("DesactivadaPorUsuarioEn")
                         .HasColumnType("datetime2");
 
@@ -268,8 +273,14 @@ namespace AccessControl.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<bool>("RegistroRepetido")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Rol")
                         .HasColumnType("int");
+
+                    b.Property<DateTime?>("VentanaCodigosDesde")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 

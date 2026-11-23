@@ -26,7 +26,9 @@ public static class SaludDelServicioExtensions
 
     public static IEndpointConventionBuilder MapSaludDelServicio(this IEndpointRouteBuilder endpoints) =>
         endpoints.MapHealthChecks(Ruta, new() { ResponseWriter = (http, informe) => http.Response.WriteAsync(informe.Status.ToString()) })
-            .AllowAnonymous();
+            .AllowAnonymous()
+            // Es público (lo usa el monitor externo) y abre la base en cada llamada: límite por IP como el catálogo (SEG-16).
+            .RequireRateLimiting(LimitacionDePeticionesExtensions.Catalogo);
 
     internal sealed class BaseDeDatosDisponible(ApplicationDbContext contexto, HabitTrackerDbContext negocio) : IHealthCheck
     {

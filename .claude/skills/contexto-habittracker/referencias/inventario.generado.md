@@ -104,7 +104,7 @@
 
 ## Migraciones por contexto
 
-- **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado, AgregarOrigenDelCodigoDeRecuperacion
+- **AccessControl:** InitialCreate, AgregarBloqueoCuenta, AgregarCodigoRecuperacion, MejorasCalificacion, AgregarIntentosActivacion, AgregarIndiceUnicoCorreo, AgregarConsentimientos, AgregarSesionesUsuario, AgregarLoginsExternos, AgregarBajaCuenta, IndiceCorreosPorEstado, AgregarOrigenDelCodigoDeRecuperacion, LimitarCodigosPorCuenta
 - **Auditing:** CrearRegistrosAuditoria
 - **DocumentManager:** AgregarTablaDocumentos
 - **HabitTracker:** InitialCreate, ActualizarEsquemaHabitos, RegistroDiarioIdAsignadoPorDominio, HabitoMetaOpcionalYLongitudes, AgregarPerfilYSalud, AgregarCatalogoPlanes, AgregarPlanesUsuario, QuitarMetaSlugDelPerfil, AgregarAdjuntosPlan, AgregarFechaCancelacionAlPlan, AgregarOrigenYClaveDeRegistro, AgregarUltimoRecordatorioDelPlan, AgregarSugerencias
@@ -115,8 +115,8 @@
 
 | Proyecto | Archivos | [Fact] | [Theory] |
 |---|---|---|---|
-| AccessControl.Application.Tests | 31 | 297 | 47 |
-| AccessControl.Infrastructure.Tests | 11 | 84 | 9 |
+| AccessControl.Application.Tests | 33 | 309 | 50 |
+| AccessControl.Infrastructure.Tests | 12 | 89 | 9 |
 | Auditing.Api.Tests | 4 | 12 | 0 |
 | Auditing.Infrastructure.Tests | 1 | 19 | 2 |
 | DocumentManager.Api.Tests | 5 | 33 | 7 |
@@ -136,7 +136,7 @@
 | Permissions.Infrastructure.Tests | 3 | 13 | 1 |
 | Reports.Api.Tests | 2 | 11 | 0 |
 | Reports.Application.Tests | 2 | 13 | 3 |
-| **Total** | | **1120** | **143** |
+| **Total** | | **1137** | **146** |
 
 Los `[Theory]` cuentan varios casos cada uno: el total real lo da `dotnet test`.
 

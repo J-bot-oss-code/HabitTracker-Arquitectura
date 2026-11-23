@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using AccessControl.Application.Interfaces;
 using AccessControl.Domain.Entities;
 using AccessControl.Infrastructure.Persistence;
@@ -30,8 +31,7 @@ public class DatabaseEmailQueue : IEmailQueue
                 codigoGenerado,
                 "Si no solicitaste este cambio, puedes ignorar este mensaje."));
 
-        _dbContext.CorreosEnCola.Add(correo);
-        await _dbContext.SaveChangesAsync();
+        if (!await GuardarAsync(correo, critico: true)) return;
 
         // El destinatario es un dato personal: se registra solo el identificador del correo en cola.
         _logger.LogInformation("Correo de recuperación en cola: {CorreoId}.", correo.Id);
@@ -52,8 +52,7 @@ public class DatabaseEmailQueue : IEmailQueue
                 "Si no creaste esta cuenta, puedes ignorar este mensaje.",
                 [new AccionCorreo("Activar mi cuenta", enlace)]));
 
-        _dbContext.CorreosEnCola.Add(mensaje);
-        await _dbContext.SaveChangesAsync();
+        if (!await GuardarAsync(mensaje, critico: true)) return;
 
         _logger.LogInformation("Correo de activación en cola: {CorreoId}.", mensaje.Id);
     }
@@ -69,8 +68,7 @@ public class DatabaseEmailQueue : IEmailQueue
                 codigo: null,
                 "Puedes dejar de recibir estos correos desde Configuración, en la app."));
 
-        _dbContext.CorreosEnCola.Add(correo);
-        await _dbContext.SaveChangesAsync();
+        if (!await GuardarAsync(correo, critico: false)) return;
 
         _logger.LogInformation("Correo informativo en cola: {CorreoId}.", correo.Id);
     }
@@ -95,8 +93,7 @@ public class DatabaseEmailQueue : IEmailQueue
             // Cada salto de línea del mensaje (una lista de tareas) se ve como tal, después de escapar el texto.
             PlantillaHtml(Escapar(titulo), Escapar(mensaje).Replace("\n", "<br>"), codigo: null, despedida, acciones));
 
-        _dbContext.CorreosEnCola.Add(correo);
-        await _dbContext.SaveChangesAsync();
+        if (!await GuardarAsync(correo, critico: false)) return;
 
         _logger.LogInformation("Correo con acciones en cola: {CorreoId}.", correo.Id);
     }
@@ -110,6 +107,36 @@ public class DatabaseEmailQueue : IEmailQueue
         }
 
         return Escapar(uri.AbsoluteUri);
+    }
+
+    /// <summary>Correos a una misma dirección por hora: más que eso es abuso (bombardear a alguien con registros o recuperaciones).</summary>
+    public const int TopePorDestinatarioPorHora = 10;
+
+    /// <summary>Parte del tope diario que solo pueden usar la activación y la recuperación (sin ellas nadie puede entrar).</summary>
+    public const int ReservaCriticos = 50;
+
+    /// <summary>
+    /// Topes contra el agotamiento de la cuota del proveedor (SEG-05): por destinatario y diario global (<c>Correo:TopeDiario</c>, 450
+    /// por defecto, lo que permite Gmail en el piloto). Lo que se pasa no se encola y queda en el log, sin el correo de la persona;
+    /// la operación que lo pidió sigue (falla el correo, no el registro).
+    /// </summary>
+    private async Task<bool> GuardarAsync(CorreoEnCola correo, bool critico)
+    {
+        // shortcut: contar y luego insertar deja un hueco con envíos simultáneos (uno o dos de más); es un tope, no un dato exacto.
+        var ahora = DateTime.UtcNow;
+        var tope = _configuration.GetValue("Correo:TopeDiario", 450);
+        var delDia = await _dbContext.CorreosEnCola.CountAsync(c => c.FechaCreacion >= ahora.AddDays(-1));
+        var alDestinatario = await _dbContext.CorreosEnCola.CountAsync(c => c.Destinatario == correo.Destinatario && c.FechaCreacion >= ahora.AddHours(-1));
+
+        if (alDestinatario >= TopePorDestinatarioPorHora || delDia >= (critico ? tope : tope - ReservaCriticos))
+        {
+            _logger.LogWarning("Correo no encolado: se alcanzó el tope de envíos ({Tipo}).", critico ? "crítico" : "informativo");
+            return false;
+        }
+
+        _dbContext.CorreosEnCola.Add(correo);
+        await _dbContext.SaveChangesAsync();
+        return true;
     }
 
     // Solo los caracteres que cambian el HTML: WebUtility.HtmlEncode también convertiría las tildes en entidades numéricas.

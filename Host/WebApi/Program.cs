@@ -115,6 +115,7 @@ var app = builder.Build();
 
 // Migraciones y datos semilla (solo si BaseDeDatos:MigrarAlIniciar=true; la composición de Docker lo activa).
 VerificacionDelEntorno.ExigirZonasHorarias();
+VerificacionDelEntorno.ExigirSecretosPropios(app.Configuration);
 await app.InicializarBaseDeDatosAsync();
 
 // Catálogo de planes de HabitTracker (siempre: es contenido del código, no datos de demostración).

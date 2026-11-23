@@ -33,10 +33,25 @@ public class UsuarioRepository : IUsuarioRepository
         return await _dbContext.usuarios.FirstOrDefaultAsync(u => u.Id == id);
     }
 
-    public async Task<int> ReservarIntentoActivacionAsync(Guid usuarioId)
+    // Una sola sentencia: el motor serializa los UPDATE sobre la misma fila, así que N peticiones en paralelo obtienen N valores
+    // distintos (1, 2, 3...) y solo las primeras 5 llegan a comparar el código. Texto fijo: nada de la petición entra en el SQL.
+    private const string SqlReservaActivacion =
+        "UPDATE usuarios SET IntentosActivacion = ISNULL(IntentosActivacion, 0) + 1 " +
+        "OUTPUT inserted.IntentosActivacion " +
+        "WHERE Id = @id AND Activo = 0 AND TokenAcceso IS NOT NULL";
+
+    private const string SqlReservaRecuperacion =
+        "UPDATE usuarios SET Recuperacion_IntentosFallidos = ISNULL(Recuperacion_IntentosFallidos, 0) + 1 " +
+        "OUTPUT inserted.Recuperacion_IntentosFallidos " +
+        "WHERE Id = @id AND Recuperacion_Valor IS NOT NULL AND ISNULL(Recuperacion_Usado, 0) = 0 " +
+        "AND ISNULL(Recuperacion_IntentosFallidos, 0) < 5";
+
+    public Task<int> ReservarIntentoActivacionAsync(Guid usuarioId) => ReservarAsync(recuperacion: false, usuarioId);
+
+    public Task<int> ReservarIntentoRecuperacionAsync(Guid usuarioId) => ReservarAsync(recuperacion: true, usuarioId);
+
+    private async Task<int> ReservarAsync(bool recuperacion, Guid usuarioId)
     {
-        // Una sola sentencia: el motor serializa los UPDATE sobre la misma fila, así que N peticiones en paralelo
-        // obtienen N valores distintos (1, 2, 3...) y solo las primeras 5 llegan a comparar el código.
         var conexion = _dbContext.Database.GetDbConnection();
         var estabaAbierta = conexion.State == System.Data.ConnectionState.Open;
         if (!estabaAbierta)
@@ -47,10 +62,14 @@ public class UsuarioRepository : IUsuarioRepository
         try
         {
             await using var comando = conexion.CreateCommand();
-            comando.CommandText =
-                "UPDATE usuarios SET IntentosActivacion = ISNULL(IntentosActivacion, 0) + 1 " +
-                "OUTPUT inserted.IntentosActivacion " +
-                "WHERE Id = @id AND Activo = 0 AND TokenAcceso IS NOT NULL";
+            if (recuperacion)
+            {
+                comando.CommandText = SqlReservaRecuperacion;
+            }
+            else
+            {
+                comando.CommandText = SqlReservaActivacion;
+            }
 
             var parametro = comando.CreateParameter();
             parametro.ParameterName = "@id";
@@ -148,6 +167,14 @@ public class UsuarioRepository : IUsuarioRepository
     {
         return await _dbContext.usuarios.ToListAsync();
     }
+
+    public async Task<IReadOnlyList<Usuario>> ObtenerPendientesSinActivarAsync(DateTime creadasAntesDe, int maximo) =>
+        await _dbContext.usuarios
+            .AsNoTracking()
+            .Where(u => !u.Activo && u.TokenAcceso != null && u.FechaCreacion < creadasAntesDe && u.Rol != Rol.Administrador)
+            .OrderBy(u => u.FechaCreacion)
+            .Take(maximo)
+            .ToListAsync();
 
     public async Task<IReadOnlyList<Usuario>> ObtenerConBajaVencidaAsync(DateTime ahora, int maximo)
     {

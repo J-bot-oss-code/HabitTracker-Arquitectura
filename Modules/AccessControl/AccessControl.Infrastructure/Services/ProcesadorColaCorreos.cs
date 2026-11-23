@@ -23,12 +23,14 @@ public class ProcesadorColaCorreos(
 {
     /// <summary>
     /// Correos que se pueden intentar enviar: los Pendiente y los Fallido que aún tienen intentos. Los Fallido que
-    /// agotaron sus intentos se quedan en la tabla para siempre: se excluyen en la consulta para no leerlos (ni filtrarlos
+    /// agotaron sus intentos se quedan en la tabla hasta la purga (14 días): se excluyen en la consulta para no leerlos (ni filtrarlos
     /// en memoria) en cada vuelta. La espera entre reintentos (backoff) se decide después, en memoria.
     /// </summary>
     public static readonly System.Linq.Expressions.Expression<Func<CorreoEnCola, bool>> CandidatosDeEnvio =
         c => c.Estado == EstadoCorreo.Pendiente
           || (c.Estado == EstadoCorreo.Fallido && c.Intentos < CorreoEnCola.MaxIntentos);
+
+    public const int DiasDeConservacion = 14;
 
     public async Task<ResultadoProcesamiento> ProcesarAsync(CancellationToken cancellationToken)
     {
@@ -36,6 +38,12 @@ public class ProcesadorColaCorreos(
         var espera = TimeSpan.FromSeconds(Math.Max(0, configuration.GetValue<int?>("Correo:EsperaReintentoSegundos") ?? 60));
 
         var recuperados = await RecuperarAtascadosAsync(ahora, cancellationToken);
+
+        // Minimización (SEG-12): los terminados guardan códigos y enlaces firmados; pasados 14 días ya no sirven a nadie.
+        await dbContext.CorreosEnCola
+            .Where(c => c.FechaCreacion < ahora.AddDays(-DiasDeConservacion)
+                && (c.Estado == EstadoCorreo.Enviado || (c.Estado == EstadoCorreo.Fallido && c.Intentos >= CorreoEnCola.MaxIntentos)))
+            .ExecuteDeleteAsync(cancellationToken);
 
         var candidatos = await dbContext.CorreosEnCola
             .Where(CandidatosDeEnvio)

@@ -129,6 +129,10 @@ public class InicializacionBaseDeDatosTests
     [InlineData("1")]
     [InlineData("corta123")]
     [InlineData("once_chars!")]
+    // SEG-15: largas pero fuera de la política (antes pasaban, porque solo se miraba la longitud)
+    [InlineData("SoloLetrasSinNingunNumero")]
+    [InlineData("1234567890123456")]
+    [InlineData("ClaveDeMasDeSetentaYDosBytes1234567890123456789012345678901234567890123456")]
     [Trait("Requirement", "RD-10")]
     public async Task RD_10_Siembra_ClaveDebil_FallaDeInmediatoYNoCreaLaCuenta(string claveDebil)
     {
@@ -205,6 +209,9 @@ public class InicializacionBaseDeDatosTests
         }
         public Task<int> ContarAdministradoresActivosAsync() =>
             Task.FromResult(Guardados.Count(u => u.Rol == Rol.Administrador && u.Activo));
+        public Task<IReadOnlyList<Usuario>> ObtenerPendientesSinActivarAsync(DateTime creadasAntesDe, int maximo) =>
+            Task.FromResult<IReadOnlyList<Usuario>>([]);
+        public Task<int> ReservarIntentoRecuperacionAsync(Guid usuarioId) => Task.FromResult(1);
         public Task<int> ContarCreadasDesdeAsync(DateTime desdeUtc) =>
             Task.FromResult(Guardados.Count(u => u.FechaCreacion >= desdeUtc));
         public Task<int> ContarConBajaProgramadaAsync() =>

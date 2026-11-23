@@ -14,6 +14,8 @@ namespace WebApi.Controllers;
 
 [ApiController]
 [Route("api/auth")]
+// Límite por persona (o por IP sin sesión) para los métodos que no tienen el suyo; los que lo tienen lo conservan (SEG-16).
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)]
 public class AuthController : ControllerBase
 {
     private readonly IUsuarioService _usuarioService;
@@ -66,7 +68,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Activate([FromBody] ActivateRequest request)
     {
         var usuario = await _usuarioService.ActivarCuentaAsync(request.Correo, request.Codigo);
-        return Ok(await CompletarInicioAsync(usuario));
+        return Ok(usuario.Token is null ? usuario : await CompletarInicioAsync(usuario));
     }
 
     /// <summary>

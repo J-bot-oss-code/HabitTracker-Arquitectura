@@ -193,6 +193,16 @@ public static class InicializacionBaseDeDatos
                 $"ADMIN_CLAVE debe tener al menos {LongitudMinimaClaveAdministrador} caracteres.");
         }
 
+        // La misma política que cualquier contraseña (letras, números y el tope de BCrypt), no solo la longitud (SEG-15).
+        try
+        {
+            AccessControl.Application.Service.PoliticaContrasena.SoloFormato.ValidarFormato(clave);
+        }
+        catch (AccessControl.Domain.Excepciones.ContrasenaNoValidaException)
+        {
+            throw new InvalidOperationException("ADMIN_CLAVE no cumple la política de contraseñas (letras y números, 72 bytes como mucho).");
+        }
+
         Email email;
         try
         {

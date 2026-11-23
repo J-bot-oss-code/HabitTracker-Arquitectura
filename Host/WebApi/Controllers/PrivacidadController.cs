@@ -18,6 +18,7 @@ namespace WebApi.Controllers;
 [ApiController]
 [Route("api/privacy")]
 [Authorize]
+[EnableRateLimiting(LimitacionDePeticionesExtensions.Usuario)] // los métodos con política propia la conservan (SEG-16)
 public class PrivacidadController : ControllerBase
 {
     private const string RolEstandar = "Estandar";

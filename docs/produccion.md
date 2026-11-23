@@ -18,7 +18,8 @@ Solo se abren el 22, el 80 y el 443: la API y la base de datos **no** publican p
 
 **Rellenar `.env`** (los valores nunca se suben al repositorio):
 - `DOMINIO`: el dominio, sin `https://`.
-- `DB_PASSWORD` y `ADMIN_CLAVE`: contraseñas largas (12 o más caracteres). `JWT_CLAVE`: 32 o más caracteres aleatorios (`openssl rand -base64 48`).
+- `DB_PASSWORD` y `ADMIN_CLAVE`: contraseñas largas (12 o más caracteres, con letras y números, 72 bytes como mucho). `JWT_CLAVE`: 32 o más caracteres aleatorios (`openssl rand -base64 48`). **Nunca los de `.env.example`**: la API no arranca con ellos.
+- Tras el **primer arranque**, entra como Administrador, cambia su contraseña desde la app y **borra `ADMIN_CLAVE` del `.env`** (solo sirve para crear la cuenta la primera vez).
 - `ADMIN_CORREO`: el correo del Administrador inicial. **Cambia su contraseña al entrar la primera vez.**
 - `SMTP_*`: para Gmail, `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_SSL=true`, tu usuario y la contraseña de aplicación.
 - `GOOGLE_CLIENT_ID` (opcional): añade `https://<DOMINIO>` a los orígenes autorizados en Google Cloud.

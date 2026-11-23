@@ -22,6 +22,8 @@ public class ApplicationDbContext : DbContext
 
         // La cola se consulta por estado en cada vuelta del procesador (Pendiente y Fallido) y desde la consulta del Administrador.
         modelBuilder.Entity<CorreoEnCola>().HasIndex(c => c.Estado);
+        // Los topes de envío y la purga cuentan y borran por fecha (SEG-05, SEG-12).
+        modelBuilder.Entity<CorreoEnCola>().HasIndex(c => new { c.Estado, c.FechaCreacion });
 
         // Historial de solo inserción de lo que cada usuario aceptó (documentos legales y consentimientos opcionales).
         modelBuilder.Entity<ConsentimientoUsuario>(entity =>
