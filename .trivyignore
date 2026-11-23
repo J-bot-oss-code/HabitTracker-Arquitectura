@@ -1,4 +1,4 @@
-# Excepciones de Trivy (imagen Docker y configuración). Vacío a propósito.
+# Excepciones de Trivy (imagen Docker y configuración).
 #
 # Regla: una vulnerabilidad solo se acepta aquí si no hay parche disponible o no es explotable en este
 # proyecto. Cada línea es un identificador (CVE-AAAA-NNNN o AVD-XXX-NNNN) con un comentario ANTES que
@@ -6,3 +6,8 @@
 #
 #   # Sin parche en la imagen base; solo afecta a ... Revisar antes del 2026-12-01.
 #   CVE-2026-00000
+
+# 23-11-2026: golang.org/x/net/html (DoS con HTML manipulado) dentro del binario de Caddy 2.11.9; ninguna versión de Caddy trae
+# aún x/net 0.62.0. No es explotable aquí: Caddy solo analiza HTML con las directivas templates/markdown, y deploy/Caddyfile
+# no las usa (sirve archivos y reenvía /api). Quitar al subir a la versión de Caddy que lo corrija. Revisar antes del 2026-12-15.
+CVE-2026-78661
