@@ -123,6 +123,7 @@ await app.SembrarCatalogoPlanesAsync();
 
 // Middleware global de excepciones al inicio del pipeline (RD-07, RD-08).
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseSinCacheEnApi();
 
 // Configure the HTTP request pipeline.
 // Swagger se muestra en Development y también cuando Swagger:Habilitado=true (el contenedor de la Práctica 4).
