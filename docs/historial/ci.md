@@ -56,3 +56,4 @@
 ## Imagen web en Trivy (23-11-2026, SEG-07)
 
 - `seguridad.yml` construye también `Dockerfile.web` (Caddy, lo único expuesto a internet) y le pasa Trivy con las mismas reglas que a la API: alta o crítica con parche disponible bloquea.
+- Al activarlo encontró 32 avisos de Alpine y 59 del binario de Caddy 2.11.2: la imagen pasa a `caddy:2.11.9-alpine` y aplica `apk upgrade` (igual que `apt-get upgrade` en la API).
