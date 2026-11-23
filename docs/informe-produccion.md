@@ -52,10 +52,36 @@ Se revisaron las superficies nuevas, sobre todo las anónimas:
 | Métricas | Solo Administrador, sin parámetros; lo que cuenta personas se oculta con menos de 5. |
 
 **Pendiente (no es un fallo conocido, es lo que falta por mirar):**
-- Un escaneo de seguridad automático del código completo (`claude-security`): no se ejecutó por costo. Recomendado antes de abrir al público.
 - Las claves de cifrado (Data Protection) viven en un volumen respaldado, sin cifrar con un certificado. Aceptado para el piloto (`docs/produccion.md`).
-- La excepción de `npm audit` por `picomatch` sigue vigente hasta que haya parche (`docs/historial/ci.md`).
 - Un detalle de la regla del límite diario de quejas: contar y luego insertar deja un hueco; dos envíos simultáneos podrían dejar 6 en vez de 5. Es un tope contra abuso, no un dato que se muestre (queda anotado en el código).
+
+### Auditoría de seguridad del 21-11-2026: cierre (23-11-2026)
+
+La auditoría (solo lectura) encontró 0 críticos, 1 alto, 8 medios y 12 bajos. Se corrigieron en tres PR (#133 cuentas y correo, #134 sesiones y datos, #135 infraestructura). Lo que no compensa se acepta aquí con su motivo. «Real» quiere decir comprobado el 23-11-2026 contra el compose de producción (SQL Server, Caddy, Mailpit), además de las pruebas.
+
+| ID | Sev. | Hallazgo | Estado | Dónde se comprueba |
+|---|---|---|---|---|
+| SEG-01 | Alta | Intentos de recuperación en paralelo saltaban el tope de 5 | Corregido: reserva atómica (`UPDATE … OUTPUT`), 5 códigos por cuenta y día, enfriamiento también tras invalidar | `SeguridadCuentasTests`; real: 10 intentos a la vez → solo 5 comparan y el código bueno queda invalidado |
+| SEG-02 | Media | Quien registra primero un correo ajeno se quedaba con la cuenta | Corregido: re-registrar una pendiente la reemplaza; activarla ya no abre sesión; pendientes purgadas a las 48 h. **Riesgo residual aceptado:** la víctima activa una cuenta que no pidió (lo mitigan el aviso del correo y la purga) | `SeguridadCuentasTests`; real: el primer código deja de valer, la activación no da token y solo vale la última contraseña |
+| SEG-03 | Media | Límite por IP evadible rotando IPv6 | Corregido: IPv6 agrupadas por /64 | `SeguridadCuentasTests` |
+| SEG-04 | Media | Enumeración de correos y bloqueo dirigido | **Aceptado:** RF-CA-01 exige rechazar el correo duplicado, y bloquear 15 min la cuenta ajena exige conocer el correo; arreglarlo bien (IP + cuenta) añade mucho código para un riesgo bajo | — |
+| SEG-05 | Media | La cola de correo se podía inundar | Corregido: 10 por hora por destinatario y tope diario (`Correo:TopeDiario`) con reserva para activación y recuperación | `SeguridadColaYCuentasTests` |
+| SEG-06 | Media | La API entraba a la base como `sa` | Corregido: migrador de un solo uso con `sa`; la API usa `habittracker_app` (lectura y escritura) | `InicializacionBaseDeDatosTests`; real: solo hay sesiones `habittracker_app`, que no es `db_owner` ni `sysadmin`, y la API no tiene la clave de `sa` |
+| SEG-07 | Media | La imagen web no se escaneaba | Corregido: Trivy sobre `Dockerfile.web`. Encontró 91 avisos: Caddy 2.11.9 y `apk upgrade`. **Excepción:** CVE-2026-78661 (`x/net/html`, sin parche y no explotable, revisar antes del 2026-12-15) | CI `Seguridad`; `.trivyignore` |
+| SEG-08 | Media | Sin segundo factor para el Administrador | Corregido en parte: correo de aviso en cada inicio de sesión de un Administrador. **Aceptado:** sin TOTP (decisión del dueño) | `SeguridadSesionesTests`; real: llega el aviso sin la IP |
+| SEG-09 | Media | Sin cuota de documentos por persona | Corregido: 200 MB y 200 archivos, contando los eliminados | `DocumentoServiceTests` (borde exacto); real: subir y descargar con el disco de solo lectura |
+| SEG-10 | Baja | Respuestas de la API en caché | Corregido: `no-store` en `/api` salvo el catálogo | `SeguridadSesionesTests`; real |
+| SEG-11 | Baja | Contraseñas de más de 72 bytes truncadas por BCrypt | Corregido: máximo 72 bytes UTF-8 (backend y formulario) | `PoliticaContrasenaTests`, `contratoAuth.test.ts` |
+| SEG-12 | Baja | La cola de correos crecía sin fin | Corregido: se borran los enviados o fallidos de más de 14 días | `SeguridadColaYCuentasTests` |
+| SEG-13 | Baja | Respaldos sin cifrar | Corregido: `age` si hay `RESPALDO_CLAVE_PUBLICA`; si no, el script avisa | ShellCheck; real: el respaldo sin clave avisa y termina |
+| SEG-14 | Baja | Contenedores con privilegios de más y la clave en `-P` | Corregido: `no-new-privileges`, `cap_drop`, API `read_only` con `/tmp`, tope de procesos, `SQLCMDPASSWORD` | real: disco de solo lectura, Caddy sirve HTTPS y el respaldo funciona |
+| SEG-15 | Baja | `ADMIN_CLAVE` débil aceptada | Corregido: se valida con la política de contraseñas; el runbook pide borrarla tras el primer arranque | `InicializacionBaseDeDatosTests` |
+| SEG-16 | Baja | Endpoints con sesión sin límite | Corregido: límite por persona en `AuthController` y `PrivacidadController` | `SeguridadCuentasTests` |
+| SEG-17 | Baja | El registro pendiente guardaba el correo en claro | Corregido: solo una huella | `perfil.test.ts` |
+| SEG-18 | Baja | `style-src 'unsafe-inline'` | **Aceptado:** lo usan los estilos dinámicos y el botón de Google; los scripts sí están acotados (`docs/produccion.md`) | — |
+| SEG-19 | Baja | Se podía arrancar con los secretos de ejemplo | Corregido: fuera de Development la API no arranca con ellos (`Seguridad:ExigirSecretosPropios`) | `SeguridadCuentasTests`; real: rechazó una clave de prueba |
+| SEG-20 | Baja | Revocar una sesión no corta su token hasta 15 min | **Aceptado:** «Cerrar en todos» sí lo corta; hacerlo por sesión exige un claim nuevo y una consulta por petición | — |
+| SEG-21 | Baja | `npm audit` no bloqueaba las dependencias de desarrollo | Corregido: un único `npm audit --audit-level=high` que bloquea | CI |
 
 ## 5. Cuánta gente aguanta
 
@@ -84,14 +110,14 @@ Lo que necesitas tú (el runbook paso a paso está en `docs/produccion.md`):
 1. **Un servidor** con Docker y al menos **2 GB de RAM** (SQL Server + API usan ~1,1 GB; con 4 GB hay holgura).
 2. **Un dominio** apuntando al servidor (Caddy saca el certificado HTTPS solo).
 3. **Correo real** (`SMTP_*`; para el piloto sirve el de Gmail, ~500 correos al día).
-4. **Secretos nuevos** en el `.env` del servidor (`JWT_CLAVE`, `DB_PASSWORD`, `ADMIN_CLAVE`); nunca los de prueba.
+4. **Secretos nuevos** en el `.env` del servidor (`JWT_CLAVE`, `DB_PASSWORD`, `DB_APP_PASSWORD`, `ADMIN_CLAVE`); con los de ejemplo la API no arranca.
 5. **Un monitor externo** (UptimeRobot o similar) por **palabra clave `Healthy`** sobre `/health`, para enterarte también si el proceso de recordatorios se detiene.
-6. **Respaldos programados** con `scripts/despliegue/respaldar.sh` (base y claves en carpetas distintas).
+6. **Respaldos programados** con `scripts/despliegue/respaldar.sh` (base y claves en carpetas distintas), cifrados con `RESPALDO_CLAVE_PUBLICA`.
 7. Opcional: `GOOGLE_CLIENT_ID` para «Continuar con Google».
 
 Lo que falta de mi lado / del repositorio:
-- **Fusionar las PR en orden.** La #128 está abierta con el CI en verde y todo lo demás está apilado encima de ella (10 ramas). Hay que abrir una PR por rama y fusionarlas en cadena.
-- Antes de abrir al público: la prueba de navegador con Edge y el escaneo de seguridad de la sección 4.
+- **Promover `develop` a `main`** (PR #132, con las correcciones de la auditoría), cuando el dueño lo ordene.
+- Antes de abrir al público: la prueba de navegador con Edge contra el sistema real.
 
 ## 7. Dónde alojarlo
 
