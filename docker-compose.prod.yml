@@ -27,10 +27,12 @@ services:
       MSSQL_MEMORY_LIMIT_MB: "1536"
       MSSQL_SA_PASSWORD: ${DB_PASSWORD:?Define DB_PASSWORD en el archivo .env}
     mem_limit: 2g
+    security_opt: ["no-new-privileges:true"]
     volumes:
       - sqlserver-datos:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" -b -o /dev/null"]
+      # SQLCMDPASSWORD en vez de -P: la contraseña no aparece en la lista de procesos (SEG-14).
+      test: ["CMD-SHELL", "SQLCMDPASSWORD=\"$$MSSQL_SA_PASSWORD\" /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -Q \"SELECT 1\" -b -o /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 12
@@ -45,18 +47,26 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrador:
+        condition: service_completed_successfully
     expose:
       - "8080"
     mem_limit: 768m
-    environment:
-      ConnectionStrings__AccessControl: "Server=db;Database=HabitTracker;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+    # Endurecimiento (SEG-14): sin privilegios nuevos ni capacidades, sistema de archivos de solo lectura (salvo /tmp y los volúmenes).
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    read_only: true
+    tmpfs: [/tmp]
+    pids_limit: 200
+    environment: &entorno-api
+      # SEG-06: la API entra con un usuario que solo lee y escribe datos (lo crea el migrador); no conoce la contraseña de sa.
+      ConnectionStrings__AccessControl: "Server=db;Database=HabitTracker;User Id=habittracker_app;Password=${DB_APP_PASSWORD:?Define DB_APP_PASSWORD en el archivo .env};TrustServerCertificate=True"
       JwtSettings__Clave: ${JWT_CLAVE:?Define JWT_CLAVE en el archivo .env}
 
-      BaseDeDatos__MigrarAlIniciar: "true"
+      # Las migraciones las aplica el servicio «migrador», no la API.
+      BaseDeDatos__MigrarAlIniciar: "false"
       # En producción no se siembra la Meta de demostración (tiene un Id público).
       BaseDeDatos__SembrarDemostracion: "false"
-      ADMIN_CORREO: ${ADMIN_CORREO:?Define ADMIN_CORREO en el archivo .env}
-      ADMIN_CLAVE: ${ADMIN_CLAVE:?Define ADMIN_CLAVE en el archivo .env}
 
       Documentos__RutaAlmacenamiento: /app/data/documentos
       # Si se pierden estas claves, el cuestionario de salud no se puede leer. Respáldalas APARTE de la base de datos.
@@ -105,6 +115,30 @@ services:
     logging: *logging
     networks: [habittracker]
 
+  # Un solo uso (SEG-06): migra con sa, siembra el Administrador, crea el usuario de la API con permisos mínimos y termina.
+  # Se ejecuta solo en cada «up» (también en actualizar.sh) antes de que arranque la API.
+  migrador:
+    build: .
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    mem_limit: 768m
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    environment:
+      <<: *entorno-api
+      ConnectionStrings__AccessControl: "Server=db;Database=HabitTracker;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      BaseDeDatos__MigrarAlIniciar: "true"
+      BaseDeDatos__SoloMigrar: "true"
+      DB_APP_PASSWORD: ${DB_APP_PASSWORD:?Define DB_APP_PASSWORD en el archivo .env}
+      ADMIN_CORREO: ${ADMIN_CORREO:?Define ADMIN_CORREO en el archivo .env}
+      ADMIN_CLAVE: ${ADMIN_CLAVE:?Define ADMIN_CLAVE en el archivo .env}
+    volumes:
+      - dataprotection-claves:/app/data/claves
+    logging: *logging
+    networks: [habittracker]
+
   # El proxy: HTTPS automático, cabeceras de seguridad, el SPA y /api hacia la API. Es lo único que publica puertos.
   web:
     build:
@@ -122,6 +156,11 @@ services:
       - "80:80"
       - "443:443"
     mem_limit: 128m
+    # Solo la capacidad de abrir los puertos 80 y 443 (SEG-14). Sin no-new-privileges: Caddy, sin ser root, la recibe del
+    # propio binario (capacidad de archivo), y esa opción la anularía.
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    pids_limit: 100
     volumes:
       # Los certificados de Let's Encrypt: sin este volumen se volverían a pedir en cada reinicio y se agotaría el cupo.
       - caddy-datos:/data

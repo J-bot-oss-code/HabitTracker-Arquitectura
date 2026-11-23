@@ -16,7 +16,7 @@
 
 - Los seis contextos usan la misma cadena `ConnectionStrings:AccessControl` (SQL Server) y la tabla `__EFMigrationsHistory` por defecto.
 - `Host/WebApi/Program.cs` registra los adaptadores entre módulos, `JsonStringEnumConverter` (los enums viajan como texto) y llama a `InicializarBaseDeDatosAsync`.
-- `Host/WebApi/Extensions/InicializacionBaseDeDatos.cs`: con `BaseDeDatos:MigrarAlIniciar=true` (Docker) migra los contextos, siembra el Administrador (`ADMIN_CORREO`/`ADMIN_CLAVE`) y la Meta de demostración `5f1c0a00-0000-4000-8000-000000000002`.
+- `Host/WebApi/Extensions/InicializacionBaseDeDatos.cs`: con `BaseDeDatos:MigrarAlIniciar=true` (Docker) migra los contextos, siembra el Administrador (`ADMIN_CORREO`/`ADMIN_CLAVE`) y la Meta de demostración `5f1c0a00-0000-4000-8000-000000000002`. Con `BaseDeDatos:SoloMigrar=true` (servicio `migrador` de producción) además crea el usuario `habittracker_app` (`DB_APP_PASSWORD`, solo lectura y escritura) y sale: la API de producción nunca entra con `sa`.
 
 ## HabitTracker por dentro
 

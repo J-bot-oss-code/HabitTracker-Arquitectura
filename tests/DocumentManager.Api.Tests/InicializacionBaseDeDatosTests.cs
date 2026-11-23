@@ -3,6 +3,7 @@ using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
 using AccessControl.Domain.Interfaces;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using WebApi.Extensions;
@@ -176,6 +177,32 @@ public class InicializacionBaseDeDatosTests
     public void RF_NEG_02_LaMetaDeDemostracion_TieneUnIdFijoYDocumentado()
     {
         Assert.Equal(new Guid("5f1c0a00-0000-4000-8000-000000000002"), InicializacionBaseDeDatos.MetaDemostracionId);
+    }
+
+    [Theory]
+    [Trait("Requirement", "RD-10")]
+    [InlineData(null)]
+    [InlineData("   ")]
+    [InlineData(129)]
+    public void SEG_06_SinUnaClaveValidaParaElUsuarioDeLaApi_ElMigradorNoArranca(object? valor)
+    {
+        var clave = valor is int largo ? new string('a', largo) : (string?)valor;
+        var configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["DB_APP_PASSWORD"] = clave }).Build();
+
+        var error = Assert.Throws<InvalidOperationException>(() => InicializacionBaseDeDatos.ClaveDeLaApp(configuracion));
+        Assert.DoesNotContain("aaaa", error.Message);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-10")]
+    public void SEG_06_ConUnaClaveDe128Caracteres_SeUsaTalCual()
+    {
+        var clave = new string('a', 128);
+        var configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["DB_APP_PASSWORD"] = clave }).Build();
+
+        Assert.Equal(clave, InicializacionBaseDeDatos.ClaveDeLaApp(configuracion));
     }
 
     // ---------- Dobles ----------

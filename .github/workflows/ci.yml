@@ -91,13 +91,9 @@ jobs:
         run: npm test
       - name: Compilar
         run: npm run build
-      # Lo que se publica (dependencias de producción) bloquea con alta o crítica.
-      - name: Vulnerabilidades de producción (alta o crítica bloquean)
-        run: npm audit --audit-level=high --omit=dev
-      # Las herramientas de desarrollo (vite, vitest, eslint) no llegan al navegador: se vigilan sin bloquear. Desde el
-      # 18-11-2026 picomatch (GHSA-fc5q-39xc-vjpf, ReDoS) no tiene versión parcheada; ver README › Justificar una excepción.
-      - name: Vulnerabilidades de herramientas de desarrollo (solo aviso)
-        continue-on-error: true
+      # Todas las dependencias (también las de desarrollo) bloquean con alta o crítica. La excepción de picomatch se cerró el
+      # 23-11-2026: npm audit ya no la reporta (docs/historial/ci.md).
+      - name: Vulnerabilidades (alta o crítica bloquean)
         run: npm audit --audit-level=high
 
   reglas:
