@@ -26,6 +26,27 @@ public static class VerificacionDelEntorno
     }
 
     /// <summary>La Meta de demostración (con Id público) solo se siembra si no se pide lo contrario: en producción se desactiva.</summary>
+    /// <summary>
+    /// Con <c>Seguridad:ExigirSecretosPropios=true</c> (lo pone el compose de producción) la API no arranca si la clave JWT, la del
+    /// Administrador o la de la base son las de <c>.env.example</c>: son públicas y con la JWT cualquiera firmaría tokens (SEG-19).
+    /// La demostración no la activa, porque usa esos valores a propósito.
+    /// </summary>
+    public static void ExigirSecretosPropios(IConfiguration configuracion)
+    {
+        if (!configuracion.GetValue("Seguridad:ExigirSecretosPropios", false))
+        {
+            return;
+        }
+
+        foreach (var clave in new[] { "JwtSettings:Clave", "ADMIN_CLAVE", "ConnectionStrings:AccessControl" })
+        {
+            if (configuracion[clave]?.Contains("ejemplo", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                throw new InvalidOperationException($"«{clave}» usa el valor de ejemplo de .env.example: pon uno propio en el .env.");
+            }
+        }
+    }
+
     public static bool DebeSembrarDemostracion(IConfiguration configuracion) =>
         configuracion.GetValue("BaseDeDatos:SembrarDemostracion", true);
 }

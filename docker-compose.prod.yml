@@ -79,6 +79,8 @@ services:
       Seguridad__ContrasenasFiltradas__Habilitado: ${CONTRASENAS_FILTRADAS:-true}
       # Proceso de recordatorios por correo (opt-in por plan). false lo apaga sin tocar lo demás.
       Recordatorios__Habilitado: ${RECORDATORIOS_HABILITADO:-true}
+      # No arranca con los valores públicos de .env.example (claves JWT, Administrador y base).
+      Seguridad__ExigirSecretosPropios: "true"
       Google__ClientId: ${GOOGLE_CLIENT_ID:-}
       Privacidad__DiasGraciaBaja: ${DIAS_GRACIA_BAJA:-30}
       Privacidad__IntervaloEjecucionMinutos: ${BAJAS_INTERVALO_MINUTOS:-1440}

@@ -45,7 +45,7 @@ public class AuditoriaDeControlAccesoTests
         public List<Usuario> Usuarios { get; } = [];
         public List<string> CodigosEnviados { get; } = [];
         public AuditorQueCaptura Auditor { get; } = new();
-        public Mock<IUsuarioRepository> Repo { get; } = new();
+        public Mock<IUsuarioRepository> Repo { get; } = new Mock<IUsuarioRepository>().ConReservaDeRecuperacion();
         public Mock<IEmailQueue> Cola { get; } = new();
         public Mock<IPasswordHasher> Hasher { get; } = new();
 

@@ -82,7 +82,33 @@ public static class LimitacionDePeticionesExtensions
         return services;
     }
 
-    private static string ClaveDeIp(HttpContext contexto) => contexto.Connection.RemoteIpAddress?.ToString() ?? "desconocida";
+    private static string ClaveDeIp(HttpContext contexto) => ClaveDeIp(contexto.Connection.RemoteIpAddress);
+
+    /// <summary>
+    /// IPv4 tal cual; IPv6 por su prefijo /64, que es lo que recibe un solo cliente: si no, cada dirección del bloque contaría como
+    /// alguien distinto y el límite se esquivaría sin esfuerzo (SEG-03).
+    /// </summary>
+    public static string ClaveDeIp(System.Net.IPAddress? ip)
+    {
+        if (ip is null)
+        {
+            return "desconocida";
+        }
+
+        if (ip.IsIPv4MappedToIPv6)
+        {
+            ip = ip.MapToIPv4();
+        }
+
+        if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6)
+        {
+            return ip.ToString();
+        }
+
+        var bytes = ip.GetAddressBytes();
+        Array.Clear(bytes, 8, 8);
+        return new System.Net.IPAddress(bytes) + "/64";
+    }
 
     /// <summary>La persona de la sesión (el limitador corre después de la autenticación); sin sesión, la IP.</summary>
     public static string ClaveDePersona(HttpContext contexto) =>

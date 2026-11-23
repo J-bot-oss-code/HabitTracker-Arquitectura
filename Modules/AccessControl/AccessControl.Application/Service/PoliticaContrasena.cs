@@ -14,6 +14,9 @@ public sealed class PoliticaContrasena : IPoliticaContrasena
     public const int LongitudMinima = 12;
     public const int LongitudMaxima = 1024;
 
+    /// <summary>BCrypt solo usa los primeros 72 bytes: una clave más larga daría por buena cualquier otra con el mismo inicio (SEG-11).</summary>
+    public const int BytesMaximos = 72;
+
     private readonly IVerificadorContrasenasFiltradas _verificador;
 
     public PoliticaContrasena(IVerificadorContrasenasFiltradas verificador)
@@ -29,6 +32,7 @@ public sealed class PoliticaContrasena : IPoliticaContrasena
         if (string.IsNullOrWhiteSpace(password)
             || password.Length < LongitudMinima
             || password.Length > LongitudMaxima
+            || System.Text.Encoding.UTF8.GetByteCount(password) > BytesMaximos
             || !password.Any(char.IsLetter)
             || !password.Any(char.IsDigit))
         {

@@ -289,8 +289,10 @@ public class UsuarioService : IUsuarioService
         // Enfriamiento: sin él, cada solicitud emitía un código nuevo con el contador de fallos en cero (se podían
         // probar códigos sin fin) y se podía inundar de correos a la víctima. Dentro del minuto se responde igual
         // (idéntico a un correo inexistente, RF-CA-09) pero no se emite ni se envía nada.
-        if (usuario.Recuperacion is { Usado: false } vigente
-            && DateTime.UtcNow - vigente.FechaEmision < EnfriamientoRecuperacion)
+        // También cuenta un código invalidado por fallos o ya usado: si no, agotar los 5 intentos daba otro código al instante.
+        // El tope diario de códigos por cuenta (activación y recuperación) completa el límite (SEG-01).
+        if ((usuario.Recuperacion is { } vigente && DateTime.UtcNow - vigente.FechaEmision < EnfriamientoRecuperacion)
+            || !usuario.PuedeEmitirCodigo(DateTime.UtcNow))
         {
             await EsperarRespuestaMinimaAsync(inicio);
             return;
@@ -321,15 +323,13 @@ public class UsuarioService : IUsuarioService
         var usuario = await _repository.GetByCorreoAsync(new Email(correo));
 
         // Mensaje uniforme para no revelar qué correos están registrados.
-        // Cada código incorrecto cuenta: a los 5 fallos el código se invalida.
-        if (usuario == null || usuario.Recuperacion == null || !usuario.Recuperacion.EsValido(codigo))
+        // El intento se RESERVA de forma atómica en la base antes de comparar (como la activación): aunque lleguen mil peticiones
+        // a la vez, solo las 5 primeras llegan a comparar el código. Un intento reservado cuenta aunque el código sea correcto.
+        // No se escribe el contador desde aquí: sobrescribiría el valor reservado.
+        if (usuario == null || usuario.Recuperacion == null
+            || await _repository.ReservarIntentoRecuperacionAsync(usuario.Id) == 0
+            || !usuario.Recuperacion.EsValido(codigo))
         {
-            if (usuario?.Recuperacion != null)
-            {
-                usuario.Recuperacion.RegistrarFallo();
-                await _repository.UpdateAsync(usuario);
-            }
-
             throw new CodigoInvalidoException();
         }
 
@@ -509,6 +509,11 @@ public class UsuarioService : IUsuarioService
                 }
             }
 
+            if (!usuario.PuedeEmitirCodigo(DateTime.UtcNow))
+            {
+                return;
+            }
+
             string nuevoCodigo = GenerarCodigoActivacion();
             usuario.EstablecerTokenActivacion(nuevoCodigo, DateTime.UtcNow.AddHours(HorasValidezActivacion));
 
@@ -552,7 +557,9 @@ public class UsuarioService : IUsuarioService
         await _auditoria.ActivadaAsync(usuario);
 
         // Quien tiene el código demostró controlar el correo, lo mismo que pide la recuperación de contraseña: entra ya.
-        return ConSesion(usuario);
+        // Salvo que alguien más registrara el mismo correo antes (SEG-02): entonces la contraseña pudo fijarla otra persona y no
+        // se abre sesión; hay que entrar con ella o recuperarla.
+        return usuario.RegistroRepetido ? ConSesion(usuario) with { Token = null } : ConSesion(usuario);
     }
 
     public async Task<UsuarioResponseDto> RegistrarUsuarioAsync(RegistroRequestDto request)
@@ -575,6 +582,22 @@ public class UsuarioService : IUsuarioService
 
         if(existe)
         {
+            // Una cuenta que aún espera su código (SEG-02) no puede quedar en manos de quien la registró primero: el nuevo
+            // registro la reemplaza y la marca, y activarla ya no abre sesión. Una cuenta activa se rechaza (RF-CA-01).
+            var pendiente = await _repository.GetByCorreoAsync(Email);
+            if (pendiente is { PendienteDeActivacion: true } && pendiente.PuedeEmitirCodigo(DateTime.UtcNow))
+            {
+                await _politica.ValidarNoFiltradaAsync(request.Password);
+                pendiente.ReemplazarRegistroPendiente(request.Nombre, _passwordHasher.Hash(request.Password));
+                var codigoNuevo = GenerarCodigoActivacion();
+                pendiente.EstablecerTokenActivacion(codigoNuevo, DateTime.UtcNow.AddHours(HorasValidezActivacion));
+                await _repository.UpdateAsync(pendiente);
+                await _emailQueue.EncolarCorreoActivacionAsync(pendiente.Correo.Valor, codigoNuevo);
+                _logger.LogInformation("Registro repetido sobre la cuenta pendiente {UsuarioId}.", pendiente.Id);
+
+                return new UsuarioResponseDto(pendiente.Id, pendiente.NombreCompleto, pendiente.Correo.Valor, pendiente.Rol.ToString(), pendiente.Activo);
+            }
+
             throw new CorreoYaRegistradoException();
         }
 
