@@ -20,7 +20,7 @@ public class RolesYRecuperacionTests
     private sealed class Escenario
     {
         public List<Usuario> Usuarios { get; } = new();
-        public Mock<IUsuarioRepository> Repo { get; } = new();
+        public Mock<IUsuarioRepository> Repo { get; } = new Mock<IUsuarioRepository>().ConReservaDeRecuperacion();
         public Mock<IEmailQueue> Cola { get; } = new();
         public Mock<ITokenBlacklist> Blacklist { get; } = new();
         public Mock<IAuditoriaService> Auditoria { get; } = new();
@@ -313,6 +313,10 @@ public class RolesYRecuperacionTests
         var e = new Escenario();
         var usuario = e.Agregar("persona@ejemplo.com", Rol.Estandar);
         usuario.GenerarCodigoRecuperacion("654321", 1);
+        // Como la base (SEG-01): cada intento se reserva antes de comparar y, agotados los 5, la reserva ya no se concede.
+        var reservados = 0;
+        e.Repo.Setup(r => r.ReservarIntentoRecuperacionAsync(usuario.Id))
+            .ReturnsAsync(() => ++reservados <= 5 ? reservados : 0);
 
         for (var i = 0; i < 5; i++)
         {

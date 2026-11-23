@@ -23,6 +23,7 @@ public sealed class GestorSesiones : IGestorSesiones
     private readonly IJwtProvider _jwtProvider;
     private readonly OpcionesSesion _opciones;
     private readonly ILogger<GestorSesiones> _logger;
+    private readonly IEmailQueue? _cola;
 
     public GestorSesiones(
         ISesionRepository sesiones,
@@ -30,8 +31,10 @@ public sealed class GestorSesiones : IGestorSesiones
         ITokenBlacklist blacklist,
         IJwtProvider jwtProvider,
         OpcionesSesion opciones,
-        ILogger<GestorSesiones> logger)
+        ILogger<GestorSesiones> logger,
+        IEmailQueue? cola = null)
     {
+        _cola = cola; // en la aplicación siempre se inyecta; sin ella (algunas pruebas) no se avisa al Administrador
         _sesiones = sesiones;
         _usuarios = usuarios;
         _blacklist = blacklist;
@@ -58,6 +61,7 @@ public sealed class GestorSesiones : IGestorSesiones
         await _sesiones.EliminarVencidasAsync(ahora - RetencionDeVencidas);
 
         _logger.LogInformation("Sesión iniciada para el usuario {UsuarioId}.", usuarioId);
+        await AvisarSiEsAdministradorAsync(usuarioId, sesion.Dispositivo, ahora);
         return new SesionEmitida(token, sesion.ExpiraEn);
     }
 
@@ -193,4 +197,23 @@ public sealed class GestorSesiones : IGestorSesiones
 
     private static string Hash(string token) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+    /// <summary>
+    /// SEG-08: cada inicio de sesión de un Administrador (con contraseña, Google o activación) le llega por correo. Una cuenta
+    /// así da acceso a los documentos de todos: si no fue él, lo sabe enseguida y puede cerrar la sesión.
+    /// </summary>
+    private async Task AvisarSiEsAdministradorAsync(Guid usuarioId, string dispositivo, DateTime ahora)
+    {
+        if (_cola is null || await _usuarios.GetByIdAsync(usuarioId) is not { Rol: Rol.Administrador } admin)
+        {
+            return;
+        }
+
+        await _cola.EncolarCorreoAsync(
+            admin.Correo.Valor,
+            "Inicio de sesión de Administrador",
+            "Se inició sesión en tu cuenta de Administrador",
+            $"Fue el {ahora:dd/MM/yyyy} a las {ahora:HH:mm} (hora UTC), desde «{dispositivo}». Si no fuiste tú, cambia tu contraseña " +
+            "y cierra las demás sesiones en Configuración › Sesiones activas.");
+    }
 }

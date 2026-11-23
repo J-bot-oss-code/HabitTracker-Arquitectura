@@ -115,13 +115,22 @@ var app = builder.Build();
 
 // Migraciones y datos semilla (solo si BaseDeDatos:MigrarAlIniciar=true; la composición de Docker lo activa).
 VerificacionDelEntorno.ExigirZonasHorarias();
+VerificacionDelEntorno.ExigirSecretosPropios(app.Configuration);
 await app.InicializarBaseDeDatosAsync();
+
+// Producción (SEG-06): un contenedor de un solo uso migra con sa, deja creado el usuario de la API con permisos mínimos y sale.
+if (app.Configuration.GetValue<bool>("BaseDeDatos:SoloMigrar"))
+{
+    await app.AsegurarLoginDeLaAppAsync();
+    return;
+}
 
 // Catálogo de planes de HabitTracker (siempre: es contenido del código, no datos de demostración).
 await app.SembrarCatalogoPlanesAsync();
 
 // Middleware global de excepciones al inicio del pipeline (RD-07, RD-08).
 app.UseMiddleware<GlobalExceptionMiddleware>();
+app.UseSinCacheEnApi();
 
 // Configure the HTTP request pipeline.
 // Swagger se muestra en Development y también cuando Swagger:Habilitado=true (el contenedor de la Práctica 4).

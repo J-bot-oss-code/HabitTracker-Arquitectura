@@ -31,6 +31,20 @@ namespace AccessControl.Domain.Entities
 
         public Rol Rol { get; private set; }
 
+        /// <summary>Tope de códigos (activación y recuperación) que se emiten por cuenta en 24 horas: limita la fuerza bruta.</summary>
+        public const int MaximoCodigosPorDia = 5;
+
+        /// <summary>Inicio de la ventana de 24 h en que se cuentan los códigos emitidos.</summary>
+        public DateTime? VentanaCodigosDesde { get; private set; }
+
+        public int CodigosEmitidos { get; private set; }
+
+        /// <summary>
+        /// Alguien volvió a registrar este correo mientras la cuenta esperaba su activación. Activarla ya no abre sesión: quien la
+        /// active debe entrar con la contraseña (o recuperarla), porque pudo fijarla otra persona (pre-secuestro de la cuenta).
+        /// </summary>
+        public bool RegistroRepetido { get; private set; }
+
         private Usuario() {} // Constructor privado para EF Core
 
         public Usuario(string nombreCompleto, Email correo, string passwordHash, Rol rol = Rol.Estandar)
@@ -158,6 +172,41 @@ namespace AccessControl.Domain.Entities
         public void EstablecerTokenActivacion(string valor, DateTime vencimiento)
         {
             TokenAcceso = new TokenActivacion(valor, vencimiento);
+            ContarCodigoEmitido();
+        }
+
+        public bool PuedeEmitirCodigo(DateTime ahora) =>
+            VentanaCodigosDesde is not { } desde || ahora - desde >= TimeSpan.FromHours(24) || CodigosEmitidos < MaximoCodigosPorDia;
+
+        private void ContarCodigoEmitido()
+        {
+            var ahora = DateTime.UtcNow;
+            if (VentanaCodigosDesde is not { } desde || ahora - desde >= TimeSpan.FromHours(24))
+            {
+                VentanaCodigosDesde = ahora;
+                CodigosEmitidos = 0;
+            }
+
+            CodigosEmitidos++;
+        }
+
+        /// <summary>Otro registro del mismo correo sobre una cuenta pendiente: la reemplaza y la marca (ver <see cref="RegistroRepetido"/>).</summary>
+        public void ReemplazarRegistroPendiente(string nombreCompleto, string passwordHash)
+        {
+            if (!PendienteDeActivacion)
+            {
+                throw new InvalidOperationException("Solo una cuenta pendiente de activación se puede reemplazar.");
+            }
+
+            if (string.IsNullOrWhiteSpace(nombreCompleto) || string.IsNullOrWhiteSpace(passwordHash))
+            {
+                throw new ArgumentException("El nombre y la contraseña son obligatorios.");
+            }
+
+            NombreCompleto = nombreCompleto;
+            PasswordHash = passwordHash;
+            Recuperacion = null;
+            RegistroRepetido = true;
         }
 
         /// <summary>Cuenta un código de activación incorrecto; a los 5 el código queda invalidado.</summary>
@@ -183,6 +232,10 @@ namespace AccessControl.Domain.Entities
         public void GenerarCodigoRecuperacion(string codigo, int horasValidez, bool iniciadoPorAdministrador = false)
         {
             Recuperacion = new CodigoRecuperacion(codigo, horasValidez, iniciadoPorAdministrador);
+            if (!iniciadoPorAdministrador)
+            {
+                ContarCodigoEmitido();
+            }
         }
 
         public void RestablecerPassword(string nuevoHash, string codigo)

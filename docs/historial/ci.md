@@ -51,3 +51,10 @@
 - **Qué pasó:** apareció el aviso GHSA-fc5q-39xc-vjpf (ReDoS en `picomatch` ≤ 4.0.7, severidad alta) y `npm audit --audit-level=high` empezó a fallar en todas las PR, aunque solo cambiaran documentos. La última versión publicada de `picomatch` es la 4.0.7: no hay parche, y `npm audit fix --force` solo proponía bajar `vitest` a 3.1.4.
 - **Decisión (aprobada por el dueño del repositorio):** el paso de producción pasa a `npm audit --audit-level=high --omit=dev` y bloquea igual; un paso nuevo audita también las herramientas de desarrollo con `continue-on-error`, para que el aviso siga visible. `picomatch` solo lo usan `vite`, `vitest` y `typescript-eslint` al compilar y probar.
 - **Revertir:** cuando salga una versión corregida, subir `picomatch` por una PR de seguridad y volver a un solo paso `npm audit --audit-level=high`.
+- **Revertido (23-11-2026, SEG-21):** `npm audit --audit-level=high` ya no reporta `picomatch`; `ci.yml` vuelve a un solo paso que bloquea con todas las dependencias.
+
+## Imagen web en Trivy (23-11-2026, SEG-07)
+
+- `seguridad.yml` construye también `Dockerfile.web` (Caddy, lo único expuesto a internet) y le pasa Trivy con las mismas reglas que a la API: alta o crítica con parche disponible bloquea.
+- Al activarlo encontró 32 avisos de Alpine y 59 del binario de Caddy 2.11.2: la imagen pasa a `caddy:2.11.9-alpine` y aplica `apk upgrade` (igual que `apt-get upgrade` en la API).
+- Queda una excepción en `.trivyignore`: CVE-2026-78661 (`golang.org/x/net/html`, sin versión de Caddy que lo corrija). No es explotable porque el Caddyfile no usa `templates` ni `markdown`, las únicas directivas que analizan HTML. Revisar antes del 2026-12-15.

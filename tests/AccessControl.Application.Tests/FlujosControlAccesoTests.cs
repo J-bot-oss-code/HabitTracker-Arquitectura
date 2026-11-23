@@ -28,7 +28,7 @@ public class FlujosControlAccesoTests
         // Arrange
         Usuario? usuarioGuardado = null;
         string? codigoEnviado = null;
-        var repositorio = new Mock<IUsuarioRepository>();
+        var repositorio = new Mock<IUsuarioRepository>().ConReservaDeRecuperacion();
         repositorio
             .Setup(r => r.CorreoExistsAsync(It.IsAny<Email>()))
             .ReturnsAsync(false);
@@ -91,7 +91,7 @@ public class FlujosControlAccesoTests
             Rol.Estandar);
         usuario.Activar();
 
-        var repositorio = new Mock<IUsuarioRepository>();
+        var repositorio = new Mock<IUsuarioRepository>().ConReservaDeRecuperacion();
         repositorio
             .Setup(r => r.GetByCorreoAsync(It.IsAny<Email>()))
             .ReturnsAsync(usuario);
@@ -200,7 +200,7 @@ public class FlujosControlAccesoTests
             "hash-anterior");
         string? codigoEnviado = null;
 
-        var repositorio = new Mock<IUsuarioRepository>();
+        var repositorio = new Mock<IUsuarioRepository>().ConReservaDeRecuperacion();
         repositorio
             .Setup(r => r.GetByCorreoAsync(It.IsAny<Email>()))
             .ReturnsAsync(usuario);

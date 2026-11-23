@@ -7,8 +7,7 @@ import {
 import type { DatosCorporales } from '@/features/publico/types'
 
 // Entre el registro y el primer inicio de sesión hay una activación por correo que suele
-// abrirse en otra pestaña. El backend aún no guarda los consentimientos del registro (mejora
-// futura), así que se recuerdan en este dispositivo hasta completar el onboarding: versiones
+// abrirse en otra pestaña. Se recuerdan en este dispositivo hasta completar el onboarding: versiones
 // aceptadas, el consentimiento opcional de correos, la meta elegida y, si vino de la
 // calculadora, sus datos para proponerlos. Si falta (otro dispositivo), el onboarding vuelve a
 // pedir la aceptación.
@@ -16,6 +15,7 @@ import type { DatosCorporales } from '@/features/publico/types'
 // Minimización: el registro caduca a los 7 días y los datos corporales a las 48 horas. Lo
 // caducado o mal formado se borra al leerlo y también al arrancar la aplicación
 // (purgarRegistroPendienteCaducado), aunque nadie vuelva a entrar en este equipo.
+// El correo NO se guarda en claro (SEG-17): solo una huella para comprobar que es de quien entra.
 const CLAVE = 'habittracker.registro-pendiente'
 const HORA_MS = 60 * 60 * 1000
 export const CADUCIDAD_REGISTRO_MS = 7 * 24 * HORA_MS
@@ -35,13 +35,23 @@ export function guardarRegistroPendiente(datos: Omit<RegistroPendiente, 'guardad
   try {
     const registro: RegistroPendiente = {
       ...datos,
-      correo: datos.correo.trim().toLowerCase(),
+      correo: huella(datos.correo),
       guardadoEn: Date.now(),
     }
     localStorage.setItem(CLAVE, JSON.stringify(registro))
   } catch {
     // Almacenamiento bloqueado: el onboarding pedirá de nuevo la aceptación.
   }
+}
+
+// FNV-1a de 32 bits del correo normalizado: basta para reconocer a la misma cuenta en este equipo sin dejar el correo legible.
+function huella(correo: string): string {
+  let h = 0x811c9dc5
+  for (const c of correo.trim().toLowerCase()) {
+    h ^= c.codePointAt(0)!
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return 'h:' + h.toString(16)
 }
 
 export function borrarRegistroPendiente() {
@@ -96,7 +106,7 @@ export function leerRegistroPendiente(
   ahora = Date.now(),
 ): RegistroPendiente | null {
   const registro = leerValido(ahora)
-  if (!registro || registro.correo !== correo.trim().toLowerCase()) return null
+  if (!registro || registro.correo !== huella(correo)) return null
   const datosVigentes = ahora - registro.guardadoEn <= CADUCIDAD_DATOS_CORPORALES_MS
   return {
     ...registro,

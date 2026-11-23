@@ -14,6 +14,10 @@ public sealed class DocumentoService(
 {
     public const long TamanoMaximoBytes = 10 * 1024 * 1024;
 
+    /// <summary>Cuota por persona (SEG-09): sin ella una cuenta podía llenar el disco del servidor, que comparten la API y la base.</summary>
+    public const long CuotaBytes = 200L * 1024 * 1024;
+    public const int CuotaArchivos = 200;
+
     // Lista blanca extensión -> tipo MIME. El tipo que se guarda y se sirve sale de aquí, nunca del cliente:
     // si no, un .txt declarado como text/html se serviría como HTML (XSS almacenado).
     private static readonly Dictionary<string, string> TiposPermitidos = new(StringComparer.OrdinalIgnoreCase)
@@ -66,6 +70,14 @@ public sealed class DocumentoService(
         if (contenido.Length == 0)
         {
             throw new ArchivoInvalidoException("Debe adjuntar un archivo que no esté vacío.");
+        }
+
+        // Cuentan también los eliminados: la baja es lógica y el archivo sigue ocupando disco.
+        var existentes = await repositorio.ListarTodosDeUsuarioAsync(command.UsuarioId, cancellationToken);
+        if (existentes.Count >= CuotaArchivos || existentes.Sum(d => d.TamanoBytes) + contenido.Length > CuotaBytes)
+        {
+            throw new ArchivoInvalidoException(
+                "Llegaste al espacio máximo para tus archivos (200 MB o 200 archivos, contando los eliminados).");
         }
 
         // El constructor del dominio valida longitudes y genera el nombre almacenado (GUID).

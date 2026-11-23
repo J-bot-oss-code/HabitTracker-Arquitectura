@@ -139,6 +139,10 @@ export const esGuid = (v: unknown): v is string =>
 export const esCorreo = (v: unknown): v is string =>
   esTexto(v, 3, 150) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
 
-// PoliticaContrasena.ValidarFormato (RF-CA-14): 12 a 1024 caracteres con letras y números.
+// PoliticaContrasena.ValidarFormato (RF-CA-14): al menos 12 caracteres, 72 bytes como mucho, con letras y números.
 export const cumplePolitica = (v: unknown): v is string =>
-  typeof v === 'string' && v.length >= 12 && v.length <= 1024 && /\p{L}/u.test(v) && /\d/.test(v)
+  typeof v === 'string' &&
+  v.length >= 12 &&
+  new TextEncoder().encode(v).length <= 72 &&
+  /\p{L}/u.test(v) &&
+  /\d/.test(v)

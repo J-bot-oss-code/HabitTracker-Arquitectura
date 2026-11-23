@@ -28,6 +28,13 @@ describe('registro pendiente en el dispositivo', () => {
     expect(leerRegistroPendiente('otra@demo.com')).toBeNull()
   })
 
+  it('no deja el correo legible en el dispositivo (SEG-17)', () => {
+    guardarRegistroPendiente(base)
+    const guardado = localStorage.getItem(CLAVE) ?? ''
+    expect(guardado).not.toContain('demo.com')
+    expect(guardado).not.toContain('Nueva')
+  })
+
   it('caduca a los 7 días', () => {
     guardarRegistroPendiente(base)
     const ocho = Date.now() + 8 * 24 * 60 * 60 * 1000
@@ -35,14 +42,15 @@ describe('registro pendiente en el dispositivo', () => {
   })
 
   it('descarta una meta o unos datos corporales manipulados', () => {
+    // Se parte de lo que guarda la app (con la huella del correo) y se manipula a mano como haría alguien en el navegador.
+    guardarRegistroPendiente(base)
+    const guardado = JSON.parse(localStorage.getItem(CLAVE)!)
     localStorage.setItem(
       CLAVE,
       JSON.stringify({
-        ...base,
-        correo: 'nueva@demo.com',
+        ...guardado,
         metaSlug: '<script>',
         datosCorporales: { edad: 3, sexo: 'x' },
-        guardadoEn: Date.now(),
       }),
     )
     expect(leerRegistroPendiente('nueva@demo.com')).toMatchObject({

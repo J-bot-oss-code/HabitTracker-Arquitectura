@@ -9,11 +9,12 @@ export const correoSchema = z
   .max(150, 'El correo admite como máximo 150 caracteres.')
   .email('Escribe un correo válido.')
 
-// Política de contraseñas del backend (PoliticaContrasena, RF-CA-14): 12 a 1024 caracteres con letras y
-// números. El servidor además rechaza contraseñas que aparecen en filtraciones conocidas (Pwned Passwords).
+// Política de contraseñas del backend (PoliticaContrasena, RF-CA-14): al menos 12 caracteres y como mucho 72 bytes (lo que usa
+// BCrypt; una tilde ocupa 2), con letras y números. El servidor además rechaza contraseñas que aparecen en filtraciones conocidas (Pwned Passwords).
 // Única fuente de los requisitos: el esquema y la lista que ve el usuario mientras escribe salen de aquí.
 export const LONGITUD_MINIMA_CLAVE = 12
-const LONGITUD_MAXIMA_CLAVE = 1024
+const BYTES_MAXIMOS_CLAVE = 72
+const bytesUtf8 = (clave: string) => new TextEncoder().encode(clave).length
 
 export interface RequisitoClave {
   id: 'longitud' | 'letra' | 'numero'
@@ -45,7 +46,12 @@ export const REQUISITOS_CLAVE: readonly RequisitoClave[] = [
 
 export const passwordNuevaSchema = REQUISITOS_CLAVE.reduce(
   (esquema, r) => esquema.refine(r.cumple, r.error),
-  z.string().max(LONGITUD_MAXIMA_CLAVE, 'La contraseña es demasiado larga.'),
+  z
+    .string()
+    .refine(
+      (c) => bytesUtf8(c) <= BYTES_MAXIMOS_CLAVE,
+      'La contraseña es demasiado larga (máximo 72 caracteres).',
+    ),
 )
 
 // Nombre y apellido: el backend solo exige 1 a 200 caracteres; el producto pide además nombre y

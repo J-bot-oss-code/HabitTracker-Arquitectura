@@ -29,13 +29,16 @@ public class PoliticaContrasenaTests
     }
 
     [Fact]
-    public void RF_CA_14_ElLimiteSuperiorDe1024CaracteresEsValido_Y1025No()
+    public void SEG_11_ElLimiteSuperiorEsDe72Bytes_LoQueUsaBCrypt_YUnaTildeCuentaDos()
     {
-        var justo = new string('a', 1022) + "12";
-        Assert.Equal(1024, justo.Length);
+        var justo = new string('a', 70) + "12";
+        Assert.Equal(72, justo.Length);
         PoliticaContrasena.SoloFormato.ValidarFormato(justo);
 
         Assert.Throws<ContrasenaNoValidaException>(() => PoliticaContrasena.SoloFormato.ValidarFormato(justo + "x"));
+        // 71 caracteres, pero «ñ» ocupa 2 bytes: 72 cabe y 73 no.
+        PoliticaContrasena.SoloFormato.ValidarFormato(new string('a', 68) + "ñ12");
+        Assert.Throws<ContrasenaNoValidaException>(() => PoliticaContrasena.SoloFormato.ValidarFormato(new string('a', 69) + "ñ12"));
     }
 
     [Theory]
@@ -80,7 +83,7 @@ public class PoliticaContrasenaTests
 
     private sealed class Escenario
     {
-        public Mock<IUsuarioRepository> Repo { get; } = new();
+        public Mock<IUsuarioRepository> Repo { get; } = new Mock<IUsuarioRepository>().ConReservaDeRecuperacion();
         public Mock<IEmailQueue> Cola { get; } = new();
         public Mock<ITokenBlacklist> Blacklist { get; } = new();
         public Mock<IPasswordHasher> Hasher { get; } = new();
@@ -194,7 +197,8 @@ public class PoliticaContrasenaTests
             () => e.Servicio.RestablecerPasswordAsync("persona@ejemplo.com", "000000", "ClaveSegura123"));
 
         e.VerificadorNoFueConsultado();
-        Assert.Equal(1, e.Usuario.Recuperacion!.IntentosFallidos);
+        // El fallo se cuenta en la base con la reserva atómica (SEG-01), no en memoria.
+        e.Repo.Verify(r => r.ReservarIntentoRecuperacionAsync(e.Usuario.Id), Times.Once);
     }
 
     [Fact]

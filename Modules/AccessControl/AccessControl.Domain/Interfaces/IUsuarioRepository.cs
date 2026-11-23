@@ -28,6 +28,12 @@ public interface IUsuarioRepository
     /// leer-incrementar-guardar, peticiones en paralelo leerían el mismo contador y el límite no serviría.
     /// </summary>
     Task<int> ReservarIntentoActivacionAsync(Guid usuarioId);
+
+    /// <summary>
+    /// Igual que la de activación, para el código de recuperación: un solo UPDATE reserva el intento (1, 2, 3…) antes de comparar, así
+    /// peticiones en paralelo no comparan más de 5 veces. Devuelve 0 si no hay código vigente o ya se agotaron los 5 intentos.
+    /// </summary>
+    Task<int> ReservarIntentoRecuperacionAsync(Guid usuarioId);
     Task<IEnumerable<Usuario>> ObtenerTodosAsync();
 
     /// <summary>Cuentas cuyo periodo de gracia de la baja ya terminó, las más antiguas primero (máximo <paramref name="maximo"/>).</summary>
@@ -41,6 +47,9 @@ public interface IUsuarioRepository
 
     /// <summary>Cuántos administradores activos hay. Sirve para no dejar nunca al sistema sin ninguno (RF-CA-08, RF-CA-20).</summary>
     Task<int> ContarAdministradoresActivosAsync();
+
+    /// <summary>Cuentas que nunca se activaron, creadas antes de esa fecha (para purgarlas: SEG-02).</summary>
+    Task<IReadOnlyList<Usuario>> ObtenerPendientesSinActivarAsync(DateTime creadasAntesDe, int maximo);
 
     /// <summary>Cuántas cuentas se crearon desde esa fecha UTC (incluida). Solo un número: métricas agregadas.</summary>
     Task<int> ContarCreadasDesdeAsync(DateTime desdeUtc);

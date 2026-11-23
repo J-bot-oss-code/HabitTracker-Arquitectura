@@ -15,7 +15,7 @@ public class CuentasSinContrasenaTests
 {
     private const string Correo = "persona@ejemplo.com";
 
-    private readonly Mock<IUsuarioRepository> _repo = new();
+    private readonly Mock<IUsuarioRepository> _repo = new Mock<IUsuarioRepository>().ConReservaDeRecuperacion();
     private readonly Mock<IPasswordHasher> _hasher = new();
     private readonly Mock<IEmailQueue> _cola = new();
 

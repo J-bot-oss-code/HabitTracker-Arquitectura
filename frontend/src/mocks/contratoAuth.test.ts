@@ -70,7 +70,7 @@ describe('contrato simulado: registro', () => {
   })
 
   it.each(['corta1', 'Clave123456', 'SoloLetrasLargasSinNumero', '123456789012345'])(
-    'rechaza la contraseña %s (12 a 1024 caracteres con letra y número)',
+    'rechaza la contraseña %s (12 caracteres a 72 bytes, con letra y número)',
     async (password) => {
       const r = await llamar('/api/auth/register', { metodo: 'POST', body: registro({ password }) })
       expect(r.status).toBe(400)

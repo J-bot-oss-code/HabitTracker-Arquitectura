@@ -3,6 +3,7 @@ using AccessControl.Domain.Entities;
 using AccessControl.Domain.Entities.ValueObjects;
 using AccessControl.Domain.Interfaces;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using WebApi.Extensions;
@@ -129,6 +130,10 @@ public class InicializacionBaseDeDatosTests
     [InlineData("1")]
     [InlineData("corta123")]
     [InlineData("once_chars!")]
+    // SEG-15: largas pero fuera de la política (antes pasaban, porque solo se miraba la longitud)
+    [InlineData("SoloLetrasSinNingunNumero")]
+    [InlineData("1234567890123456")]
+    [InlineData("ClaveDeMasDeSetentaYDosBytes1234567890123456789012345678901234567890123456")]
     [Trait("Requirement", "RD-10")]
     public async Task RD_10_Siembra_ClaveDebil_FallaDeInmediatoYNoCreaLaCuenta(string claveDebil)
     {
@@ -174,6 +179,32 @@ public class InicializacionBaseDeDatosTests
         Assert.Equal(new Guid("5f1c0a00-0000-4000-8000-000000000002"), InicializacionBaseDeDatos.MetaDemostracionId);
     }
 
+    [Theory]
+    [Trait("Requirement", "RD-10")]
+    [InlineData(null)]
+    [InlineData("   ")]
+    [InlineData(129)]
+    public void SEG_06_SinUnaClaveValidaParaElUsuarioDeLaApi_ElMigradorNoArranca(object? valor)
+    {
+        var clave = valor is int largo ? new string('a', largo) : (string?)valor;
+        var configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["DB_APP_PASSWORD"] = clave }).Build();
+
+        var error = Assert.Throws<InvalidOperationException>(() => InicializacionBaseDeDatos.ClaveDeLaApp(configuracion));
+        Assert.DoesNotContain("aaaa", error.Message);
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-10")]
+    public void SEG_06_ConUnaClaveDe128Caracteres_SeUsaTalCual()
+    {
+        var clave = new string('a', 128);
+        var configuracion = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["DB_APP_PASSWORD"] = clave }).Build();
+
+        Assert.Equal(clave, InicializacionBaseDeDatos.ClaveDeLaApp(configuracion));
+    }
+
     // ---------- Dobles ----------
 
     private sealed class HasherFalso : IPasswordHasher
@@ -205,6 +236,9 @@ public class InicializacionBaseDeDatosTests
         }
         public Task<int> ContarAdministradoresActivosAsync() =>
             Task.FromResult(Guardados.Count(u => u.Rol == Rol.Administrador && u.Activo));
+        public Task<IReadOnlyList<Usuario>> ObtenerPendientesSinActivarAsync(DateTime creadasAntesDe, int maximo) =>
+            Task.FromResult<IReadOnlyList<Usuario>>([]);
+        public Task<int> ReservarIntentoRecuperacionAsync(Guid usuarioId) => Task.FromResult(1);
         public Task<int> ContarCreadasDesdeAsync(DateTime desdeUtc) =>
             Task.FromResult(Guardados.Count(u => u.FechaCreacion >= desdeUtc));
         public Task<int> ContarConBajaProgramadaAsync() =>
