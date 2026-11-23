@@ -63,6 +63,47 @@ public static class InicializacionBaseDeDatos
             logger);
     }
 
+    /// <summary>Usuario de la base con el que entra la API en producción: solo lee y escribe datos, sin crear tablas ni administrar el servidor.</summary>
+    public const string LoginDeLaApp = "habittracker_app";
+
+    // Idempotente. CREATE/ALTER LOGIN no aceptan parámetros: la contraseña llega como @clave y QUOTENAME la entrecomilla en el
+    // servidor (duplica las comillas), así que nunca se concatena texto del cliente en el SQL.
+    private const string SqlLoginDeLaApp =
+        "DECLARE @sql nvarchar(max); " +
+        "IF NOT EXISTS (SELECT 1 FROM sys.server_principals WHERE name = N'habittracker_app') " +
+        "  SET @sql = N'CREATE LOGIN habittracker_app WITH PASSWORD = ' + QUOTENAME(@clave, '''') + N', CHECK_POLICY = ON'; " +
+        "ELSE SET @sql = N'ALTER LOGIN habittracker_app WITH PASSWORD = ' + QUOTENAME(@clave, ''''); " +
+        "EXEC (@sql); " +
+        "IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'habittracker_app') " +
+        "  CREATE USER habittracker_app FOR LOGIN habittracker_app; " +
+        // Tras restaurar un respaldo en otro servidor el usuario queda huérfano (otro SID): se vuelve a enlazar con el login.
+        "ELSE ALTER USER habittracker_app WITH LOGIN = habittracker_app; " +
+        "ALTER ROLE db_datareader ADD MEMBER habittracker_app; " +
+        "ALTER ROLE db_datawriter ADD MEMBER habittracker_app;";
+
+    /// <summary>
+    /// SEG-06: el paso «solo migrar» (con sa) deja creado el usuario de la API con permisos mínimos. Así, si la API se viera
+    /// comprometida, no podría borrar tablas, leer otras bases ni ejecutar comandos del sistema (xp_cmdshell).
+    /// </summary>
+    public static async Task AsegurarLoginDeLaAppAsync(this WebApplication app)
+    {
+        var clave = ClaveDeLaApp(app.Configuration);
+        using var scope = app.Services.CreateScope();
+        var contexto = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await contexto.Database.ExecuteSqlRawAsync(SqlLoginDeLaApp, new SqlParameter("@clave", clave));
+    }
+
+    /// <summary>La contraseña del usuario de la API (DB_APP_PASSWORD): obligatoria y de hasta 128 caracteres (el límite de SQL Server).</summary>
+    public static string ClaveDeLaApp(IConfiguration configuracion)
+    {
+        var clave = configuracion["DB_APP_PASSWORD"];
+        if (string.IsNullOrWhiteSpace(clave) || clave.Length > 128)
+        {
+            throw new InvalidOperationException("Define DB_APP_PASSWORD (hasta 128 caracteres): es la contraseña con la que la API entra a la base, sin sa.");
+        }
+        return clave;
+    }
+
     /// <summary>
     /// Reintenta SOLO si el fallo es de conexión (SQL Server aún arrancando). Cualquier otro error, como una
     /// migración rota o un permiso insuficiente, se relanza de inmediato: reintentarlo solo retrasaría el aviso.

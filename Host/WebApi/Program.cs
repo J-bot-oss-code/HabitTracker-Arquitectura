@@ -118,6 +118,13 @@ VerificacionDelEntorno.ExigirZonasHorarias();
 VerificacionDelEntorno.ExigirSecretosPropios(app.Configuration);
 await app.InicializarBaseDeDatosAsync();
 
+// Producción (SEG-06): un contenedor de un solo uso migra con sa, deja creado el usuario de la API con permisos mínimos y sale.
+if (app.Configuration.GetValue<bool>("BaseDeDatos:SoloMigrar"))
+{
+    await app.AsegurarLoginDeLaAppAsync();
+    return;
+}
+
 // Catálogo de planes de HabitTracker (siempre: es contenido del código, no datos de demostración).
 await app.SembrarCatalogoPlanesAsync();
 

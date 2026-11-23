@@ -706,7 +706,7 @@ bash scripts/ci/verificar-commits.sh <base> HEAD     # p. ej. develop HEAD
 No se suprime nada en masa. Una excepción siempre lleva su motivo escrito:
 
 - **Secreto falso positivo:** se acota en `.gitleaks.toml` (valor y archivo exactos) o se añade su *fingerprint* a `.gitleaksignore` con un comentario `# motivo`. Si el secreto es **real**, se rota en el proveedor; no se reescribe la historia (rompería las etiquetas de entrega).
-- **Vulnerabilidad de una herramienta de desarrollo de npm sin parche:** `npm audit` bloquea solo las dependencias de producción (`--omit=dev`); las de desarrollo se auditan aparte en un paso que avisa sin bloquear. Se anota aquí con la fecha y se revierte cuando haya parche. Vigente desde el 18-11-2026: `picomatch` ≤ 4.0.7 (GHSA-fc5q-39xc-vjpf, ReDoS por extglobs repetidos, severidad alta) lo traen `vite`, `vitest` y `typescript-eslint` al compilar y probar; no llega al navegador ni se ejecuta con datos del usuario, y no existe versión corregida (la última publicada es la 4.0.7).
+- **Vulnerabilidad de npm sin parche:** `npm audit --audit-level=high` bloquea con todas las dependencias. Si un aviso alto no tiene versión corregida, la excepción se aprueba por escrito, se anota en `docs/historial/ci.md` con la fecha y se revierte cuando haya parche (la de `picomatch`, del 18-11-2026, se revirtió el 23-11-2026).
 - **Vulnerabilidad de la imagen sin parche:** línea `CVE-...` en `.trivyignore` con el motivo y la fecha de revisión.
 - **Regla del compilador:** `[SuppressMessage("Security", "CAxxxx", Justification = "...")]` en el sitio exacto, nunca bajar la severidad de toda la categoría.
 - **Alerta de CodeQL:** descartar en GitHub (*Security → Code scanning → Dismiss*) indicando el motivo, y anotarlo en `docs/ESTADO-DEL-PROYECTO.md`.
@@ -756,6 +756,8 @@ Para ejecutar este proyecto, necesitas configurar User Secrets o variables de en
 *   `App:FrontendUrl`: (String, opcional) URL de la app a la que lleva la página de activación tras activar, ya con la sesión abierta (ej. `http://localhost:5173`; en Docker, `FRONTEND_URL`). Vacía = la app está en el mismo origen que la API (producción).
 *   `Recordatorios:Habilitado` (bool, `true`) e `Recordatorios:IntervaloMinutos` (1–60, `5`): el proceso que envía los recordatorios por correo de los planes. Solo escribe a quien encendió el recordatorio de un plan (opt-in), como mucho un correo por plan y día a la hora elegida, con botones «Ya lo hice» y un enlace para darse de baja en un clic (`/api/reminders/unsubscribe`). Los enlaces usan `App:BaseUrl`; «Abrir la app», `App:FrontendUrl`.
 *   `Correo:TopeDiario` (int, `450`): correos que la cola acepta en 24 h, por la cuota del proveedor (Gmail en el piloto). Los avisos y recordatorios se cortan 50 antes, para que activación y recuperación sigan saliendo; además, como mucho 10 por hora a una misma dirección.
+*   `BaseDeDatos:SoloMigrar` (bool, `false`) y `DB_APP_PASSWORD` (String, solo producción): con `SoloMigrar=true` la API migra, crea o actualiza el usuario de la base `habittracker_app` (solo lee y escribe datos) con `DB_APP_PASSWORD` y sale. Lo usa el servicio `migrador` de `docker-compose.prod.yml`; la API de producción entra con ese usuario, nunca con `sa`.
+*   `RESPALDO_CLAVE_PUBLICA` y `RESPALDO_IDENTIDAD` (opcionales, scripts de `scripts/despliegue/`): cifran los respaldos con `age` y los descifran al restaurar (ver `docs/produccion.md`).
 
 ### Instrucciones de Ejecución
 1. Restaura las herramientas y paquetes: `dotnet restore`

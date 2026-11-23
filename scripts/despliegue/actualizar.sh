@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Actualiza producción: respalda, trae el código nuevo, reconstruye y comprueba que la API esté sana.
-# Ejecútalo en el servidor, como root o con sudo. Las migraciones se aplican solas al arrancar la API (una sola réplica).
+# Ejecútalo en el servidor, como root o con sudo. Las migraciones las aplica el servicio migrador (con sa) antes de que arranque la API.
 set -euo pipefail
 
 cd "$(dirname "$0")/../.."
@@ -14,7 +14,8 @@ echo "2/4 Código nuevo..."
 git pull --ff-only
 
 echo "3/4 Reconstruyendo y arrancando..."
-"${compose[@]}" up -d --build
+# Si el migrador falla, la API no arranca: se sigue al paso 4 para mostrar cómo volver atrás.
+"${compose[@]}" up -d --build || echo "Algo no arrancó; revisa: docker compose -f docker-compose.prod.yml logs migrador webapi" >&2
 
 echo "4/4 Esperando a la API..."
 for _ in $(seq 1 40); do
