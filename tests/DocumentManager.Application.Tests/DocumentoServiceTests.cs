@@ -543,6 +543,50 @@ public class DocumentoServiceTests
         Assert.Equal(0, guarda.Consultas);
     }
 
+    // ---------- SEG-09: cuota por persona ----------
+
+    private static void Precargar(RepositorioEnMemoria repo, Guid usuario, int cuantos, long tamano)
+    {
+        for (var i = 0; i < cuantos; i++)
+            repo.Todos.Add(new Documento($"previo{i}.pdf", "application/pdf", tamano, usuario, "ana@ejemplo.com"));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-07")]
+    public async Task SEG_09_ConLaCuotaDeEspacioJusta_UnByteMasSeRechaza_YEsoNoAfectaAOtraPersona()
+    {
+        var (servicio, repo, almacen) = Crear();
+        Precargar(repo, Ana, 20, DocumentoService.CuotaBytes / 20); // exactamente la cuota
+
+        await Assert.ThrowsAsync<ArchivoInvalidoException>(() => servicio.SubirAsync(Subida(Ana, bytes: [1])));
+        Assert.Equal(20, repo.Todos.Count);
+
+        await servicio.SubirAsync(Subida(Beto)); // la cuota es por persona
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-07")]
+    public async Task SEG_09_ElBordeExactoDeLaCuotaCabe()
+    {
+        var (servicio, repo, _) = Crear();
+        Precargar(repo, Ana, 1, DocumentoService.CuotaBytes - 4);
+
+        await servicio.SubirAsync(Subida(Ana)); // 4 bytes: llega justo a la cuota
+
+        await Assert.ThrowsAsync<ArchivoInvalidoException>(() => servicio.SubirAsync(Subida(Ana, bytes: [1])));
+    }
+
+    [Fact]
+    [Trait("Requirement", "RD-07")]
+    public async Task SEG_09_ComoMucho200Archivos_ContandoLosEliminados()
+    {
+        var (servicio, repo, _) = Crear();
+        Precargar(repo, Ana, DocumentoService.CuotaArchivos, 1);
+        foreach (var d in repo.Todos.Take(100)) d.Eliminar(DateTime.UtcNow);
+
+        await Assert.ThrowsAsync<ArchivoInvalidoException>(() => servicio.SubirAsync(Subida(Ana)));
+    }
+
     private sealed class RepositorioEnMemoria : IDocumentoRepository
     {
         public List<Documento> Todos { get; } = [];
